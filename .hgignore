@@ -1,0 +1,9 @@
+syntax: glob
+*.o
+*~
+*.out
+*.ot
+communication/client2.c
+
+syntax: regexp
+.*\#.*\#$
