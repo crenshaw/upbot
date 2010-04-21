@@ -17,6 +17,7 @@ int main(void)
   int newSock, numbytes;
 
   system("rm cmdFile.txt");
+  system("touch cmdFile.txt");
 
   // Create a socket to listen on port 22.  
   s = createListener(PORT);
@@ -55,10 +56,10 @@ int main(void)
 
   printf("server: waiting for connections...\n");
 
-  FILE* fp = fopen("cmdFile.txt", "a");
+  FILE* fp = fopen("cmdFile.txt", "r");
   if (fp == NULL)
     {
-      perror("Server fopen\n");
+      perror("Server fopen");
       close(s);
       return -1;
     }

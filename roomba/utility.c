@@ -196,18 +196,19 @@ void calcFileLoc(char c)
 
 int writeSensorDataToFile(int bumper, FILE* fp, char* currTime)
 {
+  int SensorData = 0x00;
 
   if(bumper == SENSOR_BUMP_LEFT)
     {
-      fprintf(fp, "Left Bump");
+      sendBinaryValue(fp, SensorData | SENSOR_BUMP_LEFT);
     }
   else if(bumper == SENSOR_BUMP_RIGHT)
     {
-      fprintf(fp, "Right Bump");
+      sendBinaryValue(fp, SensorData | SENSOR_BUMP_RIGHT);
     }
   else if(bumper == SENSOR_BUMP_BOTH)
     {
-      fprintf(fp, "Bump Both");
+      sendBinaryValue(fp, SensorData | SENSOR_BUMP_RIGHT | SENSOR_BUMP_LEFT);
     }
   else
     return -1;
@@ -226,4 +227,22 @@ char* getTime()
   time(&rawtime);
   timeinfo = localtime(&rawtime);
   return asctime(timeinfo);
+}
+
+/* Print n as a binary number */
+void sendBinaryValue(FILE* fp, int n) 
+{
+  int i;
+
+  i = 1<<(7);
+  
+  while (i > 0)
+  {
+    if (n & i)
+      fprintf(fp, "1");
+    else
+      fprintf(fp, "0");
+    i >>= 1;
+  }
+  fflush(fp);
 }

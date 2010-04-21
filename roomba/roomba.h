@@ -13,6 +13,7 @@ void *ReaderThread( void *param);
 //void calcFileLoc(int c);
 void calcFileLoc(char c);
 char* getTime();
+void sendBinaryValue(FILE* fp, int n);
 
 int driveStraightWithFeedback(int velocity);
 void driveStraightUntil(int sec, int speed);
