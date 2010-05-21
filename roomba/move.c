@@ -27,7 +27,7 @@ int driveStraightWithFeedback(int velocity)
 
   // Get the packet that contains the last issued velocity value.
   receiveSensorData(SP_REQUESTED_VELOCITY, x, 2, 1);
-  sleep(1);
+  //sleep(1);
 
   // First, determine what the expected velocity is; velocity
   // is described by a high byte, then low byte.  Get the word.
@@ -65,7 +65,7 @@ int driveStraightWithFeedback(int velocity)
 void driveStraightUntil(int sec, int speed)
 {
   driveStraight(speed);
-  sleep(sec);
+  usleep(sec);
 }
 
 // driveStraight()
@@ -117,7 +117,8 @@ void turnCounterClockwise(int degrees)
   byteTx(200);
   byteTx(0);
   byteTx(1);
-  sleep(degrees/90);
+  usleep(degrees);
+  stop();
 }
 
 //turn clockwise in increments of 
@@ -129,7 +130,8 @@ void turnClockwise(int degrees)
   byteTx(200);
   byteTx(255);
   byteTx(255);
-  sleep(degrees/90);
+  usleep(degrees);
+  stop();
 }
 
 //drive backwards for given seconds
@@ -137,7 +139,8 @@ void turnClockwise(int degrees)
 void driveBackwardsUntil(int sec, int speed)
 {
   driveBackwards(speed);
-  sleep(sec);
+  usleep(sec);
+  stop();
 }
 
 void driveBackwards(int speed)

@@ -5,14 +5,14 @@
 
 int main(int argc, char *argv[])
 {
-	int sockfd, numbytes;  
-	char buf[MAXDATASIZE];
+        int sockfd, numbytes;  
+        char buf[MAXDATASIZE];
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
 	char s[INET6_ADDRSTRLEN];
 	char cmd[1];
 	char input = '\0';
-
+	FILE* fp = fopen("sensorFile.txt", "w");
 	if (argc != 2) {
 	    fprintf(stderr,"usage: client hostname\n");
 	    exit(1);
@@ -64,6 +64,19 @@ int main(int argc, char *argv[])
 
 	printf("client: received '%s'\n",buf);
 
+	if(!fork())
+	  {
+	   while(1)
+	     {	       
+	       printf("Receiving sensor data.\n");
+	       numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0);
+	       printf("client: sensor data: '%s'\n", buf);	   
+	       printf("numbytes: %d\n", numbytes);
+	       fprintf(fp, "%s", buf);
+	       fflush(fp);
+	     }
+	   }
+
 	while (input != ssQuit)
 	  {
 	    printf("Input command value for roomba: \n");
@@ -76,6 +89,9 @@ int main(int argc, char *argv[])
 	        perror("send");
 	      printf("The command value sent was: %d\n", cmd[0]);
             }
+
+
+
 	  }
 	send(sockfd, &input, 1, 0);
 	close(sockfd);

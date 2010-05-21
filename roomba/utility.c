@@ -14,24 +14,20 @@ int count = 0;
 
 // This global file descriptor, once initialized,
 // keeps track of the serial port opened to the iRobot
-// Create.f  Its use is internal to this file for
-// easier port management.
+// Create.  It is used only by this file for easier port
+// management.
 int fd = -1;
 
 
-/*openPort
-*
-*	Opens ttyS2 port to write to Roomba
-*	Returns -1 if port failed to open 
-*	and 0 if port successfuly opens
-*/
+/**
+ * openPort()
+ *
+ * Opens ttyS2 port to write to iRobot.
+ * 
+ * @return -1 if port failed to open and 0 if port successfuly opens
+ */
 int openPort()
 {
-
-  // Close the port that was previously open and
-  // likely not closed.
-  //close(3);
-
   fd = open("/dev/ttyS2", O_RDWR );
 
   if (!fd)
@@ -49,10 +45,12 @@ int openPort()
   return fd;
 }
 
-/*
+/**
  * closePort()
- *  Description: Closes serial port using handler fd as
- *               passed to the function.
+ * 
+ * Closes serial port to the iRobot.
+ *
+ * @return 1 if successful, -1 if failed.
  */
 int closePort()
 {
@@ -65,12 +63,15 @@ int closePort()
     return -1;
 }
 
-/*byteTx
-*	Parameters: 
-*		char value: value to write to Roomba
-*	Descirption:
-*		writes value out to Roomba
-*/
+/**
+ * byteTx()
+ * 
+ * Transmits a byte to the iRobot over the serial interface.
+ *
+ * @arg value the 8-bit value to be transmitted.
+ * 
+ * @return void
+ */
 void byteTx(char value)
 {
 	char* buffer;
@@ -78,14 +79,19 @@ void byteTx(char value)
 	write(fd, buffer, 1);
 }
 
-/*byteRx
-*	Parameters:
-*		char* buffer: pointer to buffer to receive
-*		int nbytes: number of bytes to receive
-*		int iter: number of times to receive nbytes
-*	Description:
-*		reads values from Roomba
-*/
+/**
+ * byteRx()
+ *
+ * Reads a byte from the iRobot over the serial interface.
+ *
+ * @arg buffer a character pointer to the buffer which will
+ *      store the received data.
+ * @arg nbytes an int expressing the number of bytes to read.
+ * @arg iter an int expressing the number of times to receive
+ *      nbytes.
+ *
+ * @return void
+ */
 void byteRx(char* buffer, int nbytes, int iter)
 {
   int i;
@@ -97,12 +103,14 @@ void byteRx(char* buffer, int nbytes, int iter)
 
 }
 
-/*initialize
-*
-*	Sends bits to Roomba to start the Roomba,
-*	give the user control of the Roomba,
-*	and put the SCI into safe mode
-*/
+/**
+ * initialize()
+ *
+ * Sends the necessary byte sequence to the iRobot to start it
+ * up, give the user control of it, and put it into safe mode.
+ *
+ * @return void
+ */
 void initialize()
 {
   //Start the SCI
@@ -170,10 +178,10 @@ char readAndExecute(FILE *fp)
     driveBackwards(HIGH);
     break;
   case ssTurnCwise:
-    turnClockwise(90);
+    turnClockwise(DEGREES_90);
     break;
   case ssTurnCCwise:
-    turnCounterClockwise(90);
+    turnCounterClockwise(DEGREES_90);
     break;
   case ssStop:
     stop();
@@ -194,32 +202,62 @@ void calcFileLoc(char c)
     }
 }
 
-int writeSensorDataToFile(int bumper, FILE* fp, char* currTime)
+/**
+ * writeSensorDataToFile()
+ *
+ * converts sensor data to a 8-bit number and then prints the 8-bit
+ * number and the timestamp to a file.  The bits, listed from high
+ * -order bit 7 to low-order bit 0 are:
+ *
+ * 7: Unused.
+ * 6: Virtual Wall
+ * 5: Cliff Right
+ * 4: Cliff Front Right
+ * 3: Cliff Front Left
+ * 2: Cliff Left
+ * 1: Bump Left
+ * 0: Bump Right
+ *
+ * For each bit, '1' indicates the sensor has been activated.
+ *
+ * @arg sensorArray character pointer to group of sensor data
+ * @arg fp file pointer
+ * @arg currTime character pointer to the timestamp
+ *
+ * @return void
+ */
+
+void writeSensorDataToFile(char* sensorArray, FILE* fp, char* currTime)
 {
-  int SensorData = 0x00;
+  int sensorData = 0x00;
+  int i;
 
-  if(bumper == SENSOR_BUMP_LEFT)
-    {
-      sendBinaryValue(fp, SensorData | SENSOR_BUMP_LEFT);
-    }
-  else if(bumper == SENSOR_BUMP_RIGHT)
-    {
-      sendBinaryValue(fp, SensorData | SENSOR_BUMP_RIGHT);
-    }
-  else if(bumper == SENSOR_BUMP_BOTH)
-    {
-      sendBinaryValue(fp, SensorData | SENSOR_BUMP_RIGHT | SENSOR_BUMP_LEFT);
-    }
-  else
-    return -1;
+  sensorData |= sensorArray[0] & SENSOR_BUMP_BOTH;
 
-  printf("%x \n", bumper);
-  fprintf(fp, " %s \n", currTime);
+  for(i=2; i<=6; i++)
+    {
+      sensorData |= sensorArray[i]<<i;
+    }
+
+  fprintBinaryAsString(fp, sensorData);
+  
+  // printf("%x \n",sensorData);
+  fprintf(fp, " %s", currTime);
   fflush(fp);
-  return 0;
+  return;
 }
 
-
+/**
+ * getTime()
+ * 
+ * Get the current time from the operating system and
+ * convert it into human-readable format.  For example,
+ * 
+ *  Fri May 21 12:44:12 2010
+ * 
+ * @return char pointer to a string containing the 
+ *         human readable timestamp.
+ */
 char* getTime()
 {
   time_t rawtime;
@@ -229,8 +267,20 @@ char* getTime()
   return asctime(timeinfo);
 }
 
-/* Print n as a binary number */
-void sendBinaryValue(FILE* fp, int n) 
+/**
+ * fprintBinaryAsString()
+ *
+ * Given a file pointer fp and an integer value n,
+ * convert n to a string representing the value of
+ * n in binary.  For example 7 would be printed to
+ * fp as the string "00000111".
+ *
+ * @arg fp file pointer
+ * @arg n value to be printed
+ *
+ * @return void
+ */
+void fprintBinaryAsString(FILE* fp, int n) 
 {
   int i;
 
@@ -245,4 +295,41 @@ void sendBinaryValue(FILE* fp, int n)
     i >>= 1;
   }
   fflush(fp);
+}
+
+/**
+ * checkSensorData()
+ *
+ * This boolean function checks if any of the following 
+ * sensors in packet group 1 have been activated: bump,
+ * cliff, and virtual wall sensors. 
+ *
+ * @arg x pointer to sensor data group 1
+ * 
+ * @return 1 if any sensor has been activated, 0 otherwise.
+ */ 
+int checkSensorData(char *x)
+{
+  int i;
+
+  // Check bump sensors; return true if either bump sensor
+  // has been activated 
+  if(((x[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
+     ((x[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
+    {
+      return TRUE;
+    }
+
+  // Check cliff and virtual wall sensors; return true 
+  // if any sensor has been activated  
+  for(i = SP_G1_CLIFF_LEFT; i <= SP_G1_VIRTUAL_WALL; i++)
+    {
+      if(x[i] == ACTIVE_SENSOR)
+	{
+	  return TRUE;
+	}
+    }
+
+  // No sensor has been activated. 
+  return FALSE;
 }

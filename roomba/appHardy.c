@@ -18,8 +18,12 @@
 int main()
 {
   int c = -1;
-  char x[10];
+
+  volatile unsigned char x[10] = {0};
+
   char * currTime; //[100];
+
+  
   if (openPort() == 0)
     {
       printf("Port failed to open \n");
@@ -53,54 +57,51 @@ int main()
     {
       setLED(RED, PLAY_ON, ADVANCE_ON);
       
+      // check if there is an external command to execute;
+      // if so, execute it.
       if((c = readAndExecute(cmdFile) == -1))
 	{
 	  printf("readAndExecute failed\n");
 	}
       
-      receiveSensorData(SP_BUMPS_WHEELDROPS, x, 1, 1);
+      // query sensor data from the iRobot Create.
 
-      int sensorVal = x[0] & BUMP_SENSORS;
       
-      if((sensorVal) == SENSOR_BUMP_RIGHT)
-	{
-	  currTime = getTime();
-	  //turn left
-	  turnCounterClockwise(90);
-
-	  if (driveStraightWithFeedback(MED) == -1)
-	    printf("Problem with driving");
-	}
+      // receiveSensorData(SP_BUMPS_WHEELDROPS, x, 1, 1);
       
-      if((sensorVal) == SENSOR_BUMP_BOTH)
-	{
-	  currTime = getTime();
-	  driveBackwardsUntil(1, MED);
-	  //turn right
-	  turnClockwise(90);
+      receiveGroupOneSensorData(x);
 
-	  if (driveStraightWithFeedback(MED) == -1)
-	    printf("Problem with driving");
-	}
+      //receiveSensorData(SP_GROUP_ONE, x, 10, 1);      
+      int i;
       
-      if((sensorVal) == SENSOR_BUMP_LEFT)
+      // check if any of the sensor data indicates a 
+      // sensor has been activated.  If so, react be
+      // driving backwards briefly, stopping, and then
+      // conveying the sensor data to a file.
+      if(checkSensorData(x))
 	{
+
+	  // For debugging purposes, print all the sensor
+	  // data just read.
+	  for(i = 0; i <= 6; i++)
+	    {
+	      printf("0x%x ", x[i]);
+	      fflush(stdout);
+	    }
+
+	  printf("\n");
+
 	  currTime = getTime();
-	  //turn right
-	  turnClockwise(90);
-
-	  if (driveStraightWithFeedback(MED) == -1)
-	    printf("Problem with driving");
+	  //drive backwards and then stop
+	  driveBackwardsUntil(EIGHTH_SECOND, MED);
+	  writeSensorDataToFile(x, sensorFile, currTime);
 	}
 
-      //write the sensor data to a file, if fail print message
-      if(writeSensorDataToFile(sensorVal, sensorFile, currTime) == -1)
+      for(i = 0; i <= 6; i++)
 	{
-	  // printf("Problem with writing sensor data to file\n");
+	  x[i]= FALSE;
 	}
-	  
 
-      x[0] = 0x00;
     }
   
   fclose(cmdFile);

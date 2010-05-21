@@ -10,7 +10,7 @@ int main(void)
   struct sigaction sa;
   char p[INET6_ADDRSTRLEN];
   char buf[MAXDATASIZE] = {'\0'};
-
+  char sensData[40] = {'\0'};
   char choice = '\0';
 
   int s, i;
@@ -56,7 +56,8 @@ int main(void)
 
   printf("server: waiting for connections...\n");
 
-  FILE* fp = fopen("cmdFile.txt", "r");
+  FILE* fp = fopen("cmdFile.txt", "w");
+  FILE* sensorFile = fopen("sensorFile.txt", "r");
   if (fp == NULL)
     {
       perror("Server fopen");
@@ -85,12 +86,12 @@ int main(void)
       if(!fork()) 
 	{
 	  printf("Forked buf[0] = %c\n", buf[0]);
+	  if(send(newSock, MSG, sizeof(MSG), 0) == -1)
+	    perror("send");
+	  close(s);   // child process doesn't need the listener.
 	  while(buf[0] != ssQuit)
 	    {
 	      printf("Entered while loop \n");
-	      close(s);   // child process doesn't need the listener.
-	      if(send(newSock, MSG, sizeof(MSG), 0) == -1)
-		perror("send");
 	      
 	      if ((numbytes = recv(newSock, buf, MAXDATASIZE-1, 0)) == -1) 
 		{
@@ -99,6 +100,11 @@ int main(void)
 		}
 	      printf("%c\n", buf[0]);
 	      writeCommandToFile(buf, fp);
+
+	      readSensorDataFromFile(sensData, sensorFile);
+	      printf("sensorData: %s\n", sensData);
+	      if(send(newSock, sensData, sizeof(sensData), 0) == -1)
+		perror("send");
 	    }
 	  close(newSock);
 	  exit(0);

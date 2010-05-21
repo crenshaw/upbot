@@ -26,14 +26,14 @@ int main()
 	
       driveStraight(MED);
 
-      if((x[0] & BUMP_SENSORS) == SENSOR_BUMP_RIGHT)
+      if((x[0] & SENSOR_BUMP_BOTH) == SENSOR_BUMP_RIGHT)
 	{
 	  //turn left
 	  turnCounterClockwise(90);
 	  driveStraight(MED);
 	}
 
-      if((x[0] & BUMP_SENSORS) == SENSOR_BUMP_BOTH)
+      if((x[0] & SENSOR_BUMP_BOTH) == SENSOR_BUMP_BOTH)
 	{
 	  driveBackwardsUntil(1, MED);
 	  //turn right
@@ -41,7 +41,7 @@ int main()
 	  driveStraight(MED);
 	}
       
-      if((x[0] & BUMP_SENSORS) == SENSOR_BUMP_LEFT)
+      if((x[0] & SENSORS_BUMP_BOTH) == SENSOR_BUMP_LEFT)
 	{
 	  //turn right
 	  turnClockwise(90);

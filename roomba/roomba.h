@@ -13,7 +13,9 @@ void *ReaderThread( void *param);
 //void calcFileLoc(int c);
 void calcFileLoc(char c);
 char* getTime();
-void sendBinaryValue(FILE* fp, int n);
+void fprintBinaryAsString(FILE* fp, int n);
+int checkSensorData(char *x);
+void writeSensorDataToFile(char* sensorArray, FILE* fp, char* currTime);
 
 int driveStraightWithFeedback(int velocity);
 void driveStraightUntil(int sec, int speed);
@@ -28,6 +30,9 @@ void setLED(int powerSetting, int playSetting, int advanceSetting);
 
 #define HIGH_BYTE 0
 #define LOW_BYTE 1
+#define FALSE 0
+#define TRUE 1
+#define ACTIVE_SENSOR 1
 
 //Command Values
 #define CmdStart    128
@@ -51,10 +56,18 @@ void setLED(int powerSetting, int playSetting, int advanceSetting);
 #define SENSOR_BUMP_LEFT   0x02
 #define SENSOR_BUMP_RIGHT  0x01
 #define SENSOR_BUMP_BOTH   0x03
-#define BUMP_SENSORS 0x03
+#define SENSOR_WHEELDROP_RIGHT 0x04
+#define SENSOR_WHEELDROP_LEFT  0x08
+#define SENSOR_WHEELDROP_BOTH  0x0C
+#define SENSOR_WHEELDROP_CASTER 0x10
 
-//Baud Rate definitions according to the
-//iRobot Serial Command Interface
+// TLC: The following define is deprecated.  Remove it
+// once it becomes clear that no other file is using it.
+// 'SENSOR_BUMP_BOTH should be used in its place.
+//#define BUMP_SENSORS 0x03
+
+// Baud Rate definitions according to the
+// iRobot Serial Command Interface
 #define BaudRate_9600   5
 #define BaudRate_57600  10
 #define BaudRate_115200 11
@@ -64,7 +77,7 @@ void setLED(int powerSetting, int playSetting, int advanceSetting);
 #define MED_SPEED 0x012c
 #define LOW_SPEED 0x0064
 
-//Led values
+// LED values
 #define PWR_RED 255
 #define PWR_GREEN 0
 #define PWR_BLUE 100
@@ -80,8 +93,7 @@ void setLED(int powerSetting, int playSetting, int advanceSetting);
 #define ADVANCE_OFF 0
 #define ADVANCE_ON 1
 
-
-//Drive values
+// Drive values
 #define HIGH 3	//+-500mm/s
 #define MED 2	//+-300mm/s
 #define LOW 1	//+-100mm/s
@@ -90,8 +102,30 @@ void setLED(int powerSetting, int playSetting, int advanceSetting);
 #define CLOCKWISE 90
 #define CCLOCKWISE -90
 
-//Sensor packet numbers
+// Sensor packet indices for group 1
+#define SP_GROUP_ONE 1
+#define SP_G1_BUMPS_WHEELDROPS 0
+#define SP_G1_CLIFF_LEFT 2
+#define SP_G1_CLIFF_FRONT_LEFT 3
+#define SP_G1_CLIFF_FRONT_RIGHT 4
+#define SP_G1_CLIFF_RIGHT 5
+#define SP_G1_VIRTUAL_WALL 6
+
+// Sensor packet numbers according to the 
+// iRobot Open Interface
 #define SP_BUMPS_WHEELDROPS 7
+#define SP_CLIFF_LEFT 9
+#define SP_CLIFF_FRONT_LEFT 10
+#define SP_CLIFF_FRONT_RIGHT 11
+#define SP_CLIFF_RIGHT 12
+#define SP_VIRTUAL_WALL 13
 #define SP_REQUESTED_VELOCITY 39
+
+// Timing values
+#define HALF_SECOND 500000
+#define QUARTER_SECOND 250000
+#define EIGHTH_SECOND 125000
+#define DEGREES_45 45000000
+#define DEGREES_90 1000000
 
 #endif

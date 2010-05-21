@@ -1,4 +1,5 @@
 #include "communication.h"
+int count = 0;
 
 static int true = 1;
 static int false = 0;
@@ -101,6 +102,21 @@ void writeCommandToFile(char* cmd, FILE* fp)
       fprintf(fp, "%c", cmd[0]);
       fprintf(fp, "%s", " ");
       fflush(fp);
+    }
+}
+
+void readSensorDataFromFile(char* data, FILE* fp)
+{
+  data[0] = '\0';
+  if(fp != NULL)
+    {
+      fgets(data, 40, fp);
+      count += strlen(data);
+      printf("Count: %d\n", count);
+      if(fseek(fp, count, SEEK_SET) != 0)
+	{
+	  perror("readSensorDataFromFile (fseek)");
+	}
     }
 }
 
