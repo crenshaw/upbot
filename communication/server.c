@@ -1,7 +1,19 @@
 #include "communication.h"
 
-// main()
-//  
+/** 
+ * main()
+ *
+ * This server program executes on the iRobot Create.  It communicates 
+ * with a client running on a remote machine.  This server conveys
+ * iRobot Create sensor information to the client.  It receives control
+ * commands from the client and writes them to a shared file.  Another
+ * program obtains these commands from the shared file and conveys
+ * them to the iRobot.
+ *
+ * This is a multi-process program.  The parent process is in charge
+ *  
+ */
+
 
 int main(void)
 { 
@@ -54,11 +66,11 @@ int main(void)
       exit(1);
     }
 
-  printf("server: waiting for connections...\n");
+  printf("Server: waiting for connections...\n");
 
-  FILE* fp = fopen("cmdFile.txt", "w");
+  FILE* cmdFile = fopen("cmdFile.txt", "w");
   FILE* sensorFile = fopen("sensorFile.txt", "r");
-  if (fp == NULL)
+  if (cmdFile == NULL || sensorFile == NULL)
     {
       perror("Server fopen");
       close(s);
@@ -66,25 +78,29 @@ int main(void)
     }
 
   printf("Enter q to quit. \n");
-  while(1)
-    {
+
       size = sizeof(theirAddr);
       newSock = accept(s, (struct sockaddr *)&theirAddr, &size);
       if (newSock == -1)
 	{
 	  perror("accept");
-	  continue;
+	  //	  continue;
 	}
 
       inet_ntop(theirAddr.ss_family, get_in_addr((struct sockaddr *)&theirAddr), p, sizeof(p));
       
       printf("server: got connection from %s.\n", p);
-      fflush(fp);
-      
+      fflush(cmdFile);
+
+      int fd[2];
+      if(pipe(fd) < 0)
+	perror("pipe error");
+
       // Make a child process to handle the request.  The server will continue
       // to listen on s.
       if(!fork()) 
 	{
+	  close(fd[0]);
 	  printf("Forked buf[0] = %c\n", buf[0]);
 	  if(send(newSock, MSG, sizeof(MSG), 0) == -1)
 	    perror("send");
@@ -99,23 +115,48 @@ int main(void)
 		  exit(1);
 		}
 	      printf("%c\n", buf[0]);
-	      writeCommandToFile(buf, fp);
-
-	      readSensorDataFromFile(sensData, sensorFile);
-	      printf("sensorData: %s\n", sensData);
-	      if(send(newSock, sensData, sizeof(sensData), 0) == -1)
-		perror("send");
+	      writeCommandToFile(buf, cmdFile);
+	      write(fd[1], buf, 1);
+	      if(readSensorDataFromFile(sensData, sensorFile))
+		{
+		  printf("sensorData: %s\n", sensData);
+		  if(send(newSock, sensData, sizeof(sensData), 0) == -1)
+		    perror("send");
 	    }
+	    }
+
+
 	  close(newSock);
+	  close(fd[1]);
 	  exit(0);
 	     
 	}
+      // parent process doesn't need the new socket created to handle request.
+      fprintf(stdout, "sanity check\n");
+      close(newSock);  
+      close(fd[1]);
+      char line;
 
-      close(newSock);  // parent process doesn't need the new socket created to handle request.
-      //scanf("%c", &choice);
-    }
-  fclose(fp);
-  return 0;  
+      //      fprintf(stdout, "outer line: %c\n", line);
+      while(line != ssQuit)
+	{
+	  read(fd[0], &line, 1);
+	  fprintf(stdout, "inner line: %c\n", line);
+	  fflush(stdout);
+	  /*	  if(readSensorDataFromFile(sensData, sensorFile))
+	    {
+	      printf("sensorData: %s\n", sensData);
+	      if(send(newSock, sensData, sizeof(sensData), 0) == -1)
+		perror("send");
+		}*/
+	}
+      printf("Exited final while loop!\n");
+
+      fclose(cmdFile);
+      fclose(sensorFile);
+      close(fd[0]);
+      close(s);
+      exit(0);  
 
 }//main
 

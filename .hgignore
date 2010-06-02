@@ -3,6 +3,7 @@ syntax: glob
 *~
 *.out
 *.ot
+*.txt
 communication/client2.c
 
 syntax: regexp

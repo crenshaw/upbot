@@ -1,22 +1,25 @@
 #include <stdio.h>
+#include <sys/types.h>
 #ifndef _GUMSTIX_H
 #define _GUMSTIX_H
 
+/* In utility.c */
 int defineSongs();
 int openPort();
 int closePort();
-char readAndexecute(FILE *fp);
+char readAndExecute(FILE *fp, caddr_t shm);
 void byteTx(char value);
 void byteRx(char* buffer, int nbytes, int iter);
 void initialize();
 void *ReaderThread( void *param);
-//void calcFileLoc(int c);
 void calcFileLoc(char c);
 char* getTime();
 void fprintBinaryAsString(FILE* fp, int n);
 int checkSensorData(char *x);
 void writeSensorDataToFile(char* sensorArray, FILE* fp, char* currTime);
+void writeSensorDataToSharedMemory(char* sensorArray, caddr_t shm, char* currTime);
 
+/* In move.c */
 int driveStraightWithFeedback(int velocity);
 void driveStraightUntil(int sec, int speed);
 void driveStraight(int velocity);
@@ -26,7 +29,11 @@ void driveBackwardsUntil(int sec, int speed);
 void driveBackwards(int speed);
 void stop();
 
+/* In led.c */
 void setLED(int powerSetting, int playSetting, int advanceSetting);
+
+/* In nerves.c */
+int nerves(caddr_t cmdArea, caddr_t sensArea);
 
 #define HIGH_BYTE 0
 #define LOW_BYTE 1
@@ -60,6 +67,7 @@ void setLED(int powerSetting, int playSetting, int advanceSetting);
 #define SENSOR_WHEELDROP_LEFT  0x08
 #define SENSOR_WHEELDROP_BOTH  0x0C
 #define SENSOR_WHEELDROP_CASTER 0x10
+#define SENSOR_BUMPS_WHEELDROPS 0x001F
 
 // TLC: The following define is deprecated.  Remove it
 // once it becomes clear that no other file is using it.
@@ -74,8 +82,13 @@ void setLED(int powerSetting, int playSetting, int advanceSetting);
 
 // iRobot Create Speed Values
 #define HIGH_SPEED 0x01F3
-#define MED_SPEED 0x012c
+//#define MED_SPEED 0x012c
+#define MED_SPEED 0x00D0
 #define LOW_SPEED 0x0064
+#define HIGH_SPEED_BACK 0xFE0C
+//#define MED_SPEED_BACK 0xFED4
+#define MED_SPEED_BACK 0xFF50
+#define LOW_SPEED_BACK 0xFF9C
 
 // LED values
 #define PWR_RED 255
@@ -101,6 +114,7 @@ void setLED(int powerSetting, int playSetting, int advanceSetting);
 #define BACKWARD -1
 #define CLOCKWISE 90
 #define CCLOCKWISE -90
+#define STRAIGHT 0x8000
 
 // Sensor packet indices for group 1
 #define SP_GROUP_ONE 1
@@ -120,6 +134,10 @@ void setLED(int powerSetting, int playSetting, int advanceSetting);
 #define SP_CLIFF_RIGHT 12
 #define SP_VIRTUAL_WALL 13
 #define SP_REQUESTED_VELOCITY 39
+#define SP_CLIFF_LEFT_SIGNAL 28
+#define SP_CLIFF_F_LEFT_SIGNAL 29
+#define SP_CLIFF_F_RIGHT_SIGNAL 30
+#define SP_CLIFF_RIGHT_SIGNAL 31
 
 // Timing values
 #define HALF_SECOND 500000
