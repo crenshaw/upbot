@@ -16,7 +16,7 @@
 
 #define BACKLOG 10
 #define MSG "And indeed there will be time\nTo wonder, 'Do I dare?' and, 'Do I dare?'\n"
-#define PORT "22"
+#define PORT "8080"
 // Function prototypes.
 int createListener(const char * name);
 void *get_in_addr(struct sockaddr *sa);

@@ -1,18 +1,33 @@
-//aptSimple
+//appSimple
 //Simple program for iRobot Create Roomba
 //Created By:	Steven M. Beyer
 //Date:		24 February 2010
-//Description:	Turns on all LEDs with the Play at Red at full intensity.
-//Depends on:	led.c utility.c
+//Description:	A simple program to control iRobot Create behaviour.
 
 #include <stdio.h>
 #include "roomba.h"
 #include "../communication/communication.h"
 
+/** 
+ * main()
+ *
+ * Turns on all LEDs with the Play at Red at full
+ * intensity. Subsequently drives until a bump sensor is
+ * activated. Upon bump sensor activation, the iRobot Create turns and
+ * continues driving. All the while, the program looks for external
+ * commands to execute in cmdFile.txt.
+ * 
+ * Useful for initial debugging of new gumstix hardware interfaced to
+ * an iRobot Create.
+ *
+ */
 int main()
 {
   int c = -1;
   char x[10];
+
+  printf("appSimple running ... \n");
+
   if (openPort() == 0)
     {
       printf("Port failed to open \n");
@@ -20,10 +35,14 @@ int main()
     }
   
   initialize();
-  
+
+  printf("   initialization of roomba complete. \n");
+
   sleep(1);
 
   setLED(RED, PLAY_ON, ADVANCE_ON);
+
+  printf("   led initialization complete. \n");
 
   FILE* fp = fopen("cmdFile.txt", "r+a");
 
@@ -33,6 +52,8 @@ int main()
       return -1;
     }
   driveStraight(MED);
+
+  printf("   driving...\n");
   
   while(1)
     {
