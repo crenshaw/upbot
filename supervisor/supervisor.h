@@ -11,7 +11,7 @@
 * data.
 *
 * Author: Zachary Paul Faltersack
-* Last edit: 22/5/10
+* Last edit: 27/5/10
 */
 
 #include <stdio.h>
@@ -46,11 +46,12 @@
 #define NUM_SENSORS			0xA	// Always make sure this is at the end
 
 // Boolean values
-#define TRUE			1
-#define FALSE			0
+#define TRUE				1
+#define FALSE				0
 
 // Matching defines
-#define NUM_TO_MATCH	10
+#define NUM_TO_MATCH		100
+#define NUM_GOALS_TO_FIND	10
 
 // Sensor data struct
 typedef struct EpisodeStruct
@@ -70,14 +71,18 @@ typedef struct MilestoneStruct
 
 // This vector will contain all episodes received from Roomba
 Vector* g_episodeList;
-
+Vector* g_milestoneList;
 
 // Function declarations
-int tick(Episode *episode);
+extern int tick(char* sensorInput);
+Episode* createEpisode(char* sensorData);
+int chooseCommand(Episode* ep);
 int parseEpisode(Episode* parsedData, char* dataArr);
 int addEpisode(Vector* episodes, Episode* item);
 void displayEpisode(Episode* ep);
 int match(Vector* vector, int* score);
 int compare(Episode* ep1, Episode* ep2);
+void initSupervisor();
+void endSupervisor();
 
 #endif // _SUPERVISOR_H_

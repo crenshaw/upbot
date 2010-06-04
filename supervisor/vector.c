@@ -27,6 +27,17 @@ Vector* newVector()
 */
 void freeVector(Vector* victim)
 {
+	if(victim == NULL)
+	{
+		return;
+	}
+	int i;
+	// Free all memory pointed to by vector before freeing vector
+	for(i = 0; i < victim->size; i++)
+	{
+		free(victim->array[i]);
+	}
+	// Free the vector memory
 	free(victim->array);
 	free(victim);
 }// freeVector
@@ -42,10 +53,12 @@ void freeVector(Vector* victim)
 */
 int addEntry(Vector* vector, void* item)
 {
+	// Make sure we aren't adding to a null vector
 	assert(vector != NULL);
+	// Check if the vector is currently full
 	if(vector->size == vector->capacity)
 	{
-		//Double the size of the array and copy elements
+		// If so, double the size of the array and copy elements
 		void** tempArr = (void**) malloc(vector->capacity * 2 * sizeof(void*));
 		int i;
 		for(i = 0; i < vector->size; i++)
@@ -76,6 +89,6 @@ int addEntry(Vector* vector, void* item)
 */
 void* getEntry(Vector* vector, int index)
 {
-	assert(index >= 0);
+	assert(index >= 0 && index < vector->size);
 	return vector->array[index];
 }// getEntry

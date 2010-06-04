@@ -1,21 +1,43 @@
-/*
-** supervisorClient.c -- a stream socket client demo
+/**
+* supervisorClient.c
+*
+* This is the client that connects to the Roomba server.
+* It creates a connection and receives char arrays containing the sensor
+* data and sends the commands that the Supervisor decides
+*
+* Author: Dr. Crenshaw, Dr. Nuxoll, Zachary Faltersack, Steve Beyer
+* Last edit: 27/5/10
 */
+
 #include "communication.h"
+#include "../supervisor/supervisor.h"
+
+void exitError(int errCode)
+{
+	printf("Error. Ending...");
+	endSupervisor();
+	exit(errCode);
+}
+
 
 int main(int argc, char *argv[])
 {
-        int sockfd, numbytes;  
-        char buf[MAXDATASIZE];
+    int sockfd, numbytes;  
+    char* buf = (char*) malloc(sizeof(char) * MAXDATASIZE);
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
 	char s[INET6_ADDRSTRLEN];
-	char cmd[1];
 	char input = '\0';
-	FILE* fp = fopen("sensorFile.txt", "w");
+	FILE* log = fopen("supClient.log", "w");
 	if (argc != 2) {
 	    fprintf(stderr,"usage: client hostname\n");
 	    exit(1);
+	}
+
+	if(!log)
+	{
+		fprintf(stderr, "File not opened correctly");
+		exit(1);
 	}
 
 	memset(&hints, 0, sizeof hints);
@@ -55,60 +77,103 @@ int main(int argc, char *argv[])
 
 	freeaddrinfo(servinfo); // all done with this structure
 
-	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-	    perror("recv");
-	    exit(1);
-	}
+	//--------------------------------------------------------------------
+	// ABOVE: Create connection to Roomba server
+	//
+	// BELOW: Supervisor loop for processing episodes as they're received
+	//--------------------------------------------------------------------
 
-	buf[numbytes] = '\0';
-
-	printf("client: received '%s'\n",buf);
+	// Variables used for Supervisor loop processing
+	initSupervisor();				// Initialize the Supervisor
+	int cmd;						// generic status code return value
+	int goalsFound = 0;				// Number of times we found the goal
+	int* goalsTimeStamp = (int*)malloc(sizeof(int) * NUM_GOALS_TO_FIND);
 
 	while(1)
     {	       
+		// Receive sensor data from socket and store in 'buf'
 		printf("Receiving sensor data.\n");
 	    numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0);
+		// Insert null terminating character at end of sensor string
+		sprintf(&buf[numbytes], "\0");
+
+		// Print raw sensor data to stdout along with size in bytes
 	    printf("client: sensor data: '%s'\n", buf);	   
 	    printf("numbytes: %d\n", numbytes);
-	    fprintf(fp, "%s", buf);
-	    fflush(fp);
 
-		Episode * ep = (Episode*) malloc(sizeof(Episode));
+		// Call Supervisor tick to process recently added episode
+	    cmd = tick(buf);
 
-		int retVal;
+		// Print sensor data to log file and force write
+	    fprintf(log, "Sensor data: [%s] Command received: %i\n", buf, cmd);
+	    fflush(log);
 
-		retVal = parseEpisode(ep, buf);
-		if(retVal != 0)
-		{
-			char errBuf[1024];
-			sprintf(errBuf, "Error in parsing: %s\n", buf);
-			perror(errBuf);
-			exit(retVal);
-		}
-
-	    retVal = tick(ep);
-		if(retVal != 0)
+		// Error in processing, exit with appropriate error code
+		if(cmd < 0)
 		{
 			perror("Tick returned error\n");
-			exit(retVal);
+			exit(cmd);
 		}
 
-	    if(ep->cmd < CMD_NO_OP || ep->cmd >= NUM_COMMANDS)
+		// If tick gave us an invalid command, exit with appropriate error code
+	    if(cmd >= NUM_COMMANDS)
         {
 			perror("Illegal command");
-			exit(ep->cmd);
+			exit(cmd);
         }
-    	if(send(sockfd, cmd, 1, 0) == -1)
+
+		// Else send command to Roomba server and exit if unsuccessful
+    	if(send(sockfd, &cmd, 1, 0) == -1)
 		{
         	perror("send");
 		}
 	    
-	  	printf("The command value sent was: %d\n", cmd[0]);
+		// Print command sent to Roomba on stdout
+	  	printf("The command value sent was: %d\n", cmd);
 
-		free(ep);
+		// If goal is found increase goal count and store the index it was found at
+		if(((Episode*)getEntry(g_episodeList, g_episodeList->size - 1))->sensors[SNSR_IR] == 1)
+		{
+			goalsTimeStamp[goalsFound] = ((Episode*)getEntry(g_episodeList, g_episodeList->size - 1))->now;
+			goalsFound++;
+		}
+
+		// Once we've found all the goals, print out some data about the search
+		if(goalsFound >= NUM_GOALS_TO_FIND)
+		{
+			// Print the number of goals found and episodes recieved
+			printf("Roomba has found the Goal %i times.\nSupervisor has received %i episodes.\n", NUM_GOALS_TO_FIND, g_episodeList->size);
+			int i;
+			// Print the timestamp that each goal was found at
+			for(i = 0; i < NUM_GOALS_TO_FIND; i++)
+			{
+				printf("Goal %i was found at time %i", i, goalsTimeStamp[i]);
+
+				//If not the first goal, print number of episodes between previous and current goal
+				if(i > 0)
+				{
+					printf(" and it took %i episodes to find it after goal %i\n", goalsTimeStamp[i]-goalsTimeStamp[i-1], i-1);
+				}else
+				{
+					printf("\n");
+				}
+			}
+			// free the goals time stamp array
+			free(goalsTimeStamp);
+			// exit the while loop
+			printf("Exiting.\n");
+			break;
+		}
+
 	}
+
+	// End Supervisor, call frees memory associated with Supervisor vectors
+	endSupervisor();
+
+	// close the connection to Roomba server
 	send(sockfd, &input, 1, 0);
 	close(sockfd);
+	fclose(log);
 
 	return 0;
 }//main

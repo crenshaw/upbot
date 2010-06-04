@@ -33,7 +33,7 @@ int checkValue(char v);
 #define ssQuit 'q'
 #define BACKLOG 10
 #define MSG "And indeed there will be time\nTo wonder, 'Do I dare?' and, 'Do I dare?'\n"
-#define PORT "8080"
+#define PORT "22"
 #define MAXDATASIZE 100 // max number of bytes we can get at once 
 
 #endif
