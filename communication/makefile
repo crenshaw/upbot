@@ -2,7 +2,7 @@
 CC=arm-linux-gcc
 CFLAGS= -static  
 
-all: server client sserver sclient supclient unittest brain brainstem
+all: server client sserver sclient supclient unittest brainstem
 
 server:	server.c communication.h serverUtility.c
 	$(CC) $(CFLAGS) -o server.out server.c serverUtility.c
@@ -22,13 +22,8 @@ supclient:	supervisorClient.c communication.h serverUtility.c ../supervisor/supe
 unittest: unitTestServer.c serverUtility.c ../supervisor/unitTest.h
 	gcc -o unitTestServer.out unitTestServer.c serverUtility.c ../supervisor/unitTest.c
 
-
-brain:	brain.c communication.h serverUtility.c tell.c
-	$(CC) $(CFLAGS) -o brain.out brain.c serverUtility.c tell.c
-
 brainstem: brainstem.c communication.h serverUtility.c tell.c nerves.o move.o sensors.o led.o utility.o ../roomba/roomba.h
 	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c tell.c nerves.o move.o sensors.o led.o utility.o 
-
 
 
 # Make sure that object files are built in the appropriate order; if

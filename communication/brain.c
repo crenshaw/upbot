@@ -120,7 +120,15 @@ int main(void)
       
 	//close parent in the child process
 	close(s);   // child process doesn't need the listener.
-      
+
+
+	/*      
+		
+		TLC: This version of receiveDataAndStore() has been
+		deprecated.  This entire file will eventually be
+		deprecated, and needs to be removed from the
+		repository.
+
 	//continues until the user enters the quit command 'q'
 	if(receiveDataAndStore(newSock, cmdBuf, sensData, cmdFile, sensorFile, fd) == -1)
 	  {
@@ -128,6 +136,8 @@ int main(void)
 	    exit(-1);
 	  }
       
+	*/
+
 	//close child pipe in child's process
 	close(fd[1]);
       
