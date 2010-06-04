@@ -19,7 +19,8 @@ int main()
 {
   int c = -1;
 
-  volatile unsigned char x[10] = {0};
+  unsigned char x[10] = {0};
+  char y[10] = {0};
 
   char * currTime; //[100];
 
@@ -49,13 +50,16 @@ int main()
       return -1;
     }
 
-  if (driveStraightWithFeedback(MED) == -1)
-    printf("Problem with driving");
+  // if (driveStraightWithFeedback(LOW) == -1)
+  //  printf("Problem with driving");
+  stop();
+  driveStraight(MED);
 
-  
+  setLED(RED, PLAY_ON, ADVANCE_ON);
+
   while(1)
     {
-      setLED(RED, PLAY_ON, ADVANCE_ON);
+      
       
       // check if there is an external command to execute;
       // if so, execute it.
@@ -70,33 +74,44 @@ int main()
       // receiveSensorData(SP_BUMPS_WHEELDROPS, x, 1, 1);
       
       receiveGroupOneSensorData(x);
+      //receiveSensorData(SP_CLIFF_F_LEFT_SIGNAL, y, 2, 1);
 
       //receiveSensorData(SP_GROUP_ONE, x, 10, 1);      
-      int i;
-      
+      //int i;
+
+      /*      receiveGroupFourSensorData(y);
+      printf("sensorSignal: ");
+      for(i = 0; i <= 3; i++)
+	{
+	  printf("0x%x ", y[i]);
+	}
+      fflush(stdout);
+      printf("\n");
+      */
       // check if any of the sensor data indicates a 
       // sensor has been activated.  If so, react be
       // driving backwards briefly, stopping, and then
       // conveying the sensor data to a file.
       if(checkSensorData(x))
 	{
-
 	  // For debugging purposes, print all the sensor
 	  // data just read.
-	  for(i = 0; i <= 6; i++)
+	  /* for(i = 0; i <= 6; i++)
 	    {
 	      printf("0x%x ", x[i]);
 	      fflush(stdout);
-	    }
+	      }*/
 
-	  printf("\n");
+	  //	  printf("\n");
 
-	  currTime = getTime();
 	  //drive backwards and then stop
 	  driveBackwardsUntil(EIGHTH_SECOND, MED);
+	  //printf("sensorSignal: %x\n", y[0]);
+	  //printf("sensorSignal: %x\n", y[1]);
+	  currTime = getTime();
 	  writeSensorDataToFile(x, sensorFile, currTime);
 	}
-
+      int i;
       for(i = 0; i <= 6; i++)
 	{
 	  x[i]= FALSE;

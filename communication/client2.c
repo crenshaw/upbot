@@ -11,12 +11,17 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-
 #include <arpa/inet.h>
+#include "../roomba/roomba.h"
+#include "communication.h"
+
+
 
 #define PORT "8080" // the port client will be connecting to 
-
 #define MAXDATASIZE 100 // max number of bytes we can get at once 
+
+// Global variables.
+
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -35,6 +40,9 @@ int main(int argc, char *argv[])
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
 	char s[INET6_ADDRSTRLEN];
+	int cmd[1] = {-1};
+	char cmd2[1];
+	int input = -2;
 
 	if (argc != 2) {
 	    fprintf(stderr,"usage: client hostname\n");
@@ -86,7 +94,19 @@ int main(int argc, char *argv[])
 	buf[numbytes] = '\0';
 
 	printf("client: received '%s'\n",buf);
+	
+	while (cmd[0] != 'q')
+	  {
+	    printf("Input command value for roomba: \n");
+	    ("%d", cmd);
+	    if(cmd[0] != -1 && cmd[0] != 10)
+	      {
+		if(send(sockfd, cmd, 1, 0) == -1)
+		  perror("send");
+		printf("The command value sent was: %d\n", cmd[0]);
+	      }
 
+	  }
 	close(sockfd);
 
 	return 0;

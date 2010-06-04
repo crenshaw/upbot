@@ -39,9 +39,25 @@ void receiveGroupOneSensorData(char * x)
 
   receiveSensorData(SP_BUMPS_WHEELDROPS, x, 1, 1);
 
+  //skip wall sensor data
+  x++;
+
   for(i = SP_CLIFF_LEFT; i <= SP_VIRTUAL_WALL; i++)
     {
       x++;
       receiveSensorData(i, x, 1, 1);
+    }
+}
+
+/**
+ */
+void receiveGroupFourSensorData(char * x)
+{
+  int i = 0;
+ 
+  for(i = SP_CLIFF_LEFT_SIGNAL; i<= SP_CLIFF_RIGHT_SIGNAL; i++)
+    {
+      receiveSensorData(i, x, 1, 1);
+      x++;
     }
 }

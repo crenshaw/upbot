@@ -1,12 +1,17 @@
 #include "communication.h"
-int count = 0;
+
+#define SIZE 40
 
 static int true = 1;
 static int false = 0;
+char lastDataSent[MAXDATASIZE] = {'\0'};
 
-// get_in_addr()
-//   Get sockaddr, IPv4 or IPv6:
-//
+
+/** 
+ * get_in_addr()
+ *
+ * Get sockaddr, IPv4 or IPv6:
+ */
 void *get_in_addr(struct sockaddr *sa)
 {
   if (sa->sa_family == AF_INET) {
@@ -17,11 +22,13 @@ void *get_in_addr(struct sockaddr *sa)
 }
 
 
-// serv_listen()
-//   Create a server endpoint of communication.
-//   Adapted from: "Advance Programming in the UNIX Environment."  page 501
-//   as well as "Beej's Guide to Network Programming."
-
+/**
+ * createListener()
+ *  
+ * Create a server endpoint of communication.
+ * Adapted from: "Advance Programming in the UNIX Environment."  page 501
+ * as well as "Beej's Guide to Network Programming."
+ */
 int createListener(const char * name)
 {
   int status;
@@ -39,7 +46,7 @@ int createListener(const char * name)
   // in terms of the socket.  The goal is to listen in on host's IP
   // address on port 22.
   memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_UNSPEC;        // don't care if its IPv4 or IPv6.
+  hints.ai_family = AF_INET;        // don't care if its IPv4 or IPv6.
   hints.ai_socktype = SOCK_STREAM;    // stream-style sockets.
   hints.ai_flags = AI_PASSIVE;        // fill in my IP automatically.
 
@@ -84,17 +91,23 @@ int createListener(const char * name)
 }
 
 
-// sigchld_handler()
-//  This function is an interrupt-driven function which 
-//  reaps dead children that are forked by the server.
+/** 
+ * sigchld_handler()
+ *
+ * This function is an interrupt-driven function which 
+ * reaps dead children that are forked by the server.
+ */
 void sigchld_handler(int s)
 {
   while(waitpid(-1, NULL, WNOHANG) > 0);
 }
 
 
-//writeCommandToFile()
-//Takes a command and writes it to a file.
+/**
+ * writeCommandToFile()
+ * 
+ * Takes a command and writes it to a file.
+ */
 void writeCommandToFile(char* cmd, FILE* fp)
 {
   if(fp != NULL && cmd[0] != '\0' && cmd[0] != ssQuit)
@@ -104,30 +117,90 @@ void writeCommandToFile(char* cmd, FILE* fp)
       fflush(fp);
     }
 }
-
-void readSensorDataFromFile(char* data, FILE* fp)
+/**
+ * readSensorDataFromFile()
+ *
+ * Reads a line from the file containing sensor data.
+ * This file is shared between the server and the roomba app
+ *
+ * @arg data pointer to read the file to
+ * @arg fp file pointer
+ *
+ * @return int 1 if we read something and 0 otherwise
+ */
+int readSensorDataFromFile(char* data, FILE* fp)
 {
   data[0] = '\0';
+  int count = 0;
+  /* if(freopen("sensorFile.txt", "r+a", fp) != NULL)
+    {
+      perror("readSensorDataFromFile (freopen)");
+      return 0;
+      }*/
   if(fp != NULL)
     {
-      fgets(data, 40, fp);
-      count += strlen(data);
-      printf("Count: %d\n", count);
-      if(fseek(fp, count, SEEK_SET) != 0)
+      //confirm that you are not at the EOF
+      if(fgets(data, 40, fp) != NULL)
 	{
-	  perror("readSensorDataFromFile (fseek)");
+	  count += strlen(data);
+
+	  if(fseek(fp, count, SEEK_SET) != 0)
+	    {
+	      perror("readSensorDataFromFile (fseek)");
+	    }
+	  return 1;
 	}
+      perror("readSensorDataFromFile (fgets)");
+      return 0;
     }
+  perror("readSensorDataFromFile (bad fp)");
+  return 0;
 }
 
-/*checkValue
+/**
+ * readSensorDataFromSharedMemory()
  *
+ * copy sensor data from shared memory into memory pointed
+ * to by data
+ *
+ * @arg data pointer to destination
+ * @arg shm pointer to source
+ *
+ * @return int 
+ */
+int readSensorDataFromSharedMemory(char* data, caddr_t shm)
+{
+  int shmLength = strlen((char*)shm);
+
+  if (strncmp(lastDataSent, (char *)(shm), shmLength) != 0)
+    {
+      strncpy(data, (char *)(shm), shmLength);
+      strncpy(lastDataSent, (char *)shm, shmLength);
+
+      return 1;
+    }
+
+  return 0;
+  
+}
+  
+
+/** 
+ * checkValue() 
+ * 
  *      checks the value of the character being passed
  *      to ensure that it is a valid command and returns
  *      1, else if not valid command return 0
  */
 int checkValue(char v)
 {
+
+  if(v == CMD_LEFT)
+    return true;
+
+  if(v == CMD_RIGHT)
+    return true;
+
   if(v == ssDriveLow)
     return true;
 
@@ -160,3 +233,136 @@ int checkValue(char v)
 
   return false;
 }
+
+/**
+ * receiveDataAndStore()
+ *
+ * Receive a control command and convey sensor data.
+ */
+int receiveDataAndStore(int newSock, char* cmdBuf, char* sensData, FILE* cmdFile, 
+			FILE* sensorFile, int* fd, caddr_t sensArea)
+{
+  int numbytes;
+
+  // While the quit command is not sent receive commands from client
+  while(cmdBuf[0] != ssQuit)
+    {
+      if ((numbytes = recv(newSock, cmdBuf, MAXDATASIZE-1, 0)) == -1)
+	{
+	  perror("recv");
+	  return -1;
+	}
+      printf("%c\n", cmdBuf[0]);
+
+      // Write command to the cmdFile.txt
+      writeCommandToFile(cmdBuf, cmdFile);
+      
+      // Send command to parent process
+      write(fd[1], cmdBuf, 1);
+      
+      if(readSensorDataFromSharedMemory(sensData, sensArea))
+      {
+	printf("sensData: %s \n", sensData);
+	if(send(newSock, sensData, strlen(sensData), 0) == -1)
+	  perror("send");
+      }
+    }
+  return 0;
+}
+
+/**
+ * createSharedMem()
+ * 
+ * Create a small piece of shared memory labeled with the 
+ * label 'area'.
+ *
+ * @arg deviceName the deviceName to use for the memory location.
+ * @arg area the label of the shared memory location.
+ */
+int createSharedMem(char * deviceName, caddr_t* area)
+{
+  int fd;
+
+  // Map the I/O device to a piece of shared memory 
+  if( (fd = open(deviceName, O_RDWR)) < 0)
+    {
+      perror("open error");
+      return -1;
+    }
+
+  if ( (*area = mmap(0, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0)) == (caddr_t) -1)
+    {
+      perror("mmap error");
+      return -1;
+    }
+
+  // Now that device has been mapped, it may be closed. 
+  close(fd);
+  return 0;
+}
+
+int createServer(void)
+{
+  struct sigaction sa;
+  int s;
+
+  // Create a socket to listen on port 22.  
+  s = createListener(PORT);
+
+  // Handle any problems raised by createListener().
+  if(s == -2)
+    {
+      perror("bind");
+      return -1;
+    }
+
+  else if(s == -1)
+    {
+      perror("socket");
+      return -1;
+    }
+
+  // Listen to the socket, wait for incoming requests.  Allow 
+  // a BACKLOG of requests to come in.
+  if (listen(s, BACKLOG) == -1)
+    {
+      perror("listen");
+      return -1;
+    }
+
+
+  // Set up the child reaper, a sig-action handler.
+  sa.sa_handler = sigchld_handler; 
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART;
+  
+  if (sigaction(SIGCHLD, &sa, NULL) == -1) 
+    {
+      perror("sigaction");
+      return -1;
+    }
+  
+  return s;
+}
+
+int establishConnection(int s)
+{
+  char p[INET6_ADDRSTRLEN];
+  struct sockaddr_storage theirAddr; // connector's address information
+  int newSock = -1;
+  socklen_t size;
+
+  while(newSock == -1)
+    {
+      size = sizeof(theirAddr);
+      newSock = accept(s, (struct sockaddr *)&theirAddr, &size);
+      if (newSock == -1)
+	{
+	  perror("accept");
+	}
+    }
+  inet_ntop(theirAddr.ss_family, get_in_addr((struct sockaddr *)&theirAddr), p, sizeof(p));
+
+  return newSock;
+}
+

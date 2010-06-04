@@ -104,8 +104,8 @@ void driveStraight(int velocity)
 
   // Send the high byte, then the low byte of
   // the desired turn-radius value.
-  byteTx(128);
-  byteTx(0);
+  byteTx(STRAIGHT >> 8);
+  byteTx(STRAIGHT & 0x00FF);
 }
 
 //turn counter clockwise in increments of 
@@ -143,28 +143,45 @@ void driveBackwardsUntil(int sec, int speed)
   stop();
 }
 
-void driveBackwards(int speed)
+void driveBackwards(int velocity)
 {
+  unsigned int velocityWord = 0;
   byteTx(CmdDrive);
-  if (speed == HIGH)
+  if (velocity == HIGH)
     {
-      byteTx(0xFE);
-      byteTx(0x0C);
+      velocityWord = HIGH_SPEED_BACK;
     }
-  else if (speed == MED)
+  
+  else if (velocity == MED)
     {
-      
-      byteTx(254);
-      byteTx(212);
+      velocityWord = MED_SPEED_BACK;
     }
-  else if (speed == LOW)
+  else if (velocity == LOW)
     {
-      byteTx(255);
-      byteTx(156);
+      velocityWord = LOW_SPEED_BACK;
     }
+  /*
+    if (speed == HIGH)
+    {
+    byteTx(0xFE);
+    byteTx(0x0C);
+    }
+    else if (speed == MED)
+    {
+    
+    byteTx(254);
+    byteTx(212);
+    }
+    else if (speed == LOW)
+    {
+    byteTx(255);
+    byteTx(156);
+    }*/
+  byteTx(velocityWord >> 8);
+  byteTx(velocityWord & 0x00FF);
 
-  byteTx(128);
-  byteTx(0);
+  byteTx(STRAIGHT >> 8);
+  byteTx(STRAIGHT & 0x00FF);
 }
 
 void stop()

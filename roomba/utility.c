@@ -120,12 +120,17 @@ void initialize()
 
   // Note: Using the CmdSafe command rather than 
   // the deprecated CmdControl command.
-  byteTx(CmdSafe);
+  byteTx(CmdFull);
 
   sleep(1);
 }
 
-char readAndExecute(FILE *fp)
+/**
+ * readAndExecute()
+ * 
+ * 
+ */
+char readAndExecute(FILE *fp, caddr_t shm)
 {
   char c = '\0';
 
@@ -137,27 +142,43 @@ char readAndExecute(FILE *fp)
       return -1;
     }
 
-
   // Seek to the appropriate location in the file, the
   // position immediately after the last command executed.
+
+  // SEEK_SET indicates that the function should seek from the
+  // beginning of file
   if(fseek(fp, count, SEEK_SET) != 0)
     {
       perror("readAndExecute (fseek)");
       return -1;
     }
 
-  // Read a command.
+  // Read a command from the file.
   if(fscanf(fp,"%c", &c) != 1)
     {
       return -2;
     }
 
+  // Read a command from shared memory.
+  
+
+#ifdef DEBUG
+
+  // Debugging shared memory
+  printf("Shared memory is located at: 0x%x", shm);
+  printf("The contents of shared memory are %c \n", *(char *)shm);
+  fflush(stdout);
+
+  // Debugging shared files
   printf("Location: %d\n", count);
+#endif
+
   calcFileLoc(c);
 
   if (c != '\0')
+#ifdef DEBUG
      printf("%c \n", c);
-
+#endif
   switch (c){
   case ssDriveLow:
     driveStraight(LOW);
@@ -178,9 +199,11 @@ char readAndExecute(FILE *fp)
     driveBackwards(HIGH);
     break;
   case ssTurnCwise:
+  case CMD_RIGHT:
     turnClockwise(DEGREES_90);
     break;
   case ssTurnCCwise:
+  case CMD_LEFT:
     turnCounterClockwise(DEGREES_90);
     break;
   case ssStop:
@@ -194,12 +217,62 @@ char readAndExecute(FILE *fp)
   return c;
 }
     
+/**
+ * calcFileLoc()
+ *
+ */
 void calcFileLoc(char c)
 {
   if(c != '\0')
     {
       count+=2;
     }
+}
+
+/**
+ * writeSensorDataToSharedMemory()
+ * 
+ */
+void writeSensorDataToSharedMemory(char* sensorArray, caddr_t shm, char* currTime)
+{
+
+  int sensorData = 0x00;
+  int i, j;
+  char sensorDataString[40] = {'\0'};
+  int bitMask = 0x1;
+
+  sensorData |= sensorArray[0] & SENSOR_BUMPS_WHEELDROPS;
+
+  for(i=2; i<=6; i++)
+    {
+      sensorData |= sensorArray[i]<<i+3;
+    }
+
+  //examine each sensor bit one at a time
+  //and if it is a 1 write a '1' into shared mem
+  //otherwise write a '0'
+  for (j = 9; j >= 0; j--)
+  {
+    if ((sensorData & bitMask) == bitMask )
+      {
+	*(char *)(shm + j) = '1';
+      }
+    else
+      {
+	*(char *)(shm + j) = '0';
+      }
+    bitMask = bitMask << 1;
+  }
+  
+  //add space to end of sensor data
+  *(char *)(shm + 10) = ' ';
+
+  //copy timestamp to end of sensor data
+  strncpy((char*)(shm + 11), currTime, strlen(currTime));
+
+  
+
+  return;
 }
 
 /**
@@ -232,16 +305,15 @@ void writeSensorDataToFile(char* sensorArray, FILE* fp, char* currTime)
   int sensorData = 0x00;
   int i;
 
-  sensorData |= sensorArray[0] & SENSOR_BUMP_BOTH;
+  sensorData |= sensorArray[0] & SENSOR_BUMPS_WHEELDROPS;
 
   for(i=2; i<=6; i++)
     {
-      sensorData |= sensorArray[i]<<i;
+      sensorData |= sensorArray[i]<<i+3;
     }
 
   fprintBinaryAsString(fp, sensorData);
   
-  // printf("%x \n",sensorData);
   fprintf(fp, " %s", currTime);
   fflush(fp);
   return;
@@ -284,7 +356,7 @@ void fprintBinaryAsString(FILE* fp, int n)
 {
   int i;
 
-  i = 1<<(7);
+  i = 1<<(9);
   
   while (i > 0)
   {
@@ -311,23 +383,28 @@ void fprintBinaryAsString(FILE* fp, int n)
 int checkSensorData(char *x)
 {
   int i;
-
-  // Check bump sensors; return true if either bump sensor
-  // has been activated 
-  if(((x[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
-     ((x[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
-    {
-      return TRUE;
-    }
-
   // Check cliff and virtual wall sensors; return true 
   // if any sensor has been activated  
   for(i = SP_G1_CLIFF_LEFT; i <= SP_G1_VIRTUAL_WALL; i++)
     {
       if(x[i] == ACTIVE_SENSOR)
 	{
+	  stop();
 	  return TRUE;
 	}
+    }
+
+  // Check bump sensors; return true if either bump sensor
+  // has been activated 
+  if(((x[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
+     ((x[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT) ||
+     ((x[0] & SENSOR_WHEELDROP_RIGHT) == SENSOR_WHEELDROP_RIGHT) ||
+     ((x[0] & SENSOR_WHEELDROP_LEFT) == SENSOR_WHEELDROP_LEFT) ||
+     ((x[0] & SENSOR_WHEELDROP_BOTH) == SENSOR_WHEELDROP_BOTH) ||
+     ((x[0] & SENSOR_WHEELDROP_CASTER) == SENSOR_WHEELDROP_CASTER))
+    {
+      stop();
+      return TRUE;
     }
 
   // No sensor has been activated. 
