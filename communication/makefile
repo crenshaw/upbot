@@ -19,8 +19,8 @@ sclient:	simpleClient.c communication.h
 testCQ: testCommandQueue.c commandQueue.c tell.c serverUtility.c
 	$(CC) $(CFLAGS) -o testCQ.out testCommandQueue.c commandQueue.c tell.c serverUtility.c
 
-brainstem: brainstem.c communication.h serverUtility.c tell.c nerves.o move.o sensors.o led.o utility.o ../roomba/roomba.h
-	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c tell.c nerves.o move.o sensors.o led.o utility.o 
+brainstem: brainstem.c communication.h serverUtility.o tell.c nerves.o move.o sensors.o led.o utility.o ../roomba/roomba.h
+	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.o commandQueue.o tell.c nerves.o move.o sensors.o led.o utility.o 
 
 
 
@@ -30,6 +30,12 @@ brainstem: brainstem.c communication.h serverUtility.c tell.c nerves.o move.o se
 # addition to the makefile, if roomba.h changes, the dependency
 # between it and these files doesn't become apparent in the targets
 # above.
+serverUtility.o:	serverUtility.c communication.h
+	$(CC) $(CFLAGS) -c serverUtility.c	
+
+commandQueue.o:	commandQueue.c commandQueue.h tell.c tell.h 
+	$(CC) $(CFLAGS) -c commandQueue.c	
+
 nerves.o:	../roomba/nerves.c ../roomba/roomba.h move.o sensors.o led.o utility.o 
 	$(CC) $(CFLAGS) -c ../roomba/nerves.c
 
