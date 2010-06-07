@@ -2,13 +2,13 @@
 CC=arm-linux-gcc
 CFLAGS= -static  
 
-all: server client sserver sclient brain brainstem
+all: server client sserver sclient brainstem
 
-server:	server.c communication.h serverUtility.c
-	$(CC) $(CFLAGS) -o server.out server.c serverUtility.c
+server:	server.c communication.h serverUtility.c commandQueue.c 
+	$(CC) $(CFLAGS) -o server.out server.c serverUtility.c commandQueue.c
 
-client:	client.c communication.h serverUtility.c
-	gcc -o client.out client.c serverUtility.c 
+client:	client.c communication.h serverUtility.c commandQueue.c
+	gcc -o client.out client.c serverUtility.c commandQueue.c
 
 sserver:	simpleServer.c
 	$(CC) $(CFLAGS) -o sserver.out simpleServer.c
@@ -19,22 +19,16 @@ sclient:	simpleClient.c communication.h
 testCQ: testCommandQueue.c commandQueue.c tell.c serverUtility.c
 	$(CC) $(CFLAGS) -o testCQ.out testCommandQueue.c commandQueue.c tell.c serverUtility.c
 
-brainstem: brainstem.c communication.h serverUtility.o tell.c nerves.o move.o sensors.o led.o utility.o ../roomba/roomba.h
-	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.o commandQueue.o tell.c nerves.o move.o sensors.o led.o utility.o 
-
+brainstem: brainstem.c communication.h serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o utility.o ../roomba/roomba.h
+	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o utility.o 
 
 
 # Make sure that object files are built in the appropriate order; if
-# anything in roomba.h changes, the accompanying nervers, move,
-# sensor, led, and utility functions need to be updated.  Without this
+# anything in roomba.h changes, the accompanying nerves, move, sensor,
+# led, and utility functions need to be updated.  Without this
 # addition to the makefile, if roomba.h changes, the dependency
 # between it and these files doesn't become apparent in the targets
 # above.
-serverUtility.o:	serverUtility.c communication.h
-	$(CC) $(CFLAGS) -c serverUtility.c	
-
-commandQueue.o:	commandQueue.c commandQueue.h tell.c tell.h 
-	$(CC) $(CFLAGS) -c commandQueue.c	
 
 nerves.o:	../roomba/nerves.c ../roomba/roomba.h move.o sensors.o led.o utility.o 
 	$(CC) $(CFLAGS) -c ../roomba/nerves.c

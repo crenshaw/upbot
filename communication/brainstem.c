@@ -1,3 +1,16 @@
+/**
+ * brainstem.c
+ *
+ * The main server program for the upbot system.  This two-process
+ * program runs on the iRobot + gumstix platform; it accepts commands
+ * from a client, executes them and conveys any resulting sensor data
+ * back to the client.
+ *
+ * @author Tanya L. Crenshaw & Steven Beyer
+ * @since May 2010
+ *
+ */
+
 #include "tell.h"
 #include "communication.h"
 #include "../roomba/roomba.h"
@@ -6,12 +19,19 @@
 #define SIZE  40
 //#define DEBUG 1
 
-static int update(char *ptr)
-{
-  return ((*ptr)++ ); /* return value before increment */
-}
 
-
+/** 
+ * main()
+ * 
+ * This program comprises two processes.  First, the "brain" which
+ * communicates with a supervisor-client.  The brain receives
+ * high-level control commands from the supervisor-client and then
+ * conveys any resulting sensor data back.  The second process is the
+ * "nerves"; this process translates high-level commands into
+ * low-level iRobot SCI commands, executes them on the iRobot, and
+ * then obtains any resulting sensor data.
+ * 
+ */
 int main(void)
 {
 
@@ -19,33 +39,28 @@ int main(void)
   pid_t pid, pid2;
 
   // A pointer to shared memory for conveying commands across
-  // processes.
+  // processes and conveying sensor data across processes.
   caddr_t cmdArea;
-
-  // A pointer to shared memory for conveying sensor data across
-  // processes.
   caddr_t sensArea;
 
-  int smv = '\0';
-
-  // An array to hold most recent command sent by the
-  // supervisor-client
+  // Arrays to hold most recent command sent by the
+  // supervisor-client and the most recent command sent to the iRobot.
   char commandFromSupervisor[MAXDATASIZE] = {'\0'};
+  char commandToRobot[MAXDATASIZE] = {'\0'};
 
-  // An array to hold sensor data
-  char sensData[40] = {'\0'};
+  // An array to hold sensor data sent to the supervisor-client and
+  // obtained from the iRobot.
+  char sensDataToSupervisor[40] = {'\0'};
+  char sensDataFromRobot[40] = {'\0'};
 
-  // Perform file cleanup before progressing.
-  system("rm cmdFile.txt");
-  system("touch cmdFile.txt");
+  // An array to hold the timestamp.
+  char currTime[100];
 
-  // Open text files to store commands and sensor information
-  FILE* cmdFile = fopen("cmdFile.txt", "w");
+  // Open text files to store sensor information
   FILE* sensorFile = fopen("sensorFile.txt", "r");
 
-
   // Check if file open is successful
-  if (cmdFile == NULL || sensorFile == NULL)
+  if (sensorFile == NULL)
     {
       perror("Server fopen");
       return -1;
@@ -78,14 +93,11 @@ int main(void)
       perror("createSharedMem()");
       return -1;
     }
+
 #ifdef DEBUG  
   printf("Successfully created shared memory at location 0x%x and 0x%x. \n", 
 	 cmdArea, 
 	 sensArea);
- 
-  smv = update((char *)cmdArea);
-  smv = update((char *)cmdArea);  
-  printf("Shared memory has been initialized with %d.\n", smv);
 #endif
 
   // Create a socket-based server
@@ -97,6 +109,7 @@ int main(void)
 
   printf("brainstem: waiting for connections...\n");
 
+
   // Establish a client-connection for the socket-based server
   if((clientSock = establishConnection(serverID)) == -1)
     {
@@ -104,10 +117,12 @@ int main(void)
       return -1;
     }
   
+
   // Set up signal-based communication between the child 
   // (brain) and parent (nervous system) to avoid possible
   // race conditions.
   TELL_WAIT();
+
 
 
   // Fork a child process.  This process will handle the "brain"
@@ -118,18 +133,79 @@ int main(void)
       perror("fork error");
     }
 
+
+
   //------------------------------------------------------------------------
   // Code for parent (nerves)
   //------------------------------------------------------------------------
   else if (pid > 0)
     {
-      close(clientSock);
+      // Let the child process know that this parent is not interested
+      // in its critical section.
       TELL_CHILD(pid);
 
-      
-      
+      // Close the client socket since this parent won't be using it.
+      close(clientSock);
 
-      nerves(cmdArea, sensArea, pid);
+      // Open the serial port to the robot.  If this is unsuccessful,
+      // there is no point in continuing.
+      if(openPort() == 0)
+	{
+	  printf("Port failed to open \n");
+	  exit(-1);
+	}
+
+      // Initialize the robot, prepare it to receive commands.  Wait
+      // for a second to give this some time to take effect.
+      initialize();
+      sleep(1);
+
+      // Turn on the LED to indicate the robot is ready and listening.
+      // It's a nice sanity check.
+      setLED(RED, PLAY_ON, ADVANCE_ON);
+
+      // Just start driving; it's dramatic.
+      driveStraight(MED);
+
+      while(commandToRobot[0] != ssQuit)
+	{
+	  commandToRobot[0] = readFromSharedMemoryAndExecute(cmdArea);
+
+	  receiveGroupOneSensorData(sensDataFromRobot);
+
+	  // check if any of the sensor data indicates a 
+	  // sensor has been activated.  If so, react be
+	  // driving backwards briefly, stopping, and then
+	  // conveying the sensor data to a file.
+	  if(checkSensorData(sensDataFromRobot))
+	    {
+	      printf("%s %d \n", __FILE__, __LINE__);
+	      
+	      //drive backwards and then stop
+	      driveBackwardsUntil(EIGHTH_SECOND, MED);
+	      stop();
+	      
+	      
+	      // strncpy(currTime, getTime(), 40);
+	      writeSensorDataToSharedMemory(sensDataFromRobot, sensArea, getTime());	      
+	    }
+	  
+	  // Reset the array; fill it again in the next loop.
+	  for(i = 0; i <= 6; i++)
+	    {
+	      sensDataFromRobot[i]= FALSE;
+	    }
+	}
+
+      // Close the serial port
+      if (closePort() == -1)
+	{
+	  perror("Port failed to close \n");
+	  exit(-1);
+	}
+      
+      exit(0);
+      // nerves(cmdArea, sensArea, pid);
     }
 
   //------------------------------------------------------------------------
@@ -157,9 +233,9 @@ int main(void)
       // subsequent message to the supervisor will indicate that no sensors
       // were activated.
 
-      // As long as the quit command 'q' has not been sent by the supervisor-client,
-      // receive a control command and send the subsequent sensor
-      // data.
+      // As long as the quit command 'q' has not been sent by the
+      // supervisor-client, receive a control command and send the
+      // subsequent sensor data.
       while(commandFromSupervisor[0] != ssQuit)
 	{
 	
@@ -177,10 +253,10 @@ int main(void)
 
 	  // If there is sensor data available, send it to the
 	  // supervisor-client.
-	  if(readSensorDataFromSharedMemory(sensData, sensArea))
+	  if(readSensorDataFromSharedMemory(sensDataToSupervisor, sensArea))
 	    {
-	      printf("sensData: %s \n", sensData);
-	      if(send(clientSock, sensData, strlen(sensData), 0) == -1)
+	      printf("sensDataToSupervisor: %s \n", sensDataToSupervisor);
+	      if(send(clientSock, sensDataToSupervisor, strlen(sensDataToSupervisor), 0) == -1)
 		perror("send");
 	    }
 	}
