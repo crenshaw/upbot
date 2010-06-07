@@ -16,8 +16,8 @@ sserver:	simpleServer.c
 sclient:	simpleClient.c communication.h
 	gcc -o sclient.out simpleClient.c
 
-brain:	brain.c communication.h serverUtility.c tell.c
-	$(CC) $(CFLAGS) -o brain.out brain.c serverUtility.c tell.c
+testCQ: testCommandQueue.c commandQueue.c tell.c serverUtility.c
+	$(CC) $(CFLAGS) -o testCQ.out testCommandQueue.c commandQueue.c tell.c serverUtility.c
 
 brainstem: brainstem.c communication.h serverUtility.c tell.c nerves.o move.o sensors.o led.o utility.o ../roomba/roomba.h
 	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c tell.c nerves.o move.o sensors.o led.o utility.o 

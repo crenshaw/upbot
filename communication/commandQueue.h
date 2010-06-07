@@ -67,7 +67,7 @@ typedef struct commandTag {
 int constructCommand(command_t ** cmd, char * code);
 int createCommandQueue(caddr_t ptr, int size);
 int writeCommandToQueue(caddr_t q, command_t * cmd);
-char getCommandCodeFromQueue(commandQueue * q);
+char getCommandCodeFromQueue(caddr_t q);
 void printCommand(command_t * cmd);
 void printCommandQueueHeader(caddr_t q);
 void printCommandQueueEntry(caddr_t q, int entry);

@@ -102,13 +102,13 @@ int createCommandQueue(caddr_t ptr, int size)
   if ( ptr != NULL )
     {
       // Initialize command queue struct
-      *((int *)ptr + CQ_SIZE_OFFSET) = size;
-      *((int *)ptr + CQ_RPOS_OFFSET) = 0;
-      *((int *)ptr + CQ_WPOS_OFFSET) = 0;
+      *((int *)(ptr + CQ_SIZE_OFFSET)) = size;
+      *((int *)(ptr + CQ_RPOS_OFFSET)) = 0;
+      *((int *)(ptr + CQ_WPOS_OFFSET)) = 0;
      
       // Calculate address of first command and timestamp
-      char * command = (char *)ptr + CQ_QUEUE_OFFSET;
-      time_t * timestamp = (time_t *)command + CQ_COMMAND_TIMESTAMP_OFFSET;
+      char * command = (char *)(ptr + CQ_QUEUE_OFFSET);
+      time_t * timestamp = (time_t *)(command + CQ_COMMAND_TIMESTAMP_OFFSET);
 
       // Initialize the queue memory area with canary values.
       for(i = 0; i < size; i++)
@@ -142,8 +142,8 @@ int writeCommandToQueue(caddr_t q, command_t * cmd)
 {
 
   // Get the writer's position and queue size
-  int writerPos =   *((int *)q + CQ_WPOS_OFFSET);
-  int qSize = *((int *)q + CQ_SIZE_OFFSET);
+  int writerPos =   *((int *)(q + CQ_WPOS_OFFSET));
+  int qSize = *((int *)(q + CQ_SIZE_OFFSET));
 
   // Check that the writer's position doesn't exceed the size
   if(writerPos >= qSize)
@@ -154,10 +154,14 @@ int writeCommandToQueue(caddr_t q, command_t * cmd)
 
 
   // Calculate address of command queried
-  char * command = (char *)q + CQ_QUEUE_OFFSET;
+  char * command = (char *)(q + CQ_QUEUE_OFFSET);
   command += CQ_COMMAND_SIZE * writerPos;
-  time_t * timestamp = (time_t *)command + CQ_COMMAND_TIMESTAMP_OFFSET;
+  time_t * timestamp = (time_t *)(command + CQ_COMMAND_TIMESTAMP_OFFSET);
 
+#ifdef DEBUG
+  printf("\nSource %s, Line %d:  command address = 0x%x\n", __FILE__, __LINE__, command);
+  printf("\nSource %s, Line %d:  timestamp address = 0x%x\n", __FILE__, __LINE__, timestamp);
+#endif
 
   // Write the single-character command to the queue.
   *command = cmd->command;
@@ -167,7 +171,7 @@ int writeCommandToQueue(caddr_t q, command_t * cmd)
   
   // Increment the writer's position.
   writerPos++;
-  *((int *)q + CQ_WPOS_OFFSET) = writerPos;
+  *((int *)(q + CQ_WPOS_OFFSET)) = writerPos;
 
    return 0;
 }
@@ -184,16 +188,21 @@ int writeCommandToQueue(caddr_t q, command_t * cmd)
  * single-character command, and return CQ_COMMAND_CANARY_VALUE
  * otherwise.
  */
-char getCommandCodeFromQueue(commandQueue * q)
+char getCommandCodeFromQueue(caddr_t q)
 {
 
   // Get the reader's position and queue size
-  int readerPos =   *((int *)q + CQ_RPOS_OFFSET);
-  int qSize = *((int *)q + CQ_SIZE_OFFSET);
+  int readerPos =   *((int *)(q + CQ_RPOS_OFFSET));
+  int qSize = *((int *)(q + CQ_SIZE_OFFSET));
 
   // Calculate address of single-character command code
-  char * command = (char *)q + CQ_QUEUE_OFFSET;
-  command += CQ_COMMAND_SIZE * readerPos;
+  char * command = (char *)(q + CQ_QUEUE_OFFSET);
+  command += (CQ_COMMAND_SIZE * readerPos);
+
+#ifdef DEBUG
+  printf("\nSource %s, Line %d:  readerPos = %d\n", __FILE__, __LINE__, readerPos);
+  printf("\nSource %s, Line %d:  command address = 0x%x\n", __FILE__, __LINE__, command);
+#endif
 
   // Obtain the command 
   char returnValue = *command;
@@ -214,11 +223,11 @@ char getCommandCodeFromQueue(commandQueue * q)
 	}
 
       // Update reader's position in the queue
-      *((int *)q + CQ_RPOS_OFFSET) = readerPos;
+      *((int *)(q + CQ_RPOS_OFFSET)) = readerPos;
 
       // Clean out the command entry
       *command = CQ_COMMAND_CANARY_VALUE;
-      time_t * timestamp = (time_t *)command + CQ_COMMAND_TIMESTAMP_OFFSET;
+      time_t * timestamp = (time_t *)(command + CQ_COMMAND_TIMESTAMP_OFFSET);
       *timestamp = 0;
 
       // Return the single-character command code read from the queue.
@@ -248,7 +257,7 @@ void printCommandQueueEntry(caddr_t q, int entry)
 {
 
   // Get the queue size
-  int qSize = *((int *)q + CQ_SIZE_OFFSET);
+  int qSize = *((int *)(q + CQ_SIZE_OFFSET));
 
   if(entry >= qSize)
     {
@@ -257,20 +266,21 @@ void printCommandQueueEntry(caddr_t q, int entry)
     }
 
   // Calculate address of command queried
-  char * command = (char *)q + CQ_QUEUE_OFFSET;
-  command += CQ_COMMAND_SIZE * entry;
-  time_t * timestamp = (time_t *)command + CQ_COMMAND_TIMESTAMP_OFFSET;
+  char * command = (char *)(q + CQ_QUEUE_OFFSET);
+  command += (CQ_COMMAND_SIZE * entry);
+  time_t * timestamp = (time_t *)(command + CQ_COMMAND_TIMESTAMP_OFFSET);
 
   if( *command == CQ_COMMAND_CANARY_VALUE)
     {
-      printf("empty entry \n");
+      printf("   command queue entry %d == empty entry \n", entry);
+      return;
     }
 
 #ifdef DEBUG
-  printf("command address = 0x%x\n", command);
+  printf("\nSource %s, Line %d:  command address = 0x%x\n", __FILE__, __LINE__, command);
 #endif
 
-  printf("command queue entry %d == %c at %d seconds\n", entry, *command, *timestamp);
+  printf("   command queue entry %d == %c at %d seconds\n", entry, *command, *timestamp);
 
   return;
 
@@ -294,10 +304,10 @@ void printCommandQueueHeader(caddr_t q)
   if( q != NULL)
     {
        	  printf("\n    Size: %d. \n    Reader Pos: %d. \n    Writer Pos: %d \n    pointer: 0x%x \n",
-		 *((int *)q + CQ_SIZE_OFFSET),
-		 *((int *)q + CQ_RPOS_OFFSET),
-		 *((int *)q + CQ_WPOS_OFFSET),
-		 (int *)q + CQ_QUEUE_OFFSET);
+		 *((int *)(q + CQ_SIZE_OFFSET)),
+		 *((int *)(q + CQ_RPOS_OFFSET)),
+		 *((int *)(q + CQ_WPOS_OFFSET)),
+		 (int *)(q + CQ_QUEUE_OFFSET));
 	  
 	  return;
     }
