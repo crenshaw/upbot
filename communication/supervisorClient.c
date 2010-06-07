@@ -12,6 +12,8 @@
 #include "communication.h"
 #include "../supervisor/supervisor.h"
 
+#define CONNECT_TO_ROOMBA 0
+
 void exitError(int errCode)
 {
 	printf("Error. Ending...");
@@ -85,16 +87,27 @@ int main(int argc, char *argv[])
 
 	// Variables used for Supervisor loop processing
 	initSupervisor();				// Initialize the Supervisor
-	int cmd;						// generic status code return value
+	int cmd = CMD_LEFT;				// command to send to Roomba
 	int goalsFound = 0;				// Number of times we found the goal
 	int* goalsTimeStamp = (int*)malloc(sizeof(int) * NUM_GOALS_TO_FIND);
 
+
+// We seem to need to do some 'handshaking' to get into a send/recv feedback loop
+// Still working on getting this to work correctly
+#if CONNECT_TO_ROOMBA
 	// Receive initial poem from Roomba upon connection
 	numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0);
 	sprintf(&buf[numbytes], "\0");
 	// Print poem and length of poem
 	printf("Poem: %s", buf);	   
 	printf("numbytes: %d\n", numbytes);
+
+	// Send a first command to finish initializing the send/receive sequence
+	if(send(sockfd, &cmd, 1, 0) == -1)
+	{
+		perror("send");
+	}
+#endif
 
 	// Print raw sensor data to stdout along with size in bytes
 	while(1)
