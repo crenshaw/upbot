@@ -142,8 +142,6 @@ int main(void)
   else if (pid > 0)
     {
 
-      //TELL_CHILD(pid);
-
       // Close the client socket since this parent won't be using it.
       close(clientSock);
 
@@ -275,6 +273,7 @@ int main(void)
 	}
 	
 
+      // All done.  Clean up the toys and go home.
       printf("Closing socket and terminating processes.\nHave a nice day!\n");
       kill(pid, SIGTERM);
       close(clientSock);

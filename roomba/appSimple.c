@@ -64,7 +64,7 @@ int main()
 
       setLED(RED, PLAY_ON, ADVANCE_ON);
       
-      if((c = readAndExecute(fp) == -1))
+      if((c = readAndExecute(fp)) == -1)
 	{
 	  printf("readAndExecute failed\n");
 	}
