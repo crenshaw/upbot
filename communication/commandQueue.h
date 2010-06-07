@@ -14,6 +14,9 @@
  *
  */
 
+#ifndef _COMMAND_QUEUE_H
+#define _COMMAND_QUEUE_H
+
 // The command type comprises a single-character command and 
 // a timestamp indicating the time that the single-character
 // command was received.
@@ -72,3 +75,4 @@ void printCommand(command_t * cmd);
 void printCommandQueueHeader(caddr_t q);
 void printCommandQueueEntry(caddr_t q, int entry);
 
+#endif

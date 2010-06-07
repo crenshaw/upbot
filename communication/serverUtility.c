@@ -117,6 +117,34 @@ void writeCommandToFile(char* cmd, FILE* fp)
       fflush(fp);
     }
 }
+
+/**
+ * writeCommandToSharedMemory()
+ * 
+ * Takes a command and writes it to shared memory.
+ * If the command is null or 'q' it is not written.
+ * This function only works for a single character command.
+ *
+ * @arg cmd pointer to command
+ * @arg shm pointer to shared memory
+ *
+ * @return int 1 if wrote something and 0 otherwise
+ */
+int writeCommandToSharedMemory(char* cmd, caddr_t shm)
+{
+  if((cmd[0] != '\0') && (cmd[0] != ssQuit))
+    {
+      command_t * newCommand = NULL;
+      constructCommand(&newCommand, cmd);
+      writeCommandToQueue(shm, newCommand);
+      free(newCommand);
+
+      return 1;
+    }
+
+  return 0;
+}
+
 /**
  * readSensorDataFromFile()
  *
@@ -240,7 +268,8 @@ int checkValue(char v)
  * Receive a control command and convey sensor data.
  */
 int receiveDataAndStore(int newSock, char* cmdBuf, char* sensData, FILE* cmdFile, 
-			FILE* sensorFile, int* fd, caddr_t sensArea)
+			FILE* sensorFile, int* fd, caddr_t sensArea, 
+			caddr_t cmdArea)
 {
   int numbytes;
 
@@ -252,10 +281,12 @@ int receiveDataAndStore(int newSock, char* cmdBuf, char* sensData, FILE* cmdFile
 	  perror("recv");
 	  return -1;
 	}
-      printf("%c\n", cmdBuf[0]);
+      printf("receiveDataAndStore: %c\n", cmdBuf[0]);
 
       // Write command to the cmdFile.txt
       writeCommandToFile(cmdBuf, cmdFile);
+      
+      writeCommandToSharedMemory(cmdBuf, cmdArea);
       
       // Send command to parent process
       write(fd[1], cmdBuf, 1);

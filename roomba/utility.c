@@ -130,7 +130,7 @@ void initialize()
  * 
  * 
  */
-char readAndExecute(FILE *fp, caddr_t shm)
+char readAndExecute(FILE *fp)
 {
   char c = '\0';
 
@@ -216,6 +216,52 @@ char readAndExecute(FILE *fp, caddr_t shm)
   }
   return c;
 }
+
+int readFromSharedMemoryAndExecute(caddr_t shm)
+{
+  char cmd = '\0';
+
+  cmd = getCommandCodeFromQueue(shm);
+
+  switch (cmd){
+  case ssDriveLow:
+    driveStraight(LOW);
+    break;
+  case ssDriveMed:
+    driveStraight(MED);
+    break;
+  case ssDriveHigh:
+    driveStraight(HIGH);
+    break;
+  case ssDriveBackwardLow:
+    driveBackwards(LOW);
+    break;
+  case ssDriveBackwardMed:
+    driveBackwards(MED);
+    break;
+  case ssDriveBackwardHigh:
+    driveBackwards(HIGH);
+    break;
+  case ssTurnCwise:
+  case CMD_RIGHT:
+    turnClockwise(DEGREES_90);
+    break;
+  case ssTurnCCwise:
+  case CMD_LEFT:
+    turnCounterClockwise(DEGREES_90);
+    break;
+  case ssStop:
+    stop();
+    break;
+  case ssQuit:
+    break;
+  default:
+    return -1;
+  }
+
+  return cmd;
+}
+
     
 /**
  * calcFileLoc()

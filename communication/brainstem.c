@@ -15,8 +15,8 @@ static int update(char *ptr)
 int main(void)
 {
 
-  int i, counter, serverID, clientSock;
-  pid_t pid;
+  int i, counter, serverID, clientSock, numBytes;
+  pid_t pid, pid2;
 
   // A pointer to shared memory for conveying commands across
   // processes.
@@ -28,8 +28,9 @@ int main(void)
 
   int smv = '\0';
 
-  // An array to hold most recent command
-  char cmdBuf[MAXDATASIZE] = {'\0'};
+  // An array to hold most recent command sent by the
+  // supervisor-client
+  char commandFromSupervisor[MAXDATASIZE] = {'\0'};
 
   // An array to hold sensor data
   char sensData[40] = {'\0'};
@@ -65,6 +66,11 @@ int main(void)
       return -1;
     }
 
+  // Initialize shared memory for commands as a command queue
+  // data structure, maximum number of commands, 10.
+  createCommandQueue(cmdArea, 10);
+
+
   // Create a small piece of shared memory for the parent (nervous
   // system) to communicate sensor information to the child (brain).
   if(createSharedMem("/dev/zero", &sensArea) == -1)
@@ -98,46 +104,89 @@ int main(void)
       return -1;
     }
   
-
   // Set up signal-based communication between the child 
   // (brain) and parent (nervous system) to avoid possible
   // race conditions.
   TELL_WAIT();
 
+
   // Fork a child process.  This process will handle the "brain"
-  // activities, such as communicating sensor data to the client
+  // activities: communicating sensor data to the client
   // and receiving control commands from the client.
   if(( pid = fork()) < 0)
     {
       perror("fork error");
     }
 
-  else if (pid > 0) // Code for parent (nerves)
+  //------------------------------------------------------------------------
+  // Code for parent (nerves)
+  //------------------------------------------------------------------------
+  else if (pid > 0)
     {
-#ifdef DEBUG
-      printf("Parent \n");
-#endif
       close(clientSock);
-      nerves(cmdArea, sensArea);
+      TELL_CHILD(pid);
+
+      
+      
+
+      nerves(cmdArea, sensArea, pid);
     }
 
-  else // Code for child (brain)
+  //------------------------------------------------------------------------
+  // Code for child (brain)
+  //------------------------------------------------------------------------
+  else
     {
-#ifdef DEBUG
-      printf("Child \n");
-#endif
-      close(serverID);   // child process doesn't need the listener.
+      // Child process doesn't need the listener.
+      close(serverID);
+
+      // Send the client the initial connection message.
       if(send(clientSock, MSG, sizeof(MSG), 0) == -1)
 	perror("send");
-      //loops until user enter 'q' (quit command)
-      if(receiveDataAndStore(clientSock, cmdBuf, sensData, cmdFile, sensorFile, fd, sensArea) == -1)
+
+      printf("brainstem: within child process \n");
+
+      // At the request of the supervisor implementation team, The
+      // brain follows a strict alternation of 'receive control
+      // command' then 'send sensor data'.  If the control command
+      // sent by the supervisor-client is 'turn left' and the iRobot
+      // happens to bump into something, then the subsequent message
+      // to the supervisor-client will indicate which bumper was activated.  
+      // Similarly, if the control command sent by the supervisor is
+      // 'turn left' and the iRobot experiences no sensory input, the
+      // subsequent message to the supervisor will indicate that no sensors
+      // were activated.
+
+      // As long as the quit command 'q' has not been sent by the supervisor-client,
+      // receive a control command and send the subsequent sensor
+      // data.
+      while(commandFromSupervisor[0] != ssQuit)
 	{
-	  perror("receiveDataAndStore");
-	  exit(-1);
+	
+	  // Wait to receive command from supervisor-client; read the command
+	  // into cmdBuf.
+	  if ((numBytes = recv(clientSock, commandFromSupervisor, MAXDATASIZE-1, 0)) == -1)
+	    {
+	      perror("recv");
+	      return -1;
+	    }
+
+	  // Write the read command into shared memory so that the
+	  // parent (nerves) may read and execute it.
+	  writeCommandToSharedMemory(commandFromSupervisor, cmdArea);	      
+
+	  // If there is sensor data available, send it to the
+	  // supervisor-client.
+	  if(readSensorDataFromSharedMemory(sensData, sensArea))
+	    {
+	      printf("sensData: %s \n", sensData);
+	      if(send(clientSock, sensData, strlen(sensData), 0) == -1)
+		perror("send");
+	    }
 	}
+	
       close(clientSock);
       exit(0);
     }
-  
-  exit(0);
+
 }
