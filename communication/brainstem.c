@@ -164,9 +164,6 @@ int main(void)
       // It's a nice sanity check.
       setLED(RED, PLAY_ON, ADVANCE_ON);
 
-      // Just start driving; it's dramatic.
-      driveStraight(MED);
-
       while(commandToRobot[0] != ssQuit)
 	{
 	  commandToRobot[0] = readFromSharedMemoryAndExecute(cmdArea);
