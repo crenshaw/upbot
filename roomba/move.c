@@ -187,8 +187,8 @@ void driveBackwards(int velocity)
 void stop()
 {
   byteTx(CmdDrive);
-  byteTx(0);
-  byteTx(0);
-  byteTx(0);
-  byteTx(0);
+  byteTx(0xFF);
+  byteTx(0xFF);
+  byteTx(0xFF);
+  byteTx(0xFF);
 }

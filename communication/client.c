@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
     }
     
 
-
+    sensorBuf[MAXDATASIZE - 1] = '\0';
     
     printf("client: received '%s'\n",sensorBuf);
     
@@ -86,7 +86,6 @@ int main(int argc, char *argv[])
 	    printf("client: sensor data: '%s'\n", sensorBuf);	   
 	    printf("numbytes: %d\n", numbytes);
 	    fprintf(sensorFile, "%s", sensorBuf);
-	    fflush(sensorFile);
 	  }
       }
     
@@ -94,7 +93,7 @@ int main(int argc, char *argv[])
     // send the command value to the server
     while (input != ssQuit)
       {
-	printf("Input command value for roomba: \n");
+	printf("Please enter a command code for the robot: \n\n");
 	
 	//block until input from user
 	scanf("%c", &input);
@@ -108,7 +107,7 @@ int main(int argc, char *argv[])
 	    //send the value to the server
 	    if(send(sockfd, cmd, 1, 0) == -1)
 	      perror("send");
-	    printf("The command value sent was: %d\n", cmd[0]);
+	    printf("   the command code sent was: %d\n", cmd[0]);
 	  }//if
       }//while
     
@@ -119,5 +118,6 @@ int main(int argc, char *argv[])
     //kill the child process
     kill(0, SIGTERM);
     return 0;
+
 }//main
 
