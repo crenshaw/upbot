@@ -7,7 +7,7 @@
 //		17 February 2010
 
 #include "roomba.h"
-
+#define SIZE 40
 
 // driveStraightWithFeedback()
 //   This function issues a drive command to the
@@ -191,4 +191,55 @@ void stop()
   byteTx(0xFF);
   byteTx(0xFF);
   byteTx(0xFF);
+}
+
+/** driveDistance()
+ *
+ * Tries to drive a given distance while checking sensor data and
+ * distance data.
+ *
+ * @arg distanceRequested distance to drive
+ *
+ * @return 0 if it has driven the given distance and -1 if it did not.
+ */ 
+int driveDistance()
+{
+  printf("%s %d\n", __FILE__, __LINE__);
+  char distanceTraveled[2] = {'\0'};
+  char sensDataFromRobot[SIZE] = {'\0'};
+  int sumDistanceTraveled = 0;
+
+  //packet 19 checks distance traveled since last time requested
+  //so zero out register
+  receiveSensorData(19, distanceTraveled, 2, 1);
+  driveStraight(MED);
+
+
+  //while there is nothing read from sensor and has not traveled given distance
+  while(!checkSensorData(sensDataFromRobot) && 
+	(sumDistanceTraveled <= TILE_DISTANCE))
+    {
+      //receive bump, wheeldrop, and cliff data
+      receiveGroupOneSensorData(sensDataFromRobot);
+
+      // One of the sensors may have been activated.  Check if so, and
+      // react by stopping.  Do this now instead of waiting until after
+      // the distance traveled has been polled for better reaction time.
+      checkSensorData(sensDataFromRobot);
+ 
+      //receive distance traveled data
+      receiveSensorData(19, distanceTraveled, 1, 2);
+      //convert 2 byte char to int and store into sumDistanceTraveled
+      sumDistanceTraveled += ((distanceTraveled[0]<<8) | distanceTraveled[1]);
+    }
+
+  //if there was a bump, wheeldrop, or cliff before distance then return
+  if(sumDistanceTraveled < TILE_DISTANCE)
+    {
+      return -1;
+    }
+  //else successfully completed command within given distance
+  stop();
+  return 0;
+
 }
