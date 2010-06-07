@@ -89,24 +89,32 @@ int main(int argc, char *argv[])
 	int goalsFound = 0;				// Number of times we found the goal
 	int* goalsTimeStamp = (int*)malloc(sizeof(int) * NUM_GOALS_TO_FIND);
 
+	// Receive initial poem from Roomba upon connection
+	numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0);
+	sprintf(&buf[numbytes], "\0");
+	// Print poem and length of poem
+	printf("Poem: %s", buf);	   
+	printf("numbytes: %d\n", numbytes);
+
+	// Print raw sensor data to stdout along with size in bytes
 	while(1)
-    {	       
+	{	       
 		// Receive sensor data from socket and store in 'buf'
 		printf("Receiving sensor data.\n");
-	    numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0);
+		numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0);
 		// Insert null terminating character at end of sensor string
 		sprintf(&buf[numbytes], "\0");
 
 		// Print raw sensor data to stdout along with size in bytes
-	    printf("client: sensor data: '%s'\n", buf);	   
-	    printf("numbytes: %d\n", numbytes);
+		printf("client: sensor data: '%s'\n", buf);	   
+		printf("numbytes: %d\n", numbytes);
 
 		// Call Supervisor tick to process recently added episode
-	    cmd = tick(buf);
+		cmd = tick(buf);
 
 		// Print sensor data to log file and force write
-	    fprintf(log, "Sensor data: [%s] Command received: %i\n", buf, cmd);
-	    fflush(log);
+		fprintf(log, "Sensor data: [%s] Command received: %i\n", buf, cmd);
+		fflush(log);
 
 		// Error in processing, exit with appropriate error code
 		if(cmd < 0)
@@ -116,20 +124,20 @@ int main(int argc, char *argv[])
 		}
 
 		// If tick gave us an invalid command, exit with appropriate error code
-	    if(cmd >= NUM_COMMANDS)
-        {
+		if(cmd >= NUM_COMMANDS)
+		{
 			perror("Illegal command");
 			exit(cmd);
-        }
+		}
 
 		// Else send command to Roomba server and exit if unsuccessful
-    	if(send(sockfd, &cmd, 1, 0) == -1)
+		if(send(sockfd, &cmd, 1, 0) == -1)
 		{
-        	perror("send");
+			perror("send");
 		}
-	    
+
 		// Print command sent to Roomba on stdout
-	  	printf("The command value sent was: %d\n", cmd);
+		printf("The command value sent was: %d\n", cmd);
 
 		// If goal is found increase goal count and store the index it was found at
 		if(((Episode*)getEntry(g_episodeList, g_episodeList->size - 1))->sensors[SNSR_IR] == 1)

@@ -6,7 +6,7 @@
 * this file as well as those for determining new commands
 *
 * Author: Dr. Andrew Nuxoll and Zachary Paul Faltersack
-* Last Edit: June 3, 2010
+* Last Edit: June 4, 2010
 *
 */
 
@@ -208,6 +208,9 @@ int chooseCommand(Episode* ep)
 			}
 		}
 	}
+
+	// free memory allocated for score
+	free(score);
 
 	// decrease random move chance down to a limit
 	if(randChance > 10)
