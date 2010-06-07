@@ -1,3 +1,12 @@
+/**
+ * serverUtility.c
+ *
+ * A collection of supporting functions for the iRobot server programs.
+ *
+ * @author Tanya L. Crenshaw & Steven Beyer.
+ * 
+ */
+
 #include "communication.h"
 
 #define SIZE 40
@@ -116,13 +125,15 @@ void writeCommandToFile(char* cmd, FILE* fp)
       fprintf(fp, "%s", " ");
       fflush(fp);
     }
+
+  return;
 }
 
 /**
  * writeCommandToSharedMemory()
  * 
  * Takes a command and writes it to shared memory.
- * If the command is null or 'q' it is not written.
+ * If the command is null or '(' it is not written.
  * This function only works for a single character command.
  *
  * @arg cmd pointer to command
@@ -132,7 +143,7 @@ void writeCommandToFile(char* cmd, FILE* fp)
  */
 int writeCommandToSharedMemory(char* cmd, caddr_t shm)
 {
-  if((cmd[0] != '\0') && (cmd[0] != ssQuit))
+  if((cmd[0] != '\0' || cmd[0] == CQ_COMMAND_CANARY_VALUE))
     {
       command_t * newCommand = NULL;
       constructCommand(&newCommand, cmd);
@@ -332,6 +343,15 @@ int createSharedMem(char * deviceName, caddr_t* area)
   return 0;
 }
 
+/**
+ *
+ * createServer()
+ *
+ * Create a server to listen on a socket
+ *
+ * @return s, the socket, if success and -1 if fail.
+ *
+ */
 int createServer(void)
 {
   struct sigaction sa;
@@ -376,6 +396,16 @@ int createServer(void)
   return s;
 }
 
+/**
+ * establishConnection()
+ * 
+ * 'accept' a connection on socket s.  This function blocks until
+ * a connection is established.
+ *
+ * @arg s the socket on which the connection should be established.
+ *
+ * @return the socket id.
+ */
 int establishConnection(int s)
 {
   char p[INET6_ADDRSTRLEN];

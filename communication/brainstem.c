@@ -6,7 +6,7 @@
  * from a client, executes them and conveys any resulting sensor data
  * back to the client.
  *
- * @author Tanya L. Crenshaw & Steven Beyer
+ * @author Steven Beyer & Tanya L. Crenshaw
  * @since May 2010
  *
  */
@@ -15,8 +15,8 @@
 #include "communication.h"
 #include "../roomba/roomba.h"
 
-#define NLOOPS 1000
 #define SIZE  40
+#define SIZE_OF_EMPTY_DATA 11
 //#define DEBUG 1
 
 
@@ -50,8 +50,9 @@ int main(void)
 
   // An array to hold sensor data sent to the supervisor-client and
   // obtained from the iRobot.
-  char sensDataToSupervisor[40] = {'\0'};
-  char sensDataFromRobot[40] = {'\0'};
+  char sensDataToSupervisor[SIZE] = {'\0'};
+  char sensDataFromRobot[SIZE] = {'\0'};
+  char emptyDataToSupervisor[SIZE] = "0000000000 ";
 
   // An array to hold the timestamp.
   char currTime[100];
@@ -140,9 +141,8 @@ int main(void)
   //------------------------------------------------------------------------
   else if (pid > 0)
     {
-      // Let the child process know that this parent is not interested
-      // in its critical section.
-      TELL_CHILD(pid);
+
+      //TELL_CHILD(pid);
 
       // Close the client socket since this parent won't be using it.
       close(clientSock);
@@ -175,20 +175,19 @@ int main(void)
 
 	  // check if any of the sensor data indicates a 
 	  // sensor has been activated.  If so, react be
-	  // driving backwards briefly, stopping, and then
-	  // conveying the sensor data to a file.
+	  // driving backwards briefly and then stopping.
 	  if(checkSensorData(sensDataFromRobot))
 	    {
 	      printf("%s %d \n", __FILE__, __LINE__);
 	      
 	      //drive backwards and then stop
 	      driveBackwardsUntil(EIGHTH_SECOND, MED);
-	      stop();
-	      
-	      
-	      // strncpy(currTime, getTime(), 40);
+	      stop();	      
+
+	      // Convey sensorData back to the supervisor-client.
 	      writeSensorDataToSharedMemory(sensDataFromRobot, sensArea, getTime());	      
 	    }
+
 	  
 	  // Reset the array; fill it again in the next loop.
 	  for(i = 0; i <= 6; i++)
@@ -198,6 +197,8 @@ int main(void)
 	}
 
       // Close the serial port
+      printf("Closing the serial port \n");
+
       if (closePort() == -1)
 	{
 	  perror("Port failed to close \n");
@@ -205,7 +206,6 @@ int main(void)
 	}
       
       exit(0);
-      // nerves(cmdArea, sensArea, pid);
     }
 
   //------------------------------------------------------------------------
@@ -238,7 +238,7 @@ int main(void)
       // subsequent sensor data.
       while(commandFromSupervisor[0] != ssQuit)
 	{
-	
+
 	  // Wait to receive command from supervisor-client; read the command
 	  // into cmdBuf.
 	  if ((numBytes = recv(clientSock, commandFromSupervisor, MAXDATASIZE-1, 0)) == -1)
@@ -259,9 +259,29 @@ int main(void)
 	      if(send(clientSock, sensDataToSupervisor, strlen(sensDataToSupervisor), 0) == -1)
 		perror("send");
 	    }
+
+	  // Otherwise, assume no sensor was activated.  Send an empty
+	  // sensor message to the supervisor-client.
+	  else
+	    {
+	      printf("sensDataToSupervisor: nothing happened. \n"); 
+	    
+	      // Construct an empty sensor data message and send it to
+	      // the supervisor-client.
+	      strncat(emptyDataToSupervisor, getTime(), MAXDATASIZE-11);
+
+	      if(send(clientSock, emptyDataToSupervisor, 40, 0) == -1)
+		perror("send");
+
+	      emptyDataToSupervisor[SIZE_OF_EMPTY_DATA] = '\0';
+	    }
 	}
 	
+
+      printf("Closing socket and terminating processes.\nHave a nice day!\n");
+      kill(pid, SIGTERM);
       close(clientSock);
+
       exit(0);
     }
 
