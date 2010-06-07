@@ -96,9 +96,16 @@ void byteRx(char* buffer, int nbytes, int iter)
 {
   int i;
 
+  if(iter == 1)
+    {
+      read(fd, buffer, nbytes);
+      return;
+    }
   for (i = 0; i < iter; i++)
   {
     read(fd, buffer, nbytes);
+    buffer++;
+    usleep(1);
   }
 
 }
@@ -206,6 +213,9 @@ char readAndExecute(FILE *fp)
   case CMD_LEFT:
     turnCounterClockwise(DEGREES_90);
     break;
+  case ssDriveDistance:
+    driveDistance();
+    break;
   case ssStop:
     stop();
     break;
@@ -249,6 +259,10 @@ int readFromSharedMemoryAndExecute(caddr_t shm)
   case ssTurnCCwise:
   case CMD_LEFT:
     turnCounterClockwise(DEGREES_90);
+    break;
+  case ssDriveDistance:
+  case CMD_FORWARD:
+    driveDistance();
     break;
   case ssStop:
     stop();

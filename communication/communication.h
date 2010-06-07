@@ -43,6 +43,7 @@ int readSensorDataFromSharedMemory(char* data, caddr_t shm);
 #define ssTurnCCwise 'a'
 #define ssStop 'x'
 #define ssQuit 'q'
+#define ssDriveDistance 'n'
 
 #define BACKLOG 10
 #define MSG "And indeed there will be time\nTo wonder, 'Do I dare?' and, 'Do I dare?'\n"
@@ -52,27 +53,27 @@ int readSensorDataFromSharedMemory(char* data, caddr_t shm);
 
 
 // Command definitions
-#define CMD_NO_OP 			0x0
-#define CMD_FORWARD			0x1
+#define CMD_NO_OP 		0x0
+#define CMD_FORWARD		0x1
 #define CMD_BACKWARD		0x2
-#define CMD_LEFT			0x3
-#define CMD_RIGHT			0x4
-#define CMD_BLINK			0x5
+#define CMD_LEFT		0x3
+#define CMD_RIGHT		0x4
+#define CMD_BLINK		0x5
 #define CMD_ADJUST_LEFT		0x6
 #define CMD_ADJUST_RIGHT	0x7
 #define NUM_COMMANDS		0x8	// Always make sure this is at the end
 
 // Sensor Data Indices
-#define SNSR_IR				0x0
+#define SNSR_IR			0x0
 #define SNSR_CLIFF_RIGHT	0x1
 #define SNSR_CLIFF_F_RIGHT	0x2
 #define SNSR_CLIFF_F_LEFT	0x3
 #define SNSR_CLIFF_LEFT		0x4
-#define SNSR_CASTER			0x5
+#define SNSR_CASTER		0x5
 #define SNSR_DROP_LEFT		0x6
 #define SNSR_DROP_RIGHT		0x7
 #define SNSR_BUMP_LEFT		0x8
 #define SNSR_BUMP_RIGHT		0x9
-#define NUM_SENSORS			0xA	// Always make sure this is at the end
+#define NUM_SENSORS		0xA	// Always make sure this is at the end
 
 #endif

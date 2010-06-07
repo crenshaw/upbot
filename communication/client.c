@@ -104,6 +104,7 @@ int main(int argc, char *argv[])
 	//ensure that it user input is valid
 	if(checkValue(cmd[0])== 1)
 	  {
+	    printf("%s %d \n", __FILE__, __LINE__);
 	    //send the value to the server
 	    if(send(sockfd, cmd, 1, 0) == -1)
 	      perror("send");

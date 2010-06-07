@@ -270,6 +270,9 @@ int checkValue(char v)
   if(v == ssQuit)
     return true;
 
+  if(v == ssDriveDistance)
+    return true;
+
   return false;
 }
 

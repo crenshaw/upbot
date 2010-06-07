@@ -115,6 +115,7 @@ int nerves(caddr_t cmdArea, caddr_t sensArea, pid_t pid);
 #define CLOCKWISE 90
 #define CCLOCKWISE -90
 #define STRAIGHT 0x8000
+#define TILE_DISTANCE 630 //length of tile in mm
 
 // Sensor packet indices for group 1
 #define SP_GROUP_ONE 1
