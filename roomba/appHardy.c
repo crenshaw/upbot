@@ -63,7 +63,7 @@ int main()
       
       // check if there is an external command to execute;
       // if so, execute it.
-      if((c = readAndExecute(cmdFile) == -1))
+      if((c = readAndExecute(cmdFile)) == -1)
 	{
 	  printf("readAndExecute failed\n");
 	}

@@ -14,6 +14,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include "../roomba/roomba.h"
+#include "commandQueue.h"
 
 #ifndef _COMMUNICATION_H
 #define _COMMUNICATION_H
@@ -23,11 +24,13 @@ void sigchld_handler(int s);
 void writeCommandToFile(char* cmd, FILE* fp);
 int checkValue(char v);
 int readSensorDataFromFile(char* data, FILE* fp);
-int receiveDataAndStore(int newSock, char* cmdBuf, char* sensData, FILE* cmdFile, FILE* sensorFile, int* fd, caddr_t shm);
+int receiveDataAndStore(int newSock, char* cmdBuf, char* sensData, FILE* cmdFile, FILE* sensorFile, int* fd, caddr_t sensArea, caddr_t cmdArea);
 int createSharedMem(char * deviceName, caddr_t* area);
 int createServer(void);
 int establishConnection(int s);
 int readSensorDataFromSharedMemory(char* data, caddr_t shm);
+
+
 
 //Human issued commands from the keyboard
 #define ssDriveLow 'i'
@@ -40,10 +43,12 @@ int readSensorDataFromSharedMemory(char* data, caddr_t shm);
 #define ssTurnCCwise 'a'
 #define ssStop 'x'
 #define ssQuit 'q'
+
 #define BACKLOG 10
 #define MSG "And indeed there will be time\nTo wonder, 'Do I dare?' and, 'Do I dare?'\n"
 #define PORT "8080"
 #define MAXDATASIZE 100 // max number of bytes we can get at once 
+#define SEMAPHORE_OFFSET 0x400
 
 
 // Command definitions

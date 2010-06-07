@@ -1,8 +1,12 @@
-//appSimple
-//Simple program for iRobot Create Roomba
-//Created By:	Steven M. Beyer
-//Date:		24 February 2010
-//Description:	A simple program to control iRobot Create behaviour.
+/**
+ * appSimple
+ *
+ * Simple program for iRobot Create Roomba
+ *
+ * @author Steven M. Beyer
+ * @since  24 February 2010
+ *
+ */
 
 #include <stdio.h>
 #include "roomba.h"
@@ -60,7 +64,7 @@ int main()
 
       setLED(RED, PLAY_ON, ADVANCE_ON);
       
-      if((c = readAndExecute(fp) == -1))
+      if((c = readAndExecute(fp)) == -1)
 	{
 	  printf("readAndExecute failed\n");
 	}

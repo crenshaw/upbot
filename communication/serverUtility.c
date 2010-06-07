@@ -1,3 +1,12 @@
+/**
+ * serverUtility.c
+ *
+ * A collection of supporting functions for the iRobot server programs.
+ *
+ * @author Tanya L. Crenshaw & Steven Beyer.
+ * 
+ */
+
 #include "communication.h"
 
 #define SIZE 40
@@ -116,7 +125,37 @@ void writeCommandToFile(char* cmd, FILE* fp)
       fprintf(fp, "%s", " ");
       fflush(fp);
     }
+
+  return;
 }
+
+/**
+ * writeCommandToSharedMemory()
+ * 
+ * Takes a command and writes it to shared memory.
+ * If the command is null or '(' it is not written.
+ * This function only works for a single character command.
+ *
+ * @arg cmd pointer to command
+ * @arg shm pointer to shared memory
+ *
+ * @return int 1 if wrote something and 0 otherwise
+ */
+int writeCommandToSharedMemory(char* cmd, caddr_t shm)
+{
+  if((cmd[0] != '\0' || cmd[0] == CQ_COMMAND_CANARY_VALUE))
+    {
+      command_t * newCommand = NULL;
+      constructCommand(&newCommand, cmd);
+      writeCommandToQueue(shm, newCommand);
+      free(newCommand);
+
+      return 1;
+    }
+
+  return 0;
+}
+
 /**
  * readSensorDataFromFile()
  *
@@ -240,7 +279,8 @@ int checkValue(char v)
  * Receive a control command and convey sensor data.
  */
 int receiveDataAndStore(int newSock, char* cmdBuf, char* sensData, FILE* cmdFile, 
-			FILE* sensorFile, int* fd, caddr_t sensArea)
+			FILE* sensorFile, int* fd, caddr_t sensArea, 
+			caddr_t cmdArea)
 {
   int numbytes;
 
@@ -252,10 +292,12 @@ int receiveDataAndStore(int newSock, char* cmdBuf, char* sensData, FILE* cmdFile
 	  perror("recv");
 	  return -1;
 	}
-      printf("%c\n", cmdBuf[0]);
+      printf("receiveDataAndStore: %c\n", cmdBuf[0]);
 
       // Write command to the cmdFile.txt
       writeCommandToFile(cmdBuf, cmdFile);
+      
+      writeCommandToSharedMemory(cmdBuf, cmdArea);
       
       // Send command to parent process
       write(fd[1], cmdBuf, 1);
@@ -301,6 +343,15 @@ int createSharedMem(char * deviceName, caddr_t* area)
   return 0;
 }
 
+/**
+ *
+ * createServer()
+ *
+ * Create a server to listen on a socket
+ *
+ * @return s, the socket, if success and -1 if fail.
+ *
+ */
 int createServer(void)
 {
   struct sigaction sa;
@@ -345,6 +396,16 @@ int createServer(void)
   return s;
 }
 
+/**
+ * establishConnection()
+ * 
+ * 'accept' a connection on socket s.  This function blocks until
+ * a connection is established.
+ *
+ * @arg s the socket on which the connection should be established.
+ *
+ * @return the socket id.
+ */
 int establishConnection(int s)
 {
   char p[INET6_ADDRSTRLEN];

@@ -7,7 +7,7 @@
 int defineSongs();
 int openPort();
 int closePort();
-char readAndExecute(FILE *fp, caddr_t shm);
+char readAndExecute(FILE *fp);
 void byteTx(char value);
 void byteRx(char* buffer, int nbytes, int iter);
 void initialize();
@@ -33,7 +33,7 @@ void stop();
 void setLED(int powerSetting, int playSetting, int advanceSetting);
 
 /* In nerves.c */
-int nerves(caddr_t cmdArea, caddr_t sensArea);
+int nerves(caddr_t cmdArea, caddr_t sensArea, pid_t pid);
 
 #define HIGH_BYTE 0
 #define LOW_BYTE 1

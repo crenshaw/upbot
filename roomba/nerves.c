@@ -19,7 +19,7 @@
  *
  * @return 0 if successful, -1 otherwise
  */
-int nerves(caddr_t cmdArea, caddr_t sensArea)
+int nerves(caddr_t cmdArea, caddr_t sensArea, pid_t pid)
 {
   int cmd = -1;
   
@@ -62,27 +62,37 @@ int nerves(caddr_t cmdArea, caddr_t sensArea)
       // Look in the shared memory cmdArea to determine if 
       // there is an external command to execute;
       // if so, execute it.
-      if((cmd = readAndExecute(cmdFile, cmdArea)) == -1)
+      /*      if((cmd = readAndExecute(cmdFile)) == -1)
 	{
 	  perror("readAndExecute failed\n");
 
-	}
+	  }*/
+
+      printf("%s %d \n", __FILE__, __LINE__);
+ 
+
+      cmd = readFromSharedMemoryAndExecute(cmdArea);
+
+ 
+      printf("%s %d \n", __FILE__, __LINE__);
       
       receiveGroupOneSensorData(x);
 
-      
+      printf("%s %d \n", __FILE__, __LINE__);
       // check if any of the sensor data indicates a 
       // sensor has been activated.  If so, react be
       // driving backwards briefly, stopping, and then
       // conveying the sensor data to a file.
       if(checkSensorData(x))
 	{
+	  printf("%s %d \n", __FILE__, __LINE__);
 
 	  //drive backwards and then stop
-	  driveBackwardsUntil(EIGHTH_SECOND, MED);
-
+	  // driveBackwardsUntil(HALF_SECOND, MED);
+	  stop();
+	  printf("%s %d \n", __FILE__, __LINE__);
 	  currTime = getTime();
-	  writeSensorDataToFile(x, sensorFile, currTime);
+	  // writeSensorDataToFile(x, sensorFile, currTime);
 	  
 	  writeSensorDataToSharedMemory(x, sensArea, currTime);
 
