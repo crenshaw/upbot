@@ -147,7 +147,6 @@ int nerves(caddr_t cmdArea, caddr_t sensArea, pid_t pid);
 #define DEGREES_45 45000000
 #define DEGREES_90 1000000
 
-#define STOP_MACRO (byteTx(CmdDrive); byteTx(0x00); byteTx(0x00); 
-                   byteTx(STRAIGHT >> 8); byteTx(STRAIGHT & 0x00FF);)
+#define STOP_MACRO {byteTx(CmdDrive); byteTx(0x00); byteTx(0x00); byteTx(STRAIGHT >> 8); byteTx(STRAIGHT & 0x00FF);}
 
 #endif
