@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 	int rv;
 	char s[INET6_ADDRSTRLEN];
 	char input = '\0';
-	FILE* log = fopen("supClient.log", "w");
+	FILE* log = fopen("supClient.log", "a");
 	if (argc != 2) {
 	    fprintf(stderr,"usage: client hostname\n");
 	    exit(1);
@@ -112,22 +112,28 @@ int main(int argc, char *argv[])
 	// Print raw sensor data to stdout along with size in bytes
 	while(1)
 	{	       
+#if STATS_MODE == 0
 		// Receive sensor data from socket and store in 'buf'
 		printf("Receiving sensor data.\n");
+#endif
 		numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0);
 		// Insert null terminating character at end of sensor string
 		sprintf(&buf[numbytes], "\0");
 
+#if STATS_MODE == 0
 		// Print raw sensor data to stdout along with size in bytes
 		printf("client: sensor data: '%s'\n", buf);	   
 		printf("numbytes: %d\n", numbytes);
+#endif
 
 		// Call Supervisor tick to process recently added episode
 		cmd = tick(buf);
 
+#if STATS_MODE == 0
 		// Print sensor data to log file and force write
 		fprintf(log, "Sensor data: [%s] Command received: %i\n", buf, cmd);
 		fflush(log);
+#endif
 
 		// Error in processing, exit with appropriate error code
 		if(cmd < 0)
@@ -149,8 +155,10 @@ int main(int argc, char *argv[])
 			perror("send");
 		}
 
+#if STATS_MODE == 0
 		// Print command sent to Roomba on stdout
 		printf("The command value sent was: %d\n", cmd);
+#endif
 
 		// If goal is found increase goal count and store the index it was found at
 		if(((Episode*)getEntry(g_episodeList, g_episodeList->size - 1))->sensors[SNSR_IR] == 1)
@@ -162,6 +170,7 @@ int main(int argc, char *argv[])
 		// Once we've found all the goals, print out some data about the search
 		if(goalsFound >= NUM_GOALS_TO_FIND)
 		{
+#if STATS_MODE == 0
 			// Print the number of goals found and episodes recieved
 			printf("Roomba has found the Goal %i times.\nSupervisor has received %i episodes.\n", NUM_GOALS_TO_FIND, g_episodeList->size);
 			int i;
@@ -179,10 +188,19 @@ int main(int argc, char *argv[])
 					printf("\n");
 				}
 			}
+#else
+			int i;
+			for(i = 0; i < NUM_GOALS_TO_FIND; i++)
+			{
+				fprintf(log, "%i:", (i < 1 ? goalsTimeStamp[i] : goalsTimeStamp[i]-goalsTimeStamp[i-1]));
+			}
+			fprintf(log, "\n");
+			fflush(log);
+#endif
 			// free the goals time stamp array
 			free(goalsTimeStamp);
 			// exit the while loop
-			printf("Exiting.\n");
+			printf("All goals found. Exiting.\n");
 			break;
 		}
 

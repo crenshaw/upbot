@@ -27,8 +27,11 @@
 #define FALSE				0
 
 // Matching defines
-#define NUM_TO_MATCH		100
-#define NUM_GOALS_TO_FIND	10
+#define NUM_TO_MATCH		15
+#define NUM_GOALS_TO_FIND	75
+
+// Collecting data for stats
+#define STATS_MODE			0
 
 // Sensor data struct
 typedef struct EpisodeStruct
@@ -54,6 +57,7 @@ Vector* g_milestoneList;
 extern int tick(char* sensorInput);
 Episode* createEpisode(char* sensorData);
 int chooseCommand(Episode* ep);
+int setCommand(Episode* ep);
 int parseEpisode(Episode* parsedData, char* dataArr);
 int addEpisode(Vector* episodes, Episode* item);
 void displayEpisode(Episode* ep);
