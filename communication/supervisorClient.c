@@ -12,7 +12,7 @@
 #include "communication.h"
 #include "../supervisor/supervisor.h"
 
-#define CONNECT_TO_ROOMBA 0
+#define CONNECT_TO_ROOMBA 1
 
 void exitError(int errCode)
 {
@@ -105,7 +105,6 @@ int main(int argc, char *argv[])
 	// Send a first command to finish initializing the send/receive sequence
 	if(send(sockfd, &cmd, 1, 0) == -1)
 	{
-		perror("send");
 	}
 #endif
 
@@ -119,6 +118,8 @@ int main(int argc, char *argv[])
 		numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0);
 		// Insert null terminating character at end of sensor string
 		sprintf(&buf[numbytes], "\0");
+
+//		sleep(5);
 
 #if STATS_MODE == 0
 		// Print raw sensor data to stdout along with size in bytes

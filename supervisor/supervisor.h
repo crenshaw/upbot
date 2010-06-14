@@ -33,12 +33,13 @@
 // Collecting data for stats
 #define STATS_MODE			0
 
+#define DECREASE_RANDOM(randChance) if((randChance) > 5) { (randChance) -= 5;}
+
 // Sensor data struct
 typedef struct EpisodeStruct
 {
 	int 	sensors[NUM_SENSORS];
 	time_t	now;
-	int 	aborted;
 	int 	cmd;
 } Episode;
 

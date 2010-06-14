@@ -10,6 +10,7 @@
 *
 */
 
+int g_randChance = 80;
 
 /**
 * tick
@@ -24,13 +25,13 @@ int tick(char* sensorInput)
 {
 	// Create new Episode
 	Episode* ep = createEpisode(sensorInput);
+	// Print out the parsed episode
+	displayEpisode(ep);
 	// Add new episode to the history
 	addEpisode(g_episodeList, ep);
-	// Send ep to receive a command
-	chooseCommand(ep);
-
-	// Return ep's new command
-	return ep->cmd;
+	// Send ep to receive a command and return the command that is chosen.
+	// Will return -1 if no command could be set
+	return chooseCommand(ep);
 }// tick
 
 /**
@@ -77,25 +78,24 @@ Episode* createEpisode(char* sensorData)
 */
 int chooseCommand(Episode* ep)
 {
-	static int randChance = 100;	// The chance of choosing a random move
 	int random;						// int for storing random number
 	int i, j;				// indices for loops
 	
 	// seed rand and allocate goal arr if this is first time a command is chosen
-	if(randChance == 100)
+	if(g_randChance == 100)
 	{
 		srand(time(NULL));
 	}
 
 	// Determine the next command, possibility of random command
-	if((random = rand() % 100) < randChance || g_episodeList->size < NUM_TO_MATCH)
+	if((random = rand() % 100) < g_randChance || g_episodeList->size < NUM_TO_MATCH)
 	{
 		ep->cmd = rand() % NUM_COMMANDS;
 	}else
 	{
 		// find the best match scores for the three commands
 		// if no goal has been found (returns 0) then we take the command with the greatest score
-		if(setCommand(ep) == 0)
+		if(setCommand(ep) != 0)
 		{
 #if STATS_MODE == 0
 			printf("Failed to set a Command");
@@ -104,11 +104,6 @@ int chooseCommand(Episode* ep)
 		}
 	}
 
-	// decrease random move chance down to a limit
-	if(randChance > 10)
-	{
-		randChance--;
-	}
 	return ep->cmd;
 }// chooseCommand
 
@@ -244,6 +239,12 @@ int setCommand(Episode* ep)
 		}
 	}
 
+	printf("Best score Forward: %i\n"	, forwardScore);
+	printf("Best score Right: %i\n"		, rightScore);
+	printf("Best score Left: %i\n"		, leftScore);
+	printf("Index of best match: %i\n"	, bestMatch);
+
+
 	// free the memory allocated for score
 	free(score);
 
@@ -268,6 +269,8 @@ int setCommand(Episode* ep)
  */
 int parseEpisode(Episode * parsedData, char* dataArr)
 {
+	// temporary timestamp
+	static int timeStamp = 0;
 	// Allocate space for an episode
 	int i;
 	char* tmp;
@@ -295,11 +298,15 @@ int parseEpisode(Episode * parsedData, char* dataArr)
 		parsedData->sensors[i] = bit;
 	}
 
+	if(parsedData->sensors[SNSR_IR] == 1)
+	{
+		DECREASE_RANDOM(g_randChance);
+	}
+
 	// Pull out the timestamp
-	parsedData->now = atoi(&dataArr[i]);
+	parsedData->now = timeStamp++;
 
 	// set these to default values for now
-	parsedData->aborted = atoi(&dataArr[strlen(dataArr) - 2]);
 	parsedData->cmd = CMD_NO_OP;
 
 	return 0;
@@ -329,7 +336,7 @@ int addEpisode(Vector* episodes, Episode* item)
 void displayEpisode(Episode * ep)
 {
 	int i;
-	printf("Sensors:    ");
+	printf("\nSensors:    ");
 
 	// iterate through sensor values and print to stdout
 	for(i = 0; i < NUM_SENSORS; i++)
@@ -338,7 +345,7 @@ void displayEpisode(Episode * ep)
 	}
 
 	// print rest of episode data to stdout
-	printf("\nTime stamp: %i\nAborted:    %i\nCommand:    %i\n\n", (int)ep->now, ep->aborted, ep->cmd);
+	printf("\nTime stamp: %i\nCommand:    %i\n\n", (int)ep->now, ep->cmd);
 }// displayEpisode
 
 /**
@@ -383,6 +390,9 @@ int match(Vector* vector, int* score)
 			returnIdx = i;
 		}
 	}
+
+
+
 
 	// The index of the -closest- match, was not necessarily a full milestone match
 	return returnIdx;
