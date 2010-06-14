@@ -34,32 +34,32 @@ int** initWorld()
 			{
 				case 0:
 				case 8:
-					world[i][j] = 1;
+					world[i][j] = V_WALL;
 					break;
 				case 1:
 				case 4:
 				case 7:
 					if(j == 0 || j == 6)
-						world[i][j] = 1;
+						world[i][j] = V_WALL;
 					else
-						world[i][j] = 0;
+						world[i][j] = V_HALLWAY;
 					break;
 				case 2:
 				case 3:
 				case 5:
 				case 6:
 					if(j == 0 || j== 2 || j == 3 || j == 4 || j == 6)
-						world[i][j] = 1;
+						world[i][j] = V_WALL;
 					else
-						world[i][j] = 0;
+						world[i][j] = V_HALLWAY;
 					break;
 			}
 		}//for
 
 		// Set up Roomba starting location
-		world[1][1] = 2;
+		world[1][1] = V_ROOMBA;
 		// Set up goal
-		world[7][5] = -1;
+		world[7][5] = V_GOAL;
 
 	return world;
 }
@@ -87,10 +87,11 @@ void freeWorld(int** world)
 * location. This allows us to determine the next set of sensor data to return
 * to the supervisor.
 *
-* @arg int This is a command from the supervisor
+* @arg command This is a command from the supervisor
+* @arg cleanup 1: unit test is over, 2: continue unit test
 * @return char* a string containing fake sensor data
 */
-char* unitTest2(int command)
+char* unitTest2(int command, int cleanup)
 {
 	static int timeStamp = 0; // counter acting as time stamp
 	static int** world;	// 2d array to ints that represents the world
@@ -103,28 +104,42 @@ char* unitTest2(int command)
 	int abort;
 	char* str = (char*) malloc(sizeof(char) * 24); // memory for data
 
+	if(cleanup == 1)
+	{
+		freeWorld(world);
+		return str;
+	}
+
 	// init sensor values
-	lBump = rBump = lCliff = rCliff = lCliffFront = rCliffFront = IR = caster = lDrop = rDrop = 0;
-	sensorReturn = 0;
-	abort = 0;
+	lBump = rBump = lCliff = rCliff = lCliffFront = rCliffFront = IR = caster = lDrop = rDrop = SNSR_OFF;
+	sensorReturn = NONE_HIT;
+	abort = SNSR_OFF;
 
 	if(timeStamp == 0)
 	{
 		world = initWorld();	// initialize the world
-		x = y = 1;				// set the initial location for Roomba
-		heading = HDG_E;		// init the heading
 		hitGoal = 1;			// init to 1 so it becomes 0 in next check;
+		x = y = 1;
+#if STATS_MODE == 0
 		printf("Initial World View\n");
 		displayWorld(world, heading);
+#endif
 	}
 
 	// If we hit a goal last time reset Roomba location and heading
 	// and reset goal location
-	if(hitGoal == 1)
+	if(hitGoal == SNSR_ON)
 	{
-		hitGoal = 0;
+		hitGoal = SNSR_OFF;
 		heading = HDG_E;
+		world[x][y] = V_HALLWAY;
 		x = y = 1;
+#if STATS_MODE
+		if(timeStamp != 0)
+		{
+			printf("Hit Goal\n");
+		}
+#endif
 	}
 
 	// Switch on the command that was received to update world appropriately
@@ -132,23 +147,33 @@ char* unitTest2(int command)
 	{
 		// Left and Right just turn the Roomba
 		case CMD_LEFT:
+#if STATS_MODE == 0
 			printf("Turn left 45 degrees\n");
+#endif
 			heading = (heading > HDG_N ? heading - 1 : HDG_NW);
 			break;
 		case CMD_RIGHT:
+#if STATS_MODE == 0
 			printf("Turn right 45 degrees\n");
+#endif
 			heading = (heading < HDG_NW ? heading + 1 : HDG_N);
 			break;
 		// Adjusts currently not implemented in 'perfect' world
 		case CMD_ADJUST_LEFT:
+#if STATS_MODE == 0
 			printf("Adjust left\n");
+#endif
 			break;
 		case CMD_ADJUST_RIGHT:
+#if STATS_MODE == 0
 			printf("Adjust right\n");
+#endif
 			break;
 		// Forward must check for walls and IR in direction of heading
 		case CMD_FORWARD:
+#if STATS_MODE == 0
 			printf("Move forward one world unit\n");
+#endif
 
 			// First check the diagonal headings
 			if(heading == HDG_NE)
@@ -171,91 +196,91 @@ char* unitTest2(int command)
 			// Also begin check for IR in spot we move to
 			else if(heading == HDG_N)
 			{
-				if(world[x][y-1] == 1)
+				if(world[x][y-1] == V_WALL)
 				{
-					sensorReturn = 3;
+					sensorReturn = BOTH_HIT;
 				}
-				else if(world[x][y-1] == -1)
+				else if(world[x][y-1] == V_GOAL)
 				{
-					IR = 1;
+					IR = SNSR_ON;
 				}
 			}
 			else if(heading == HDG_E)
 			{
-				if(world[x+1][y] == 1)
+				if(world[x+1][y] == V_WALL)
 				{
-					sensorReturn = 3;
+					sensorReturn = BOTH_HIT;
 				}
-				else if(world[x+1][y] == -1)
+				else if(world[x+1][y] == V_GOAL)
 				{
-					IR = 1;
+					IR = SNSR_ON;
 				}
 			}
 			else if(heading == HDG_S)
 			{
-				if(world[x][y+1] == 1)
+				if(world[x][y+1] == V_WALL)
 				{
-					sensorReturn = 3;
+					sensorReturn = BOTH_HIT;
 				}
-				else if(world[x][y+1] == -1)
+				else if(world[x][y+1] == V_GOAL)
 				{
-					IR = 1;
+					IR = SNSR_ON;
 				}
 			}
 			else if(heading == HDG_W)
 			{
-				if(world[x-1][y] == 1)
+				if(world[x-1][y] == V_WALL)
 				{
-					sensorReturn = 3;
+					sensorReturn = BOTH_HIT;
 				}
-				else if(world[x-1][y] == -1)
+				else if(world[x-1][y] == V_GOAL)
 				{
-					IR = 1;
+					IR = SNSR_ON;
 				}
 			}
 
-			if(IR == 1)
+			if(IR == SNSR_ON)
 			{
-				heading = 1;
+				hitGoal = SNSR_ON;
 			}
-			else if(sensorReturn == 3)
+			else if(sensorReturn == BOTH_HIT)
 			{
-				lBump = rBump = 1;
-				abort = 1;
+				lBump = rBump = SNSR_ON;
+				abort = SNSR_ON;
 			}
-			else if(sensorReturn == 2)
+			else if(sensorReturn == RIGHT_HIT)
 			{
-				rBump = 1;
-				abort = 1;
+				rBump = SNSR_ON;
+				abort = SNSR_ON;
 			}
-			else if(sensorReturn == 1)
+			else if(sensorReturn == LEFT_HIT)
 			{
-				lBump = 1;
-				abort = 1;
+				lBump = SNSR_ON;
+				abort = SNSR_ON;
 			}
-			else if(sensorReturn == 0)
+			else if(sensorReturn == NONE_HIT)
 			{
 				switch(heading)
 				{
 					case HDG_N:
-						world[x][y] = 0;
+						world[x][y] = V_HALLWAY;
 						y--;
-						world[x][y] = 2;
+						world[x][y] = V_ROOMBA;
 						break;
 					case HDG_E:
-						world[x][y] = 0;
+						world[x][y] = V_HALLWAY;
 						x++;
-						world[x][y] = 2;
+						world[x][y] = V_ROOMBA;
 						break;
 					case HDG_S:
-						world[x][y] = 0;
+						world[x][y] = V_HALLWAY;
 						y++;
-						world[x][y] = 2;
+						world[x][y] = V_ROOMBA;
 						break;
 					case HDG_W:
-						world[x][y] = 0;
+						world[x][y] = V_HALLWAY;
 						x--;
-						world[x][y] = 2;
+						world[x][y] = V_ROOMBA;
 						break;
 				}
 			}
@@ -263,16 +288,24 @@ char* unitTest2(int command)
 			break;
 		// cmd backward and blink not imlpemented in 'perfect' world
 		case CMD_BACKWARD:
+#if STATS_MODE == 0
 			printf("Move backwards one world unit\n");
+#endif
 			break;
 		case CMD_BLINK:
+#if STATS_MODE == 0
 			printf("Blink\n");
+#endif
 			break;
 		case CMD_NO_OP:
+#if STATS_MODE == 0
 			printf("No operation\n");
+#endif
 			break;
 		default:
+#if STATS_MODE == 0
 			printf("Invalid command: %i\n", command);
+#endif
 			break;
 	}
 
@@ -288,6 +321,7 @@ char* unitTest2(int command)
 	sprintf(&str[SNSR_BUMP_LEFT], 		"%i", lBump);
 	sprintf(&str[SNSR_BUMP_RIGHT], 		"%i", rBump);
 
+	// Fill out rest of episode string with timestamp and abort signal
 	int i, temp;
 	for(i = 10; i < 24; i++)
 	{
@@ -320,7 +354,10 @@ char* unitTest2(int command)
 		}
 	}
 
+#if STATS_MODE == 0
 	displayWorld(world, heading);
+#endif
+
 
 	timeStamp++;
 
@@ -333,27 +370,22 @@ char* unitTest2(int command)
 * This function returns a value that tells the calling function
 * which bump sensors may or may not have been hit
 *
-* -1 - error
-* 1 - left
-* 2 - right
-* 3 - both
-*
 * @arg north int that represents the wall N of the Roomba when normalized to point NE
 * @arg east int that represents the wall E of the Roomba when normalized to point NE
-* @return int that represents bump sensor values, see above
+* @return int that represents bump sensor values
 */
 int bumpSensor(int north, int east)
 {
 	// return the appropriate value representing which, if any, bumpers are hit
 	// account for value representing goal spot (-1) which is also a hallway
-	if((north == 0 || north == -1) && (east == 0 || east == -1))
-		return 3;
-	if((north == 0 || north == -1) && east == 1)
-		return 2;
-	if(north == 1 && (east == 0 || east == -1))
-		return 1;
-	if(north == 1 && east == 1)
-		return 3;
+	if((north == V_HALLWAY || north == V_GOAL) && (east == V_HALLWAY || east == V_GOAL))
+		return BOTH_HIT;
+	if((north == V_HALLWAY || north == V_GOAL) && east == V_WALL)
+		return RIGHT_HIT;
+	if(north == V_WALL && (east == V_HALLWAY || east == V_GOAL))
+		return LEFT_HIT;
+	if(north == V_WALL && east == V_WALL)
+		return BOTH_HIT;
 
 	return -1;
 }
@@ -372,16 +404,16 @@ void displayWorld(int** world, int heading)
 	{
 		for(j = 0; j < 9; j++)
 		{
-			if(world[j][i] == 1)
+			if(world[j][i] == V_WALL)
 			{
 				printf("W");
-			}else if(world[j][i] == 0)
+			}else if(world[j][i] == V_HALLWAY)
 			{
 				printf(" ");
-			}else if(world[j][i] == -1)
+			}else if(world[j][i] == V_GOAL)
 			{
 				printf("G");
-			}else if(world[j][i] == 2)
+			}else if(world[j][i] == V_ROOMBA)
 			{
 				switch(heading)
 				{
