@@ -6,7 +6,7 @@
 * this file as well as those for determining new commands
 *
 * Author: Dr. Andrew Nuxoll and Zachary Paul Faltersack
-* Last Edit: June 4, 2010
+* Last Edit: June 7, 2010
 *
 */
 
@@ -58,7 +58,9 @@ Episode* createEpisode(char* sensorData)
 		exit(retVal);
 	}else
 	{
+#if STATS_MODE == 0
 		printf("Sensor data successfully parsed into new episode\n");
+#endif
 	}
 	return ep;
 }// createEpisode
@@ -76,40 +78,81 @@ Episode* createEpisode(char* sensorData)
 int chooseCommand(Episode* ep)
 {
 	static int randChance = 100;	// The chance of choosing a random move
-	static int goalCount = 0;		// Number of goals found so far
-	static int* goalIdx;			// Array to store indices of goal
 	int random;						// int for storing random number
-	int indexMatch;					// store the index for a match search
-	int* score;						// The score for a match search
+	int i, j;				// indices for loops
 	
-	// Allocate space for the score pointer
-	score = (int*) malloc(sizeof(int));
-
 	// seed rand and allocate goal arr if this is first time a command is chosen
 	if(randChance == 100)
 	{
-		goalIdx = (int*)malloc(sizeof(int) * 10);
 		srand(time(NULL));
 	}
+
+	// Determine the next command, possibility of random command
+	if((random = rand() % 100) < randChance || g_episodeList->size < NUM_TO_MATCH)
+	{
+		ep->cmd = rand() % NUM_COMMANDS;
+	}else
+	{
+		// find the best match scores for the three commands
+		// if no goal has been found (returns 0) then we take the command with the greatest score
+		if(setCommand(ep) == 0)
+		{
+#if STATS_MODE == 0
+			printf("Failed to set a Command");
+#endif
+			return -1;
+		}
+	}
+
+	// decrease random move chance down to a limit
+	if(randChance > 10)
+	{
+		randChance--;
+	}
+	return ep->cmd;
+}// chooseCommand
+
+/**
+* setCommand
+*
+* Find the match scores for each of the available commands (currently condensed list)
+* If a goal has been found, then find the index of the best match
+*
+* @arg ep pointer to new episode
+* @return int status code
+*
+* @return int status code
+*/
+int setCommand(Episode* ep)
+{	
+	static int goalCount = 0;						// Number of goals found so far
+	static int goalIdx[NUM_GOALS_TO_FIND];
+	int tempIdx, tempDist;							// temp vars
+	int i,j;										// looping indices
+	int bestMatch;
+	int forwardScore, rightScore, leftScore;
+
+	// init goadx to 0s
+	if(g_episodeList->size == 1)
+	{
+		for(i = 0; i < NUM_GOALS_TO_FIND; i++)
+		{
+			goalIdx[i] = 0;
+		}
+	}
+
+	// Allocate space for the score pointer
+	int* score = (int*) malloc(sizeof(int));
+
+	// init distance to size of history
+	tempDist = g_episodeList->size;
+
 	// If new episode is goal state store idx and increase count
 	if(ep->sensors[SNSR_IR] == 1)
 	{
 		goalIdx[goalCount] = ep->now;
 		goalCount++;
 	}
-
-	// Process the episode list and determine which move may be the best
-	int i, j;				// indices for loops
-	int matchScoreForward;	// the match score for CMD_FORWARD
-	int matchScoreRight;	// the match score for CMD_RIGHT
-	int matchScoreLeft;		// the match score for CMD_LEFT
-	int tempIdx, tempDist;	// temp vars
-	int bestMatch;			// index for current best match
-	
-	// init scores to 0
-	matchScoreForward = matchScoreRight = matchScoreLeft = 0; 
-	// init distance to size of history
-	tempDist = g_episodeList->size;
 
 	// Test out three commands and find best match for each command
 	// Then if a goal has been found, determine the distance to the goal
@@ -126,17 +169,17 @@ int chooseCommand(Episode* ep)
 			{
 				ep->cmd = CMD_FORWARD;
 				tempIdx = match(g_episodeList, score);
-				matchScoreForward = *score;
+				forwardScore = *score;
 			}else if(i == 1)
 			{
 				ep->cmd = CMD_RIGHT;
 				tempIdx = match(g_episodeList, score);
-				matchScoreRight = *score;
+				rightScore = *score;
 			}else
 			{
 				ep->cmd = CMD_LEFT;
 				tempIdx = match(g_episodeList, score);
-				matchScoreLeft = *score;
+				leftScore = *score;
 			}
 			// If the goal has been found then determine which of the three episodes
 			// with the greatest scores is closest to the goal
@@ -146,18 +189,18 @@ int chooseCommand(Episode* ep)
 				{
 					// Make sure the goal is after the current episode
 					if(abs(((Episode*)getEntry(g_episodeList, goalIdx[j]))->now - 
-						   ((Episode*)getEntry(g_episodeList, tempIdx))->now) < 0)
+								((Episode*)getEntry(g_episodeList, tempIdx))->now) < 0)
 					{
 
 					}
 					// If the distance between the episode and goal is less than previous
 					// then save it
 					else if(abs(((Episode*)getEntry(g_episodeList, goalIdx[j]))->now - 
-						   ((Episode*)getEntry(g_episodeList, tempIdx))->now) < tempDist)
+								((Episode*)getEntry(g_episodeList, tempIdx))->now) < tempDist)
 					{
 						// keep track of the current best distance
 						tempDist = abs(((Episode*)getEntry(g_episodeList, goalIdx[j]))->now - 
-						   ((Episode*)getEntry(g_episodeList, tempIdx))->now);
+								((Episode*)getEntry(g_episodeList, tempIdx))->now);
 						// keep track of which command gave the best distance so far
 						bestMatch = i;
 					}// if
@@ -166,59 +209,48 @@ int chooseCommand(Episode* ep)
 		}// if
 	}// for
 
-	// Determine the next command, random possiblity
-	if((random = rand() % 100) < randChance || g_episodeList->size < NUM_TO_MATCH)
+	// If a goal has been found then we have a distance we can use above to find best match
+	if(goalCount > 0)
 	{
-		ep->cmd = rand() % NUM_COMMANDS;
-	}else
-	{
-		// If a goal has been found then we have a distance we can use above to find best match
-		if(goalCount > 0)
+		switch(bestMatch)
 		{
-			switch(bestMatch)
-			{
-				case 0:
-					ep->cmd = CMD_FORWARD;
-					break;
-				case 1:
-					ep->cmd = CMD_RIGHT;
-					break;
-				case 2:
-					ep->cmd = CMD_LEFT;
-					break;
-			}
-		}
-		// Otherwise just choose the move with the greatest score
-		else
-		{
-			// If this is > instead of >= then the Supervisor prefers CMD_LEFT
-			// If this is >= instead of > then the Supervisor prefers CMD_FORWARD
-			// My assumption for the reason is that the majority of the time, the scores
-			// are the same. I think this problem will go away when we start incorporating
-			// the Milestones into the decision process
-			if(matchScoreForward >= matchScoreRight && matchScoreForward >= matchScoreLeft)
-			{
+			case 0:
 				ep->cmd = CMD_FORWARD;
-			}else if(matchScoreRight >= matchScoreLeft)
-			{
+				break;
+			case 1:
 				ep->cmd = CMD_RIGHT;
-			}else
-			{
+				break;
+			case 2:
 				ep->cmd = CMD_LEFT;
-			}
+				break;
+		}
+	}
+	else
+	{
+		// If this is > instead of >= then the Supervisor prefers CMD_LEFT
+		// If this is >= instead of > then the Supervisor prefers CMD_FORWARD
+		// My assumption for the reason is that the majority of the time, the scores
+		// are the same. I think this problem will go away when we start incorporating
+		// the Milestones into the decision process
+		if(forwardScore >= rightScore && forwardScore >= leftScore)
+		{
+			ep->cmd = CMD_FORWARD;
+		}else if(rightScore >= leftScore)
+		{
+			ep->cmd = CMD_RIGHT;
+		}else
+		{
+			ep->cmd = CMD_LEFT;
 		}
 	}
 
-	// free memory allocated for score
+	// free the memory allocated for score
 	free(score);
 
-	// decrease random move chance down to a limit
-	if(randChance > 10)
-	{
-		randChance--;
-	}
-	return ep->cmd;
-}// chooseCommand
+	// return success
+	return 0;
+}// setCommand
+
 
 /**
  * parseEpisode
