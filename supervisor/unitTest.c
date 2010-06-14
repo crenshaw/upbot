@@ -286,12 +286,6 @@ char* unitTest2(int command, int cleanup)
 			}
 			
 			break;
-		// cmd backward and blink not imlpemented in 'perfect' world
-		case CMD_BACKWARD:
-#if STATS_MODE == 0
-			printf("Move backwards one world unit\n");
-#endif
-			break;
 		case CMD_BLINK:
 #if STATS_MODE == 0
 			printf("Blink\n");
