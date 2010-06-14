@@ -57,16 +57,6 @@ int main(void)
   // An array to hold the timestamp.
   char currTime[100];
 
-  // Open text files to store sensor information
-  FILE* sensorFile = fopen("sensorFile.txt", "r");
-
-  // Check if file open is successful
-  if (sensorFile == NULL)
-    {
-      perror("Server fopen");
-      return -1;
-    }
-
   // Create pipe to communicate between parent and child
   int fd[2];
   if(pipe(fd) < 0)
@@ -171,18 +161,20 @@ int main(void)
 	  // check if any of the sensor data indicates a 
 	  // sensor has been activated.  If so, react be
 	  // driving backwards briefly and then stopping.
+
+	  
 	  if(checkSensorData(sensDataFromRobot))
 	    {
-	      printf("%s %d \n", __FILE__, __LINE__);
-	      
+	     	      
 	      //drive backwards and then stop
 	      driveBackwardsUntil(EIGHTH_SECOND, MED);
 	      stop();	      
-
+	      WAIT_CHILD();
 	      // Convey sensorData back to the supervisor-client.
-	      writeSensorDataToSharedMemory(sensDataFromRobot, sensArea, getTime());	      
+	      writeSensorDataToSharedMemory(sensDataFromRobot, sensArea, getTime());
+	      TELL_CHILD(pid);
 	    }
-
+	  TELL_CHILD(pid);
 	  
 	  // Reset the array; fill it again in the next loop.
 	  for(i = 0; i <= 6; i++)
@@ -210,7 +202,7 @@ int main(void)
     {
       // Child process doesn't need the listener.
       close(serverID);
-
+      TELL_PARENT(getppid());
       // Send the client the initial connection message.
       if(send(clientSock, MSG, sizeof(MSG), 0) == -1)
 	perror("send");
@@ -246,6 +238,8 @@ int main(void)
 	  // parent (nerves) may read and execute it.
 	  writeCommandToSharedMemory(commandFromSupervisor, cmdArea);	      
 
+	  WAIT_PARENT();
+
 	  // If there is sensor data available, send it to the
 	  // supervisor-client.
 	  if(readSensorDataFromSharedMemory(sensDataToSupervisor, sensArea))
@@ -254,7 +248,7 @@ int main(void)
 	      if(send(clientSock, sensDataToSupervisor, strlen(sensDataToSupervisor), 0) == -1)
 		perror("send");
 	    }
-
+	  
 	  // Otherwise, assume no sensor was activated.  Send an empty
 	  // sensor message to the supervisor-client.
 	  else
@@ -270,6 +264,8 @@ int main(void)
 
 	      emptyDataToSupervisor[SIZE_OF_EMPTY_DATA] = '\0';
 	    }
+
+	  TELL_PARENT(getppid());
 	}
 	
 

@@ -239,7 +239,7 @@ int driveDistance()
       return -1;
     }
   //else successfully completed command within given distance
-  stop();
+  STOP_MACRO;
   return 0;
 
 }

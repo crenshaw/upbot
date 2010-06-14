@@ -449,7 +449,7 @@ int checkSensorData(char *x)
     {
       if(x[i] == ACTIVE_SENSOR)
 	{
-	  stop();
+	  STOP_MACRO;
 	  return TRUE;
 	}
     }
@@ -463,7 +463,7 @@ int checkSensorData(char *x)
      ((x[0] & SENSOR_WHEELDROP_BOTH) == SENSOR_WHEELDROP_BOTH) ||
      ((x[0] & SENSOR_WHEELDROP_CASTER) == SENSOR_WHEELDROP_CASTER))
     {
-      stop();
+      STOP_MACRO;
       return TRUE;
     }
 
