@@ -82,8 +82,10 @@ int chooseCommand(Episode* ep)
 	int i, j;				// indices for loops
 	
 	// seed rand and allocate goal arr if this is first time a command is chosen
-	if(g_randChance == 100)
+	static int needSeed = TRUE;
+	if(needSeed == TRUE)
 	{
+		needSeed = FALSE;
 		srand(time(NULL));
 	}
 

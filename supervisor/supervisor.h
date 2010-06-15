@@ -31,7 +31,7 @@
 #define NUM_GOALS_TO_FIND	75
 
 // Collecting data for stats
-#define STATS_MODE			0
+#define STATS_MODE			1
 
 #define DECREASE_RANDOM(randChance) if((randChance) > 5) { (randChance) -= 5;}
 
