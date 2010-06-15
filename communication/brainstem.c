@@ -135,6 +135,8 @@ int main(void)
       // Close the client socket since this parent won't be using it.
       close(clientSock);
 
+      //TELL_CHILD(pid);
+
       // Open the serial port to the robot.  If this is unsuccessful,
       // there is no point in continuing.
       if(openPort() == 0)
@@ -154,26 +156,36 @@ int main(void)
 
       while(commandToRobot[0] != ssQuit)
 	{
-	  commandToRobot[0] = readFromSharedMemoryAndExecute(cmdArea);
+	  // Wait until a valid command is received.
+	  while((commandToRobot[0] = readFromSharedMemoryAndExecute(cmdArea) == -1));
 
 	  receiveGroupOneSensorData(sensDataFromRobot);
 
 	  // check if any of the sensor data indicates a 
 	  // sensor has been activated.  If so, react be
 	  // driving backwards briefly and then stopping.
-
 	  
-	  if(checkSensorData(sensDataFromRobot))
+	  int sensData = 0;
+	  
+	  // Check sensor data first to stop ramming into wall.
+	  sensData = checkSensorData(sensDataFromRobot);
+	  
+	  // Wait until child has sent previous sensor data.
+	  WAIT_CHILD();
+
+	  if(sensData)
 	    {
 	     	      
-	      //drive backwards and then stop
+	      // Drive backwards and then stop.
 	      driveBackwardsUntil(EIGHTH_SECOND, MED);
 	      stop();	      
-	      WAIT_CHILD();
-	      // Convey sensorData back to the supervisor-client.
+
+	      // Convey sensorData back to the child.
 	      writeSensorDataToSharedMemory(sensDataFromRobot, sensArea, getTime());
-	      TELL_CHILD(pid);
+
 	    }
+
+	  // Done writing sensor data, tell child to proceed reading sensor data.
 	  TELL_CHILD(pid);
 	  
 	  // Reset the array; fill it again in the next loop.
@@ -183,7 +195,7 @@ int main(void)
 	    }
 	}
 
-      // Close the serial port
+      // Close the serial port.
       printf("Closing the serial port \n");
 
       if (closePort() == -1)
@@ -202,7 +214,10 @@ int main(void)
     {
       // Child process doesn't need the listener.
       close(serverID);
+
+      // Initially tell the parent to proceed and write sensor data.
       TELL_PARENT(getppid());
+
       // Send the client the initial connection message.
       if(send(clientSock, MSG, sizeof(MSG), 0) == -1)
 	perror("send");
@@ -225,7 +240,6 @@ int main(void)
       // subsequent sensor data.
       while(commandFromSupervisor[0] != ssQuit)
 	{
-
 	  // Wait to receive command from supervisor-client; read the command
 	  // into cmdBuf.
 	  if ((numBytes = recv(clientSock, commandFromSupervisor, MAXDATASIZE-1, 0)) == -1)
@@ -238,6 +252,7 @@ int main(void)
 	  // parent (nerves) may read and execute it.
 	  writeCommandToSharedMemory(commandFromSupervisor, cmdArea);	      
 
+	  // Wait until parent has written sensor data.
 	  WAIT_PARENT();
 
 	  // If there is sensor data available, send it to the
@@ -265,6 +280,7 @@ int main(void)
 	      emptyDataToSupervisor[SIZE_OF_EMPTY_DATA] = '\0';
 	    }
 
+	  // Done reading sensor data, allow parent to write more sensor data.
 	  TELL_PARENT(getppid());
 	}
 	
