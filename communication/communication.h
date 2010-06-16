@@ -44,6 +44,10 @@ int readSensorDataFromSharedMemory(char* data, caddr_t shm);
 #define ssStop 'x'
 #define ssQuit 'q'
 #define ssDriveDistance 'n'
+#define ssAdjustLeft 'h'
+#define ssAdjustRight 'j'
+#define ssNoOp 'o'
+#define ssBlinkLED 'l'
 
 #define BACKLOG 10
 #define MSG "And indeed there will be time\nTo wonder, 'Do I dare?' and, 'Do I dare?'\n"

@@ -234,10 +234,10 @@ int readSensorDataFromSharedMemory(char* data, caddr_t shm)
 int checkValue(char v)
 {
 
-  if(v == CMD_LEFT)
+  if(v == ssAdjustRight || v == CMD_ADJUST_RIGHT)
     return true;
 
-  if(v == CMD_RIGHT)
+  if(v == ssAdjustLeft || v == CMD_ADJUST_LEFT)
     return true;
 
   if(v == ssDriveLow)
@@ -258,19 +258,22 @@ int checkValue(char v)
   if(v == ssDriveBackwardHigh)
     return true;
 
-  if(v == ssTurnCwise)
+  if(v == ssTurnCwise || v == CMD_RIGHT)
     return true;
 
-  if(v == ssTurnCCwise)
+  if(v == ssTurnCCwise || v == CMD_LEFT)
     return true;
 
-  if(v == ssStop)
+  if(v == ssStop || v == ssNoOp || v == CMD_NO_OP)
     return true;
 
   if(v == ssQuit)
     return true;
 
-  if(v == ssDriveDistance)
+  if(v == ssDriveDistance || v == CMD_FORWARD)
+    return true;
+
+  if(v == ssBlinkLED || v == CMD_BLINK)
     return true;
 
   return false;

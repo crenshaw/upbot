@@ -35,3 +35,32 @@ void setLED(int powerSetting, int playSetting, int advanceSetting)
   else
     byteTx(FULL_INTENSITY);
 }
+
+void blinkLED()
+{
+  int i = 0;
+
+  for(i = 0; i < 4; i++)
+    {
+
+      byteTx(CmdLeds);
+      byteTx(OFF);
+      byteTx(PWR_GREEN);
+      byteTx(OFF);
+
+      usleep(HALF_SECOND);
+
+      byteTx(CmdLeds);
+      byteTx(SET_ALL);
+      byteTx(PWR_RED);
+      byteTx(FULL_INTENSITY);
+
+      usleep(HALF_SECOND);
+      
+    }
+  byteTx(CmdLeds);
+  byteTx(OFF);
+  byteTx(PWR_GREEN);
+  byteTx(OFF);
+}
+

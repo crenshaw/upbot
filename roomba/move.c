@@ -243,3 +243,13 @@ int driveDistance()
   return 0;
 
 }
+
+void adjustRIGHT()
+{
+  turnClockwise(ADJUST_AMOUNT);
+}
+
+void adjustLEFT()
+{
+  turnCounterClockwise(ADJUST_AMOUNT);
+}

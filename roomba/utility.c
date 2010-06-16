@@ -264,7 +264,21 @@ int readFromSharedMemoryAndExecute(caddr_t shm)
   case CMD_FORWARD:
     driveDistance();
     break;
+  case ssAdjustRight:
+  case CMD_ADJUST_RIGHT:
+    adjustRIGHT();
+    break;
+  case ssAdjustLeft:
+  case CMD_ADJUST_LEFT:
+    adjustLEFT();
+    break;
+  case ssBlinkLED:
+  case CMD_BLINK:
+    blinkLED();
+    break;
   case ssStop:
+  case CMD_NO_OP:
+  case ssNoOp:
     stop();
     break;
   case ssQuit:

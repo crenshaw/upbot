@@ -28,9 +28,12 @@ void turnClockwise(int degrees);
 void driveBackwardsUntil(int sec, int speed);
 void driveBackwards(int speed);
 void stop();
+void adjustLEFT();
+void adjustRIGHT();
 
 /* In led.c */
 void setLED(int powerSetting, int playSetting, int advanceSetting);
+void blinkLED();
 
 /* In nerves.c */
 int nerves(caddr_t cmdArea, caddr_t sensArea, pid_t pid);
@@ -146,6 +149,7 @@ int nerves(caddr_t cmdArea, caddr_t sensArea, pid_t pid);
 #define EIGHTH_SECOND 125000
 #define DEGREES_45 45000000
 #define DEGREES_90 1000000
+#define ADJUST_AMOUNT 166666
 
 #define STOP_MACRO {byteTx(CmdDrive); byteTx(0x00); byteTx(0x00); byteTx(STRAIGHT >> 8); byteTx(STRAIGHT & 0x00FF);}
 
