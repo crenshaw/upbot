@@ -11,6 +11,14 @@
 */
 
 int g_randChance = 80;
+// global strings for printing to console
+char* g_forward = "forward";
+char* g_right	= "right";
+char* g_left	= "left";
+char* g_adjustR	= "adjust right";
+char* g_adjustL	= "adjust left";
+char* g_blink	= "blink";
+char* g_no_op	= "no operation";
 
 /**
 * tick
@@ -25,13 +33,14 @@ int tick(char* sensorInput)
 {
 	// Create new Episode
 	Episode* ep = createEpisode(sensorInput);
-	// Print out the parsed episode
-	displayEpisode(ep);
 	// Add new episode to the history
 	addEpisode(g_episodeList, ep);
-	// Send ep to receive a command and return the command that is chosen.
+	// Send ep to receive a command
 	// Will return -1 if no command could be set
-	return chooseCommand(ep);
+	chooseCommand(ep);
+	// Print out the parsed episode
+	displayEpisode(ep);
+	return ep->cmd;
 }// tick
 
 /**
@@ -92,7 +101,9 @@ int chooseCommand(Episode* ep)
 	// Determine the next command, possibility of random command
 	if((random = rand() % 100) < g_randChance || g_episodeList->size < NUM_TO_MATCH)
 	{
-		ep->cmd = rand() % NUM_COMMANDS;
+		// Command 0 is now illegal command so adjust NUM_COMMANDS to account for this
+		// Then increment to push back into valid command range
+		ep->cmd = (rand() % (NUM_COMMANDS - CMD_NO_OP )) + CMD_NO_OP;
 	}else
 	{
 		// find the best match scores for the three commands
@@ -127,7 +138,7 @@ int setCommand(Episode* ep)
 	int tempIdx, tempDist;							// temp vars
 	int i,j;										// looping indices
 	int bestMatch;
-	int forwardScore, rightScore, leftScore;
+	int commandScores[NUM_COMMANDS];				// Array to store scores for commands
 
 	// init goadx to 0s
 	if(g_episodeList->size == 1)
@@ -138,9 +149,6 @@ int setCommand(Episode* ep)
 		}
 	}
 
-	// Allocate space for the score pointer
-	int* score = (int*) malloc(sizeof(int));
-
 	// init distance to size of history
 	tempDist = g_episodeList->size;
 
@@ -150,34 +158,21 @@ int setCommand(Episode* ep)
 		goalIdx[goalCount] = ep->now;
 		goalCount++;
 	}
-
-	// Test out three commands and find best match for each command
-	// Then if a goal has been found, determine the distance to the goal
-	// and find command with the least distance
-	for(i = 0; i < 3; i++)
+	// can only successfully search if at minimum history contains
+	// NUM_TO_MATCH episodes
+	if(g_episodeList->size > NUM_TO_MATCH)
 	{
-		// can only successfully search if at minimum history contains
-		// NUM_TO_MATCH episodes
-		if(g_episodeList->size > NUM_TO_MATCH)
+		// Test out three commands and find best match for each command
+		// Then if a goal has been found, determine the distance to the goal
+		// and find command with the least distance
+		for(i = CMD_NO_OP; i < NUM_COMMANDS; i++)
 		{
 			// for each run test out next command
 			// keep track of index of the best match as well as its score
-			if(i == 0)
-			{
-				ep->cmd = CMD_FORWARD;
-				tempIdx = match(g_episodeList, score);
-				forwardScore = *score;
-			}else if(i == 1)
-			{
-				ep->cmd = CMD_RIGHT;
-				tempIdx = match(g_episodeList, score);
-				rightScore = *score;
-			}else
-			{
-				ep->cmd = CMD_LEFT;
-				tempIdx = match(g_episodeList, score);
-				leftScore = *score;
-			}
+
+			ep->cmd = i;
+			tempIdx = match(g_episodeList, commandScores + i);
+
 			// If the goal has been found then determine which of the three episodes
 			// with the greatest scores is closest to the goal
 			if(goalCount > 0)
@@ -203,52 +198,31 @@ int setCommand(Episode* ep)
 					}// if
 				}
 			}// if
-		}// if
-	}// for
+		}// for
+	}// if
 
 	// If a goal has been found then we have a distance we can use above to find best match
 	if(goalCount > 0)
 	{
-		switch(bestMatch)
-		{
-			case 0:
-				ep->cmd = CMD_FORWARD;
-				break;
-			case 1:
-				ep->cmd = CMD_RIGHT;
-				break;
-			case 2:
-				ep->cmd = CMD_LEFT;
-				break;
-		}
+		ep->cmd = bestMatch;
 	}
 	else
 	{
-		// If this is > instead of >= then the Supervisor prefers CMD_LEFT
-		// If this is >= instead of > then the Supervisor prefers CMD_FORWARD
-		// My assumption for the reason is that the majority of the time, the scores
-		// are the same. I think this problem will go away when we start incorporating
-		// the Milestones into the decision process
-		if(forwardScore >= rightScore && forwardScore >= leftScore)
+		int max = CMD_NO_OP;
+		for(i = CMD_NO_OP; i < NUM_COMMANDS; i++)
 		{
-			ep->cmd = CMD_FORWARD;
-		}else if(rightScore >= leftScore)
-		{
-			ep->cmd = CMD_RIGHT;
-		}else
-		{
-			ep->cmd = CMD_LEFT;
+			if(commandScores[max] < commandScores[i])
+			{
+				max = i;
+			}
 		}
+		ep->cmd = max;
 	}
 
-	printf("Best score Forward: %i\n"	, forwardScore);
-	printf("Best score Right: %i\n"		, rightScore);
-	printf("Best score Left: %i\n"		, leftScore);
-	printf("Index of best match: %i\n"	, bestMatch);
-
-
-	// free the memory allocated for score
-	free(score);
+	for(i = CMD_NO_OP; i < NUM_COMMANDS; i++)
+	{
+		printf("%s score: %i\n", interpretCommand(i), commandScores[i]);
+	}
 
 	// return success
 	return 0;
@@ -452,3 +426,41 @@ void endSupervisor()
 	freeVector(g_episodeList);
 	freeVector(g_milestoneList);
 }// endSupervisor
+
+/**
+* interpretCommand
+*
+* Return a char* with the string equivalent of a command
+* Use for printing to console
+*
+* @arg cmd Integer representing the command
+* @return char* Char array with command as string
+*/
+char* interpretCommand(int cmd)
+{
+	switch(cmd)
+	{
+		case CMD_NO_OP:
+			return g_no_op;
+			break;
+		case CMD_FORWARD:
+			return g_forward;
+			break;
+		case CMD_LEFT:
+			return g_left;
+			break;
+		case CMD_RIGHT:
+			return g_right;
+			break;
+		case CMD_BLINK:
+			return g_blink;
+			break;
+		case CMD_ADJUST_LEFT:
+			return g_adjustL;
+			break;
+		case CMD_ADJUST_RIGHT:
+			return g_adjustR;
+			break;
+	}
+}// interpretCommand
+

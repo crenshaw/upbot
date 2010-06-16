@@ -6,7 +6,7 @@
 * data and sends the commands that the Supervisor decides
 *
 * Author: Dr. Crenshaw, Dr. Nuxoll, Zachary Faltersack, Steve Beyer
-* Last edit: 27/5/10
+* Last edit: 15/6/10
 */
 
 #include "communication.h"
@@ -14,13 +14,17 @@
 
 #define CONNECT_TO_ROOMBA 1
 
+/**
+* exitError
+*
+* Close the Supervisor upon error and print error code
+*/
 void exitError(int errCode)
 {
 	printf("Error. Ending...");
 	endSupervisor();
 	exit(errCode);
 }
-
 
 int main(int argc, char *argv[])
 {
@@ -102,6 +106,7 @@ int main(int argc, char *argv[])
 	printf("Poem: %s", buf);	   
 	printf("numbytes: %d\n", numbytes);
 
+	cmd = CMD_LEFT;
 	// Send a first command to finish initializing the send/receive sequence
 	if(send(sockfd, &cmd, 1, 0) == -1)
 	{
@@ -111,33 +116,31 @@ int main(int argc, char *argv[])
 	// Print raw sensor data to stdout along with size in bytes
 	while(1)
 	{	       
-#if STATS_MODE == 0
+//#if STATS_MODE == 0
 		// Receive sensor data from socket and store in 'buf'
 		printf("Receiving sensor data.\n");
-#endif
+//#endif
 		numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0);
 		// Insert null terminating character at end of sensor string
 		sprintf(&buf[numbytes], "\0");
 
-//		sleep(5);
-
-#if STATS_MODE == 0
+//#if STATS_MODE == 0
 		// Print raw sensor data to stdout along with size in bytes
 		printf("client: sensor data: '%s'\n", buf);	   
 		printf("numbytes: %d\n", numbytes);
-#endif
+//#endif
 
 		// Call Supervisor tick to process recently added episode
 		cmd = tick(buf);
 
-#if STATS_MODE == 0
+//#if STATS_MODE == 0
 		// Print sensor data to log file and force write
-		fprintf(log, "Sensor data: [%s] Command received: %i\n", buf, cmd);
-		fflush(log);
-#endif
+//		fprintf(log, "Sensor data: [%s] Command received: %i\n", buf, cmd);
+//		fflush(log);
+//#endif
 
 		// Error in processing, exit with appropriate error code
-		if(cmd < 0)
+		if(cmd < CMD_NO_OP)
 		{
 			perror("Tick returned error\n");
 			exit(cmd);
@@ -156,10 +159,10 @@ int main(int argc, char *argv[])
 			perror("send");
 		}
 
-#if STATS_MODE == 0
+//#if STATS_MODE == 0
 		// Print command sent to Roomba on stdout
-		printf("The command value sent was: %d\n", cmd);
-#endif
+		printf("The command value sent was: %s (%i)\n", interpretCommand(cmd), cmd);
+//#endif
 
 		// If goal is found increase goal count and store the index it was found at
 		if(((Episode*)getEntry(g_episodeList, g_episodeList->size - 1))->sensors[SNSR_IR] == 1)
@@ -171,7 +174,7 @@ int main(int argc, char *argv[])
 		// Once we've found all the goals, print out some data about the search
 		if(goalsFound >= NUM_GOALS_TO_FIND)
 		{
-#if STATS_MODE == 0
+//#if STATS_MODE == 0
 			// Print the number of goals found and episodes recieved
 			printf("Roomba has found the Goal %i times.\nSupervisor has received %i episodes.\n", NUM_GOALS_TO_FIND, g_episodeList->size);
 			int i;
@@ -189,15 +192,15 @@ int main(int argc, char *argv[])
 					printf("\n");
 				}
 			}
-#else
-			int i;
+//#else
+			//int i;
 			for(i = 0; i < NUM_GOALS_TO_FIND; i++)
 			{
 				fprintf(log, "%i:", (i < 1 ? goalsTimeStamp[i] : goalsTimeStamp[i]-goalsTimeStamp[i-1]));
 			}
 			fprintf(log, "\n");
 			fflush(log);
-#endif
+//#endif
 			// free the goals time stamp array
 			free(goalsTimeStamp);
 			// exit the while loop
