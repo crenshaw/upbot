@@ -48,6 +48,7 @@ int readSensorDataFromSharedMemory(char* data, caddr_t shm);
 #define ssAdjustRight 'j'
 #define ssNoOp 'o'
 #define ssBlinkLED 'l'
+#define ssSong 'y'
 
 #define BACKLOG 10
 #define MSG "And indeed there will be time\nTo wonder, 'Do I dare?' and, 'Do I dare?'\n"
@@ -57,14 +58,16 @@ int readSensorDataFromSharedMemory(char* data, caddr_t shm);
 
 
 // Command definitions
-#define CMD_NO_OP 		0x0
-#define CMD_FORWARD		0x1
-#define CMD_LEFT		0x2
-#define CMD_RIGHT		0x3
-#define CMD_BLINK		0x4
-#define CMD_ADJUST_LEFT		0x5
-#define CMD_ADJUST_RIGHT	0x6
-#define NUM_COMMANDS		0x7	// Always make sure this is at the end
+#define CMD_ILLEGAL             0x0
+#define CMD_NO_OP 		0x1
+#define CMD_FORWARD		0x2
+#define CMD_LEFT		0x3
+#define CMD_RIGHT		0x4
+#define CMD_BLINK		0x5
+#define CMD_ADJUST_LEFT		0x6
+#define CMD_ADJUST_RIGHT	0x7
+#define NUM_COMMANDS		0x8	// Always make sure this is at the end
+#define CMD_SONG                0x9
 
 // Sensor Data Indices
 #define SNSR_IR			0x0

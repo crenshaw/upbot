@@ -276,6 +276,9 @@ int checkValue(char v)
   if(v == ssBlinkLED || v == CMD_BLINK)
     return true;
 
+  if(v == ssSong || v == CMD_SONG)
+    return true;
+
   return false;
 }
 

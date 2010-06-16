@@ -231,6 +231,7 @@ int readFromSharedMemoryAndExecute(caddr_t shm)
 {
   char cmd = '\0';
 
+
   cmd = getCommandCodeFromQueue(shm);
 
   switch (cmd){
@@ -279,7 +280,12 @@ int readFromSharedMemoryAndExecute(caddr_t shm)
   case ssStop:
   case CMD_NO_OP:
   case ssNoOp:
+    printf("STOPPED \n");
     stop();
+    break;
+  case ssSong:
+  case CMD_SONG:
+    song();
     break;
   case ssQuit:
     break;

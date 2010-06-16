@@ -140,7 +140,7 @@ int createCommandQueue(caddr_t ptr, int size)
  */
 int writeCommandToQueue(caddr_t q, command_t * cmd)
 {
-
+  fprintf(stdout, "%s : cmd: %c", __FILE__, cmd->command);
   // Get the writer's position and queue size
   int writerPos =   *((int *)(q + CQ_WPOS_OFFSET));
   int qSize = *((int *)(q + CQ_SIZE_OFFSET));

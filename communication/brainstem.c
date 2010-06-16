@@ -156,9 +156,10 @@ int main(void)
 
       while(commandToRobot[0] != ssQuit)
 	{
+	  fprintf(stdout, "%s %d\n", __FILE__, __LINE__);
 	  // Wait until a valid command is received.
 	  while((commandToRobot[0] = readFromSharedMemoryAndExecute(cmdArea) == -1));
-
+	  fprintf(stdout, "finished readFromShared");
 	  receiveGroupOneSensorData(sensDataFromRobot);
 
 	  // check if any of the sensor data indicates a 
@@ -166,13 +167,13 @@ int main(void)
 	  // driving backwards briefly and then stopping.
 	  
 	  int sensData = 0;
-	  
+	  fprintf(stdout, "about to sensData");
 	  // Check sensor data first to stop ramming into wall.
 	  sensData = checkSensorData(sensDataFromRobot);
-	  
+	  fprintf(stdout, "about to wait on child\n");
 	  // Wait until child has sent previous sensor data.
 	  WAIT_CHILD();
-
+	  fprintf(stdout, "Done waiting on child\n");
 	  if(sensData)
 	    {
 	     	      
@@ -184,7 +185,7 @@ int main(void)
 	      writeSensorDataToSharedMemory(sensDataFromRobot, sensArea, getTime());
 
 	    }
-
+	  fprintf(stdout, "About to tell child\n");
 	  // Done writing sensor data, tell child to proceed reading sensor data.
 	  TELL_CHILD(pid);
 	  
@@ -222,7 +223,7 @@ int main(void)
       if(send(clientSock, MSG, sizeof(MSG), 0) == -1)
 	perror("send");
 
-      printf("brainstem: within child process \n");
+      fprintf(stdout, "brainstem: within child process \n");
 
       // At the request of the supervisor implementation team, The
       // brain follows a strict alternation of 'receive control
@@ -247,13 +248,16 @@ int main(void)
 	      perror("recv");
 	      return -1;
 	    }
+	  fprintf(stdout, "%s  commandFromSupervisor: %d\n", __FILE__, commandFromSupervisor[0]); 
 
 	  // Write the read command into shared memory so that the
 	  // parent (nerves) may read and execute it.
 	  writeCommandToSharedMemory(commandFromSupervisor, cmdArea);	      
-
+	  printCommandQueueHeader(cmdArea);
+	  fprintf(stdout, "%s %d\n", __FILE__, __LINE__);
 	  // Wait until parent has written sensor data.
 	  WAIT_PARENT();
+	  fprintf(stdout, "Done Waiting on Parent\n");
 
 	  // If there is sensor data available, send it to the
 	  // supervisor-client.
@@ -268,6 +272,7 @@ int main(void)
 	  // sensor message to the supervisor-client.
 	  else
 	    {
+	      printf("%s %d\n", __FILE__, __LINE__);
 	      printf("sensDataToSupervisor: nothing happened. \n"); 
 	    
 	      // Construct an empty sensor data message and send it to

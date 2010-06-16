@@ -40,7 +40,7 @@ void blinkLED()
 {
   int i = 0;
 
-  for(i = 0; i < 4; i++)
+  for(i = 0; i < 2; i++)
     {
 
       byteTx(CmdLeds);

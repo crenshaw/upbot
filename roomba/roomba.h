@@ -38,6 +38,9 @@ void blinkLED();
 /* In nerves.c */
 int nerves(caddr_t cmdArea, caddr_t sensArea, pid_t pid);
 
+/* In song.c */
+void song();
+
 #define HIGH_BYTE 0
 #define LOW_BYTE 1
 #define FALSE 0

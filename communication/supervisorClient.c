@@ -12,7 +12,7 @@
 #include "communication.h"
 #include "../supervisor/supervisor.h"
 
-#define CONNECT_TO_ROOMBA 0
+#define CONNECT_TO_ROOMBA 1
 
 void exitError(int errCode)
 {
