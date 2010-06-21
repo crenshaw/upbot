@@ -6,10 +6,11 @@
 * this file as well as those for determining new commands
 *
 * Author: Dr. Andrew Nuxoll and Zachary Paul Faltersack
-* Last Edit: June 7, 2010
+* Last Edit: June 21, 2010
 *
 */
 
+// The chance of choosing a random move
 int g_randChance = 80;
 // global strings for printing to console
 char* g_forward = "forward";
@@ -68,9 +69,10 @@ Episode* createEpisode(char* sensorData)
 		exit(retVal);
 	}else
 	{
-#if STATS_MODE == 0
-		printf("Sensor data successfully parsed into new episode\n");
-#endif
+		if(g_statsMode == 0)
+		{
+			printf("Sensor data successfully parsed into new episode\n");
+		}
 	}
 	return ep;
 }// createEpisode
@@ -110,9 +112,10 @@ int chooseCommand(Episode* ep)
 		// if no goal has been found (returns 0) then we take the command with the greatest score
 		if(setCommand(ep) != 0)
 		{
-#if STATS_MODE == 0
-			printf("Failed to set a Command");
-#endif
+			if(g_statsMode == 0)
+			{
+				printf("Failed to set a Command");
+			}
 			return -1;
 		}
 	}
@@ -121,16 +124,16 @@ int chooseCommand(Episode* ep)
 }// chooseCommand
 
 /**
-* setCommand
-*
-* Find the match scores for each of the available commands (currently condensed list)
-* If a goal has been found, then find the index of the best match
-*
-* @arg ep pointer to new episode
-* @return int status code
-*
-* @return int status code
-*/
+ * setCommand
+ *
+ * Find the match scores for each of the available commands (currently condensed list)
+ * If a goal has been found, then find the index of the best match
+ *
+ * @arg ep pointer to new episode
+ * @return int status code
+ *
+ * @return int status code
+ */
 int setCommand(Episode* ep)
 {	
 	static int goalCount = 0;						// Number of goals found so far
@@ -140,7 +143,13 @@ int setCommand(Episode* ep)
 	int bestMatch;
 	int commandScores[NUM_COMMANDS];				// Array to store scores for commands
 
-	// init goadx to 0s
+	// initialize scores to 0
+	for(i = 0; i < NUM_COMMANDS; i++)
+	{
+		commandScores[i] = 0;
+	}
+
+	// init goal indices to 0s
 	if(g_episodeList->size == 1)
 	{
 		for(i = 0; i < NUM_GOALS_TO_FIND; i++)
@@ -148,9 +157,6 @@ int setCommand(Episode* ep)
 			goalIdx[i] = 0;
 		}
 	}
-
-	// init distance to size of history
-	tempDist = g_episodeList->size;
 
 	// If new episode is goal state store idx and increase count
 	if(ep->sensors[SNSR_IR] == 1)
@@ -177,6 +183,8 @@ int setCommand(Episode* ep)
 			// with the greatest scores is closest to the goal
 			if(goalCount > 0)
 			{
+				// init distance to size of history
+				tempDist = g_episodeList->size;
 				for(j = 0; j < goalCount; j++)
 				{
 					// Make sure the goal is after the current episode
@@ -196,7 +204,7 @@ int setCommand(Episode* ep)
 						// keep track of which command gave the best distance so far
 						bestMatch = i;
 					}// if
-				}
+				}// for
 			}// if
 		}// for
 	}// if
@@ -219,9 +227,12 @@ int setCommand(Episode* ep)
 		ep->cmd = max;
 	}
 
-	for(i = CMD_NO_OP; i < NUM_COMMANDS; i++)
+	if(g_statsMode == 0)
 	{
-		printf("%s score: %i\n", interpretCommand(i), commandScores[i]);
+		for(i = CMD_NO_OP; i < NUM_COMMANDS; i++)
+		{
+			printf("%s score: %i\n", interpretCommand(i), commandScores[i]);
+		}
 	}
 
 	// return success
@@ -233,7 +244,7 @@ int setCommand(Episode* ep)
  * parseEpisode
  *
  *        dataArr contains string of the following format
- *        0000000011  <will be timestamp>  <abort signal>
+ *        0000000011  <will be timestamp> 
  *
  * Take a raw sensor packet from Roomba and parse information
  * out to an instance of Episode.
@@ -279,8 +290,26 @@ int parseEpisode(Episode * parsedData, char* dataArr)
 		DECREASE_RANDOM(g_randChance);
 	}
 
-	// Pull out the timestamp
-	parsedData->now = timeStamp++;
+	if(g_connectToRoomba == 1)
+	{
+		// Pull out the timestamp
+		parsedData->now = timeStamp++;
+	}else
+	{
+		int time = 0;
+		for(i = NUM_SENSORS; dataArr[i] != '\0'; i++)
+		{
+			if(dataArr[i] != ' ')
+			{
+				time = time * 10 + (dataArr[i] - '0');
+			}
+			if(dataArr[i] == ' ' && time != 0)
+			{
+				break;
+			}
+		}
+		parsedData->now = time;
+	}
 
 	// set these to default values for now
 	parsedData->cmd = CMD_NO_OP;
@@ -337,26 +366,27 @@ void displayEpisode(Episode * ep)
 int match(Vector* vector, int* score)
 {
 	int i,j, tempScore = 0, returnIdx = 0;
-	*score = 0;
 
 	// Iterate through vector and search from each index
-	for(i = vector->size - NUM_TO_MATCH - 1; i >= 0; i--)
+	for(i = vector->size - NUM_TO_MATCH; i >= 0; i--)
 	{
 		// reset tempscore
 		tempScore = 0;
-		for(j = 0; j < NUM_TO_MATCH; j++)
-		{
-			// compare two episodes and add result to score
-			tempScore += compare(vector->array[i + j], vector->array[vector->size - NUM_TO_MATCH + j]);
 
-			// greatest possible score is 2 * NUM_SENSORS * NUM_TO_MATCH
-			// give a goal episode half this value for 1/3 total value
-			// also quit searching if at goal state
+		for(j = NUM_TO_MATCH - 1; j >= 0; j--)
+		{
+			// If any state that occurs before the final episode in the match is a goal
+			// state then break because that means our current final episode is being 
+			// matched to one after a goal, which doesn't help to find the goal again
+			// Have to subtract 1 to prevent from breaking if the final episode is a goal
 			if(((Episode*)(vector->array[i + j]))->sensors[SNSR_IR] == 1)
 			{
-				tempScore += (NUM_TO_MATCH * NUM_SENSORS);
-				j = NUM_TO_MATCH;
+				break;
 			}
+
+			// compare two episodes and add result to score
+			//					V-index iterate to beginning		V-index to current episode frame
+			tempScore += compare(vector->array[i + j], vector->array[vector->size - NUM_TO_MATCH + j]);
 		}
 
 		// If we ended up with a greater score than previous, store index and score
@@ -366,10 +396,6 @@ int match(Vector* vector, int* score)
 			returnIdx = i;
 		}
 	}
-
-
-
-
 	// The index of the -closest- match, was not necessarily a full milestone match
 	return returnIdx;
 }// match
@@ -400,7 +426,7 @@ int compare(Episode* ep1, Episode* ep2)
 		match += NUM_SENSORS;
 	}
 
-	// If we have a full match return 1 to add to score, else 0
+	// return the total value of the match between episodes
 	return match;
 }// compare
 
@@ -412,8 +438,10 @@ int compare(Episode* ep1, Episode* ep2)
  */
 void initSupervisor()
 {
-	g_episodeList = newVector();
-	g_milestoneList = newVector();
+	g_episodeList 		= newVector();
+	g_milestoneList 	= newVector();
+	g_connectToRoomba 	= 0;
+	g_statsMode 		= 0;
 }// initSupervisor
 
 /**
@@ -428,14 +456,14 @@ void endSupervisor()
 }// endSupervisor
 
 /**
-* interpretCommand
-*
-* Return a char* with the string equivalent of a command
-* Use for printing to console
-*
-* @arg cmd Integer representing the command
-* @return char* Char array with command as string
-*/
+ * interpretCommand
+ *
+ * Return a char* with the string equivalent of a command
+ * Use for printing to console
+ *
+ * @arg cmd Integer representing the command
+ * @return char* Char array with command as string
+ */
 char* interpretCommand(int cmd)
 {
 	switch(cmd)

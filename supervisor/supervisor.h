@@ -50,6 +50,10 @@ typedef struct MilestoneStruct
 	int name;
 } Milestone;
 
+// Global variables for monitoring and connecting
+int g_connectToRoomba;
+int g_statsMode;
+
 // This vector will contain all episodes received from Roomba
 Vector* g_episodeList;
 Vector* g_milestoneList;
