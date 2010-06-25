@@ -63,6 +63,8 @@ void song();
 #define CmdSong     140
 #define CmdPlay     141
 #define CmdSensors  142
+#define CmdStream   148
+#define CmdToggleStream    150
 
 
 // iRobot Create Sensor Data Values
@@ -121,7 +123,7 @@ void song();
 #define CLOCKWISE 90
 #define CCLOCKWISE -90
 #define STRAIGHT 0x8000
-#define TILE_DISTANCE 630 //length of tile in mm
+#define TILE_DISTANCE 24 //length of tile in mm
 
 // Sensor packet indices for group 1
 #define SP_GROUP_ONE 1
@@ -150,10 +152,12 @@ void song();
 #define HALF_SECOND 500000
 #define QUARTER_SECOND 250000
 #define EIGHTH_SECOND 125000
-#define DEGREES_45 45000000
-#define DEGREES_90 1000000
+#define DEGREES_45 540000
+#define DEGREES_90 1080000
 #define ADJUST_AMOUNT 166666
 
 #define STOP_MACRO {byteTx(CmdDrive); byteTx(0x00); byteTx(0x00); byteTx(STRAIGHT >> 8); byteTx(STRAIGHT & 0x00FF);}
+#define PAUSE_STREAM_MACRO {byteTx(CmdToggleStream); byteTx(0);}
+#define RESUME_STREAM_MACRO {byteTx(CmdToggleStream); byteTx(1);}
 
 #endif

@@ -49,6 +49,7 @@ int readSensorDataFromSharedMemory(char* data, caddr_t shm);
 #define ssNoOp 'o'
 #define ssBlinkLED 'l'
 #define ssSong 'y'
+#define NUM_TOTAL_CMDS 23  // The total number of commands issued to the iRobot (i.e. excluding ssQuit)
 
 #define BACKLOG 10
 #define MSG "And indeed there will be time\nTo wonder, 'Do I dare?' and, 'Do I dare?'\n"
@@ -66,8 +67,10 @@ int readSensorDataFromSharedMemory(char* data, caddr_t shm);
 #define CMD_BLINK		0x5
 #define CMD_ADJUST_LEFT		0x6
 #define CMD_ADJUST_RIGHT	0x7
-#define NUM_COMMANDS		0x8	// Always make sure this is at the end
-#define CMD_SONG                0x9
+#define CMD_SONG                0x8
+#define NUM_COMMANDS		0x9	// Always make sure this is at the end
+
+
 
 // Sensor Data Indices
 #define SNSR_IR			0x0

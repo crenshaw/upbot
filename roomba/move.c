@@ -204,42 +204,43 @@ void stop()
  */ 
 int driveDistance()
 {
-  printf("%s %d\n", __FILE__, __LINE__);
-  char distanceTraveled[2] = {'\0'};
+  
+  int distanceTraveled = 0;
   char sensDataFromRobot[SIZE] = {'\0'};
   int sumDistanceTraveled = 0;
 
-  //packet 19 checks distance traveled since last time requested
-  //so zero out register
-  receiveSensorData(19, distanceTraveled, 2, 1);
   driveStraight(MED);
 
 
   //while there is nothing read from sensor and has not traveled given distance
   while(!checkSensorData(sensDataFromRobot) && 
-	(sumDistanceTraveled <= TILE_DISTANCE))
+	(distanceTraveled <= TILE_DISTANCE))
     {
       //receive bump, wheeldrop, and cliff data
       receiveGroupOneSensorData(sensDataFromRobot);
+
+      
+
 
       // One of the sensors may have been activated.  Check if so, and
       // react by stopping.  Do this now instead of waiting until after
       // the distance traveled has been polled for better reaction time.
       checkSensorData(sensDataFromRobot);
- 
-      //receive distance traveled data
-      receiveSensorData(19, distanceTraveled, 1, 2);
-      //convert 2 byte char to int and store into sumDistanceTraveled
-      sumDistanceTraveled += ((distanceTraveled[0]<<8) | distanceTraveled[1]);
+
+      usleep(15000);
+
+      //update distance traveled data
+      distanceTraveled ++;
     }
 
   //if there was a bump, wheeldrop, or cliff before distance then return
-  if(sumDistanceTraveled < TILE_DISTANCE)
+  if(distanceTraveled < TILE_DISTANCE)
     {
       return -1;
     }
   //else successfully completed command within given distance
   STOP_MACRO;
+  
   return 0;
 
 }

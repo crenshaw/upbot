@@ -18,8 +18,7 @@
  */
 void receiveSensorData(int packet, char* x, int numBytes, int numIter)
 {
-
-  //TLC: Determine if "numIter" is really necessary anymore.
+  
   byteTx(CmdSensors);
   byteTx(packet);
   byteRx(x, numBytes, numIter);
@@ -59,5 +58,46 @@ void receiveGroupFourSensorData(char * x)
     {
       receiveSensorData(i, x, 1, 1);
       x++;
+    }
+}
+/** streamSensorData
+ *
+ * request specific packets to be sent every 15 ms
+ * and parse the data the first time
+ * (incomplete function needs to implement constant read of data from
+ * roomba)
+ *
+ * @arg x pointer to character array
+ *
+ * @return void
+ */
+void streamSensorData(char * x)
+{
+  char  disregardedData = '\0';
+  int i;
+  byteTx(CmdStream);
+  byteTx(6); // request for 6 packets
+  byteTx(7); // bumps and wheel drops
+  byteTx(9); // cliff left
+  byteTx(10); // cliff front left
+  byteTx(11); // cliff front right
+  byteTx(12); // cliff right
+  byteTx(13); // virtual wall
+  
+  // for the amount of returned data
+  for(i = 0; i < 15; i++)
+    {
+      // if the data received is packet data then store
+      // into saved value
+      if(i > 2 && i%2 != 0)
+	{
+	  byteRx(x, 1, 1);
+	}
+      // else store and disregard to allow to increment
+      // roomba's buffer
+      else
+	{
+	  byteRx(&disregardedData, 1, 1);
+	}
     }
 }

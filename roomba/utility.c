@@ -17,7 +17,14 @@ int count = 0;
 // Create.  It is used only by this file for easier port
 // management.
 int fd = -1;
-
+// array of valid commands to send to the iRobot
+char legalCommandArray[NUM_TOTAL_CMDS] = {ssDriveLow, ssDriveMed, ssDriveHigh, 
+					  ssDriveBackwardLow, ssDriveBackwardMed, 
+					  ssDriveBackwardHigh, ssTurnCwise, ssTurnCCwise, 
+					  ssStop, ssDriveDistance, ssAdjustLeft, 
+					  ssAdjustRight, ssNoOp, ssBlinkLED, ssSong, 
+					  CMD_NO_OP, CMD_FORWARD, CMD_LEFT, CMD_RIGHT, 
+					  CMD_BLINK, CMD_ADJUST_LEFT, CMD_ADJUST_RIGHT, CMD_SONG};
 
 /**
  * openPort()
@@ -28,7 +35,7 @@ int fd = -1;
  */
 int openPort()
 {
-  fd = open("/dev/ttyS2", O_RDWR );
+  fd = open("/dev/ttyS2", O_RDWR | O_NOCTTY);
 
   if (!fd)
     {
@@ -94,26 +101,27 @@ void byteTx(char value)
  */
 void byteRx(char* buffer, int nbytes, int iter)
 {
-  int i;
+  int data = 0;
+
 
   if(iter == 1)
     {
-      read(fd, buffer, nbytes);
+      data = read(fd, buffer, nbytes);
       return;
     }
-  for (i = 0; i < iter; i++)
-  {
-    read(fd, buffer, nbytes);
-    buffer++;
-    usleep(1);
-  }
+  else
+    {
+      printf("Error, can only read one byte.\n");
+    }
+ 
+  return;
 
 }
 
 /**
  * initialize()
  *
- * Sends the necessary byte sequence to the iRobot to start it
+ * Sends the necessary byste sequence to the iRobot to start it
  * up, give the user control of it, and put it into safe mode.
  *
  * @return void
@@ -233,7 +241,6 @@ int readFromSharedMemoryAndExecute(caddr_t shm)
 
 
   cmd = getCommandCodeFromQueue(shm);
-
   switch (cmd){
   case ssDriveLow:
     driveStraight(LOW);
@@ -280,7 +287,6 @@ int readFromSharedMemoryAndExecute(caddr_t shm)
   case ssStop:
   case CMD_NO_OP:
   case ssNoOp:
-    printf("STOPPED \n");
     stop();
     break;
   case ssSong:
@@ -292,8 +298,30 @@ int readFromSharedMemoryAndExecute(caddr_t shm)
   default:
     return -1;
   }
-
+   
   return cmd;
+}
+
+/* checkCmd
+ *
+ * checks to see if valid command for roomba
+ * (not currently used)
+ *
+ * @arg cmd the command to check if valid
+ *
+ * @return 1 if valid 0 otherwise
+ */
+int checkCmd(cmd)
+{
+  int i;
+  for(i = 0; i < NUM_TOTAL_CMDS; i++)
+    {
+      if(cmd == legalCommandArray[i])
+	{
+	  return 1;
+	}
+    }
+  return 0;
 }
 
     
