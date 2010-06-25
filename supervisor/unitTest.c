@@ -56,19 +56,19 @@ int** initWorld()
 			}
 		}//for
 
-		// Set up Roomba starting location
-		world[1][1] = V_ROOMBA;
-		// Set up goal
-		world[7][5] = V_GOAL;
+	// Set up Roomba starting location
+	world[1][1] = V_ROOMBA;
+	// Set up goal
+	world[7][5] = V_GOAL;
 
 	return world;
 }
 
 /**
-* freeWorld
-*
-* This function frees the map of the environment used by the unit test
-*/
+ * freeWorld
+ *
+ * This function frees the map of the environment used by the unit test
+ */
 void freeWorld(int** world)
 {
 	int i;
@@ -80,17 +80,17 @@ void freeWorld(int** world)
 }
 
 /**
-* unitTest2
-*
-* This subroutine emulates a Roomba in McKallum's gridworld.
-* It receives an action from the supervisor and updates a world map with its
-* location. This allows us to determine the next set of sensor data to return
-* to the supervisor.
-*
-* @arg command This is a command from the supervisor
-* @arg cleanup 1: unit test is over, 2: continue unit test
-* @return char* a string containing fake sensor data
-*/
+ * unitTest2
+ *
+ * This subroutine emulates a Roomba in McKallum's gridworld.
+ * It receives an action from the supervisor and updates a world map with its
+ * location. This allows us to determine the next set of sensor data to return
+ * to the supervisor.
+ *
+ * @arg command This is a command from the supervisor
+ * @arg cleanup 1: unit test is over, 2: continue unit test
+ * @return char* a string containing fake sensor data
+ */
 char* unitTest2(int command, int cleanup)
 {
 	static int timeStamp = 0; // counter acting as time stamp
@@ -120,10 +120,11 @@ char* unitTest2(int command, int cleanup)
 		world = initWorld();	// initialize the world
 		hitGoal = 1;			// init to 1 so it becomes 0 in next check;
 		x = y = 1;
-#if STATS_MODE == 0
-		printf("Initial World View\n");
-		displayWorld(world, heading);
-#endif
+		if(g_statsMode == 0)
+		{
+			printf("Initial World View\n");
+			displayWorld(world, heading);
+		}
 	}
 
 	// If we hit a goal last time reset Roomba location and heading
@@ -134,12 +135,13 @@ char* unitTest2(int command, int cleanup)
 		heading = HDG_E;
 		world[x][y] = V_HALLWAY;
 		x = y = 1;
-#if STATS_MODE
-		if(timeStamp != 0)
+		if(g_statsMode == 1)
 		{
-			printf("Hit Goal\n");
+			if(timeStamp != 0)
+			{
+				printf("Hit Goal\n");
+			}
 		}
-#endif
 	}
 
 	// Switch on the command that was received to update world appropriately
@@ -147,33 +149,33 @@ char* unitTest2(int command, int cleanup)
 	{
 		// Left and Right just turn the Roomba
 		case CMD_LEFT:
-#if STATS_MODE == 0
-			printf("Turn left 45 degrees\n");
-#endif
+			if(g_statsMode == 0) {
+				printf("Turn left 45 degrees\n");
+			}
 			heading = (heading > HDG_N ? heading - 1 : HDG_NW);
 			break;
 		case CMD_RIGHT:
-#if STATS_MODE == 0
-			printf("Turn right 45 degrees\n");
-#endif
+			if(g_statsMode == 0) {
+				printf("Turn right 45 degrees\n");
+			}
 			heading = (heading < HDG_NW ? heading + 1 : HDG_N);
 			break;
-		// Adjusts currently not implemented in 'perfect' world
+			// Adjusts currently not implemented in 'perfect' world
 		case CMD_ADJUST_LEFT:
-#if STATS_MODE == 0
-			printf("Adjust left\n");
-#endif
+			if(g_statsMode == 0) {
+				printf("Adjust left\n");
+			}
 			break;
 		case CMD_ADJUST_RIGHT:
-#if STATS_MODE == 0
-			printf("Adjust right\n");
-#endif
+			if(g_statsMode == 0) {
+				printf("Adjust right\n");
+			}
 			break;
-		// Forward must check for walls and IR in direction of heading
+			// Forward must check for walls and IR in direction of heading
 		case CMD_FORWARD:
-#if STATS_MODE == 0
-			printf("Move forward one world unit\n");
-#endif
+			if(g_statsMode == 0) {
+				printf("Move forward one world unit\n");
+			}
 
 			// First check the diagonal headings
 			if(heading == HDG_NE)
@@ -284,22 +286,22 @@ char* unitTest2(int command, int cleanup)
 						break;
 				}
 			}
-			
+
 			break;
 		case CMD_BLINK:
-#if STATS_MODE == 0
-			printf("Blink\n");
-#endif
+			if(g_statsMode == 0) {
+				printf("Blink\n");
+			}
 			break;
 		case CMD_NO_OP:
-#if STATS_MODE == 0
-			printf("No operation\n");
-#endif
+			if(g_statsMode == 0) {
+				printf("No operation\n");
+			}
 			break;
 		default:
-#if STATS_MODE == 0
-			printf("Invalid command: %i\n", command);
-#endif
+			if(g_statsMode == 0) {
+				printf("Invalid command: %i\n", command);
+			}
 			break;
 	}
 
@@ -323,7 +325,7 @@ char* unitTest2(int command, int cleanup)
 		if(i < 15)
 		{
 			str[i] = ' ';
-		// insert timestamp
+			// insert timestamp
 		}else if(i < 16)
 		{
 			sprintf(&str[i], "%i", timeStamp);	// print timestamp into str
@@ -334,11 +336,11 @@ char* unitTest2(int command, int cleanup)
 				temp = temp / 10;
 				i++;
 			}
-		// more padding
+			// more padding
 		}else if(i < 22)
 		{
 			str[i] = ' ';
-		// insert null terminating char
+			// insert null terminating char
 		}else if(i < 23)
 		{
 			sprintf(&str[i], "%i", abort);
@@ -348,9 +350,9 @@ char* unitTest2(int command, int cleanup)
 		}
 	}
 
-#if STATS_MODE == 0
-	displayWorld(world, heading);
-#endif
+	if(g_statsMode == 0) {
+		displayWorld(world, heading);
+	}
 
 
 	timeStamp++;
@@ -359,15 +361,15 @@ char* unitTest2(int command, int cleanup)
 }// unitTest2
 
 /**
-* bumpSensor
-*
-* This function returns a value that tells the calling function
-* which bump sensors may or may not have been hit
-*
-* @arg north int that represents the wall N of the Roomba when normalized to point NE
-* @arg east int that represents the wall E of the Roomba when normalized to point NE
-* @return int that represents bump sensor values
-*/
+ * bumpSensor
+ *
+ * This function returns a value that tells the calling function
+ * which bump sensors may or may not have been hit
+ *
+ * @arg north int that represents the wall N of the Roomba when normalized to point NE
+ * @arg east int that represents the wall E of the Roomba when normalized to point NE
+ * @return int that represents bump sensor values
+ */
 int bumpSensor(int north, int east)
 {
 	// return the appropriate value representing which, if any, bumpers are hit
@@ -385,12 +387,12 @@ int bumpSensor(int north, int east)
 }
 
 /**
-* displayWorld
-*
-* Print the current view of the world
-*
-* @arg world 2d array of ints representing the world (-1:goal, 0:hallway, 1:wall, 2:Roomba)
-*/
+ * displayWorld
+ *
+ * Print the current view of the world
+ *
+ * @arg world 2d array of ints representing the world (-1:goal, 0:hallway, 1:wall, 2:Roomba)
+ */
 void displayWorld(int** world, int heading)
 {
 	int i,j;

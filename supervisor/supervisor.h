@@ -28,10 +28,10 @@
 
 // Matching defines
 #define NUM_TO_MATCH		15
-#define NUM_GOALS_TO_FIND	75
+#define NUM_GOALS_TO_FIND	30
 
 // Collecting data for stats
-#define STATS_MODE			1
+#define STATS_MODE			0
 
 #define DECREASE_RANDOM(randChance) if((randChance) > 5) { (randChance) -= 5;}
 
@@ -50,12 +50,17 @@ typedef struct MilestoneStruct
 	int name;
 } Milestone;
 
+// Global variables for monitoring and connecting
+int g_connectToRoomba;
+int g_statsMode;
+
 // This vector will contain all episodes received from Roomba
 Vector* g_episodeList;
 Vector* g_milestoneList;
 
 // Function declarations
 extern int tick(char* sensorInput);
+extern char* interpretCommand(int cmd);
 Episode* createEpisode(char* sensorData);
 int chooseCommand(Episode* ep);
 int setCommand(Episode* ep);
