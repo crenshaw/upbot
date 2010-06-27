@@ -20,6 +20,8 @@ char* g_adjustR	= "adjust right";
 char* g_adjustL	= "adjust left";
 char* g_blink	= "blink";
 char* g_no_op	= "no operation";
+char* g_song	= "song";
+char* g_unknown	= "unknown";
 
 /**
 * tick
@@ -105,7 +107,7 @@ int chooseCommand(Episode* ep)
 	{
 		// Command 0 is now illegal command so adjust NUM_COMMANDS to account for this
 		// Then increment to push back into valid command range
-		ep->cmd = (rand() % (NUM_COMMANDS - CMD_NO_OP )) + CMD_NO_OP;
+		ep->cmd = (rand() % (LAST_MOBILE_CMD)) + CMD_NO_OP;
 	}else
 	{
 		// find the best match scores for the three commands
@@ -171,7 +173,7 @@ int setCommand(Episode* ep)
 		// Test out three commands and find best match for each command
 		// Then if a goal has been found, determine the distance to the goal
 		// and find command with the least distance
-		for(i = CMD_NO_OP; i < NUM_COMMANDS; i++)
+		for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
 		{
 			// for each run test out next command
 			// keep track of index of the best match as well as its score
@@ -488,6 +490,12 @@ char* interpretCommand(int cmd)
 			break;
 		case CMD_ADJUST_RIGHT:
 			return g_adjustR;
+			break;
+		case CMD_SONG:
+			return g_song;
+			break;
+		default:
+			return g_unknown;
 			break;
 	}
 }// interpretCommand
