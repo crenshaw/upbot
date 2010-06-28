@@ -62,6 +62,23 @@ int main(void)
   if(pipe(fd) < 0)
     perror("pipe error");
 
+  //------------------------------------------------------------------------
+  // Added Code to implement client fork
+  //------------------------------------------------------------------------
+  int sockfd, numbytes;  
+  //buffer to store sensor information
+  char sensorBuf[MAXDATASIZE];
+  char msgBuf[MAXDATASIZE];
+  struct addrinfo hints, *servinfo, *p;
+  int rv;
+  char s[INET6_ADDRSTRLEN];
+  //array to hold the command sent
+  char cmd[1];
+  //initialize the input to NULL char
+  char input = '\0';
+  //------------------------------------------------------------------------
+  // End of added section
+  //------------------------------------------------------------------------
 
   // Create a small piece of shared memory for the child
   // (brain) to communicate commands received from the client
@@ -107,7 +124,6 @@ int main(void)
       perror("establishConnection(serverID)");
       return -1;
     }
-  printf("brainstem: connected to client\n");
   
 
   // Set up signal-based communication between the child 
@@ -132,7 +148,7 @@ int main(void)
   //------------------------------------------------------------------------
   else if (pid > 0)
     {
-      printf("%s: %d\n", __FILE__, __LINE__);
+
       // Close the client socket since this parent won't be using it.
       close(clientSock);
 
@@ -145,7 +161,7 @@ int main(void)
 	  printf("Port failed to open \n");
 	  exit(-1);
 	}
-      printf("%s: %d\n", __FILE__, __LINE__);
+
       // Initialize the robot, prepare it to receive commands.  Wait
       // for a second to give this some time to take effect.
       initialize();
@@ -154,7 +170,82 @@ int main(void)
       // Turn on the LED to indicate the robot is ready and listening.
       // It's a nice sanity check.
       setLED(RED, PLAY_ON, ADVANCE_ON);
-      printf("%s: %d\n", __FILE__, __LINE__);
+
+      //------------------------------------------------------------------------
+      // Added Code to implement client fork
+      //------------------------------------------------------------------------
+      printf("%s %d \n", __FILE__, __LINE__);
+      if(!fork())
+	{
+	  printf("%s %d \n", __FILE__, __LINE__);
+	  printf("Forked\n");
+	  char *a = "10.11.17.15";
+    
+	  memset(&hints, 0, sizeof hints);
+	  hints.ai_family = AF_UNSPEC;
+	  hints.ai_socktype = SOCK_STREAM;
+    
+	  //    if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
+	  if ((rv = getaddrinfo(a, PORT, &hints, &servinfo)) != 0) 
+	    {
+	    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+	    return 1;
+	    }
+    
+	  // loop through all the results and connect to the first we can
+	  for(p = servinfo; p != NULL; p = p->ai_next) 
+	    {
+	    if ((sockfd = socket(p->ai_family, p->ai_socktype,
+				 p->ai_protocol)) == -1) {
+	      perror("client: socket");
+	      continue;
+	    }
+      
+	    if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+	      close(sockfd);
+	      perror("client: connect");
+	      continue;
+	    }
+      
+	    break;
+	    }
+    
+	  if (p == NULL) 
+	    {
+	    fprintf(stderr, "client: failed to connect\n");
+	    return 2;
+	    }
+    
+	  inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
+		    s, sizeof s);
+	  printf("client: connecting to %s\n", s);
+    
+	  freeaddrinfo(servinfo); // all done with this structure
+    
+	  //if the client does not recieve anything from server then exit
+	  if ((numbytes = recv(sockfd, msgBuf, MAXDATASIZE-1, 0)) == -1) 
+	    {
+	    perror("recv");
+	    exit(1);
+	    }
+	  while(input != ssQuit)
+	    {
+	      cmd[0] = peakCommandCodeFromQueue(cmdArea);
+	      if(checkValue(cmd[0]) == 1)
+	      {
+		printf("%s %d \n", __FILE__, __LINE__);
+		if(send(sockfd, cmd, 1, 0) == -1)
+		  perror("send");
+		printf("      the command code sent was: %d\n", cmd[0]);
+	      }
+	    }
+	}
+      printf("%s %d \n", __FILE__, __LINE__);
+
+      //------------------------------------------------------------------------
+      // End of added section
+      //------------------------------------------------------------------------
+
       while(commandToRobot[0] != ssQuit)
 	{
 	  // Wait until a valid command is received.
@@ -201,6 +292,9 @@ int main(void)
 	  perror("Port failed to close \n");
 	  exit(-1);
 	}
+      send(sockfd, &input, 1, 0);
+      close(sockfd);
+      kill(0, SIGTERM);
       
       exit(0);
     }
@@ -212,7 +306,7 @@ int main(void)
     {
       // Child process doesn't need the listener.
       close(serverID);
-      printf("%s: %d\n", __FILE__, __LINE__);
+
       // Initially tell the parent to proceed and write sensor data.
       TELL_PARENT(getppid());
 
@@ -236,7 +330,6 @@ int main(void)
       // subsequent sensor data.
       while(commandFromSupervisor[0] != ssQuit)
 	{
-	  printf("About to receive data\n");
 	  // Wait to receive command from supervisor-client; read the command
 	  // into cmdBuf.
 	  if ((numBytes = recv(clientSock, commandFromSupervisor, MAXDATASIZE-1, 0)) == -1)
@@ -288,4 +381,8 @@ int main(void)
 
       exit(0);
     }
+  // Added following code to implement communication between roomba's
+ 
+  
+	  
 }

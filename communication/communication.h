@@ -64,12 +64,19 @@ int readSensorDataFromSharedMemory(char* data, caddr_t shm);
 #define CMD_FORWARD		0x2
 #define CMD_LEFT		0x3
 #define CMD_RIGHT		0x4
-#define CMD_BLINK		0x5
-#define CMD_ADJUST_LEFT		0x6
-#define CMD_ADJUST_RIGHT	0x7
-#define CMD_SONG                0x8
+#define CMD_ADJUST_LEFT		0x5
+#define CMD_ADJUST_RIGHT	0x6
+
+#define LAST_MOBILE_CMD         0x6
+
+#define CMD_SONG                0x7
+#define CMD_BLINK		0x8
 #define NUM_COMMANDS		0x9	// Always make sure this is at the end
 
+                                        // The NUM_COMMANDS is the total number
+                                        // of commands that can be issued by
+                                        // the artificially intelligent
+                                        // supervisor.
 
 
 // Sensor Data Indices
