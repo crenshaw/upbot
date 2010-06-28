@@ -100,9 +100,10 @@ int recvCommand(int sockfd, char* buf)
 		// Receive sensor data from socket and store in 'buf'
 		printf("Receiving sensor data.\n");
 	}
+
 	int numbytes;
 	// Insert null terminating character at end of sensor string
-	sprintf(&buf[numbytes], "\0");
+    buf[0] = '\0';
 
 	if(g_statsMode == 0)
 	{
