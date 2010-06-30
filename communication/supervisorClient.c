@@ -121,19 +121,10 @@ int recvCommand(int sockfd, char* buf)
 		// Receive sensor data from socket and store in 'buf'
 		printf("Receiving sensor data.\n");
 	}
-<<<<<<< /home/zachary/upbot/communication/supervisorClient.c
-<<<<<<< /home/zachary/upbot/communication/supervisorClient.c
 
 	// Number of bytes written to char buffer
-=======
 
->>>>>>> /tmp/supervisorClient.c~other.xxMRsa
-=======
-
->>>>>>> /tmp/supervisorClient.c~other.L7KMYd
 	int numbytes;
-<<<<<<< /home/zachary/upbot/communication/supervisorClient.c
-=======
 	// Insert null terminating character at end of sensor string
     buf[0] = '\0';
 
@@ -142,7 +133,6 @@ int recvCommand(int sockfd, char* buf)
 		printf("client: sensor data: '%s'\n", buf);	   
 		printf("numbytes: %d\n", numbytes);
 	}
->>>>>>> /tmp/supervisorClient.c~other.xxMRsa
 
 	alarm(TIMEOUT_SECS);        /* Set the timeout */
 	while ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) < 0)
