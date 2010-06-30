@@ -25,13 +25,15 @@ int g_tries;
  * exitError
  *
  * Close the Supervisor upon error and print error code
+ *
+ * @arg errCode A error code indicating the type of failure
  */
 void exitError(int errCode)
 {
 	printf("Error. Ending...");
 	endSupervisor();
 	exit(errCode);
-}
+}// exitError
 
 /**
  * parseArguments
@@ -45,36 +47,44 @@ void exitError(int errCode)
 void parseArguments(int argc, char *argv[])
 {
 	int i;
+	// Iterate through arguments and set vars based on flags found
 	for(i = 0; i < argc; i++)
 	{
+		// -c : connect (roomba/test)
 		if(strcmp(argv[i], "-c") == 0)
 		{
 			if(strcmp(argv[i+1], "roomba") == 0)
 			{
 				g_connectToRoomba = 1;
 			}
-			else
+			else if(strcmp(argv[i+1], "test") == 0)
 			{
 				g_connectToRoomba = 0;
 			}
 		}
+		// -m : mode (stats/visual)
 		else if(strcmp(argv[i], "-m") == 0)
 		{
 			if(strcmp(argv[i+1], "stats") == 0)
 			{
 				g_statsMode = 1;
 			}
-			else
+			else if(strcmp(argv[i+1], "visual") == 0)
 			{
 				g_statsMode = 0;
 			}
-		}
-	}
-}
+		}// if
+	}// for
+}// parseArguments
 
 /**
  * sendCommand
  *
+ * Send a command (int) through socket (sockfd)
+ *
+ * @arg sockfd A socket identifier
+ * @arg cmd An integer representing the command to be sent
+ * @return int A success code
  */
 int sendCommand(int sockfd, int cmd)
 {
@@ -86,22 +96,44 @@ int sendCommand(int sockfd, int cmd)
 		printf("The command value sent was: %s (%i)\n", interpretCommand(cmd), cmd);
 	}
 	return retVal;
-}
+}// sendCommand
 
 /**
  * recvCommand
  *
+ * Derived from exmaple code in "TCP/IP Sockets in C: Practical Guide for Programmers"
+ * written by Michael J. Donahoo and Kennet L. Calvert
+ *
+ * This function takes a socket id and a char buffer and waits to receive sensor data
+ * from the Roomba. If a command is not received directly, it drops into a loop that
+ * queries for the Roomba until contact is made succesfully.
+ *
+ * @arg sockfd A socket identifier
+ * @arg buf A char buffer to read data into
+ * @return int A success code
  */
 int recvCommand(int sockfd, char* buf)
 {
+	// reset the number of tries
 	g_tries = 0;
 	if(g_statsMode == 0)
 	{
 		// Receive sensor data from socket and store in 'buf'
 		printf("Receiving sensor data.\n");
 	}
+<<<<<<< /home/zachary/upbot/communication/supervisorClient.c
+<<<<<<< /home/zachary/upbot/communication/supervisorClient.c
 
+	// Number of bytes written to char buffer
+=======
+
+>>>>>>> /tmp/supervisorClient.c~other.xxMRsa
+=======
+
+>>>>>>> /tmp/supervisorClient.c~other.L7KMYd
 	int numbytes;
+<<<<<<< /home/zachary/upbot/communication/supervisorClient.c
+=======
 	// Insert null terminating character at end of sensor string
     buf[0] = '\0';
 
@@ -110,6 +142,7 @@ int recvCommand(int sockfd, char* buf)
 		printf("client: sensor data: '%s'\n", buf);	   
 		printf("numbytes: %d\n", numbytes);
 	}
+>>>>>>> /tmp/supervisorClient.c~other.xxMRsa
 
 	alarm(TIMEOUT_SECS);        /* Set the timeout */
 	while ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) < 0)
@@ -126,31 +159,52 @@ int recvCommand(int sockfd, char* buf)
 				}
 				alarm(TIMEOUT_SECS);
 			} 
-			else
+			else		/* have used up all of out tries  */
 			{
 				perror("Timed out on send command\n");
 			}
 		} 
-		else
+		else			/* error was not caused by alarm  */
 		{
 			perror("Error on receive\n");
 		}
+	}// while
+
+	// Insert null terminating character at end of sensor string
+	sprintf(&buf[numbytes], "\0");
+
+	// Print out the contents of buf
+	if(g_statsMode == 0)
+	{
+		printf("client: sensor data: '%s'\n", buf);	   
+		printf("numbytes: %d\n", numbytes);
 	}
 	// Cancel alarm
 	alarm(0);
-}
+
+	return 0;
+}// recvCommand
 
 /**
 * catchAlarm
+*
+* Registered function for catching the recv timeout alarm
+*
+* @arg ignored Unsure
 */
 void catchAlarm(int ignored)
 {
 	g_tries +=1;
-}
+}// catchAlarm
 
 /**
  * handshake
  *
+ * This is becoming a catchall function used for initializing the connection
+ * between the Supervisor and the Roomba.
+ *
+ * @arg ipAddr This is the IP address of the Roomba we are connecting to
+ * @return int Socket ID
  */
 int handshake(char* ipAddr)
 {
@@ -165,6 +219,7 @@ int handshake(char* ipAddr)
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_STREAM;
 
+	// Set up the alarm for recv timeouts
 	myAction.sa_handler = catchAlarm;
 	if(sigfillset(&myAction.sa_mask) < 0)
 	{
@@ -176,6 +231,7 @@ int handshake(char* ipAddr)
 	{
 		perror("sigaction failed for SIGALRM");
 	}
+	//---------------------------------------
 
 	if ((rv = getaddrinfo(ipAddr, PORT, &hints, &servinfo)) != 0) {
 		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
@@ -210,8 +266,12 @@ int handshake(char* ipAddr)
 	printf("client: connecting to %s\n", s);
 
 	freeaddrinfo(servinfo); // all done with this structure
-	// We seem to need to do some 'handshaking' to get into a send/recv feedback loop
-	// Still working on getting this to work correctly
+
+	/*---------------------------------------------*/
+	// ABOVE: Creating connection
+	// BELOW: Conducting handshake
+	/*---------------------------------------------*/
+
 	if(g_connectToRoomba == 1)
 	{
 		// Receive initial poem from Roomba upon connection
@@ -227,17 +287,32 @@ int handshake(char* ipAddr)
 		{
 		}
 	}
+	else if(g_statsMode == 1)
+	{
+		// For the unit test this will toggle its copy of g_statsMode
+		int cmd = CMD_BLINK;
+		if(send(sockfd, &cmd, 1, 0) == -1)
+		{
+		}
+	}
+
+	// Free the space allocated for recv buffer
 	free(buf);
 
 	return sockfd;
-}
+}// handshake
 
 /**
  * printStats
  *
+ * Print information about the search for goals. Called once the Roomba
+ * has found all the goals.
+ *
+ * @arg log A file handle for file IO
  */
-int printStats(FILE* log)
+void printStats(FILE* log)
 {
+	// == 0 means print to console
 	if(g_statsMode == 0)
 	{
 		// Print the number of goals found and episodes recieved
@@ -257,23 +332,24 @@ int printStats(FILE* log)
 			{
 				printf("\n");
 			}
-		}
+		}// for
 	}
-	else
+	else	// otherwise print to file for import into spreadsheet
 	{
 		int i;
 		for(i = 0; i < NUM_GOALS_TO_FIND; i++)
 		{
 			fprintf(log, "%i:", (i < 1 ? g_goalsTimeStamp[i] : g_goalsTimeStamp[i]-g_goalsTimeStamp[i-1]));
-		}
+		}// for
 		fprintf(log, "\n");
 		fflush(log);
 	}
-}
+}// printStats
 
 /**
  * reportGoalFound
  *
+ * Print that a goal as found to console
  */
 void reportGoalFound(int sockfd, FILE* log)
 {

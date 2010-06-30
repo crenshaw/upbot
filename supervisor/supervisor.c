@@ -22,6 +22,10 @@ char* g_blink	= "blink";
 char* g_no_op	= "no operation";
 char* g_song	= "song";
 char* g_unknown	= "unknown";
+// Keep track of goals
+int g_goalCount = 0;						// Number of goals found so far
+int g_goalIdx[NUM_GOALS_TO_FIND];
+
 
 /**
 * tick
@@ -121,6 +125,8 @@ int chooseCommand(Episode* ep)
 			return -1;
 		}
 	}
+	//	printf("COMMAND TO BE SENT %s (%i)\n", interpretCommand(ep->cmd), ep->cmd);
+
 
 	return ep->cmd;
 }// chooseCommand
@@ -138,11 +144,9 @@ int chooseCommand(Episode* ep)
  */
 int setCommand(Episode* ep)
 {	
-	static int goalCount = 0;						// Number of goals found so far
-	static int goalIdx[NUM_GOALS_TO_FIND];
 	int tempIdx, tempDist;							// temp vars
 	int i,j;										// looping indices
-	int bestMatch;
+	int bestMatch = -42;
 	int commandScores[NUM_COMMANDS];				// Array to store scores for commands
 
 	// initialize scores to 0
@@ -151,21 +155,9 @@ int setCommand(Episode* ep)
 		commandScores[i] = 0;
 	}
 
-	// init goal indices to 0s
-	if(g_episodeList->size == 1)
-	{
-		for(i = 0; i < NUM_GOALS_TO_FIND; i++)
-		{
-			goalIdx[i] = 0;
-		}
-	}
+	// Set distance to goal equal to largest possible distance
+	tempDist = g_episodeList->size;
 
-	// If new episode is goal state store idx and increase count
-	if(ep->sensors[SNSR_IR] == 1)
-	{
-		goalIdx[goalCount] = ep->now;
-		goalCount++;
-	}
 	// can only successfully search if at minimum history contains
 	// NUM_TO_MATCH episodes
 	if(g_episodeList->size > NUM_TO_MATCH)
@@ -183,25 +175,25 @@ int setCommand(Episode* ep)
 
 			// If the goal has been found then determine which of the three episodes
 			// with the greatest scores is closest to the goal
-			if(goalCount > 0)
+			if(g_goalCount > 0)
 			{
 				// init distance to size of history
 				tempDist = g_episodeList->size;
-				for(j = 0; j < goalCount; j++)
+				for(j = 0; j < g_goalCount; j++)
 				{
 					// Make sure the goal is after the current episode
-					if(abs(((Episode*)getEntry(g_episodeList, goalIdx[j]))->now - 
+					if(abs(((Episode*)getEntry(g_episodeList, g_goalIdx[j]))->now - 
 								((Episode*)getEntry(g_episodeList, tempIdx))->now) < 0)
 					{
 
 					}
 					// If the distance between the episode and goal is less than previous
 					// then save it
-					else if(abs(((Episode*)getEntry(g_episodeList, goalIdx[j]))->now - 
+					else if(abs(((Episode*)getEntry(g_episodeList, g_goalIdx[j]))->now - 
 								((Episode*)getEntry(g_episodeList, tempIdx))->now) < tempDist)
 					{
 						// keep track of the current best distance
-						tempDist = abs(((Episode*)getEntry(g_episodeList, goalIdx[j]))->now - 
+						tempDist = abs(((Episode*)getEntry(g_episodeList, g_goalIdx[j]))->now - 
 								((Episode*)getEntry(g_episodeList, tempIdx))->now);
 						// keep track of which command gave the best distance so far
 						bestMatch = i;
@@ -212,7 +204,7 @@ int setCommand(Episode* ep)
 	}// if
 
 	// If a goal has been found then we have a distance we can use above to find best match
-	if(goalCount > 0)
+	if(g_goalCount > 0)
 	{
 		ep->cmd = bestMatch;
 	}
@@ -235,6 +227,10 @@ int setCommand(Episode* ep)
 		{
 			printf("%s score: %i\n", interpretCommand(i), commandScores[i]);
 		}
+	}
+	if(ep->cmd <= CMD_ILLEGAL || ep->cmd >= NUM_COMMANDS)
+	{
+		printf("Episode is bad SET\n");
 	}
 
 	// return success
@@ -316,6 +312,12 @@ int parseEpisode(Episode * parsedData, char* dataArr)
 	// set these to default values for now
 	parsedData->cmd = CMD_NO_OP;
 
+	if(parsedData->sensors[SNSR_IR] == 1)
+	{
+		g_goalIdx[g_goalCount] == parsedData->now;
+		g_goalCount++;
+	}
+
 	return 0;
 }// parseEpisode
 
@@ -351,6 +353,7 @@ void displayEpisode(Episode * ep)
 		printf("%i", ep->sensors[i]);
 	}
 
+
 	// print rest of episode data to stdout
 	printf("\nTime stamp: %i\nCommand:    %i\n\n", (int)ep->now, ep->cmd);
 }// displayEpisode
@@ -368,6 +371,7 @@ void displayEpisode(Episode * ep)
 int match(Vector* vector, int* score)
 {
 	int i,j, tempScore = 0, returnIdx = 0;
+	double discount = 1;
 
 	// Iterate through vector and search from each index
 	for(i = vector->size - NUM_TO_MATCH; i >= 0; i--)
@@ -386,9 +390,10 @@ int match(Vector* vector, int* score)
 				break;
 			}
 
-			// compare two episodes and add result to score
+			// compare two episodes and add result to score with appropriate discount
 			//					V-index iterate to beginning		V-index to current episode frame
-			tempScore += compare(vector->array[i + j], vector->array[vector->size - NUM_TO_MATCH + j]);
+			tempScore += (discount * compare(vector->array[i + j], vector->array[vector->size - NUM_TO_MATCH + j]));
+			discount *= DISCOUNT;
 		}
 
 		// If we ended up with a greater score than previous, store index and score

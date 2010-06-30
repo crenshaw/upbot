@@ -101,8 +101,6 @@ int main(void)
 			int* cmd = (int*) malloc(sizeof(int));
 			*cmd = 1;
 
-			int counter = 1;
-
 			while(1)
 			{
 				// send command to unitTester and receive resulting sensor data
@@ -111,14 +109,11 @@ int main(void)
 				printf("Sending: [%s] to Supervisor\n", str);
 #endif
 
-				if(counter % 10 != 0)
+				// Send the sensor data to Supervisor client
+				if(send(newSock, str, strlen(str), 0) == -1)
 				{
-					// Send the sensor data to Supervisor client
-					if(send(newSock, str, strlen(str), 0) == -1)
-					{
-						perror("send");
-						break;
-					}
+					perror("send");
+					break;
 				}
 
 #if STATS_MODE == 0
@@ -135,7 +130,6 @@ int main(void)
 					unitTest2(*cmd, 1);
 					break;
 				}
-				counter++;
 			}
 
 			// close the socket
