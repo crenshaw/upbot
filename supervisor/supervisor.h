@@ -28,8 +28,8 @@
 
 // Matching defines
 #define NUM_TO_MATCH		15
-#define NUM_GOALS_TO_FIND	15
-#define DISCOUNT			.5
+#define NUM_GOALS_TO_FIND	5
+#define DISCOUNT			1
 
 // Collecting data for stats
 #define STATS_MODE			0

@@ -45,30 +45,33 @@ int tick(char* sensorInput)
 	// Send ep to receive a command
 	// Will return -1 if no command could be set
 	chooseCommand(ep);
-	// Print out the parsed episode
-	displayEpisode(ep);
+	// Print out the parsed episode if not in statsMode
+	if(g_statsMode == 0)
+	{
+		displayEpisode(ep);
+	}
 	return ep->cmd;
 }// tick
 
 /**
-* createEpisode
-*
-* Takes a sensor data string and allocates space for episode
-* then parses the data and populates the episode and adds it
-* to the global episode list
-*
-* @arg sensorData char* filled with sensor information
-* @return Episode* a pointer to the newly added episode
-*/
+ * createEpisode
+ *
+ * Takes a sensor data string and allocates space for episode
+ * then parses the data and populates the episode and adds it
+ * to the global episode list
+ *
+ * @arg sensorData char* filled with sensor information
+ * @return Episode* a pointer to the newly added episode
+ */
 Episode* createEpisode(char* sensorData)
 {
 	// Allocate space for episode and score
-    Episode* ep = (Episode*) malloc(sizeof(Episode));
+	Episode* ep = (Episode*) malloc(sizeof(Episode));
 	int retVal;	
 
-    // If error in parsing print appropriate error message and exit
-    if((retVal = parseEpisode(ep, sensorData)) != 0)
-    {
+	// If error in parsing print appropriate error message and exit
+	if((retVal = parseEpisode(ep, sensorData)) != 0)
+	{
 		char errBuf[1024];
 		sprintf(errBuf, "Error in parsing: %s\n", sensorData);
 		perror(errBuf);
@@ -84,20 +87,20 @@ Episode* createEpisode(char* sensorData)
 }// createEpisode
 
 /**
-* chooseCommand
-*
-* This function takes a pointer to a new episode and chooses a command
-* that should accompany this episode
-*
-* @arg ep a pointer to the most recent episode
-* @return int the command that was chosen
-*
-*/
+ * chooseCommand
+ *
+ * This function takes a pointer to a new episode and chooses a command
+ * that should accompany this episode
+ *
+ * @arg ep a pointer to the most recent episode
+ * @return int the command that was chosen
+ *
+ */
 int chooseCommand(Episode* ep)
 {
 	int random;						// int for storing random number
 	int i, j;				// indices for loops
-	
+
 	// seed rand and allocate goal arr if this is first time a command is chosen
 	static int needSeed = TRUE;
 	if(needSeed == TRUE)
@@ -230,7 +233,7 @@ int setCommand(Episode* ep)
 	}
 	if(ep->cmd <= CMD_ILLEGAL || ep->cmd >= NUM_COMMANDS)
 	{
-		printf("Episode is bad SET\n");
+		printf("Episode is bad: setCommand\n");
 	}
 
 	// return success

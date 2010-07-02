@@ -17,6 +17,8 @@
 */
 int** initWorld()
 {
+	g_statsMode == 1;
+
 	// allocate space for ptrs to columns
 	int** world = (int**) malloc(9 * sizeof(int*));
 	int i, j;
@@ -120,7 +122,6 @@ char* unitTest2(int command, int cleanup)
 		world = initWorld();	// initialize the world
 		hitGoal = 1;			// init to 1 so it becomes 0 in next check;
 		x = y = 1;
-		g_statsMode = 0;
 		if(g_statsMode == 0)
 		{
 			printf("Initial World View\n");

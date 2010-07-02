@@ -346,13 +346,21 @@ void reportGoalFound(int sockfd, FILE* log)
 	g_goalsTimeStamp[g_goalsFound] = ((Episode*)getEntry(g_episodeList, g_episodeList->size - 1))->now;
 	g_goalsFound++;
 
-	if(g_goalsFound > 1)
+
+	if(g_statsMode == 0)
 	{
-		printf("Goal %i found after %i episodes\n", g_goalsFound, g_goalsTimeStamp[g_goalsFound - 1]-g_goalsTimeStamp[g_goalsFound - 2]);
+		if(g_goalsFound > 1)
+		{
+			printf("Goal %i found after %i episodes\n", g_goalsFound, g_goalsTimeStamp[g_goalsFound - 1]-g_goalsTimeStamp[g_goalsFound - 2]);
+		}
+		else
+		{
+			printf("Goal %i found after %i episodes\n", g_goalsFound, g_goalsTimeStamp[g_goalsFound - 1]);
+		}
 	}
 	else
 	{
-		printf("Goal %i found after %i episodes\n", g_goalsFound, g_goalsTimeStamp[g_goalsFound - 1]);
+		printf("Hit goal at timestamp %i\n", g_goalsTimeStamp[g_goalsFound - 1]);
 	}
 
 	int cmd = CMD_SONG;

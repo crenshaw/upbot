@@ -105,9 +105,11 @@ int main(void)
 			{
 				// send command to unitTester and receive resulting sensor data
 				str = unitTest2(*cmd, 0);
-#if STATS_MODE == 0
-				printf("Sending: [%s] to Supervisor\n", str);
-#endif
+
+				if(g_statsMode == 0)
+				{
+					printf("Sending: [%s] to Supervisor\n", str);
+				}
 
 				// Send the sensor data to Supervisor client
 				if(send(newSock, str, strlen(str), 0) == -1)
@@ -116,12 +118,13 @@ int main(void)
 					break;
 				}
 
-#if STATS_MODE == 0
-				printf("---------------------------------------\n");
+				if(g_statsMode == 0)
+				{
+					printf("---------------------------------------\n");
 
-				// Receive command from Supervisor client
-				printf("Waiting for command\n->");
-#endif
+					// Receive command from Supervisor client
+					printf("Waiting for command\n->");
+				}
 
 				if(recv(newSock, cmd, 1, 0) == -1)
 				{
