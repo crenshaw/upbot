@@ -28,13 +28,13 @@
 
 // Matching defines
 #define NUM_TO_MATCH		15
-#define NUM_GOALS_TO_FIND	5
+#define NUM_GOALS_TO_FIND	75
 #define DISCOUNT			1
 
 // Collecting data for stats
 #define STATS_MODE			0
 
-#define DECREASE_RANDOM(randChance) if((randChance) > 5) { (randChance) -= 5;}
+#define DECREASE_RANDOM(randChance) if((randChance) > 10) { (randChance) -= 7;}
 
 // Sensor data struct
 typedef struct EpisodeStruct
@@ -68,8 +68,8 @@ int setCommand(Episode* ep);
 int parseEpisode(Episode* parsedData, char* dataArr);
 int addEpisode(Vector* episodes, Episode* item);
 void displayEpisode(Episode* ep);
-int match(Vector* vector, int* score);
-int compare(Episode* ep1, Episode* ep2);
+int match(Vector* vector, double* score, int* topIdxArr);
+double compare(Episode* ep1, Episode* ep2);
 void initSupervisor();
 void endSupervisor();
 

@@ -6,7 +6,7 @@
 * this file as well as those for determining new commands
 *
 * Author: Dr. Andrew Nuxoll and Zachary Paul Faltersack
-* Last Edit: June 21, 2010
+* Last Edit: July 5, 2010
 *
 */
 
@@ -34,7 +34,7 @@ int g_goalIdx[NUM_GOALS_TO_FIND];
 * the recent sensor data to determine the next action to take.
 *
 * @param sensorInput a char string wth sensor data
-* @return int : a command for the Roomba (negative is error)
+* @return int a command for the Roomba (negative is error)
 */
 int tick(char* sensorInput)
 {
@@ -87,161 +87,6 @@ Episode* createEpisode(char* sensorData)
 }// createEpisode
 
 /**
- * chooseCommand
- *
- * This function takes a pointer to a new episode and chooses a command
- * that should accompany this episode
- *
- * @arg ep a pointer to the most recent episode
- * @return int the command that was chosen
- *
- */
-int chooseCommand(Episode* ep)
-{
-	int random;						// int for storing random number
-	int i, j;				// indices for loops
-
-	// seed rand and allocate goal arr if this is first time a command is chosen
-	static int needSeed = TRUE;
-	if(needSeed == TRUE)
-	{
-		needSeed = FALSE;
-		srand(time(NULL));
-	}
-
-	// Determine the next command, possibility of random command
-	if((random = rand() % 100) < g_randChance || g_episodeList->size < NUM_TO_MATCH)
-	{
-		// Command 0 is now illegal command so adjust NUM_COMMANDS to account for this
-		// Then increment to push back into valid command range
-		ep->cmd = (rand() % (LAST_MOBILE_CMD)) + CMD_NO_OP;
-	}else
-	{
-		// find the best match scores for the three commands
-		// if no goal has been found (returns 0) then we take the command with the greatest score
-		if(setCommand(ep) != 0)
-		{
-			if(g_statsMode == 0)
-			{
-				printf("Failed to set a Command");
-			}
-			return -1;
-		}
-	}
-	//	printf("COMMAND TO BE SENT %s (%i)\n", interpretCommand(ep->cmd), ep->cmd);
-
-
-	return ep->cmd;
-}// chooseCommand
-
-/**
- * setCommand
- *
- * Find the match scores for each of the available commands (currently condensed list)
- * If a goal has been found, then find the index of the best match
- *
- * @arg ep pointer to new episode
- * @return int status code
- *
- * @return int status code
- */
-int setCommand(Episode* ep)
-{	
-	int tempIdx, tempDist;							// temp vars
-	int i,j;										// looping indices
-	int bestMatch = -42;
-	int commandScores[NUM_COMMANDS];				// Array to store scores for commands
-
-	// initialize scores to 0
-	for(i = 0; i < NUM_COMMANDS; i++)
-	{
-		commandScores[i] = 0;
-	}
-
-	// Set distance to goal equal to largest possible distance
-	tempDist = g_episodeList->size;
-
-	// can only successfully search if at minimum history contains
-	// NUM_TO_MATCH episodes
-	if(g_episodeList->size > NUM_TO_MATCH)
-	{
-		// Test out three commands and find best match for each command
-		// Then if a goal has been found, determine the distance to the goal
-		// and find command with the least distance
-		for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
-		{
-			// for each run test out next command
-			// keep track of index of the best match as well as its score
-
-			ep->cmd = i;
-			tempIdx = match(g_episodeList, commandScores + i);
-
-			// If the goal has been found then determine which of the three episodes
-			// with the greatest scores is closest to the goal
-			if(g_goalCount > 0)
-			{
-				// init distance to size of history
-				tempDist = g_episodeList->size;
-				for(j = 0; j < g_goalCount; j++)
-				{
-					// Make sure the goal is after the current episode
-					if(abs(((Episode*)getEntry(g_episodeList, g_goalIdx[j]))->now - 
-								((Episode*)getEntry(g_episodeList, tempIdx))->now) < 0)
-					{
-
-					}
-					// If the distance between the episode and goal is less than previous
-					// then save it
-					else if(abs(((Episode*)getEntry(g_episodeList, g_goalIdx[j]))->now - 
-								((Episode*)getEntry(g_episodeList, tempIdx))->now) < tempDist)
-					{
-						// keep track of the current best distance
-						tempDist = abs(((Episode*)getEntry(g_episodeList, g_goalIdx[j]))->now - 
-								((Episode*)getEntry(g_episodeList, tempIdx))->now);
-						// keep track of which command gave the best distance so far
-						bestMatch = i;
-					}// if
-				}// for
-			}// if
-		}// for
-	}// if
-
-	// If a goal has been found then we have a distance we can use above to find best match
-	if(g_goalCount > 0)
-	{
-		ep->cmd = bestMatch;
-	}
-	else
-	{
-		int max = CMD_NO_OP;
-		for(i = CMD_NO_OP; i < NUM_COMMANDS; i++)
-		{
-			if(commandScores[max] < commandScores[i])
-			{
-				max = i;
-			}
-		}
-		ep->cmd = max;
-	}
-
-	if(g_statsMode == 0)
-	{
-		for(i = CMD_NO_OP; i < NUM_COMMANDS; i++)
-		{
-			printf("%s score: %i\n", interpretCommand(i), commandScores[i]);
-		}
-	}
-	if(ep->cmd <= CMD_ILLEGAL || ep->cmd >= NUM_COMMANDS)
-	{
-		printf("Episode is bad: setCommand\n");
-	}
-
-	// return success
-	return 0;
-}// setCommand
-
-
-/**
  * parseEpisode
  *
  *        dataArr contains string of the following format
@@ -259,17 +104,13 @@ int parseEpisode(Episode * parsedData, char* dataArr)
 {
 	// temporary timestamp
 	static int timeStamp = 0;
-	// Allocate space for an episode
-	int i;
-	char* tmp;
-	int foundDigitCount = 0;
+	int i; // index
 
 	if(dataArr == NULL)
 	{
 		printf("data arr in parse is null");
 		return -1;
 	}
-
 
 	// set the episodes sensor values to the sensor data
 	for(i = 0; i < NUM_SENSORS; i++)
@@ -286,17 +127,13 @@ int parseEpisode(Episode * parsedData, char* dataArr)
 		parsedData->sensors[i] = bit;
 	}
 
-	if(parsedData->sensors[SNSR_IR] == 1)
-	{
-		DECREASE_RANDOM(g_randChance);
-	}
-
 	if(g_connectToRoomba == 1)
 	{
 		// Pull out the timestamp
 		parsedData->now = timeStamp++;
 	}else
 	{
+		// Alg for determining timestamp from string of chars
 		int time = 0;
 		for(i = NUM_SENSORS; dataArr[i] != '\0'; i++)
 		{
@@ -309,17 +146,20 @@ int parseEpisode(Episode * parsedData, char* dataArr)
 				break;
 			}
 		}
+		// Store the time
 		parsedData->now = time;
 	}
 
-	// set these to default values for now
-	parsedData->cmd = CMD_NO_OP;
-
+	// Found a goal so decrease chance of random move
 	if(parsedData->sensors[SNSR_IR] == 1)
 	{
+		DECREASE_RANDOM(g_randChance);
 		g_goalIdx[g_goalCount] == parsedData->now;
 		g_goalCount++;
 	}
+
+	// Command gets a default value for now
+	parsedData->cmd = CMD_NO_OP;
 
 	return 0;
 }// parseEpisode
@@ -356,10 +196,174 @@ void displayEpisode(Episode * ep)
 		printf("%i", ep->sensors[i]);
 	}
 
-
 	// print rest of episode data to stdout
 	printf("\nTime stamp: %i\nCommand:    %i\n\n", (int)ep->now, ep->cmd);
 }// displayEpisode
+
+/**
+ * chooseCommand
+ *
+ * This function takes a pointer to a new episode and chooses a command
+ * that should accompany this episode
+ *
+ * @arg ep a pointer to the most recent episode
+ * @return int the command that was chosen
+ */
+int chooseCommand(Episode* ep)
+{
+	int i, j;	// indices for loops
+
+	// seed rand if first tiem called
+	static int needSeed = TRUE;
+	if(needSeed == TRUE)
+	{
+		needSeed = FALSE;
+		srand(time(NULL));
+	}
+
+	// Determine the next command, possibility of random command
+	if((rand() % 100) < g_randChance || g_episodeList->size < NUM_TO_MATCH)
+	{
+		// Command 0 is now illegal command so adjust NUM_COMMANDS to account for this
+		// Then increment to push back into valid command range
+		ep->cmd = (rand() % (LAST_MOBILE_CMD)) + CMD_NO_OP;
+	}else
+	{
+		// find the best match scores for the three commands
+		// if no goal has been found (returns 0) then we take the command with the greatest score
+		if(setCommand(ep) != 0)
+		{
+			if(g_statsMode == 0)
+			{
+				printf("Failed to set a Command");
+			}
+			return -1;
+		}
+	}
+	//	printf("COMMAND TO BE SENT %s (%i)\n", interpretCommand(ep->cmd), ep->cmd);
+
+
+	return ep->cmd;
+}// chooseCommand
+
+/**
+ * setCommand
+ *
+ * Find the match scores for each of the available commands (currently condensed list)
+ * If a goal has been found, then find the index of the best match (closest to subsequent goal)
+ *
+ * @arg ep pointer to new episode
+ * @return int status code
+ */
+int setCommand(Episode* ep)
+{	
+	int tempIdx, tempDist;							// temp vars
+	int i,j,k;										// looping indices
+	int bestMatch = CMD_NO_OP;
+	double commandScores[NUM_COMMANDS];				// Array to store scores for commands
+	int topMatches[3] = {0,0,0};
+	int toggle = 0;
+
+	// initialize scores to 0
+	for(i = 0; i < NUM_COMMANDS; i++)
+	{
+		commandScores[i] = (double)0;
+	}
+
+	// Set distance to goal equal to largest possible distance
+	tempDist = g_episodeList->size;
+
+	// can only successfully search if at minimum history contains
+	// NUM_TO_MATCH episodes
+	if(g_episodeList->size > NUM_TO_MATCH)
+	{
+		// Test out three commands and find best match for each command
+		// Then if a goal has been found, determine the distance to the goal
+		// and find command with the least distance
+		for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
+		{
+			// for each run test out next command
+			// keep track of index of the best match as well as its score
+
+			ep->cmd = i;
+			match(g_episodeList, commandScores + i, topMatches);
+/*
+			// If the goal has been found then determine which of the three episodes
+			// with the greatest scores is closest to the goal
+			if(g_goalCount > 0)
+			{
+				for(k = 0; k < 3; k++)
+				{
+					tempIdx = topMatches[k];
+
+					for(j = 0; j < g_goalCount; j++)
+					{
+						// Make sure the goal is after the current episode
+						if(abs(((Episode*)getEntry(g_episodeList, g_goalIdx[j]))->now - 
+									((Episode*)getEntry(g_episodeList, tempIdx))->now) < 0)
+						{
+
+						}
+						// If the distance between the episode and goal is less than previous
+						// then save it
+						else if(abs(((Episode*)getEntry(g_episodeList, g_goalIdx[j]))->now - 
+									((Episode*)getEntry(g_episodeList, tempIdx))->now) < tempDist)
+						{
+							// keep track of the current best distance
+							tempDist = ((Episode*)getEntry(g_episodeList, g_goalIdx[j]))->now - 
+								((Episode*)getEntry(g_episodeList, tempIdx))->now;
+							// keep track of which command gave the best distance so far
+							bestMatch = i;
+							toggle = 1;
+						}// if
+					}// for
+				}// for
+			}// if */
+		}// for
+	}// if
+/*
+	// If a goal has been found then we have an index of closest goal match
+	if(g_goalCount > 0)
+	{
+		ep->cmd = bestMatch;
+	}
+	else
+	{ */
+		// else we find cmd with greatest score
+		int max = CMD_NO_OP;
+		for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
+		{
+			if(commandScores[max] < commandScores[i])
+			{
+				max = i;
+			}
+//		}
+		ep->cmd = max;
+	}
+
+	// If not stats mode print scores for cmds
+	if(g_statsMode == 0)
+	{
+		for(i = CMD_NO_OP; i < NUM_COMMANDS; i++)
+		{
+			printf("%s score: %f\n", interpretCommand(i), commandScores[i]);
+		}
+	}
+
+	//if(toggle != 1)
+	//{
+	//	printf("Still have not found valid bestMatch\n");
+	//}
+
+	// Report malformed episode and location of error report
+	if(ep->cmd <= CMD_ILLEGAL || ep->cmd >= NUM_COMMANDS)
+	{
+		printf("Episode is bad: setCommand %s (%i)\n", interpretCommand(ep->cmd), ep->cmd);
+	}
+
+	// return success
+	return 0;
+}// setCommand
 
 /**
  * match
@@ -368,13 +372,14 @@ void displayEpisode(Episode * ep)
  * episodes
  *
  * @arg vector the vector containing full history of episodes
- * @arg score a pointer to int we can use to store/return score
- * @return int index into the vector for the best matching series
+ * @arg score a pointer to double we can use to store/return score
+ * @arg topIdxArr pointer to array of 3 ints to store top 3 matching indices
+ * @return int Error code
  */
-int match(Vector* vector, int* score)
+int match(Vector* vector, double* score, int* topIdxArr)
 {
-	int i,j, tempScore = 0, returnIdx = 0;
-	double discount = 1;
+	int i,j, returnIdx = 0;
+	double tempScore = 0, discount = 1;
 
 	// Iterate through vector and search from each index
 	for(i = vector->size - NUM_TO_MATCH; i >= 0; i--)
@@ -387,7 +392,6 @@ int match(Vector* vector, int* score)
 			// If any state that occurs before the final episode in the match is a goal
 			// state then break because that means our current final episode is being 
 			// matched to one after a goal, which doesn't help to find the goal again
-			// Have to subtract 1 to prevent from breaking if the final episode is a goal
 			if(((Episode*)(vector->array[i + j]))->sensors[SNSR_IR] == 1)
 			{
 				break;
@@ -400,14 +404,20 @@ int match(Vector* vector, int* score)
 		}
 
 		// If we ended up with a greater score than previous, store index and score
+		// keep track of the 3 indices with the greatest scores
 		if(tempScore > *score)
 		{
+			// Store the top score
 			*score = tempScore;
-			returnIdx = i;
+
+			// Store the top 3 indices
+			topIdxArr[2] = topIdxArr[1];
+			topIdxArr[1] = topIdxArr[0];
+			topIdxArr[0] = i + (NUM_TO_MATCH - 1);
 		}
 	}
 	// The index of the -closest- match, was not necessarily a full milestone match
-	return returnIdx;
+	return 0;
 }// match
 
 /**
@@ -417,11 +427,12 @@ int match(Vector* vector, int* score)
  *
  * @arg ep1 a pointer to an episode
  * @arg ep2 a pointer to another episode
- * @return int The score telling us how close these episodes match
+ * @return double The score telling us how close these episodes match
  */
-int compare(Episode* ep1, Episode* ep2)
+double compare(Episode* ep1, Episode* ep2)
 {
-	int i, match = 0;
+	int i;
+	double match = 0;
 
 	// Iterate through the episodes' sensor data and determine if they are matching episodes
 	for(i = 0; i < NUM_SENSORS; i++)

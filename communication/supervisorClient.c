@@ -6,7 +6,7 @@
 * data and sends the commands that the Supervisor decides
 *
 * Author: Dr. Crenshaw, Dr. Nuxoll, Zachary Faltersack, Steve Beyer
-* Last edit: 21/6/10
+* Last edit: July 5, 2010
 *
 * Usage: supervisorClient.out <ip_addr> -c <roomba/test> -m <stats/visual>
 */
@@ -14,12 +14,12 @@
 #include "communication.h"
 #include "../supervisor/supervisor.h"
 
-#define TIMEOUT_SECS	5
-#define MAX_TRIES		10
+#define TIMEOUT_SECS	5	// Num seconds in timeout on recv
+#define MAX_TRIES		10	// Num tries to reconnect on lost connection
 
 int g_goalsFound = 0;				// Number of times we found the goal
-int g_goalsTimeStamp[NUM_GOALS_TO_FIND];
-int g_tries;
+int g_goalsTimeStamp[NUM_GOALS_TO_FIND];	// Timestamps of found goals
+int g_tries;	// Number of tries to reconnect
 
 /**
  * exitError
@@ -88,6 +88,7 @@ void parseArguments(int argc, char *argv[])
  */
 int sendCommand(int sockfd, int cmd)
 {
+	// Attempt to send command and catch error code
 	int retVal = send(sockfd, &cmd, 1, 0);
 	// Else send command to Roomba server and exit if unsuccessful
 	if(retVal != -1 && g_statsMode == 0)
@@ -123,16 +124,9 @@ int recvCommand(int sockfd, char* buf)
 	}
 
 	// Number of bytes written to char buffer
-
 	int numbytes;
 	// Insert null terminating character at end of sensor string
     buf[0] = '\0';
-
-	if(g_statsMode == 0)
-	{
-		printf("client: sensor data: '%s'\n", buf);	   
-		printf("numbytes: %d\n", numbytes);
-	}
 
 	alarm(TIMEOUT_SECS);        /* Set the timeout */
 	while ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) < 0)
@@ -141,12 +135,15 @@ int recvCommand(int sockfd, char* buf)
 		{
 			if (g_tries < MAX_TRIES)      /* incremented by signal handler */
 			{
+				// Timed out and have mroe tries
 				printf("timed out, %d more tries...\n", MAX_TRIES-g_tries);
+				// Attempt to send a CMD_NO_OP
 				int cmd = CMD_NO_OP;
 				if (sendCommand(sockfd, cmd))
 				{
 					perror("Error sending CMD_NO_OP on retry\n");
 				}
+				// Reset alarm
 				alarm(TIMEOUT_SECS);
 			} 
 			else		/* have used up all of out tries  */
@@ -284,7 +281,7 @@ int handshake(char* ipAddr)
 		if(send(sockfd, &cmd, 1, 0) == -1)
 		{
 		}
-	}
+	}// if
 
 	// Free the space allocated for recv buffer
 	free(buf);
@@ -333,49 +330,59 @@ void printStats(FILE* log)
 		}// for
 		fprintf(log, "\n");
 		fflush(log);
-	}
+	}// if
 }// printStats
 
 /**
  * reportGoalFound
  *
  * Print that a goal as found to console
+ *
+ * @arg sockfd A socket identifier
+ * @arg log A file handle for IO
  */
 void reportGoalFound(int sockfd, FILE* log)
 {
+	// Store the new goal timestamp and increment count
 	g_goalsTimeStamp[g_goalsFound] = ((Episode*)getEntry(g_episodeList, g_episodeList->size - 1))->now;
 	g_goalsFound++;
 
-
-	if(g_statsMode == 0)
+	// Only print if not in stats mode
+	if(g_goalsFound > 1)
 	{
-		if(g_goalsFound > 1)
-		{
-			printf("Goal %i found after %i episodes\n", g_goalsFound, g_goalsTimeStamp[g_goalsFound - 1]-g_goalsTimeStamp[g_goalsFound - 2]);
-		}
-		else
-		{
-			printf("Goal %i found after %i episodes\n", g_goalsFound, g_goalsTimeStamp[g_goalsFound - 1]);
-		}
+		printf("Goal %i found after %i episodes at timestamp %i\n"
+							, g_goalsFound
+							, g_goalsTimeStamp[g_goalsFound - 1] - g_goalsTimeStamp[g_goalsFound - 2]
+							, g_goalsTimeStamp[g_goalsFound - 1]);
 	}
 	else
 	{
-		printf("Hit goal at timestamp %i\n", g_goalsTimeStamp[g_goalsFound - 1]);
+		printf("Goal %i found at timestamp %i\n"
+							, g_goalsFound
+							, g_goalsTimeStamp[g_goalsFound - 1]);
 	}
 
+	// Send a success command
 	int cmd = CMD_SONG;
 	sendCommand(sockfd, cmd);
 
+	// If connected to Roomba pause to allow time to return Roomba to Init
 	if(g_connectToRoomba == 1)
 	{
 		printf("Press enter to continue\n");
 		getchar();
 	}
-}
+}// reportGoalFound
 
 /**
  * processCommand
  *
+ * Call the Supervisor tick method and pass it the sensor data from
+ * the Roomba and catch the command chosen to send to the Roomba
+ *
+ * @arg cmd Int pointer to location of command
+ * @arg buf Char buffer containing the sensor data
+ * @arg log A file handle for IO
  */
 void processCommand(int* cmd, char* buf, FILE* log)
 {
@@ -402,25 +409,32 @@ void processCommand(int* cmd, char* buf, FILE* log)
 		perror("Illegal command");
 		exit(*cmd);
 	}
-}
+}// processCommand
 
-
+/**
+ * main
+ *
+ * The main function for dealing with send/recv loop
+ */
 int main(int argc, char *argv[])
 {
+	// User did not pass in minimum number of arguments
 	if (argc < 2) {
 		fprintf(stderr,"usage (minimum): client hostname\n");
 		exit(1);
 	}
 
+	// Open log file for output
 	char* buf = (char*) malloc(sizeof(char) * MAXDATASIZE);
 	FILE* log = fopen("supClient.log", "a");
 
+	// File was not opened correctly
 	if(!log)
 	{
 		fprintf(stderr, "File not opened correctly");
 		exit(1);
 	}
-	// Variables used for Supervisor loop processing
+
 	initSupervisor();				// Initialize the Supervisor
 	parseArguments(argc, argv);		// Parse the arguments and set up global monitoring vars
 
@@ -428,11 +442,12 @@ int main(int argc, char *argv[])
 	int sockfd = handshake(argv[1]);
 	int cmd = CMD_LEFT;				// command to send to Roomba
 
-
-	// Print raw sensor data to stdout along with size in bytes
+	// Main send/recv processing loop
 	while(1)
 	{	       
+		// receive the sensor data
 		recvCommand(sockfd, buf);
+		// determine the next command to send
 		processCommand(&cmd, buf, log);
 
 		// If goal is found increase goal count and store the index it was found at
