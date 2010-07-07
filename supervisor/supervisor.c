@@ -11,7 +11,7 @@
 */
 
 // The chance of choosing a random move
-int g_randChance = 80;
+int g_randChance = 90;
 // global strings for printing to console
 char* g_forward = "forward";
 char* g_right	= "right";
@@ -154,7 +154,7 @@ int parseEpisode(Episode * parsedData, char* dataArr)
 	if(parsedData->sensors[SNSR_IR] == 1)
 	{
 		DECREASE_RANDOM(g_randChance);
-		g_goalIdx[g_goalCount] == parsedData->now;
+		g_goalIdx[g_goalCount] = parsedData->now;
 		g_goalCount++;
 	}
 
@@ -287,48 +287,53 @@ int setCommand(Episode* ep)
 
 			ep->cmd = i;
 			match(g_episodeList, commandScores + i, topMatches);
-/*
+
 			// If the goal has been found then determine which of the three episodes
 			// with the greatest scores is closest to the goal
 			if(g_goalCount > 0)
 			{
 				for(k = 0; k < 3; k++)
 				{
-					tempIdx = topMatches[k];
+					if((tempIdx = topMatches[k]) == 0)
+					{
+						break;
+					}
 
 					for(j = 0; j < g_goalCount; j++)
 					{
+/*						printf("dist: %i\n", g_goalIdx[j] - tempIdx);
+						printf("idx1: %i idx2: %i\n", g_goalIdx[j], tempIdx);*/
+
+
 						// Make sure the goal is after the current episode
-						if(abs(((Episode*)getEntry(g_episodeList, g_goalIdx[j]))->now - 
-									((Episode*)getEntry(g_episodeList, tempIdx))->now) < 0)
+						if(g_goalIdx[j] - tempIdx < 0)
 						{
 
 						}
 						// If the distance between the episode and goal is less than previous
 						// then save it
-						else if(abs(((Episode*)getEntry(g_episodeList, g_goalIdx[j]))->now - 
-									((Episode*)getEntry(g_episodeList, tempIdx))->now) < tempDist)
+						else if(g_goalIdx[j] - tempIdx < tempDist)
 						{
 							// keep track of the current best distance
-							tempDist = ((Episode*)getEntry(g_episodeList, g_goalIdx[j]))->now - 
-								((Episode*)getEntry(g_episodeList, tempIdx))->now;
+							tempDist = g_goalIdx[j] - tempIdx;
 							// keep track of which command gave the best distance so far
 							bestMatch = i;
 							toggle = 1;
+/*							printf("Setting toggle, cmd: %s, tempDist: %i\n", interpretCommand(i), tempDist); */
 						}// if
 					}// for
 				}// for
-			}// if */
+			}// if 
 		}// for
 	}// if
-/*
+
 	// If a goal has been found then we have an index of closest goal match
-	if(g_goalCount > 0)
+	if(g_goalCount > 0 && toggle == 1)
 	{
 		ep->cmd = bestMatch;
 	}
 	else
-	{ */
+	{ 
 		// else we find cmd with greatest score
 		int max = CMD_NO_OP;
 		for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
@@ -337,7 +342,7 @@ int setCommand(Episode* ep)
 			{
 				max = i;
 			}
-//		}
+		}
 		ep->cmd = max;
 	}
 
@@ -349,12 +354,16 @@ int setCommand(Episode* ep)
 			printf("%s score: %f\n", interpretCommand(i), commandScores[i]);
 		}
 	}
-
-	//if(toggle != 1)
-	//{
-	//	printf("Still have not found valid bestMatch\n");
-	//}
-
+/*
+	if(toggle != 1)
+	{
+		printf("Still have not found valid bestMatch, cmd: %s\n", interpretCommand(ep->cmd));
+	}
+	else
+	{
+		printf("Found valid bestMatch, cmd: %s\n", interpretCommand(ep->cmd));
+	}
+*/
 	// Report malformed episode and location of error report
 	if(ep->cmd <= CMD_ILLEGAL || ep->cmd >= NUM_COMMANDS)
 	{
