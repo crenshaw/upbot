@@ -11,7 +11,7 @@
 */
 
 // The chance of choosing a random move
-int g_randChance = 90;
+int g_randChance = 80;
 // global strings for printing to console
 char* g_forward = "forward";
 char* g_right	= "right";
@@ -267,7 +267,7 @@ int setCommand(Episode* ep)
 	// initialize scores to 0
 	for(i = 0; i < NUM_COMMANDS; i++)
 	{
-		commandScores[i] = (double)0;
+		commandScores[i] = 0;
 	}
 
 	// Set distance to goal equal to largest possible distance
@@ -302,8 +302,8 @@ int setCommand(Episode* ep)
 					for(j = 0; j < g_goalCount; j++)
 					{
 /*						printf("dist: %i\n", g_goalIdx[j] - tempIdx);
-						printf("idx1: %i idx2: %i\n", g_goalIdx[j], tempIdx);*/
-
+						printf("idx1: %i idx2: %i\n", g_goalIdx[j], tempIdx);
+*/
 
 						// Make sure the goal is after the current episode
 						if(g_goalIdx[j] - tempIdx < 0)
@@ -319,7 +319,7 @@ int setCommand(Episode* ep)
 							// keep track of which command gave the best distance so far
 							bestMatch = i;
 							toggle = 1;
-/*							printf("Setting toggle, cmd: %s, tempDist: %i\n", interpretCommand(i), tempDist); */
+//							printf("Setting toggle, cmd: %s, tempDist: %i\n", interpretCommand(i), tempDist);
 						}// if
 					}// for
 				}// for
@@ -338,6 +338,9 @@ int setCommand(Episode* ep)
 		int max = CMD_NO_OP;
 		for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
 		{
+		//Debug lines
+/*			double maxScore = NUM_TO_MATCH * NUM_SENSORS * 2;
+			printf("Max score: %g out of: %g for command: %s\n", commandScores[i], maxScore, interpretCommand(i)); */
 			if(commandScores[max] < commandScores[i])
 			{
 				max = i;
@@ -354,16 +357,18 @@ int setCommand(Episode* ep)
 			printf("%s score: %f\n", interpretCommand(i), commandScores[i]);
 		}
 	}
-/*
-	if(toggle != 1)
-	{
-		printf("Still have not found valid bestMatch, cmd: %s\n", interpretCommand(ep->cmd));
-	}
-	else
-	{
-		printf("Found valid bestMatch, cmd: %s\n", interpretCommand(ep->cmd));
-	}
-*/
+	/*
+	   if(toggle != 1)
+	   {
+	   printf("Still have not found valid bestMatch, cmd: %s\n", interpretCommand(ep->cmd));
+	   }
+	   else
+	   {
+	   printf("Found valid bestMatch, cmd: %s\n", interpretCommand(ep->cmd));
+	   }
+	 */
+
+
 	// Report malformed episode and location of error report
 	if(ep->cmd <= CMD_ILLEGAL || ep->cmd >= NUM_COMMANDS)
 	{
@@ -389,9 +394,15 @@ int match(Vector* vector, double* score, int* topIdxArr)
 {
 	int i,j, returnIdx = 0;
 	double tempScore = 0, discount = 1;
+	int start = g_episodeList->size - NUM_TO_MATCH;
+
+	if(g_goalCount > 0)
+	{
+		start = g_goalIdx[g_goalCount -1] - NUM_TO_MATCH;
+	}
 
 	// Iterate through vector and search from each index
-	for(i = vector->size - NUM_TO_MATCH; i >= 0; i--)
+	for(i = start; i >= 0; i--)
 	{
 		// reset tempscore
 		tempScore = 0;
@@ -425,7 +436,7 @@ int match(Vector* vector, double* score, int* topIdxArr)
 			topIdxArr[0] = i + (NUM_TO_MATCH - 1);
 		}
 	}
-	// The index of the -closest- match, was not necessarily a full milestone match
+	// return success
 	return 0;
 }// match
 
@@ -447,7 +458,9 @@ double compare(Episode* ep1, Episode* ep2)
 	for(i = 0; i < NUM_SENSORS; i++)
 	{
 		if(ep1->sensors[i] == ep2->sensors[i])
+		{
 			match++;
+		}
 	}
 
 	// add num_sensors to give cmd 1/2 value
