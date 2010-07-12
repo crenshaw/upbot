@@ -296,9 +296,9 @@ int readFromSharedMemoryAndExecute(caddr_t shm)
   case ssQuit:
     break;
   default:
-    return -1;
+    return 'z';
   }
-   
+  printf("Command: %c\n", cmd);
   return cmd;
 }
 

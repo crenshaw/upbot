@@ -298,6 +298,12 @@ char* unitTest2(int command, int cleanup)
 				printf("No operation\n");
 			}
 			break;
+		case CMD_SONG:
+			if(g_statsMode == 0)
+			{
+				printf("Song\n");
+			}
+			break;
 		default:
 			if(g_statsMode == 0) {
 				printf("Invalid command: %i\n", command);

@@ -175,70 +175,55 @@ int main(void)
       // Added Code to implement client fork
       //------------------------------------------------------------------------
       printf("%s %d \n", __FILE__, __LINE__);
-      if(!fork())
+      printf("Forked\n");
+      char *a = "10.11.17.15";
+    
+      memset(&hints, 0, sizeof hints);
+      hints.ai_family = AF_UNSPEC;
+      hints.ai_socktype = SOCK_STREAM;
+    
+      //    if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
+      if ((rv = getaddrinfo(a, PORT, &hints, &servinfo)) != 0) 
 	{
-	  printf("%s %d \n", __FILE__, __LINE__);
-	  printf("Forked\n");
-	  char *a = "10.11.17.15";
+	  fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+	  return 1;
+	}
     
-	  memset(&hints, 0, sizeof hints);
-	  hints.ai_family = AF_UNSPEC;
-	  hints.ai_socktype = SOCK_STREAM;
-    
-	  //    if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
-	  if ((rv = getaddrinfo(a, PORT, &hints, &servinfo)) != 0) 
-	    {
-	    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-	    return 1;
-	    }
-    
-	  // loop through all the results and connect to the first we can
-	  for(p = servinfo; p != NULL; p = p->ai_next) 
-	    {
-	    if ((sockfd = socket(p->ai_family, p->ai_socktype,
-				 p->ai_protocol)) == -1) {
-	      perror("client: socket");
-	      continue;
-	    }
+      // loop through all the results and connect to the first we can
+      for(p = servinfo; p != NULL; p = p->ai_next) 
+	{
+	  if ((sockfd = socket(p->ai_family, p->ai_socktype,
+			       p->ai_protocol)) == -1) {
+	    perror("client: socket");
+	    continue;
+	  }
       
-	    if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-	      close(sockfd);
-	      perror("client: connect");
-	      continue;
-	    }
+	  if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+	    close(sockfd);
+	    perror("client: connect");
+	    continue;
+	  }
       
-	    break;
-	    }
+	  break;
+	}
     
-	  if (p == NULL) 
-	    {
-	    fprintf(stderr, "client: failed to connect\n");
-	    return 2;
-	    }
+      if (p == NULL) 
+	{
+	  fprintf(stderr, "client: failed to connect\n");
+	  return 2;
+	}
     
-	  inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
-		    s, sizeof s);
-	  printf("client: connecting to %s\n", s);
+      inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
+		s, sizeof s);
+      printf("client: connecting to %s\n", s);
     
-	  freeaddrinfo(servinfo); // all done with this structure
+      freeaddrinfo(servinfo); // all done with this structure
     
-	  //if the client does not recieve anything from server then exit
-	  if ((numbytes = recv(sockfd, msgBuf, MAXDATASIZE-1, 0)) == -1) 
-	    {
-	    perror("recv");
-	    exit(1);
-	    }
-	  while(input != ssQuit)
-	    {
-	      cmd[0] = peakCommandCodeFromQueue(cmdArea);
-	      if(checkValue(cmd[0]) == 1)
-	      {
-		printf("%s %d \n", __FILE__, __LINE__);
-		if(send(sockfd, cmd, 1, 0) == -1)
-		  perror("send");
-		printf("      the command code sent was: %d\n", cmd[0]);
-	      }
-	    }
+      //if the client does not recieve anything from server then exit
+      if ((numbytes = recv(sockfd, msgBuf, MAXDATASIZE-1, 0)) == -1) 
+	{
+	  perror("recv");
+	  exit(1);
 	}
       printf("%s %d \n", __FILE__, __LINE__);
 
@@ -248,8 +233,17 @@ int main(void)
 
       while(commandToRobot[0] != ssQuit)
 	{
+	  commandToRobot[0] = 'z';
 	  // Wait until a valid command is received.
-	  while((commandToRobot[0] = readFromSharedMemoryAndExecute(cmdArea) == -1));
+	  while(commandToRobot[0] == 'z')
+	    {
+	      commandToRobot[0] = readFromSharedMemoryAndExecute(cmdArea);
+	    }
+	  printf("%s, %d, commandToRobot: %c\n", __FILE__, __LINE__, commandToRobot[0]);
+
+	  if(send(sockfd, &commandToRobot[0], 1, 0) == -1)
+	    perror("send");
+	  printf("      the command code sent was: %c\n", commandToRobot[0]);
 
 	  receiveGroupOneSensorData(sensDataFromRobot);
 
