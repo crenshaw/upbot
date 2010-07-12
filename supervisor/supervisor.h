@@ -68,8 +68,9 @@ int setCommand(Episode* ep);
 int parseEpisode(Episode* parsedData, char* dataArr);
 int addEpisode(Vector* episodes, Episode* item);
 void displayEpisode(Episode* ep);
-int match(Vector* vector, double* score, int* topIdxArr);
-double compare(Episode* ep1, Episode* ep2);
+int findTopMatch(double* scoreTable, double* indvScore, int command);
+int generateScoreTable(Vector* vector, double* score);
+double compare(Episode* ep1, Episode* ep2, int isCurrMatch);
 void initSupervisor();
 void endSupervisor();
 

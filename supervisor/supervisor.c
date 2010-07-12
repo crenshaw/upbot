@@ -226,7 +226,7 @@ int chooseCommand(Episode* ep)
 	{
 		// Command 0 is now illegal command so adjust NUM_COMMANDS to account for this
 		// Then increment to push back into valid command range
-		ep->cmd = (rand() % (LAST_MOBILE_CMD)) + CMD_NO_OP;
+		ep->cmd = (rand() % LAST_MOBILE_CMD) + CMD_NO_OP;
 	}else
 	{
 		// find the best match scores for the three commands
@@ -261,71 +261,67 @@ int setCommand(Episode* ep)
 	int i,j,k;										// looping indices
 	int bestMatch = CMD_NO_OP;
 	double commandScores[NUM_COMMANDS];				// Array to store scores for commands
-	int topMatches[3] = {0,0,0};
+	int commandIdxs[NUM_COMMANDS];
 	int toggle = 0;
+	double partialScoreTable[g_episodeList->size];
 
 	// initialize scores to 0
 	for(i = 0; i < NUM_COMMANDS; i++)
 	{
 		commandScores[i] = 0;
+		commandIdxs[i] = 0;
 	}
 
-	// Set distance to goal equal to largest possible distance
-	tempDist = g_episodeList->size;
+	// generate partial score table
+	generateScoreTable(g_episodeList, partialScoreTable);
+
+	// determine index with top match per command
+	for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
+	{
+		commandIdxs[i] = findTopMatch(partialScoreTable, commandScores, i);
+	}
 
 	// can only successfully search if at minimum history contains
 	// NUM_TO_MATCH episodes
-	if(g_episodeList->size > NUM_TO_MATCH)
+	if(g_goalCount > 0)
 	{
-		// Test out three commands and find best match for each command
-		// Then if a goal has been found, determine the distance to the goal
-		// and find command with the least distance
+		// Set distance to goal equal to largest possible distance
+		tempDist = g_episodeList->size;
+		// Test out the available commands
 		for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
 		{
-			// for each run test out next command
-			// keep track of index of the best match as well as its score
-
-			ep->cmd = i;
-			match(g_episodeList, commandScores + i, topMatches);
+			// find index closest to a subsequent goal
+			tempIdx = commandIdxs[i];
 
 			// If the goal has been found then determine which of the three episodes
 			// with the greatest scores is closest to the goal
-			if(g_goalCount > 0)
+
+			for(j = 0; j < g_goalCount; j++)
 			{
-				for(k = 0; k < 3; k++)
+				/*						printf("dist: %i\n", g_goalIdx[j] - tempIdx);
+										printf("idx1: %i idx2: %i\n", g_goalIdx[j], tempIdx);
+				 */
+
+				// Make sure the goal is after the current episode
+				if(g_goalIdx[j] - tempIdx < 0)
 				{
-					if((tempIdx = topMatches[k]) == 0)
-					{
-						break;
-					}
 
-					for(j = 0; j < g_goalCount; j++)
-					{
-/*						printf("dist: %i\n", g_goalIdx[j] - tempIdx);
-						printf("idx1: %i idx2: %i\n", g_goalIdx[j], tempIdx);
-*/
-
-						// Make sure the goal is after the current episode
-						if(g_goalIdx[j] - tempIdx < 0)
-						{
-
-						}
-						// If the distance between the episode and goal is less than previous
-						// then save it
-						else if(g_goalIdx[j] - tempIdx < tempDist)
-						{
-							// keep track of the current best distance
-							tempDist = g_goalIdx[j] - tempIdx;
-							// keep track of which command gave the best distance so far
-							bestMatch = i;
-							toggle = 1;
-//							printf("Setting toggle, cmd: %s, tempDist: %i\n", interpretCommand(i), tempDist);
-						}// if
-					}// for
-				}// for
-			}// if 
-		}// for
+				}
+				// If the distance between the episode and goal is less than previous
+				// then save it
+				else if(g_goalIdx[j] - tempIdx < tempDist)
+				{
+					// keep track of the current best distance
+					tempDist = g_goalIdx[j] - tempIdx;
+					// keep track of which command gave the best distance so far
+					bestMatch = i;
+					toggle = 1;
+					//							printf("Setting toggle, cmd: %s, tempDist: %i\n", interpretCommand(i), tempDist);
+				}// if
+			}// for
+		}// for 
 	}// if
+
 
 	// If a goal has been found then we have an index of closest goal match
 	if(g_goalCount > 0 && toggle == 1)
@@ -338,9 +334,9 @@ int setCommand(Episode* ep)
 		int max = CMD_NO_OP;
 		for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
 		{
-		//Debug lines
-/*			double maxScore = NUM_TO_MATCH * NUM_SENSORS * 2;
-			printf("Max score: %g out of: %g for command: %s\n", commandScores[i], maxScore, interpretCommand(i)); */
+			//Debug lines
+			/*			double maxScore = NUM_TO_MATCH * NUM_SENSORS * 2;
+						printf("Max score: %g out of: %g for command: %s\n", commandScores[i], maxScore, interpretCommand(i)); */
 			if(commandScores[max] < commandScores[i])
 			{
 				max = i;
@@ -379,6 +375,31 @@ int setCommand(Episode* ep)
 	return 0;
 }// setCommand
 
+
+/**
+* findTopMatch
+*/
+int findTopMatch(double* scoreTable, double* indvScore, int command)
+{
+	int i, max;
+	double maxVal = 0.0, tempVal = 0.0;
+	for(i = g_episodeList->size - 1; i >= 0; i--)
+	{
+		tempVal = scoreTable[i] + (((Episode*)(g_episodeList->array[i]))->cmd == command ? NUM_TO_MATCH : 0);
+
+		if(tempVal > maxVal)
+		{
+			max = i;
+			maxVal = tempVal;
+		}
+	}
+
+	indvScore[command] = maxVal;
+
+	return max;
+}// findTopMatch
+
+
 /**
  * match
  *
@@ -390,15 +411,15 @@ int setCommand(Episode* ep)
  * @arg topIdxArr pointer to array of 3 ints to store top 3 matching indices
  * @return int Error code
  */
-int match(Vector* vector, double* score, int* topIdxArr)
+int generateScoreTable(Vector* vector, double* score)
 {
 	int i,j, returnIdx = 0;
-	double tempScore = 0, discount = 1;
-	int start = g_episodeList->size - NUM_TO_MATCH;
+	double tempScore = 0.0, discount = 1.0;
+	int start = g_episodeList->size - NUM_TO_MATCH - 1; // subtract 1 to begin 1 episode before curr state
 
 	if(g_goalCount > 0)
 	{
-		start = g_goalIdx[g_goalCount -1] - NUM_TO_MATCH;
+		start = g_goalIdx[g_goalCount - 1] - NUM_TO_MATCH;
 	}
 
 	// Iterate through vector and search from each index
@@ -419,23 +440,12 @@ int match(Vector* vector, double* score, int* topIdxArr)
 
 			// compare two episodes and add result to score with appropriate discount
 			//					V-index iterate to beginning		V-index to current episode frame
-			tempScore += (discount * compare(vector->array[i + j], vector->array[vector->size - NUM_TO_MATCH + j]));
+			tempScore += (discount * compare(vector->array[i + j], vector->array[vector->size - NUM_TO_MATCH + j], (j == NUM_TO_MATCH - 1 ? TRUE : FALSE)));
 			discount *= DISCOUNT;
-		}
+		}//for
 
-		// If we ended up with a greater score than previous, store index and score
-		// keep track of the 3 indices with the greatest scores
-		if(tempScore > *score)
-		{
-			// Store the top score
-			*score = tempScore;
-
-			// Store the top 3 indices
-			topIdxArr[2] = topIdxArr[1];
-			topIdxArr[1] = topIdxArr[0];
-			topIdxArr[0] = i + (NUM_TO_MATCH - 1);
-		}
-	}
+		score[i + NUM_TO_MATCH - 1] = tempScore;
+	}// for
 	// return success
 	return 0;
 }// match
@@ -449,7 +459,7 @@ int match(Vector* vector, double* score, int* topIdxArr)
  * @arg ep2 a pointer to another episode
  * @return double The score telling us how close these episodes match
  */
-double compare(Episode* ep1, Episode* ep2)
+double compare(Episode* ep1, Episode* ep2, int isCurrMatch)
 {
 	int i;
 	double match = 0;
@@ -463,10 +473,13 @@ double compare(Episode* ep1, Episode* ep2)
 		}
 	}
 
-	// add num_sensors to give cmd 1/2 value
-	if(ep1->cmd == ep2->cmd && ep1->cmd != CMD_NO_OP)
+	if(isCurrMatch == FALSE)
 	{
-		match += NUM_SENSORS;
+		// add num_sensors to give cmd 1/2 value
+		if(ep1->cmd == ep2->cmd && ep1->cmd != CMD_NO_OP)
+		{
+			match += NUM_SENSORS;
+		}
 	}
 
 	// return the total value of the match between episodes
