@@ -74,5 +74,6 @@ char getCommandCodeFromQueue(caddr_t q);
 void printCommand(command_t * cmd);
 void printCommandQueueHeader(caddr_t q);
 void printCommandQueueEntry(caddr_t q, int entry);
+char peakCommandCodeFromQueue(caddr_t q);
 
 #endif

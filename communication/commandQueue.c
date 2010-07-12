@@ -140,7 +140,7 @@ int createCommandQueue(caddr_t ptr, int size)
  */
 int writeCommandToQueue(caddr_t q, command_t * cmd)
 {
-  fprintf(stdout, "%s : cmd: %c", __FILE__, cmd->command);
+  fprintf(stdout, "%s : cmd: %d", __FILE__, cmd->command);
   // Get the writer's position and queue size
   int writerPos =   *((int *)(q + CQ_WPOS_OFFSET));
   int qSize = *((int *)(q + CQ_SIZE_OFFSET));
@@ -231,6 +231,51 @@ char getCommandCodeFromQueue(caddr_t q)
       *timestamp = 0;
 
       // Return the single-character command code read from the queue.
+      return returnValue;
+    }
+  
+  // A canary value was read from the queue, return it to indicate no
+  // command was available for getting.
+  return CQ_COMMAND_CANARY_VALUE;
+}
+
+/**
+ * peakCommandFromQueue()
+ *
+ * Get a command from the queue.  The command is returned and not removed
+ * from the queue
+ *
+ * @arg q a pointer to the queue.
+ *
+ * @return if successful, the get() function returns a
+ * single-character command, and return CQ_COMMAND_CANARY_VALUE
+ * otherwise.
+ */
+char peakCommandCodeFromQueue(caddr_t q)
+{
+
+  // Get the reader's position and queue size
+  int readerPos =   *((int *)(q + CQ_RPOS_OFFSET));
+  int qSize = *((int *)(q + CQ_SIZE_OFFSET));
+
+  // Calculate address of single-character command code
+  char * command = (char *)(q + CQ_QUEUE_OFFSET);
+  command += (CQ_COMMAND_SIZE * readerPos);
+
+#ifdef DEBUG
+  printf("\nSource %s, Line %d:  readerPos = %d\n", __FILE__, __LINE__, readerPos);
+  printf("\nSource %s, Line %d:  command address = 0x%x\n", __FILE__, __LINE__, command);
+#endif
+
+  // Obtain the command 
+  char returnValue = *command;
+
+  // If the single-character command code read from the queue is a
+  // canary value then no command was actually read and the reader's
+  // position shouldn't be advanced.  If it is not a canary value, then
+  // advance the reader's position.
+  if(returnValue != CQ_COMMAND_CANARY_VALUE)
+    {
       return returnValue;
     }
   

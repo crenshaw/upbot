@@ -28,6 +28,9 @@ unittest: unitTestServer.c serverUtility.c ../supervisor/unitTest.h commandQueue
 brainstem: brainstem.c communication.h serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o ../roomba/roomba.h
 	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o
 
+brainstem2: brainstem2.c communication.h serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o ../roomba/roomba.h
+	$(CC) $(CFLAGS) -o brainstem2.out brainstem2.c serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o
+
 # Make sure that object files are built in the appropriate order; if
 # anything in roomba.h changes, the accompanying nerves, move, sensor,
 # led, and utility functions need to be updated.  Without this

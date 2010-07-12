@@ -187,10 +187,10 @@ void driveBackwards(int velocity)
 void stop()
 {
   byteTx(CmdDrive);
-  byteTx(0xFF);
-  byteTx(0xFF);
-  byteTx(0xFF);
-  byteTx(0xFF);
+  byteTx(0x00);
+  byteTx(0x00);
+  byteTx(STRAIGHT & 0x00FF);
+  byteTx(STRAIGHT & 0x0FF);
 }
 
 /** driveDistance()
