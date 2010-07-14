@@ -30,6 +30,7 @@
 #define NUM_TO_MATCH		15
 #define NUM_GOALS_TO_FIND	75
 #define DISCOUNT			1.0
+#define MAX_LEN_LHS			4
 
 // Collecting data for stats
 #define STATS_MODE			0
@@ -44,6 +45,22 @@ typedef struct EpisodeStruct
 	int 	cmd;
 } Episode;
 
+// Rule struct
+typedef struct RuleStruct
+{
+	int index;  //index into epmem where the rule's LHS ends
+	int length; //number of entries in the LHS
+	int freq;  //number of times this rule has "matched" epmem
+	int* overallFreq;  //number of times just the most recent sensor
+	//data has matched epmem
+	int outcome;  //index to the outcome state
+	//*or* a flag indicating it doesn't exist yet
+	int isSound;
+	int isPercentageRule;
+	Vector* cousins;
+
+} Rule;
+
 typedef struct MilestoneStruct
 {
 	Vector* episodes;
@@ -57,6 +74,7 @@ int g_statsMode;
 
 // This vector will contain all episodes received from Roomba
 Vector* g_episodeList;
+Vector* g_ruleList;
 Vector* g_milestoneList;
 
 // Function declarations
@@ -66,8 +84,12 @@ Episode* createEpisode(char* sensorData);
 int chooseCommand(Episode* ep);
 int setCommand(Episode* ep);
 int parseEpisode(Episode* parsedData, char* dataArr);
+int updateRules();
 int addEpisode(Vector* episodes, Episode* item);
+int addRule(Vector* rules, Rule* item, int checkRedundant);
 void displayEpisode(Episode* ep);
+void displayRules();
+void displayRule(Rule* rule);
 int findTopMatch(double* scoreTable, double* indvScore, int command);
 int generateScoreTable(Vector* vector, double* score);
 double compare(Episode* ep1, Episode* ep2, int isCurrMatch);

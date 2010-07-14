@@ -42,6 +42,8 @@ int tick(char* sensorInput)
 	Episode* ep = createEpisode(sensorInput);
 	// Add new episode to the history
 	addEpisode(g_episodeList, ep);
+	updateRules();
+	displayRules();
 	// Send ep to receive a command
 	// Will return -1 if no command could be set
 	chooseCommand(ep);
@@ -165,6 +167,140 @@ int parseEpisode(Episode * parsedData, char* dataArr)
 }// parseEpisode
 
 /**
+* updateRules
+*/
+int updateRules()
+{
+	// If episodeList has 1 or less episodes or the most recent episode was a goal
+	// then no rule should be made
+	if(g_episodeList->size <= 1 || ((Episode*)g_episodeList->array[g_episodeList->size - 1])->sensors[SNSR_IR])
+	{
+		return -1;
+	}
+
+	//Create a candidate rule that we would create from this current episode.  We won't add it to the rule 
+	//list if an identical rule already exists.
+	Rule* newRule = (Rule*) malloc(sizeof(Rule));
+	newRule->index 		= g_episodeList->size - 2;
+	newRule->length 	= 1;
+	newRule->freq		= 1;
+	newRule->overallFreq = NULL;
+	newRule->outcome	= g_episodeList->size - 1;
+	newRule->isSound 	= FALSE;
+	newRule->cousins	= NULL;
+	newRule->isPercentageRule = FALSE;
+
+	//Iterate over every rule in the list and compare it to our new candidate rule.
+	//If the candidate is unique, it'll be added to the rule list.
+	//If it's a partial match (same LHS different RHS) then it and partial matching rules will either be 
+	//expanded or converted into percentage rules
+	//If the candidate matches an existing rule, it'll be discarded and the existing rule will be updated
+	int i,j;
+	int matchComplete = FALSE;
+	int addNewRule = TRUE;
+	for(i = 0; i < g_ruleList->size; i++)
+	{
+		//Compare the i-th rule to the candidate rule
+		Rule* curr = (Rule*)g_ruleList->array[i];
+		for(j = 0; j < newRule->length; j++)
+		{
+			//Compare the j-th episode in the rules
+			if(2 * NUM_SENSORS == compare(g_episodeList->array[newRule->index - j], g_episodeList->array[curr->index - j], FALSE))
+			{
+				//If the episodes match then see if their LHS are the same length. If they are, then the LHS's match.
+				if(newRule->length == curr->length)
+				{
+					if(curr->isPercentageRule)
+					{
+						int k;
+						for(k = 0; k < curr->cousins->size; k++)
+						{
+							if(NUM_SENSORS == compare(g_episodeList->array[newRule->outcome], g_episodeList->array[curr->outcome], TRUE))
+							{
+								curr->freq++;
+								addNewRule = FALSE;
+							}
+						}
+
+						if(addNewRule)
+						{
+							newRule->isPercentageRule = TRUE;
+							newRule->overallFreq = curr->overallFreq;
+							newRule->cousins = curr->cousins;
+
+							matchComplete = TRUE;
+						}
+
+						(*(curr->overallFreq))++;
+					}
+					else
+					{
+						//Now see if the RHS of both rules match
+						if(NUM_SENSORS == compare(g_episodeList->array[newRule->outcome], g_episodeList->array[curr->outcome], TRUE))
+						{
+							//We have a complete match between the candidate and an existing rule, so just update the existing rule
+							curr->freq++;
+							curr->overallFreq++;
+							curr->isSound = TRUE;
+							newRule->isSound = TRUE;
+							matchComplete = TRUE;
+							addNewRule = FALSE;
+						}
+						else
+						{
+							if(curr->length < MAX_LEN_LHS && curr->index - curr->length > 0)
+							{
+
+								curr->length++;
+								newRule->length++;
+
+								if(curr->cousins == NULL)
+								{
+									curr->cousins = newVector();
+									addRule(curr->cousins, curr, TRUE);
+								}
+								printf("Predicted crash\n");
+								addRule(curr->cousins, newRule, TRUE);
+								newRule->cousins = curr->cousins;
+							}
+							else
+							{
+								//%%% MAKE PERCENTAGE BASED RULES
+								//%%% Will need to allocate overallFreq in here
+								matchComplete = TRUE;
+								addNewRule = FALSE;
+							}
+						}
+					}
+				}
+				else
+				{
+					newRule->length++;
+					printf("length %i\n", newRule->length);
+				}
+			}// if
+		}// for
+
+		// if matched rule break out of loop and free memory 
+		if(matchComplete == TRUE)
+		{
+			break;
+		}
+	}// for
+
+	if(addNewRule == TRUE)
+	{
+		addRule(g_ruleList, newRule, FALSE);
+	}
+	else
+	{
+		free(newRule);
+	}
+
+	return 0;
+}// updateRules
+
+/**
  * addEpisode
  *
  * Add new episode to episode history vector
@@ -177,6 +313,26 @@ int addEpisode(Vector* episodes, Episode* item)
 {
 	return addEntry(episodes, item);
 }// addEpisode
+
+/**
+ * addRule
+ */
+int addRule(Vector* rules, Rule* item, int checkRedundant)
+{
+	if(checkRedundant && rules->size > 0)
+	{
+		int i;
+		for(i = 0; i < rules->size - 1; i++)
+		{
+			if(rules->array[i] == item)
+			{
+				return -1;
+			}
+		}
+	}
+
+	return addEntry(rules, item);
+}// addrule
 
 /**
  * displayEpisode
@@ -199,6 +355,35 @@ void displayEpisode(Episode * ep)
 	// print rest of episode data to stdout
 	printf("\nTime stamp: %i\nCommand:    %i\n\n", (int)ep->now, ep->cmd);
 }// displayEpisode
+
+void displayRules()
+{
+	int i;
+	printf("---------------\n");
+	for(i = 0; i < g_ruleList->size; i++)
+	{
+		displayRule(g_ruleList->array[i]);
+		printf("\n");
+	}
+}// displayRules
+
+void displayRule(Rule* rule)
+{
+	int i,j;
+	for(i = rule->length - 1; i >= 0; i--)
+	{
+		for(j = 0; j < NUM_SENSORS; j++)
+		{
+			printf("%i", ((Episode*)g_episodeList->array[rule->index - i])->sensors[j]);
+		}
+		printf(" %s,", interpretCommand(((Episode*)g_episodeList->array[rule->index - i])->cmd));
+	}
+	printf("\b ---> ");
+	for(j = 0; j < NUM_SENSORS; j++)
+	{
+		printf("%i", ((Episode*)g_episodeList->array[rule->outcome])->sensors[j]);
+	}
+}// displayRule
 
 /**
  * chooseCommand
@@ -302,14 +487,10 @@ int setCommand(Episode* ep)
 										printf("idx1: %i idx2: %i\n", g_goalIdx[j], tempIdx);
 				 */
 
-				// Make sure the goal is after the current episode
-				if(g_goalIdx[j] - tempIdx < 0)
-				{
-
-				}
+				// Make sure distance is greater than 0 and 
 				// If the distance between the episode and goal is less than previous
 				// then save it
-				else if(g_goalIdx[j] - tempIdx < tempDist)
+				if(g_goalIdx[i] - tempIdx > 0 && g_goalIdx[j] - tempIdx < tempDist)
 				{
 					// keep track of the current best distance
 					tempDist = g_goalIdx[j] - tempIdx;
@@ -377,8 +558,8 @@ int setCommand(Episode* ep)
 
 
 /**
-* findTopMatch
-*/
+ * findTopMatch
+ */
 int findTopMatch(double* scoreTable, double* indvScore, int command)
 {
 	int i, max;
@@ -473,16 +654,18 @@ double compare(Episode* ep1, Episode* ep2, int isCurrMatch)
 		}
 	}
 
+	// Only add the value for command match if not the last episode in state
 	if(isCurrMatch == FALSE)
 	{
 		// add num_sensors to give cmd 1/2 value
-		if(ep1->cmd == ep2->cmd && ep1->cmd != CMD_NO_OP)
+		if(ep1->cmd == ep2->cmd)
 		{
 			match += NUM_SENSORS;
 		}
 	}
 
 	// return the total value of the match between episodes
+//	printf("Match score %g\n", match);
 	return match;
 }// compare
 
@@ -495,6 +678,7 @@ double compare(Episode* ep1, Episode* ep2, int isCurrMatch)
 void initSupervisor()
 {
 	g_episodeList 		= newVector();
+	g_ruleList			= newVector();
 	g_milestoneList 	= newVector();
 	g_connectToRoomba 	= 0;
 	g_statsMode 		= 0;
@@ -508,6 +692,7 @@ void initSupervisor()
 void endSupervisor()
 {
 	freeVector(g_episodeList);
+	freeVector(g_ruleList);
 	freeVector(g_milestoneList);
 }// endSupervisor
 
