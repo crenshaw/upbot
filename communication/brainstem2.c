@@ -32,9 +32,15 @@
  * then obtains any resulting sensor data.
  * 
  */
-int main(void)
+int main(int argc, char* argv[])
 {
-
+  int check = 0;
+  char addresses[3][13];
+  if ((check = checkArgName(argc, argv, addresses)) == -1)
+    {
+      printf("Not correct name entered. Exiting.\n");
+      exit(0);
+    }
   int i, counter, serverID, clientSock, numBytes;
   pid_t pid, pid2;
 
@@ -63,7 +69,7 @@ int main(void)
     perror("pipe error");
 
   //------------------------------------------------------------------------
-  // Added Code to implement client fork
+  // Added Code to implement client
   //------------------------------------------------------------------------
   int sockfd, numbytes;  
   //buffer to store sensor information
@@ -172,60 +178,60 @@ int main(void)
       setLED(RED, PLAY_ON, ADVANCE_ON);
 
       //------------------------------------------------------------------------
-      // Added Code to implement client fork
+      // Added Code to implement client
       //------------------------------------------------------------------------
-      printf("%s %d \n", __FILE__, __LINE__);
-      printf("Forked\n");
-      char *a = "10.11.17.15";
-    
-      memset(&hints, 0, sizeof hints);
-      hints.ai_family = AF_UNSPEC;
-      hints.ai_socktype = SOCK_STREAM;
-    
-      //    if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
-      if ((rv = getaddrinfo(a, PORT, &hints, &servinfo)) != 0) 
+      if(check == 1)
 	{
-	  fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-	  return 1;
-	}
-    
-      // loop through all the results and connect to the first we can
-      for(p = servinfo; p != NULL; p = p->ai_next) 
-	{
-	  if ((sockfd = socket(p->ai_family, p->ai_socktype,
-			       p->ai_protocol)) == -1) {
-	    perror("client: socket");
-	    continue;
-	  }
+	  printf("%s %d \n", __FILE__, __LINE__);
       
-	  if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-	    close(sockfd);
-	    perror("client: connect");
-	    continue;
-	  }
+	  memset(&hints, 0, sizeof hints);
+	  hints.ai_family = AF_UNSPEC;
+	  hints.ai_socktype = SOCK_STREAM;
+    
+	  if ((rv = getaddrinfo(addresses[1], PORT, &hints, &servinfo)) != 0) 
+	    {
+	      fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+	      return 1;
+	    }
+    
+	  // loop through all the results and connect to the first we can
+	  for(p = servinfo; p != NULL; p = p->ai_next) 
+	    {
+	      if ((sockfd = socket(p->ai_family, p->ai_socktype,
+				   p->ai_protocol)) == -1) {
+		perror("client: socket");
+		continue;
+	      }
       
-	  break;
+	      if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+		close(sockfd);
+		perror("client: connect");
+		continue;
+	      }
+      
+	      break;
+	    }
+    
+	  if (p == NULL) 
+	    {
+	      fprintf(stderr, "client: failed to connect\n");
+	      return 2;
+	    }
+    
+	  inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
+		    s, sizeof s);
+	  printf("client: connecting to %s\n", s);
+    
+	  freeaddrinfo(servinfo); // all done with this structure
+    
+	  //if the client does not recieve anything from server then exit
+	  if ((numbytes = recv(sockfd, msgBuf, MAXDATASIZE-1, 0)) == -1) 
+	    {
+	      perror("recv");
+	      exit(1);
+	    }
+	  printf("%s %d \n", __FILE__, __LINE__);
 	}
-    
-      if (p == NULL) 
-	{
-	  fprintf(stderr, "client: failed to connect\n");
-	  return 2;
-	}
-    
-      inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
-		s, sizeof s);
-      printf("client: connecting to %s\n", s);
-    
-      freeaddrinfo(servinfo); // all done with this structure
-    
-      //if the client does not recieve anything from server then exit
-      if ((numbytes = recv(sockfd, msgBuf, MAXDATASIZE-1, 0)) == -1) 
-	{
-	  perror("recv");
-	  exit(1);
-	}
-      printf("%s %d \n", __FILE__, __LINE__);
 
       //------------------------------------------------------------------------
       // End of added section
@@ -240,10 +246,18 @@ int main(void)
 	      commandToRobot[0] = readFromSharedMemoryAndExecute(cmdArea);
 	    }
 	  printf("%s, %d, commandToRobot: %c\n", __FILE__, __LINE__, commandToRobot[0]);
-
-	  if(send(sockfd, &commandToRobot[0], 1, 0) == -1)
-	    perror("send");
-	  printf("      the command code sent was: %c\n", commandToRobot[0]);
+	  //------------------------------------------------------------------------
+	  // Added Code to implement client
+	  //------------------------------------------------------------------------
+	  if(check == 1)
+	    {
+	      if(send(sockfd, &commandToRobot[0], 1, 0) == -1)
+		perror("send");
+	      printf("      the command code sent was: %c\n", commandToRobot[0]);
+	    }
+	  //------------------------------------------------------------------------
+	  // End of added section
+	  //------------------------------------------------------------------------
 
 	  receiveGroupOneSensorData(sensDataFromRobot);
 
