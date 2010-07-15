@@ -22,17 +22,6 @@
 
 // Global variables.
 
-
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
-{
-	if (sa->sa_family == AF_INET) {
-		return &(((struct sockaddr_in*)sa)->sin_addr);
-	}
-
-	return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
 int main(int argc, char *argv[])
 {
 	int sockfd, numbytes;  
@@ -98,7 +87,7 @@ int main(int argc, char *argv[])
 	while (cmd[0] != 'q')
 	  {
 	    printf("Input command value for roomba: \n");
-	    ("%d", cmd);
+	    printf("%d", cmd);
 	    if(cmd[0] != -1 && cmd[0] != 10)
 	      {
 		if(send(sockfd, cmd, 1, 0) == -1)

@@ -436,3 +436,31 @@ int establishConnection(int s)
   return newSock;
 }
 
+int checkArgName(int argc, char* argv[], char addresses[3][13])
+{
+  int i = 0;
+  if(argc > 1)
+    {
+      for(i = 1; i < argc; i++)
+	{
+	  if(strncmp(argv[i], "frank", 5) == 0)
+	    {
+	      strncpy(addresses[i], "10.11.17.124", 13);
+	    }
+	  else if(strncmp(argv[i], "webby", 5) == 0)
+	    {
+	      strncpy(addresses[i], "10.11.17.15", 11);
+	    }
+	  else if(strncmp(argv[i], "mo", 2) == 0)
+	    {
+	      strncpy(addresses[i], "10.11.17.16", 11);
+	    }
+	  else
+	    {
+	      return -1;
+	    }
+	}
+      return 1;
+    }
+  return 0;
+}
