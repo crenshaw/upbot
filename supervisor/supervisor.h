@@ -30,7 +30,7 @@
 #define NUM_TO_MATCH		15
 #define NUM_GOALS_TO_FIND	75
 #define DISCOUNT			1.0
-#define MAX_LEN_LHS			4
+#define MAX_LEN_LHS			10
 
 // Collecting data for stats
 #define STATS_MODE			0
@@ -80,6 +80,8 @@ Vector* g_milestoneList;
 // Function declarations
 extern int tick(char* sensorInput);
 extern char* interpretCommand(int cmd);
+char* interpretCommandShort(int cmd);
+int interpretSensorsShort(int *sensors);
 Episode* createEpisode(char* sensorData);
 int chooseCommand(Episode* ep);
 int setCommand(Episode* ep);
