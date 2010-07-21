@@ -264,6 +264,7 @@ int updateRules()
                 printf("\n");
                 fflush(stdout);
 
+							//If we find one with same outcome, increase frequency and inform not to add rule
 							if(NUM_SENSORS == compare(g_episodeList->array[newRule->outcome], g_episodeList->array[cousin->outcome], TRUE))
 							{
 								curr->freq++;
@@ -412,7 +413,7 @@ int updateRules()
 						}// else
 					}// else
 				}// if
-				else  
+				else // newRule and curr have different lengths
 				{
                     //If we make it here, the candidate rule and
                     //current rule are different lengths but they do
@@ -449,7 +450,7 @@ int updateRules()
 					}
 				}// else
 			}// if
-            else
+            else // j-th episodes in rules do not match
             {
                 //The current rule's nth entry doesn't match so we can
                 //abort the comparison even if the candidate rule has
