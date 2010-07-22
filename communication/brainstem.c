@@ -63,14 +63,6 @@ int main(int argc, char* argv[])
   // An array to hold the timestamp.
   char currTime[100];
 
-#ifdef TARGET_WEBBY
-  // Initialize the compass device.
-  initializeCompass();
-
-  // This is temporary until turn() works.
-  // Turn Left 10 degrees
-  turn(TURN_LEFT, 10);
-#endif 
 
   // Create pipe to communicate between parent and child
   int fd[2];
@@ -181,6 +173,17 @@ int main(int argc, char* argv[])
       // for a second to give this some time to take effect.
       initialize();
       sleep(1);
+
+
+#ifdef TARGET_WEBBY
+      // Initialize the compass device.
+      initializeCompass();
+
+      // This is temporary until turn() works.
+      // Turn Left 10 degrees
+      turn(TURN_LEFT, 10);
+#endif 
+
 
       // Turn on the LED to indicate the robot is ready and listening.
       // It's a nice sanity check.
