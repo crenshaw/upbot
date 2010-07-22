@@ -9,14 +9,16 @@
 #include "roomba.h"
 #define SIZE 40
 
-// driveStraightWithFeedback()
-//   This function issues a drive command to the
-//   iRobot.  It then queries the iRobot for the 
-//   "velocity most recently requested with a Drive
-//   command (see packet ID 39)."  If the issued
-//   velocity and the queried velocity match, the function
-//   returns 0.  Otherwise, it returns -1.
-//
+/**
+ *  driveStraightWithFeedback()
+ *
+ *   This function issues a drive command to the
+ *   iRobot.  It then queries the iRobot for the 
+ *   "velocity most recently requested with a Drive
+ *   command (see packet ID 39)."  If the issued
+ *   velocity and the queried velocity match, the function
+ *   returns 0.  Otherwise, it returns -1.
+ */
 int driveStraightWithFeedback(int velocity)
 {
 
@@ -58,20 +60,25 @@ int driveStraightWithFeedback(int velocity)
   
 }
 
-// driveStraightUntil()
-//   issue a drive forward command to the iRobot 
-//   for given number of seconds.  Velocity given by LOW, 
-//   MED, or HIGH
+/**
+ *  driveStraightUntil()
+ *
+ *  Issue a drive forward command to the iRobot for given number of
+ *  seconds.  Velocity given by LOW, MED, or HIGH
+ */
 void driveStraightUntil(int sec, int speed)
 {
   driveStraight(speed);
   usleep(sec);
 }
 
-// driveStraight()
-//  issue a drive straight to the iRobot for 
-//  the given velocity. Velocity given by LOW, 
-//  MED, or HIGH
+/**
+ * driveStraight()
+ * 
+ *  Issue a drive straight command to the iRobot for the given
+ *  velocity. Velocity given by LOW, MED, or HIGH.
+ *
+ */ 
 void driveStraight(int velocity)
 {
   
@@ -108,8 +115,13 @@ void driveStraight(int velocity)
   byteTx(STRAIGHT & 0x00FF);
 }
 
-//turn counter clockwise in increments of 
-//90 degrees (i.e. 90, 180, 270...)
+/**
+ * turnCounterClockwise()
+ *
+ * Turn counter clockwise in increments of 90 degrees (i.e. 90, 180,
+ * 270...)
+ *
+ */
 void turnCounterClockwise(int degrees)
 {
   byteTx(CmdDrive);
@@ -121,8 +133,11 @@ void turnCounterClockwise(int degrees)
   stop();
 }
 
-//turn clockwise in increments of 
-//90 degrees (i.e. 90, 180, 270...)
+/**
+ * turnClockwise()
+ * 
+ * Turn clockwise in increments of 90 degrees (i.e. 90, 180, 270...)
+ */
 void turnClockwise(int degrees)
 {
   byteTx(CmdDrive);
@@ -134,8 +149,35 @@ void turnClockwise(int degrees)
   stop();
 }
 
-//drive backwards for given seconds
-//speed given by LOW, MED, HIGH
+/**
+ * turn()
+ * 
+ * A comprehensive function which turns the iRobot left or right
+ * in-place according to the the number of degress specified.  The
+ * on-board Devantech Electronic compass is used to get the number of
+ * degrees travelled.  The compass must be available for this function
+ * to be usable; otherwise, use the turnClockwise() and
+ * turnCounterClockwise() functions.
+ *
+ * @arg direction 0 for left, 1 for right.
+ * @arg degrees number of degrees to turn.
+ *
+ * @returns void
+ *
+ */
+void turn(int direction, int degrees)
+{
+
+
+}
+
+
+/**
+ * driveBackwardsUntil()
+ *
+ * Drive backwards for given seconds speed given by LOW, MED, HIGH
+ 
+ */
 void driveBackwardsUntil(int sec, int speed)
 {
   driveBackwards(speed);
@@ -143,6 +185,12 @@ void driveBackwardsUntil(int sec, int speed)
   stop();
 }
 
+/**
+ * driveBackwards()
+ *
+ * Issue the drive backwards command to the iRobot.
+ *
+ */
 void driveBackwards(int velocity)
 {
   unsigned int velocityWord = 0;
@@ -160,23 +208,7 @@ void driveBackwards(int velocity)
     {
       velocityWord = LOW_SPEED_BACK;
     }
-  /*
-    if (speed == HIGH)
-    {
-    byteTx(0xFE);
-    byteTx(0x0C);
-    }
-    else if (speed == MED)
-    {
-    
-    byteTx(254);
-    byteTx(212);
-    }
-    else if (speed == LOW)
-    {
-    byteTx(255);
-    byteTx(156);
-    }*/
+
   byteTx(velocityWord >> 8);
   byteTx(velocityWord & 0x00FF);
 
@@ -193,7 +225,8 @@ void stop()
   byteTx(STRAIGHT & 0x0FF);
 }
 
-/** driveDistance()
+/** 
+ * driveDistance()
  *
  * Tries to drive a given distance while checking sensor data and
  * distance data.
@@ -201,6 +234,7 @@ void stop()
  * @arg distanceRequested distance to drive
  *
  * @return 0 if it has driven the given distance and -1 if it did not.
+ *
  */ 
 int driveDistance()
 {

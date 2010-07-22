@@ -63,6 +63,15 @@ int main(int argc, char* argv[])
   // An array to hold the timestamp.
   char currTime[100];
 
+#ifdef TARGET_WEBBY
+  // Initialize the compass device.
+  initializeCompass();
+
+  // This is temporary until turn() works.
+  // Turn Left 10 degrees
+  turn(TURN_LEFT, 10);
+#endif 
+
   // Create pipe to communicate between parent and child
   int fd[2];
   if(pipe(fd) < 0)

@@ -25,8 +25,8 @@ supclient:	supervisorClient.c communication.h serverUtility.c ../supervisor/supe
 unittest: unitTestServer.c serverUtility.c ../supervisor/unitTest.h commandQueue.c
 	gcc -o unitTestServer.out unitTestServer.c serverUtility.c ../supervisor/unitTest.c commandQueue.c
 
-brainstem: brainstem.c communication.h serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o ../roomba/roomba.h
-	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o
+brainstem: brainstem.c communication.h serverUtility.c commandQueue.c tell.c compass.o nerves.o move.o sensors.o led.o song.o utility.o ../roomba/roomba.h
+	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c commandQueue.c tell.c compass.o nerves.o move.o sensors.o led.o song.o utility.o
 
 # Make sure that object files are built in the appropriate order; if
 # anything in roomba.h changes, the accompanying nerves, move, sensor,
@@ -52,6 +52,9 @@ song.o:	../roomba/song.c ../roomba/roomba.h
 
 utility.o:	../roomba/utility.c ../roomba/roomba.h
 	$(CC) $(CFLAGS) -c ../roomba/utility.c
+
+compass.o:	../devices/compass.c ../devices/compass.h
+	$(CC) $(CFLAGS) -c ../devices/compass.c
 
 clean:
 	rm *.out *.o
