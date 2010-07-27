@@ -15,7 +15,7 @@
 #include "communication.h"
 #include "../roomba/roomba.h"
 
-#define SIZE  40
+
 #define SIZE_OF_EMPTY_DATA 11
 //#define DEBUG 1
 
@@ -56,9 +56,10 @@ int main(int argc, char* argv[])
 
   // An array to hold sensor data sent to the supervisor-client and
   // obtained from the iRobot.
-  char sensDataToSupervisor[SIZE] = {'\0'};
-  char sensDataFromRobot[SIZE] = {'\0'};
-  char emptyDataToSupervisor[SIZE] = "0000000000 ";
+  char sensDataToSupervisor[MAXDATASIZE] = {'\0'};
+  char sensDataFromRobot[MAXDATASIZE] = {'\0'};
+  char emptyDataToSupervisor[MAXDATASIZE] = "0000000000 ";
+  char rawTimeString[12] = {'\0'};
 
   // An array to hold the timestamp.
   char currTime[100];
@@ -281,7 +282,7 @@ int main(int argc, char* argv[])
 	      STOP_MACRO;	      
 
 	      // Convey sensorData back to the child.
-	      writeSensorDataToSharedMemory(sensDataFromRobot, sensArea, getTime());
+	      writeSensorDataToSharedMemory(sensDataFromRobot, sensArea, getTime(), getRawTime());
 
 	    }  
 	  // Done writing sensor data, tell child to proceed reading sensor data.
@@ -366,12 +367,15 @@ int main(int argc, char* argv[])
 	  else
 	    {
 	      printf("\nsensDataToSupervisor: nothing happened. \n"); 
-	    
+	      itoa(getRawTime(), rawTimeString);
+	      
 	      // Construct an empty sensor data message and send it to
 	      // the supervisor-client.
-	      strncat(emptyDataToSupervisor, getTime(), MAXDATASIZE-11);
+	      strncat(emptyDataToSupervisor, rawTimeString, MAXDATASIZE-SIZE_OF_EMPTY_DATA);
+	      strncat(emptyDataToSupervisor, " ", 1);
+	      strncat(emptyDataToSupervisor, getTime(), MAXDATASIZE-SIZE_OF_EMPTY_DATA);
 
-	      if(send(clientSock, emptyDataToSupervisor, 40, 0) == -1)
+	      if(send(clientSock, emptyDataToSupervisor, MAXDATASIZE, 0) == -1)
 		perror("send");
 
 	      emptyDataToSupervisor[SIZE_OF_EMPTY_DATA] = '\0';

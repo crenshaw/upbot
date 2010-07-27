@@ -94,7 +94,7 @@ int nerves(caddr_t cmdArea, caddr_t sensArea, pid_t pid)
 	  currTime = getTime();
 	  // writeSensorDataToFile(x, sensorFile, currTime);
 	  
-	  writeSensorDataToSharedMemory(x, sensArea, currTime);
+	  writeSensorDataToSharedMemory(x, sensArea, currTime, getRawTime());
 
 	}
       int i;

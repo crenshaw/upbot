@@ -14,10 +14,14 @@ void initialize();
 void *ReaderThread( void *param);
 void calcFileLoc(char c);
 char* getTime();
+time_t getRawTime();
 void fprintBinaryAsString(FILE* fp, int n);
 int checkSensorData(char *x);
 void writeSensorDataToFile(char* sensorArray, FILE* fp, char* currTime);
-void writeSensorDataToSharedMemory(char* sensorArray, caddr_t shm, char* currTime);
+void writeSensorDataToSharedMemory(char* sensorArray, caddr_t shm, char* currTime, time_t rawTime);
+void itoa(int n, char * s);
+void reverse(char * s);
+
 
 /* In move.c */
 int driveStraightWithFeedback(int velocity);

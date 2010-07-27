@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <time.h>
+#include <stdlib.h>
 #include "roomba.h"
 #include "../communication/communication.h"
 
@@ -341,13 +342,13 @@ void calcFileLoc(char c)
  * writeSensorDataToSharedMemory()
  * 
  */
-void writeSensorDataToSharedMemory(char* sensorArray, caddr_t shm, char* currTime)
+void writeSensorDataToSharedMemory(char* sensorArray, caddr_t shm, char* currTime, time_t rawTime)
 {
 
   int sensorData = 0x00;
   int i, j;
-  char sensorDataString[40] = {'\0'};
   int bitMask = 0x1;
+  char rawTimeString[40] = {'\0'}; 
 
   sensorData |= sensorArray[0] & SENSOR_BUMPS_WHEELDROPS;
 
@@ -375,8 +376,17 @@ void writeSensorDataToSharedMemory(char* sensorArray, caddr_t shm, char* currTim
   //add space to end of sensor data
   *(char *)(shm + 10) = ' ';
 
+  itoa((int)rawTime, rawTimeString);
+
+  strncat(rawTimeString, " ", 1);
+
+  strncat(rawTimeString, currTime, sizeof(rawTimeString));
+  
   //copy timestamp to end of sensor data
-  strncpy((char*)(shm + 11), currTime, strlen(currTime));
+  strncpy((char*)(shm + 11), rawTimeString, strlen(rawTimeString));
+
+ 
+ 
 
   
 
@@ -445,6 +455,23 @@ char* getTime()
   time(&rawtime);
   timeinfo = localtime(&rawtime);
   return asctime(timeinfo);
+}
+
+/**
+ * getRawTime()
+ *
+ * Gets the raw time from the operating system and
+ * convert it into a string.  Represents the number
+ * of seconds since January 1, 1970.
+ *
+ * @return char pointer to a string containing the
+ *         raw time
+ */
+time_t getRawTime()
+{
+  time_t rawtime;
+  time(&rawtime);
+  return rawtime;
 }
 
 /**
@@ -517,4 +544,58 @@ int checkSensorData(char *x)
 
   // No sensor has been activated. 
   return FALSE;
+}
+
+/**
+ * itoa
+ *
+ * function to convert from integer to ascii.  Taken
+ * from first edition of "The C Programming Language" by
+ * Kernighan and Ritchie.
+ *
+ * @arg n integer to change to ascii character
+ * @arg s character pointer to ascii character
+ */
+void itoa(int n, char *s)
+{
+  int i, sign;
+ 
+  if((sign = n) < 0) /* record sign */
+    {
+      n = -n;        /* make n positive */
+    }
+
+  i = 0;
+
+  do {      /* generate digits in reverse order */
+    s[i++] = n % 10 + '0';   /* get next digit */
+    }
+  while((n /= 10) > 0);      /* delete it */
+
+  if (sign < 0)
+    s[i++] = '-';
+  s[i] = '\0';
+  reverse(s);
+}
+
+/**
+ * reverse
+ *
+ * Reverses the string to the correct orientation.  Taken
+ * from first edition of "The C Programming Language" by
+ * Kernighan and Ritchie.
+ *
+ * @arg s character pointer to ascii string to be reversed
+ */
+void reverse(char * s)
+{
+  int i, j;
+  char c;
+
+  for(i = 0, j = strlen(s) - 1; i < j; i++, j--)
+    {
+      c = s[i];
+      s[i] = s[j];
+      s[j] = c;
+    }
 }
