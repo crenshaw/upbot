@@ -29,6 +29,7 @@ void driveStraightUntil(int sec, int speed);
 void driveStraight(int velocity);
 void turnCounterClockwise(int degrees);
 void turnClockwise(int degrees);
+void turn(int direction, int degrees);
 void driveBackwardsUntil(int sec, int speed);
 void driveBackwards(int speed);
 void stop();
@@ -49,6 +50,10 @@ void song();
 #define LOW_BYTE 1
 #define FALSE 0
 #define TRUE 1
+
+#define TURN_LEFT 0
+#define TURN_RIGHT 1
+
 #define ACTIVE_SENSOR 1
 
 //Command Values

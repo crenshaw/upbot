@@ -392,7 +392,7 @@ void processCommand(int* cmd, char* buf, FILE* log)
 	if(g_statsMode == 0)
 	{
 		// Print sensor data to log file and force write
-		fprintf(log, "Sensor data: [%s] Command received: %i\n", buf, *cmd);
+		fprintf(log, "Sensor data: [%s] Command received: %s\n", buf, interpretCommand(*cmd));
 		fflush(log);
 	}
 
