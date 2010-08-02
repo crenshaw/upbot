@@ -48,25 +48,23 @@ typedef struct EpisodeStruct
 // Rule struct
 typedef struct RuleStruct
 {
-	int index;  //index into epmem where the rule's LHS ends
-	int length; //number of entries in the LHS
-	int freq;  //number of times this rule has "matched" epmem
-	int* overallFreq;  //number of times just the most recent sensor
-	//data has matched epmem
-	int outcome;  //index to the outcome state
-	//*or* a flag indicating it doesn't exist yet
-	int isSound;
-	int isPercentageRule;
-	Vector* cousins;
-
+    Vector *epmem;              // the episodic memory for this rule.  This will
+                                // contain either Episodes (for base rules)
+                                // or Rules (for meta-rules)
+    int isBaseRule;             // Is this a base-rule or a meta-rule?
+	int index;                  // index into epmem where the rule's LHS ends
+	int length;                 // number of entries in the LHS
+	int freq;                   // number of times this rule has "matched" epmem
+	int* overallFreq;           // number of times just the most recent sensor
+                                // data has matched epmem
+	int outcome;                // index to the outcome state *or* a flag
+                                // indicating it doesn't exist yet
+	int isPercentageRule;       // is this rule a percentage rule?
+	Vector* cousins;            // a pointer to a jointly held list of all
+                                // "cousin" rules including itself.
+                                // Non-percentage rules have a NULL list.
+    int containsGoal;           // Does this rule contain a goal on the RHS?
 } Rule;
-
-typedef struct MilestoneStruct
-{
-	Vector* episodes;
-	Vector* milestones;
-	int name;
-} Milestone;
 
 // Global variables for monitoring and connecting
 int g_connectToRoomba;
@@ -75,7 +73,7 @@ int g_statsMode;
 // This vector will contain all episodes received from Roomba
 Vector* g_episodeList;
 Vector* g_ruleList;
-Vector* g_milestoneList;
+Vector* g_metaList;
 
 // Function declarations
 extern int tick(char* sensorInput);
@@ -94,7 +92,7 @@ void displayRules();
 void displayRule(Rule* rule);
 int findTopMatch(double* scoreTable, double* indvScore, int command);
 int generateScoreTable(Vector* vector, double* score);
-double compare(Episode* ep1, Episode* ep2, int isCurrMatch);
+double compareEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
 void initSupervisor();
 void endSupervisor();
 

@@ -181,6 +181,359 @@ int parseEpisode(Episode * parsedData, char* dataArr)
 }// parseEpisode
 
 /**
+ * updateAllRules                               *RECURSIVE*
+ *
+ * This method is designed to do a semantic rules update.  If it is
+ * called to update a baes rule it will make recursive calls to update
+ * the meta-rules.
+ *
+ * @arg ruleList    the rule list to update
+ * @arg episodeList the episode list to build the rule from.  If this is a base
+ *                  rule, it will be a vector of episodes.  If this is a
+ *                  meta-rule it will be a vector of rules.
+ * @arg isBaseRule  is this a base rule or a meta-rule?
+ */
+int updateAllRules(Vector* ruleList, Vector *episodeList)
+{
+	// If episodeList has 1 or less episodes then it's too short to
+    //make a rule from it.
+	if(episodeList->size <= 1 || ((Episode*)episodeList->array[episodeList->size - 2])->sensors[SNSR_IR])
+	{
+		return -1;
+	}
+
+    //Determine if this is a base rule or meta-rule
+    int isBaseRule = (episodeList == g_episodeList);
+
+    //If the most recent complete episode was a goal then return.  We
+    //don't want any goals on the LHS of any rule.
+	if(isBaseRule)
+    {
+        if (((Episode*)episodeList->array[episodeList->size - 2])->sensors[SNSR_IR])
+        {
+            return -2;
+        }
+	}
+    else  //meta-rule
+    {
+        if (((Rule*)episodeList->array[episodeList->size - 2])->containsGoal)
+        {
+            return -3;
+        }
+    }
+
+	//Create a candidate rule that we would create from this current
+	//episode.  We won't add it to the rule list if an identical rule
+	//already exists.
+	Rule* newRule = (Rule*) malloc(sizeof(Rule));
+    newRule->isBaseRule         = isBaseRule;
+    newRule->epmem              = episodeList;
+	newRule->outcome			= episodeList->size - 1;
+	newRule->index 				= episodeList->size - 2;
+	newRule->length 			= 1;
+	newRule->freq				= 1;
+	newRule->overallFreq 		= NULL;
+	newRule->cousins			= NULL;
+	newRule->isPercentageRule 	= FALSE;
+    if (isBaseRule)
+    {
+        //For base rules, a goal is indicated by the IR sensor on the episoden
+        newRule->containsGoal = (((Episode*)episodeList->array[episodeList->size - 1])->sensors[SNSR_IR]);
+    }
+    else //meta-rule
+    {
+        //For a meta-rule, a goal is indicated by "containsGoal" of
+        //the underlying rule
+        newRule->containsGoal = (((Rule*)episodeList->array[episodeList->size - 1])->containsGoal);
+    }
+    
+    
+    printf("candidate rule: ");
+    displayRule(newRule);
+    printf("\n");
+    fflush(stdout);
+    
+	//Iterate over every rule in the list and compare it to our new
+	//candidate rule.  If the candidate is unique, it'll be added to
+	//the rule list.  If it's a partial match (same LHS , different
+	//RHS) but can't be made unique without increasing size of LHS
+	//then create a pool of percentage rules.  If the candidate
+	//matches an existing rule, it'll be discarded and the existing
+	//rule's frequency will be updated
+	int i,j;
+	int matchComplete = FALSE;
+	int addNewRule = TRUE;
+	for(i = 0; i < ruleList->size; i++)
+	{
+		//Compare the i-th rule to the candidate rule
+		Rule* curr = (Rule*)ruleList->array[i];
+
+        //%%%For Debugging:
+/*         printf("begin comparison to rule #%i: ", i); */
+/*         displayRule(curr); */
+/*         printf("\n"); */
+        
+		for(j = 0; j < newRule->length; j++)
+		{
+            //If out if the j-th part of the LHS matches
+            int jthMatch = FALSE;
+            if (isBaseRule)
+            {
+                jthMatch = (2 * NUM_SENSORS ==
+                            compareEpisodes(episodeList->array[newRule->index - j],
+                                            episodeList->array[curr->index - j], FALSE));
+            }
+            else //meta-rule
+            {
+                jthMatch = compareRules(episodeList->array[newRule->index - j],
+                                        episodeList->array[curr->index - j]);
+            }
+            
+            
+			//Compare the j-th episodes in the rules
+			if (jthMatch)
+			{
+                printf("found match between %i-th episodes of: ", j);
+                displayRule(curr);
+                printf(" AND ");
+                displayRule(newRule);
+                printf("\n");
+                fflush(stdout);
+
+                //If they match so far but we haven't reached the end
+                //of either rule then continue comparing them
+                if (newRule->length > j+1 && curr->length > j+1)
+                {
+                    continue;
+                }
+
+                //%%%STOPPED HERE
+                
+				//If the episodes match then see if their LHS are the same length. If they are, then the LHS's match.
+				if(newRule->length == curr->length)
+				{
+					if(curr->isPercentageRule)
+					{
+						int k;
+						//Iterate over cousins and find one with same outcome as candidate rule
+						for(k = 0; k < curr->cousins->size; k++)
+						{
+							Rule* cousin = curr->cousins->array[k];
+
+                            //See if these cousins match
+                            
+							//If we find one with same outcome, increase frequency and inform not to add rule
+							if(NUM_SENSORS == compareEpisodes(episodeList->array[newRule->outcome], episodeList->array[cousin->outcome], TRUE))
+							{
+								curr->freq++;
+								addNewRule = FALSE;
+                                break;
+							}
+						}
+
+						//No cousins match candidate rule, so add it as a new cousin
+						if(addNewRule)
+						{
+                            printf("new cousin is unique.  Adding...\n");
+							newRule->isPercentageRule = TRUE;
+							newRule->overallFreq = curr->overallFreq;
+							newRule->cousins = curr->cousins;
+
+                            addRule(newRule->cousins, newRule, FALSE);
+						}
+
+						// Regardless of whether candidate rule is unique, increase overall frequency for all cousins in list
+						(*(curr->overallFreq))++;
+                        matchComplete = TRUE;
+					}
+					else	//Not a percentage rule
+					{
+						//Now see if the RHS of both rules match
+						if(NUM_SENSORS == compareEpisodes(episodeList->array[newRule->outcome], episodeList->array[curr->outcome], TRUE))
+						{
+							//We have a complete match between the candidate and an existing rule, so just update the existing rule
+							curr->freq++;
+
+                            //Done with update
+							matchComplete = TRUE;
+							addNewRule = FALSE;
+						}
+						else	//RHS does not match
+						{
+                            printf("LHS match but RHS doesn't while comparing to %i...\n", i);
+                            fflush(stdout);
+							// We want to expand the newRule and curr
+							// to create (hopefully) distinct rules
+							// There are 3 reasons this may not work.
+                            
+							// 1. Current rule is already maximum length
+							// 2. Expanding current rule would
+							//    overflow episodic memory
+							// 3. Expanding curr/newRule would include
+							//    a goal on LHS
+							if(((Episode*)episodeList->array[newRule->index - (newRule->length + 1)])->sensors[SNSR_IR] == TRUE)
+							{
+                                printf("NewRule expands into goal: %i\n",
+                                       ((Episode*)episodeList->array[newRule->index - (newRule->length + 1)])->sensors[SNSR_IR]);
+                                fflush(stdout);
+                                
+                                //the new rule can't be expanded so we
+                                //consider it degenerate so just abort
+                                //and create no new rules or updates
+                                matchComplete = TRUE;
+                                addNewRule = FALSE;
+                            }
+							else if(curr->index - curr->length <= 0 || 
+							   ((Episode*)episodeList->array[curr->index - (curr->length + 1)])->sensors[SNSR_IR] == TRUE)
+							{
+                                printf("avail space: %i,  curr expands into goal\n",
+                                       curr->index - curr->length);
+                                fflush(stdout);
+                                //The current rule can't be expanded
+                                //so we consider it degenerate and
+                                //replace it with the new rule.
+                                curr->index 				= newRule->index;
+                                curr->outcome               = newRule->outcome;
+                                curr->length 			    = newRule->length;
+                                curr->freq				    = 1;
+
+                                //done with update
+                                matchComplete = TRUE;
+                                addNewRule = FALSE;
+                            }
+                            else if (newRule->length < curr->length)
+                            {
+                                //if the newRule is currently shorter
+                                //than the current rule, then only it
+                                //should be expanded.
+                                newRule->length++;
+                                
+                                printf("partial match with curr, extending new rule to %i\n",
+                                       newRule->length);
+                                fflush(stdout);
+                                printf("new candidate: ");
+                                displayRule(newRule);
+                                printf("\n");
+                                fflush(stdout);
+                            }
+                            else if(curr->length < MAX_LEN_LHS)
+							{
+                                printf("len of curr rule (%i) = %i < 4 so increasing to %i\n",
+                                       i, curr->length, curr->length+1);
+                                fflush(stdout);
+                                
+                                //both current rule and new rule can
+                                //be expanded so do so in hopes that they will
+                                //end up different
+								curr->length++;
+                                curr->freq = 1;
+								newRule->length++;
+
+                                
+                                printf("new %i:   ");
+                                displayRule(curr);
+                                printf("\n");
+                                printf("new cand: ");
+                                displayRule(newRule);
+                                printf("\n");
+                                fflush(stdout);
+
+							}
+							else
+							{
+                                printf("cousins\n");
+                                fflush(stdout);
+                                
+								// We reached the end of our search and will now convert both the current rule
+								// and the candidate rule into percentage rules
+
+								// allocate cousins and add both peer percentage rules into same cousins list
+								curr->cousins = newVector();
+								addRule(curr->cousins, curr, TRUE);
+								addRule(curr->cousins, newRule, TRUE);
+								newRule->cousins = curr->cousins;
+
+								//Update rules
+								curr->isPercentageRule = TRUE;
+								newRule->isPercentageRule = TRUE;
+
+								curr->overallFreq = (int*) malloc(sizeof(int));
+								newRule->overallFreq = curr->overallFreq;
+
+								*(curr->overallFreq) = curr->freq + 1;
+
+								matchComplete = TRUE;
+								addNewRule = TRUE;
+							}// else
+						}// else
+					}// else
+				}// if
+				else // newRule and curr have different lengths
+				{
+                    //If we make it here, the candidate rule and
+                    //current rule are different lengths but they do
+                    //match up to the length of the shorter rule.
+
+                    //If the candidate is longer then consider it a
+                    //degenerate rule and stop
+                    if (newRule->length > curr->length)
+                    {
+                        matchComplete = TRUE;
+                        addNewRule = FALSE;
+                        printf("newRule matches but is bigger than current rule.  Aborting.\n");
+                        fflush(stdout);
+                    }
+
+                    //If the new rule can be expanded, try doing so to
+					//see if that makes it unique
+					else if(newRule->length < MAX_LEN_LHS)
+					{
+						newRule->length++;
+                        
+                        printf("expanded new rule to len %i\n",
+                               newRule->length);
+                        printf("new candidate: ");
+                        displayRule(newRule);
+                        printf("\n");
+                        fflush(stdout);
+					}
+					else
+					{
+                        //Should never happen 
+						printf("Nux was wrong\n");
+                        fflush(stdout);
+					}
+				}// else
+			}// if
+            else // j-th episodes in rules do not match
+            {
+                //The current rule's nth entry doesn't match so we can
+                //abort the comparison even if the candidate rule has
+                //more entries in its LHS
+                break;
+            }
+		}// for
+
+		// if matched rule break out of loop and free memory 
+		if(matchComplete == TRUE)
+		{
+			break;
+		}
+	}// for
+
+	if(addNewRule == TRUE)
+	{
+		addRule(ruleList, newRule, FALSE);
+	}
+	else
+	{
+		free(newRule);
+	}
+
+	return 0;
+}// updateAllRules
+
+/**
 * updateRules
 */
 int updateRules()
@@ -202,7 +555,6 @@ int updateRules()
 	newRule->overallFreq 		= NULL;
 	newRule->cousins			= NULL;
 	newRule->isPercentageRule 	= FALSE;
-	newRule->isSound 			= FALSE;
 
     printf("candidate rule: ");
     displayRule(newRule);
@@ -229,7 +581,7 @@ int updateRules()
 		for(j = 0; j < newRule->length; j++)
 		{
 			//Compare the j-th episodes in the rules
-			if(2 * NUM_SENSORS == compare(g_episodeList->array[newRule->index - j], g_episodeList->array[curr->index - j], FALSE))
+			if(2 * NUM_SENSORS == compareEpisodes(g_episodeList->array[newRule->index - j], g_episodeList->array[curr->index - j], FALSE))
 			{
                 printf("found match between %i-th episodes of: ", j);
                 displayRule(curr);
@@ -265,7 +617,7 @@ int updateRules()
                 fflush(stdout);
 
 							//If we find one with same outcome, increase frequency and inform not to add rule
-							if(NUM_SENSORS == compare(g_episodeList->array[newRule->outcome], g_episodeList->array[cousin->outcome], TRUE))
+							if(NUM_SENSORS == compareEpisodes(g_episodeList->array[newRule->outcome], g_episodeList->array[cousin->outcome], TRUE))
 							{
 								curr->freq++;
 								addNewRule = FALSE;
@@ -291,12 +643,10 @@ int updateRules()
 					else	//Not a percentage rule
 					{
 						//Now see if the RHS of both rules match
-						if(NUM_SENSORS == compare(g_episodeList->array[newRule->outcome], g_episodeList->array[curr->outcome], TRUE))
+						if(NUM_SENSORS == compareEpisodes(g_episodeList->array[newRule->outcome], g_episodeList->array[curr->outcome], TRUE))
 						{
 							//We have a complete match between the candidate and an existing rule, so just update the existing rule
 							curr->freq++;
-							curr->isSound = TRUE;
-							newRule->isSound = TRUE;
 
                             //Done with update
 							matchComplete = TRUE;
@@ -340,7 +690,6 @@ int updateRules()
                                 curr->outcome               = newRule->outcome;
                                 curr->length 			    = newRule->length;
                                 curr->freq				    = 1;
-                                curr->isSound 			    = FALSE;
 
                                 //done with update
                                 matchComplete = TRUE;
@@ -534,6 +883,12 @@ void displayEpisode(Episode * ep)
 	printf("\nTime stamp: %i\nCommand:    %i\n\n", (int)ep->now, ep->cmd);
 }// displayEpisode
 
+/**
+ * displayRules
+ *
+ * prints a human-readable version of the base-rules along with the
+ * last 20 episodes in episodic memory for rule verification/debugging.
+ */
 void displayRules()
 {
 	int i;
@@ -557,11 +912,32 @@ void displayRules()
 	printf("---------------\n");
 }// displayRules
 
+/**
+ * displayRule                        *RECURSIVE*
+ *
+ * prints a human-readable version of a rule.  If the rule is a
+ * meta-rule it makes recursive calls until it reaches the base rule.
+ * The rules are printed backward (LHS on the right and vice versa)
+ * for easy comparison to other rules.
+ */
 void displayRule(Rule* rule)
 {
 	int i,j;
-    printf("%i", interpretSensorsShort(((Episode*)g_episodeList->array[rule->outcome])->sensors));
 
+
+    //Print the RHS
+    if (rule->isBaseRule)
+    {
+        printf("%i", interpretSensorsShort(((Episode*)g_episodeList->array[rule->outcome])->sensors));
+    }
+    else //meta-rule
+    {
+        printf("{ ");
+        displayRule((Rule*)rule->epmem->array[rule->outcome]);
+        printf(" }");
+    }
+
+    //Print the arrow 
 	if(rule->isPercentageRule)
 	{
 		printf(" <--%2i-- ", rule->freq * 100 / *(rule->overallFreq));
@@ -571,12 +947,22 @@ void displayRule(Rule* rule)
 		printf(" <------ ");
 	}
 
+    //Print the LHS
 	for(i = 0; i < rule->length; i++)
 	{
-        printf("%i ", interpretSensorsShort(((Episode*)g_episodeList->array[rule->index - i])->sensors));	
-		printf("%s, ", interpretCommandShort(((Episode*)g_episodeList->array[rule->index - i])->cmd));
-    }
-
+        if (rule->isBaseRule)
+        {
+            printf("%i ", interpretSensorsShort(((Episode*)rule->epmem->array[rule->index - i])->sensors));	
+            printf("%s, ", interpretCommandShort(((Episode*)rule->epmem->array[rule->index - i])->cmd));
+        }
+        else //meta-rule
+        {
+            printf("{ ");
+            displayRule((Rule*)rule->epmem->array[rule->index - i]);
+            printf(" }");
+        }
+        
+    }//for
 
 }// displayRule
 
@@ -816,7 +1202,7 @@ int generateScoreTable(Vector* vector, double* score)
 
 			// compare two episodes and add result to score with appropriate discount
 			//					V-index iterate to beginning		V-index to current episode frame
-			tempScore += (discount * compare(vector->array[i + j], vector->array[vector->size - NUM_TO_MATCH + j], (j == NUM_TO_MATCH - 1 ? TRUE : FALSE)));
+			tempScore += (discount * compareEpisodes(vector->array[i + j], vector->array[vector->size - NUM_TO_MATCH + j], (j == NUM_TO_MATCH - 1 ? TRUE : FALSE)));
 			discount *= DISCOUNT;
 		}//for
 
@@ -835,7 +1221,7 @@ int generateScoreTable(Vector* vector, double* score)
  * @arg ep2 a pointer to another episode
  * @return double The score telling us how close these episodes match
  */
-double compare(Episode* ep1, Episode* ep2, int isCurrMatch)
+double compareEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch)
 {
 	int i;
 	double match = 0;
@@ -865,6 +1251,31 @@ double compare(Episode* ep1, Episode* ep2, int isCurrMatch)
 }// compare
 
 /**
+ * compareRules
+ *
+ * Compares two rules to each other and returns TRUE if they have the
+ * same LHS and RHS.  This is a shallow comparison.
+ *
+ * @arg r1  first rule to compare
+ * @arg r2  second rule to compare
+ * @return TRUE if the rules match and false otherwise
+ */
+int compareRules(Rule* r1, Rule* r2, int isCurrMatch)
+{
+    //Make sure that both rules use the same episodic memory
+    if (r1->epmem != r2->epmem) return FALSE;
+
+    //Make sure that both rules have the same index
+    if (r1->index != r2->index) return FALSE;
+
+    //Make sure that both rules have the same length
+    if (r1->length != r2->length) return FALSE;
+
+    return TRUE;
+}//compareRules
+
+
+/**
  * initSupervisor
  *
  * Initialize the Supervisor vectors
@@ -874,7 +1285,7 @@ void initSupervisor()
 {
 	g_episodeList 		= newVector();
 	g_ruleList			= newVector();
-	g_milestoneList 	= newVector();
+	g_metaList          = newVector();
 	g_connectToRoomba 	= 0;
 	g_statsMode 		= 0;
 }// initSupervisor
@@ -888,7 +1299,7 @@ void endSupervisor()
 {
 	freeVector(g_episodeList);
 	freeVector(g_ruleList);
-	freeVector(g_milestoneList);
+	freeVector(g_metaList);
 }// endSupervisor
 
 /**
