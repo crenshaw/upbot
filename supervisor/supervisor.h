@@ -56,7 +56,8 @@ typedef struct RuleStruct
 	int length;                 // number of entries in the LHS
 	int freq;                   // number of times this rule has "matched" epmem
 	int* overallFreq;           // number of times just the most recent sensor
-                                // data has matched epmem
+                                // data has matched epmem. This is a pointer
+                                // since the value is shared by a group of cousins
 	int outcome;                // index to the outcome state *or* a flag
                                 // indicating it doesn't exist yet
 	int isPercentageRule;       // is this rule a percentage rule?

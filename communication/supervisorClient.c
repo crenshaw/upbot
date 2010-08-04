@@ -420,7 +420,8 @@ int main(int argc, char *argv[])
 {
 	// User did not pass in minimum number of arguments
 	if (argc < 2) {
-		fprintf(stderr,"usage (minimum): client hostname\n");
+		fprintf(stderr,"\nUSAGE: %s <hostname> [-m stats|visual] [-c roomba|test]\n\n",
+                argv[0]);
 		exit(1);
 	}
 
