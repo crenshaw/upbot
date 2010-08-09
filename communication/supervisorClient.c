@@ -300,10 +300,11 @@ int handshake(char* ipAddr)
 void printStats(FILE* log)
 {
 	// == 0 means print to console
+	Vector* episodeList = g_epMem->array[0];
 	if(g_statsMode == 0)
 	{
 		// Print the number of goals found and episodes recieved
-		printf("Roomba has found the Goal %i times.\nSupervisor has received %i episodes.\n", NUM_GOALS_TO_FIND, g_episodeList->size);
+		printf("Roomba has found the Goal %i times.\nSupervisor has received %i episodes.\n", NUM_GOALS_TO_FIND, episodeList->size);
 		int i;
 		// Print the timestamp that each goal was found at
 		for(i = 0; i < NUM_GOALS_TO_FIND; i++)
@@ -344,7 +345,8 @@ void printStats(FILE* log)
 void reportGoalFound(int sockfd, FILE* log)
 {
 	// Store the new goal timestamp and increment count
-	g_goalsTimeStamp[g_goalsFound] = ((Episode*)getEntry(g_episodeList, g_episodeList->size - 1))->now;
+	Vector* episodeList = g_epMem->array[0];
+	g_goalsTimeStamp[g_goalsFound] = ((Episode*)getEntry(episodeList, episodeList->size - 1))->now;
 	g_goalsFound++;
 
 	// Only print if not in stats mode
@@ -443,6 +445,7 @@ int main(int argc, char *argv[])
 	int sockfd = handshake(argv[1]);
 	int cmd = CMD_LEFT;				// command to send to Roomba
 
+	Vector* episodeList = g_epMem->array[0];
 	// Main send/recv processing loop
 	while(1)
 	{	       
@@ -452,7 +455,7 @@ int main(int argc, char *argv[])
 		processCommand(&cmd, buf, log);
 
 		// If goal is found increase goal count and store the index it was found at
-		if(((Episode*)getEntry(g_episodeList, g_episodeList->size - 1))->sensors[SNSR_IR] == 1)
+		if(((Episode*)getEntry(episodeList, episodeList->size - 1))->sensors[SNSR_IR] == 1)
 		{
 			reportGoalFound(sockfd, log);
 		}

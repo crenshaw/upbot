@@ -31,6 +31,7 @@
 #define NUM_GOALS_TO_FIND	75
 #define DISCOUNT			1.0
 #define MAX_LEN_LHS			10
+#define MAX_META_DEPTH		4
 
 // Collecting data for stats
 #define STATS_MODE			0
@@ -72,9 +73,8 @@ int g_connectToRoomba;
 int g_statsMode;
 
 // This vector will contain all episodes received from Roomba
-Vector* g_episodeList;
-Vector* g_ruleList;
-Vector* g_metaList;
+Vector* g_epMem;
+Vector* g_semMem;
 
 // Function declarations
 extern int tick(char* sensorInput);
