@@ -60,7 +60,7 @@ int tick(char* sensorInput)
 	// Send ep to receive a command
 	// Will return -1 if no command could be set
 	chooseCommand(ep);
-
+/*
     //Debugging
 	printf("Level 0 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
 	displayRules(g_semMem->array[0], g_epMem->array[0]);
@@ -71,6 +71,19 @@ int tick(char* sensorInput)
 	printf("Level 3 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
 	displayRules(g_semMem->array[3], g_epMem->array[3]);
 
+	int i;
+	for(i = CMD_NO_OP; i < LAST_MOBILE_CMD; i++)
+	{
+		printf("Made it here %i\n", i);
+		Rule* rule = ruleMatch(i);
+		if(rule != NULL)
+		{
+			printf("Printing the matched rule\n");
+			displayRule(rule);
+			printf("Done printing the matched rule\n");
+		}
+	}
+*/
 	// Print out the parsed episode if not in statsMode
 	if(g_statsMode == 0)
 	{
@@ -895,6 +908,88 @@ int setCommand(Episode* ep)
 	return 0;
 }// setCommand
 
+/**
+* ruleMatch
+*
+* Inspect the LHS of the rules we've written and determine
+* if the current state is a match to a rule given a potential
+* action.  
+*
+* @arg action An integer that represents a command or action
+*
+* @return Rule* A pointer to the rule that matches, NULL if no
+*				match is found
+*/
+Rule* ruleMatch(int action)
+{
+	// Create temporary pointers to working memory
+	Vector* episodeList = g_epMem->array[0];
+	Vector* ruleList	= g_semMem->array[0];
+	int i,j, isMatch;
+
+	// Assign the action to our most recent episode
+	((Episode*)episodeList->array[episodeList->size - 1])->cmd = action;
+
+	// Iterate through list of rules and see if any rule matches
+	// current state
+	for(i = 0; i < ruleList->size; i++)
+	{
+		Rule* rule = ruleList->array[i];
+		// Assume rule is a match to current state, if not, search will continue. 
+		// The first rule that matches to its full length will be returned
+		// We know this is the right match because any other rule that has the
+		//		same LHS to that point would have caused another episode to be added
+		//		and increased the length. So matching to full rule length ensures
+		//		a unique match to current state
+		isMatch = 1;
+		for(j = 0; j < rule->length && isMatch; j++)
+		{
+			if(!equalEpisodes(episodeList->array[rule->index - j],
+							episodeList->array[episodeList->size - 1 - j]))
+				{
+					isMatch = 0;
+				}
+		}// for
+		
+		// Return the current episode's command to its original default value
+		// and return the rule that matched
+		if(isMatch)
+		{
+			((Episode*)episodeList->array[episodeList->size - 1])->cmd = action;
+			return rule;
+		}
+	}// for 
+	
+	return NULL;
+}// ruleMatch
+
+/**
+* equalEpisodes
+*
+* This method takes two episodes and returns a boolean indicating
+* if they are a match. A match is when both the sensor data and 
+* the action are the same in each episode.
+*
+* @arg ep1 A pointer to the first episode
+* @arg ep2 A pointer to the second episode
+*
+* @return int A boolean indicating if they are a full match
+*/
+int equalEpisodes(Episode* ep1, Episode* ep2)
+{
+	int i;
+	// Ensure the sensor data match between episodes and return
+	// false if not
+	for(i = 0; i < NUM_SENSORS; i++)
+	{
+		if(ep1->sensors[i] != ep2->sensors[i]) return FALSE;
+	}
+
+	// Ensure episodes have same command, return false if not
+	if(ep1->cmd != ep2->cmd) return FALSE;
+
+	return TRUE;
+}// equalEpisodes
 
 /**
  * findTopMatch
@@ -969,7 +1064,7 @@ int generateScoreTable(Vector* vector, double* score)
 	}// for
 	// return success
 	return 0;
-}// match
+}// generateScoreTable
 
 /**
  * compare
@@ -1005,7 +1100,7 @@ double compareEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch)
 	}
 
 	// return the total value of the match between episodes
-//	printf("Match score %g\n", match);
+	//	printf("Match score %g\n", match);
 	return match;
 }// compareEpisodes
 
@@ -1021,16 +1116,16 @@ double compareEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch)
  */
 int compareRules(Rule* r1, Rule* r2)
 {
-    //Make sure that both rules use the same episodic memory
-    if (r1->epmem != r2->epmem) return FALSE;
+	//Make sure that both rules use the same episodic memory
+	if (r1->epmem != r2->epmem) return FALSE;
 
-    //Make sure that both rules have the same index
-    if (r1->index != r2->index) return FALSE;
+	//Make sure that both rules have the same index
+	if (r1->index != r2->index) return FALSE;
 
-    //Make sure that both rules have the same length
-    if (r1->length != r2->length) return FALSE;
+	//Make sure that both rules have the same length
+	if (r1->length != r2->length) return FALSE;
 
-    return TRUE;
+	return TRUE;
 }//compareRules
 
 /**
@@ -1048,30 +1143,30 @@ int compareRules(Rule* r1, Rule* r2)
  */
 int compare(Vector *list, int i1, int i2, int isBaseRule)
 {
-    if (isBaseRule)
-    {
-        //If it's a base rule we need to know if one of the entries
-        //we're comparing has no RHS yet.
-        int noRHS = (i1 == list->size - 1) || (i2 == list->size - 1);
+	if (isBaseRule)
+	{
+		//If it's a base rule we need to know if one of the entries
+		//we're comparing has no RHS yet.
+		int noRHS = (i1 == list->size - 1) || (i2 == list->size - 1);
 
-        //Determine a match score
-        double matchScore = compareEpisodes(list->array[i1],
-                                            list->array[i2], noRHS);
+		//Determine a match score
+		double matchScore = compareEpisodes(list->array[i1],
+				list->array[i2], noRHS);
 
-        //See if that match score is a perfect match
-        if (noRHS)
-        {
-            return (matchScore == NUM_SENSORS);
-        }
-        else
-        {
-            return (matchScore == 2 * NUM_SENSORS);
-        }   
-    }
-    else //meta-rule
-    {
-        return compareRules(list->array[i1], list->array[i2]);
-    }
+		//See if that match score is a perfect match
+		if (noRHS)
+		{
+			return (matchScore == NUM_SENSORS);
+		}
+		else
+		{
+			return (matchScore == 2 * NUM_SENSORS);
+		}   
+	}
+	else //meta-rule
+	{
+		return compareRules(list->array[i1], list->array[i2]);
+	}
 }//compare
 
 /**
@@ -1085,19 +1180,19 @@ int compare(Vector *list, int i1, int i2, int isBaseRule)
  */
 int containsGoal(void *entry, int isBaseRule)
 {
-    if (isBaseRule)
-    {
-        Episode *ep = (Episode *)entry;
-        
-        //For base rules, a goal is indicated by the IR sensor on the episode
-        return ep->sensors[SNSR_IR];
-    }
-    else //meta-rule
-    {
-        Rule *rule = (Rule *)entry;
-        //For a meta-rule, a goal is indicated by "containsGoal" 
-        return rule->containsGoal;
-    }
+	if (isBaseRule)
+	{
+		Episode *ep = (Episode *)entry;
+
+		//For base rules, a goal is indicated by the IR sensor on the episode
+		return ep->sensors[SNSR_IR];
+	}
+	else //meta-rule
+	{
+		Rule *rule = (Rule *)entry;
+		//For a meta-rule, a goal is indicated by "containsGoal" 
+		return rule->containsGoal;
+	}
 }//containsGoal
 
 
@@ -1244,18 +1339,18 @@ char* interpretCommandShort(int cmd)
  */
 int interpretSensorsShort(int *sensors)
 {
-    int i, result = 0;
-    int sumval = 1;  //This is always = to 2^i
-    for(i = NUM_SENSORS-1; i >= 0; i--)
-    {
-        if (sensors[i])
-        {
-            result += sumval;
-        }
+	int i, result = 0;
+	int sumval = 1;  //This is always = to 2^i
+	for(i = NUM_SENSORS-1; i >= 0; i--)
+	{
+		if (sensors[i])
+		{
+			result += sumval;
+		}
 
-        sumval *= 2;
-    }
+		sumval *= 2;
+	}
 
-    return result;
+	return result;
 }// interpretSensorsShort
 

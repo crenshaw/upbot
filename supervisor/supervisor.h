@@ -91,6 +91,8 @@ int addRule(Vector* rules, Rule* item, int checkRedundant);
 void displayEpisode(Episode* ep);
 void displayRules();
 void displayRule(Rule* rule);
+Rule* ruleMatch(int action);
+int equalEpisodes(Episode* ep1, Episode* ep2);
 int findTopMatch(double* scoreTable, double* indvScore, int command);
 int generateScoreTable(Vector* vector, double* score);
 double compareEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
