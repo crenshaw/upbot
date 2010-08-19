@@ -346,7 +346,7 @@ void reportGoalFound(int sockfd, FILE* log)
 {
 	// Store the new goal timestamp and increment count
 	Vector* episodeList = g_epMem->array[0];
-	g_goalsTimeStamp[g_goalsFound] = ((Episode*)getEntry(episodeList, episodeList->size - 1))->now;
+	g_goalsTimeStamp[g_goalsFound] = ((Episode*)episodeList->array[episodeList->size - 1])->now;
 	g_goalsFound++;
 
 	// Only print if not in stats mode
@@ -455,7 +455,8 @@ int main(int argc, char *argv[])
 		processCommand(&cmd, buf, log);
 
 		// If goal is found increase goal count and store the index it was found at
-		if(((Episode*)getEntry(episodeList, episodeList->size - 1))->sensors[SNSR_IR] == 1)
+//		if(((Episode*)getEntry(episodeList, episodeList->size - 1))->sensors[SNSR_IR] == 1)
+		if(((Episode*)episodeList->array[episodeList->size - 1])->sensors[SNSR_IR] == 1)
 		{
 			reportGoalFound(sockfd, log);
 		}

@@ -30,8 +30,9 @@
 #define NUM_TO_MATCH		15
 #define NUM_GOALS_TO_FIND	75
 #define DISCOUNT			1.0
-#define MAX_LEN_LHS			10
+#define MAX_LEN_LHS			4
 #define MAX_META_DEPTH		4
+#define MAX_ROUTE_LEN		15
 
 // Collecting data for stats
 #define STATS_MODE			0
@@ -68,6 +69,20 @@ typedef struct RuleStruct
     int containsGoal;           // Does this rule contain a goal on the RHS?
 } Rule;
 
+typedef struct RouteStruct
+{
+	Vector* route;				// The ordered list of rules(stored as int indices
+								// into ruleList
+	int currRule;				// Where we currently are in the execution of the
+								// rules
+	int currEpInRule;			// Index into LHS of the current rule
+	int needsRecalc;			// If the data received while following the rules
+								// differs from the expected value then it needs
+								// to be recalculated and this informs when it 
+								// happens
+	int numRules;				// Number of rules in the route to goal
+} Route;
+
 // Global variables for monitoring and connecting
 int g_connectToRoomba;
 int g_statsMode;
@@ -75,6 +90,7 @@ int g_statsMode;
 // This vector will contain all episodes received from Roomba
 Vector* g_epMem;
 Vector* g_semMem;
+Route* g_route;
 
 // Function declarations
 extern int tick(char* sensorInput);
@@ -88,11 +104,16 @@ int parseEpisode(Episode* parsedData, char* dataArr);
 int updateRules();
 int addEpisode(Vector* episodes, Episode* item);
 int addRule(Vector* rules, Rule* item, int checkRedundant);
+void addRuleToRoute(int ruleIdx);
+int planRoute(Episode* currEp);
+int takeNextStep(Episode* currEp);
+int setCommand2(Episode* ep);
+void displayRoute();
 void displayEpisode(Episode* ep);
 void displayRules();
 void displayRule(Rule* rule);
 Rule* ruleMatch(int action);
-int equalEpisodes(Episode* ep1, Episode* ep2);
+int equalEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
 int findTopMatch(double* scoreTable, double* indvScore, int command);
 int generateScoreTable(Vector* vector, double* score);
 double compareEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
