@@ -108,6 +108,7 @@ void addRuleToRoute(int ruleIdx);
 int planRoute(Episode* currEp);
 int takeNextStep(Episode* currEp);
 int setCommand2(Episode* ep);
+int nextStepIsValid();
 void displayRoute();
 void displayEpisode(Episode* ep);
 void displayRules();

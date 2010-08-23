@@ -10,6 +10,9 @@
 *
 */
 
+#define DEBUGGING 0
+
+
 // The chance of choosing a random move
 int g_randChance = 80;
 // global strings for printing to console
@@ -56,7 +59,7 @@ int tick(char* sensorInput)
 	Episode* ep = createEpisode(sensorInput);
 	// Add new episode to the history
 	addEpisode(g_epMem->array[0], ep);
-	printf("Episode completed\n");
+	printf("Episode created\n");
 
 	// Only update the rules if following the route didn't work.
 	// If the route correctly predicted the outcome of the previous
@@ -72,7 +75,6 @@ int tick(char* sensorInput)
 	// and if not then send ep to determine a valid command
 	if(containsGoal(ep, TRUE))
 	{
-		printf("Sanity check\n");
 		ep->cmd = CMD_SONG;
 		g_route->needsRecalc = TRUE;
 	}
@@ -81,10 +83,10 @@ int tick(char* sensorInput)
 		// Use shortcircuiting to only call takeNextStep if a goal has been
 		// found. This is because there is no route to follow until after
 		// the first goal.
-		if(g_goalCount <= 0 || takeNextStep(ep))
-		{
+		//if(g_goalCount <= 0 || setCommand2(ep))
+		//{
 			chooseCommand(ep);
-		}
+		//}
 	}
 	/*
 	//Debugging
@@ -302,12 +304,14 @@ int updateAllRules(int level)
 			//Find out if the j-th part of the LHS matches
 			if (compare(episodeList, newRule->index - j, curr->index - j, isBaseRule))
 			{
+#if DEBUGGING
 				printf("found match between %i-th entries of: ", j);
 				displayRule(curr);
 				printf(" and ");
 				displayRule(newRule);
 				printf("\n");
 				fflush(stdout);
+#endif
 
 				//If the LHS match so far but we haven't reached the end
 				//of either rule then continue comparing them
@@ -326,7 +330,9 @@ int updateAllRules(int level)
 					if(curr->isPercentageRule)
 					{
 						//%%%Debugging
+#if DEBUGGING
 						printf("comparing cousins: \n");
+#endif
 						int k;
 						//Iterate over cousins and find one with same outcome as candidate rule
 						for(k = 0; k < curr->cousins->size; k++)
@@ -334,12 +340,14 @@ int updateAllRules(int level)
 							Rule* cousin = curr->cousins->array[k];
 
 							//%%%Debugging
+#if DEBUGGING
 							printf("\t");
 							displayRule(cousin);
 							printf(" AND ");
 							displayRule(newRule);
 							printf("\n");
 							fflush(stdout);
+#endif
 
 							//If we find one with same outcome, increase
 							//frequency and inform not to add rule
@@ -357,7 +365,9 @@ int updateAllRules(int level)
 						//as a new cousin
 						if(addNewRule)
 						{
+#if DEBUGGING
 							printf("new cousin is unique.  Adding...\n");
+#endif
 							newRule->isPercentageRule = TRUE;
 							newRule->overallFreq = curr->overallFreq;
 							newRule->cousins = curr->cousins;
@@ -390,8 +400,10 @@ int updateAllRules(int level)
 						}
 						else	//RHS does not match
 						{
+#if DEBUGGING
 							printf("LHS match but RHS doesn't while comparing to %i...\n", i);
 							fflush(stdout);
+#endif
 							// We want to expand the newRule and curr
 							// to create (hopefully) distinct rules
 							// There are 3 reasons this may not work.
@@ -409,9 +421,11 @@ int updateAllRules(int level)
 							if (containsGoal(episodeList->array[newLHSEntryIndex],
 										isBaseRule))
 							{
+#if DEBUGGING
 								printf("NewRule expands into goal at index: %i\n",
 										newLHSEntryIndex);
 								fflush(stdout);
+#endif
 
 								//the new rule can't be expanded so we
 								//consider it degenerate so just abort
@@ -423,9 +437,11 @@ int updateAllRules(int level)
 							//Check for reason #2: no room to expand
 							else if(curr->index - curr->length <= 0)
 							{
+#if DEBUGGING
 								printf("avail space: %i,  curr expands outside goal\n",
 										curr->index - curr->length);
 								fflush(stdout);
+#endif
 
 								//The current rule can't be expanded
 								//so we consider it degenerate and
@@ -447,6 +463,7 @@ int updateAllRules(int level)
 							{
 								newRule->length++;
 
+#if DEBUGGING
 								printf("partial match with curr, extending new rule to %i\n",
 										newRule->length);
 								fflush(stdout);
@@ -454,15 +471,18 @@ int updateAllRules(int level)
 								displayRule(newRule);
 								printf("\n");
 								fflush(stdout);
+#endif
 							}
 
 							//If the current rule can be expanded then
 							//expand both the current and candidate rules
 							else if(curr->length < MAX_LEN_LHS)
 							{
+#if DEBUGGING
 								printf("len of curr rule (%i) = %i < %i so increasing to %i\n",
 										i, curr->length, MAX_LEN_LHS, curr->length+1);
 								fflush(stdout);
+#endif
 
 								//both current rule and new rule can
 								//be expanded so do so in hopes that they will
@@ -472,20 +492,25 @@ int updateAllRules(int level)
 								newRule->length++;
 
 
+#if DEBUGGING
 								printf("new %i:   ");
 								displayRule(curr);
 								printf("\n");
+
 								printf("new cand: ");
 								displayRule(newRule);
 								printf("\n");
 								fflush(stdout);
+#endif
 
 							}
 							else  //current rule can't be expanded without
 								//exceeding max length (reason #3)
 							{
+#if DEBUGGING
 								printf("cousins\n");
 								fflush(stdout);
+#endif
 
 								// We need to convert both the current rule and
 								// the candidate rule into percentage rules
@@ -523,8 +548,10 @@ int updateAllRules(int level)
 					{
 						matchComplete = TRUE;
 						addNewRule = FALSE;
+#if DEBUGGING
 						printf("newRule matches but is bigger than current rule.  Aborting.\n");
 						fflush(stdout);
+#endif
 					}
 //===============================================================================
 // I think that this code needs to probably be expanded to prevent the newRule
@@ -539,9 +566,11 @@ int updateAllRules(int level)
 						if (containsGoal(episodeList->array[newLHSEntryIndex],
 									isBaseRule))
 						{
+#if DEBUGGING
 							printf("2. NewRule expands into goal at index: %i\n",
 									newLHSEntryIndex);
 							fflush(stdout);
+#endif
 
 							//the new rule can't be expanded so we
 							//consider it degenerate so just abort
@@ -554,12 +583,14 @@ int updateAllRules(int level)
 						{
 							newRule->length++;
 
+#if DEBUGGING
 							printf("expanded new rule to len %i\n",
 									newRule->length);
 							printf("new candidate: ");
 							displayRule(newRule);
 							printf("\n");
 							fflush(stdout);
+#endif
 						}
 //============================================================================						
 					}
@@ -590,7 +621,9 @@ int updateAllRules(int level)
 	//Add the new rule
 	if(addNewRule == TRUE)
 	{
-		printf("Adding new rule\n");
+		printf("Adding new rule: ");
+		displayRule(newRule);
+		printf("\n");
 		addRule(ruleList, newRule, FALSE);
 		updateExistingRule = newRule;
 	}
@@ -625,6 +658,15 @@ int addEpisode(Vector* episodes, Episode* item)
 
 /**
  * addRule
+ *
+ * Add the given rule to the rules array and checks if the rule
+ * already exists
+ *
+ * @arg rules A pointer to the vector of rules
+ * @arg item A pointer to the Rule we're adding
+ * @arg checkRedundant Boolean to determine if we need to check if rule exists
+ *
+ * @return int A status code
  */
 int addRule(Vector* rules, Rule* item, int checkRedundant)
 {
@@ -837,6 +879,10 @@ int chooseCommand(Episode* ep)
 
 /**
  * displayRoute
+ *
+ * Display the current route. Prints the rules that make up
+ * the route in reverse order to make it easier visually to
+ * read the steps.
  */
 void displayRoute()
 {
@@ -848,22 +894,34 @@ void displayRoute()
 	int i;
 	for(i = g_route->numRules - 1; i >= 0; i--)
 	{
+		if(i == g_route->currRule)
+		{
+			printf("-->");
+		}
 		printf("\t{ ");
 		displayRule(semMem->array[*((int*)route->array[i])]);
 		printf(" }\n");
-	}
+	}// for
 	printf("\n");
 }// displayRoute
 
 
 /**
  * setCommand2
+ *
+ * This method sets the command for the most recent episode.
+ * If the route needs to be recalculated, it does that and 
+ * then it takes the next step on the route.
+ *
+ * @arg ep A pointer to the newest episode
+ * @return int status code
  */
 int setCommand2(Episode* ep)
 {
-	printf("checking if route needs recalculating\n");
-	// If last command did not return expected state then recalculate route
-	if(g_route->needsRecalc)
+	printf("Checking if route needs recalculating\n");
+
+	// If last command did not result in expected outcome
+	if(g_route->needsRecalc || !nextStepIsValid())
 	{
 		printf("Route needs to be recalculated\n");
 		planRoute(ep);
@@ -871,7 +929,7 @@ int setCommand2(Episode* ep)
 	}
 	else
 	{
-		printf("route is good\n");
+		printf("Route is good\n");
 	}
 
 	displayRoute();
@@ -893,24 +951,29 @@ int setCommand2(Episode* ep)
  */
 int takeNextStep(Episode* currEp)
 {
-	printf("Executing next step\n");
 	// set up useful variables
+
 	Vector* episodeList = g_epMem->array[0];
 	Vector* ruleList	= g_semMem->array[0];
 	Vector* route		= g_route->route;
 	int 	currRule	= g_route->currRule;
 	int		currEpIR	= g_route->currEpInRule;
 	Rule* 	rule		= ruleList->array[*((int*)route->array[currRule])];
-	Episode* nextStep	= episodeList->array[rule->index - (rule->length - 1 + currEpIR)];
+	Episode* nextStep	= episodeList->array[rule->index - (rule->length - 1 - currEpIR)];
 
+	// I'm pretty sure this check is no longer needed because of how I changed
+	// the structure of setCommand2, but just in case I'm leaving this here.
+	// Once we know it's unnecessary we can remove it
+/*
 	// We want to make sure that after completing the most recent command
 	// the expected state is equal to current state, otherwise we need to
 	// replan our route.
-	if(!equalEpisodes(currEp, nextStep, TRUE))
+	if(!nextStepIsValid())
 	{
-		g_route->needsRecalc = TRUE;
+		printf("Next step is no longer valid, returning\n");
 		return 1;
 	}
+*/
 
 	// We had a good prediction so continue to follow Rule
 	currEp->cmd = nextStep->cmd;
@@ -918,6 +981,7 @@ int takeNextStep(Episode* currEp)
 	// Check if we've completed the Rule and update Route data accordingly
 	if(currEpIR == rule->length - 1)
 	{
+		printf("This command finishes current rule, setting up for next rule in Route\n");
 		g_route->currRule++;
 		g_route->currEpInRule = 0;
 	}
@@ -928,6 +992,38 @@ int takeNextStep(Episode* currEp)
 
 	return 0;
 }// takeNextStep
+
+/**
+* nextStepIsValid
+*
+* Checks the current state versus the Route and determines
+* if the previous command's outcome matches with the expected
+* outcome of the Route.
+*/
+int nextStepIsValid()
+{
+	if(g_route->needsRecalc)
+	{
+		return FALSE;
+	}
+
+	Vector* episodeList = g_epMem->array[0];
+	Vector* ruleList	= g_semMem->array[0];
+	Vector* route		= g_route->route;
+	int 	currRule	= g_route->currRule;
+	int		currEpIR	= g_route->currEpInRule;
+	Rule* 	rule		= ruleList->array[*((int*)route->array[currRule])];
+	Episode* nextStep	= episodeList->array[rule->index - (rule->length - 1 - currEpIR)];
+	Episode* currEp		= episodeList->array[episodeList->size - 1];
+
+	if(!equalEpisodes(currEp, nextStep, TRUE))
+	{
+		g_route->needsRecalc = TRUE;
+		return FALSE;
+	}
+
+	return TRUE;
+}// isNextStepValid
 
 /**
  * setCommand
@@ -1162,6 +1258,13 @@ int planRoute(Episode* currEp)
 	freeVector(g_route->route);
 	g_route->route = newVector();
 
+	// Reset rest of Route data
+	g_route->currRule 		= 0;
+	g_route->currEpInRule	= 0;
+	g_route->needsRecalc	= FALSE;
+	g_route->numRules		= 0;
+
+
 	// Find a rule that contains a goal in its outcome
 	int goalRule = -1;
 	int i;
@@ -1230,6 +1333,11 @@ int planRoute(Episode* currEp)
 
 /**
  * addRuleToRoute
+ *
+ * This method takes an index to a rule to add to the route
+ * and stores it in the vector in the Route
+ *
+ * @arg ruleIdx An int indexing into the Rule vector
  */
 void addRuleToRoute(int ruleIdx)
 {
@@ -1237,7 +1345,7 @@ void addRuleToRoute(int ruleIdx)
 	*temp = ruleIdx;
 	addEntry(g_route->route, temp);
 	g_route->numRules += 1;
-}
+}// addRuleToRoute
 
 /**
  * findTopMatch

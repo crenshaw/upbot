@@ -19,6 +19,7 @@
 #define V_WALL		1
 #define V_ROOMBA	2
 #define V_GOAL		3
+#define V_DROP		4
 
 // Sensor values
 #define SNSR_OFF	0
@@ -29,6 +30,10 @@
 #define BOTH_HIT	1
 #define LEFT_HIT	2
 #define RIGHT_HIT	3
+
+// Booleans
+#define TRUE		1
+#define FALSE		0
 
 int** initWorld();
 void freeWorld(int** world);

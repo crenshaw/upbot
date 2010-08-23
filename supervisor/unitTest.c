@@ -1,6 +1,13 @@
 #include "unitTest.h"
 #include "supervisor.h"
 
+// Set up some names to use
+#define X_INIT	1
+#define Y_INIT	1
+
+#define X_GOAL	7
+#define Y_GOAL	5
+
 /**
 * initWorld
 * 
@@ -59,17 +66,19 @@ int** initWorld()
 		}//for
 
 	// Set up Roomba starting location
-	world[1][1] = V_ROOMBA;
+	world[X_INIT][Y_INIT] = V_ROOMBA;
 	// Set up goal
-	world[7][5] = V_GOAL;
+	world[X_GOAL][Y_GOAL] = V_GOAL;
 
 	return world;
-}
+}// initWorld
 
 /**
  * freeWorld
  *
  * This function frees the map of the environment used by the unit test
+ *
+ * @arg world A pointer to a pointer of ints (2d array)
  */
 void freeWorld(int** world)
 {
@@ -79,12 +88,12 @@ void freeWorld(int** world)
 		free(world[i]);
 	}
 	free(world);
-}
+}// freeWorld
 
 /**
  * unitTest2
  *
- * This subroutine emulates a Roomba in McKallum's gridworld.
+ * This subroutine emulates a Roomba in the gridworld defined by
  * It receives an action from the supervisor and updates a world map with its
  * location. This allows us to determine the next set of sensor data to return
  * to the supervisor.
@@ -100,13 +109,18 @@ char* unitTest2(int command, int cleanup)
 	static int x, y;	// world coords
 	static int heading;	// the direction we're pointing
 	static int hitGoal;	// did we hit the goal last time?
-	int	lBump, rBump, lCliff, rCliff, lCliffFront, rCliffFront,
-		IR, caster, lDrop, rDrop;	// Sensor vars
-	int sensorReturn;
-	int abort;
+	int	lBump, rBump, 	// Sensor vars
+		lCliff, rCliff, 
+		lCliffFront, rCliffFront,
+		lDrop, rDrop,	
+		IR, caster;
+	int sensorReturn;	// Total sensor return
+	int abort;			// Abort bit (deprecated)
+
 	char* str = (char*) malloc(sizeof(char) * 24); // memory for data
 
-	if(cleanup == 1)
+	// Check flag that determines if we've completed the unit test and need to clean up
+	if(cleanup == TRUE)
 	{
 		freeWorld(world);
 		return str;
@@ -120,8 +134,11 @@ char* unitTest2(int command, int cleanup)
 	if(timeStamp == 0)
 	{
 		world = initWorld();	// initialize the world
-		hitGoal = 1;			// init to 1 so it becomes 0 in next check;
-		x = y = 1;
+		hitGoal = TRUE;			// init to 1 so it becomes 0 in next check;
+
+		x = X_INIT;
+		y = Y_INIT;
+
 		if(g_statsMode == 0)
 		{
 			printf("Initial World View\n");
@@ -131,12 +148,17 @@ char* unitTest2(int command, int cleanup)
 
 	// If we hit a goal last time reset Roomba location and heading
 	// and reset goal location
-	if(hitGoal == SNSR_ON)
+	if(hitGoal == TRUE)
 	{
-		hitGoal = SNSR_OFF;
+		hitGoal = FALSE;
 		heading = HDG_E;
-		world[x][y] = V_HALLWAY;
-		x = y = 1;
+		world[x][y] = V_GOAL;
+
+		x = X_INIT;
+		y = Y_INIT;
+
+		world[x][y] = V_ROOMBA;
+
 		if(g_statsMode == 1)
 		{
 			if(timeStamp != 0)
@@ -243,11 +265,7 @@ char* unitTest2(int command, int cleanup)
 				}
 			}
 
-			if(IR == SNSR_ON)
-			{
-				hitGoal = SNSR_ON;
-			}
-			else if(sensorReturn == BOTH_HIT)
+			if(sensorReturn == BOTH_HIT)
 			{
 				lBump = rBump = SNSR_ON;
 				abort = SNSR_ON;
@@ -264,6 +282,11 @@ char* unitTest2(int command, int cleanup)
 			}
 			else if(sensorReturn == NONE_HIT)
 			{
+				if(IR == SNSR_ON)
+				{
+					hitGoal = SNSR_ON;
+				}
+
 				switch(heading)
 				{
 					case HDG_N:
@@ -392,7 +415,7 @@ int bumpSensor(int north, int east)
 	if(north == V_WALL && east == V_WALL)
 		return BOTH_HIT;
 
-	return -1;
+	return NONE_HIT;
 }
 
 /**
