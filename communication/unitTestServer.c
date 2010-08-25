@@ -25,9 +25,9 @@
 * allows it to emulate a Roomba in a perfect environment and creates appropriate
 * sensor data based on the commands it receives.
 *
-* Author: Zachary Paul Faltersack (adapted from simpleServer written by Tanya Crensaw)
-* Last Edit: June 2, 2010
-*
+* Author: Zachary Paul Faltersack 
+		  (adapted from simpleServer written by Dr. Tanya Crenshaw)
+* Last Edit: August 25, 2010
 */
 
 int main(void)
@@ -99,14 +99,17 @@ int main(void)
 			close(s);   // child process doesn't need the listener.
 			char* str;
 			int* cmd = (int*) malloc(sizeof(int));
-			*cmd = 1;
+			*cmd = CMD_NO_OP;
+
+			initWorld();
 
 			while(1)
 			{
 				// send command to unitTester and receive resulting sensor data
-				str = unitTest2(*cmd, 0);
+				str = unitTest2(*cmd, FALSE);
 
-				if(g_statsMode == 0)
+				// Print feedback if not in statsMode
+				if(!g_statsMode)
 				{
 					printf("Sending: [%s] to Supervisor\n", str);
 				}
@@ -118,7 +121,11 @@ int main(void)
 					break;
 				}
 
-				if(g_statsMode == 0)
+				// Free the memory of the sensor string
+				free(str);
+
+				// Print feedback if not in statsMode
+				if(!g_statsMode)
 				{
 					printf("---------------------------------------\n");
 
@@ -126,11 +133,13 @@ int main(void)
 					printf("Waiting for command\n->");
 				}
 
+				// Receive command from Supervisor, if failed then cleanup
+				// test and exit
 				if(recv(newSock, cmd, 1, 0) == -1)
 				{
 					perror("receive");
 					// send cleanup command to unit test
-					unitTest2(*cmd, 1);
+					unitTest2(*cmd, TRUE);
 					break;
 				}
 			}
