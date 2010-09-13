@@ -1593,6 +1593,15 @@ void endSupervisor()
 	int i;
 	for(i = 0; i < g_epMem->size; i++)
 	{
+		if(((Rule*)(Vector*)g_semMem->array[i])->epmem != NULL)
+		{
+			free(((Rule*)(Vector*)g_semMem->array[i])->epmem);
+		}
+		if(((Rule*)(Vector*)g_semMem->array[i])->cousins != NULL)
+		{
+			free(((Rule*)(Vector*)g_semMem->array[i])->cousins);
+		}
+
 		freeVector((Vector*)g_epMem->array[i]);
 		freeVector((Vector*)g_semMem->array[i]);
 	}
