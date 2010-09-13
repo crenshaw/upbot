@@ -6,7 +6,7 @@
 * this file as well as those for determining new commands
 *
 * Author: Dr. Andrew Nuxoll and Zachary Paul Faltersack
-* Last Edit: July 5, 2010
+* Last Edit: September 13, 2010
 *
 */
 
@@ -821,7 +821,7 @@ int chooseCommand(Episode* ep)
 {
 	int i, j;	// indices for loops
 
-	// seed rand if first tiem called
+	// seed rand if first time called
 	static int needSeed = TRUE;
 	if(needSeed == TRUE)
 	{
@@ -830,8 +830,8 @@ int chooseCommand(Episode* ep)
 	}
 
 	// Determine the next command, possibility of random command
-	// If a random command is chosen then a command that would 
-	// create a new rule is preferred, if no new rule can be made
+	// If a random command is chosen, then a command that would 
+	// create a new rule is preferred. If no new rule can be made,
 	// then just choose complete random.
 	Vector* episodeList = g_epMem->array[0];
 	int foundNewRule = 0;
@@ -839,7 +839,7 @@ int chooseCommand(Episode* ep)
 	if(g_goalCount == 0)
 	{
 		// Use flag to jump out of loop if a command is found that will
-		// create a new rule. Due to order of processing loop statements
+		// create a new rule. Due to order of processing loop statements,
 		// we must subtract 1 from i to ensure it stays on the correct
 		// command once out of the loop.
 		for(i = CMD_NO_OP; i < LAST_MOBILE_CMD && !foundNewRule; i++)
@@ -851,7 +851,7 @@ int chooseCommand(Episode* ep)
 			}
 		}
 
-		// If we can make a new rule then do it, otherwise choose a random command
+	    // If we can make a new rule then do it, otherwise choose a random command
 		if(foundNewRule)
 		{
 			ep->cmd = i;
@@ -919,13 +919,16 @@ void displayRoute()
 int setCommand2(Episode* ep)
 {
 	printf("Checking if route needs recalculating\n");
+	fflush(stdout);
 
 	// If last command did not result in expected outcome
 	if(g_route->needsRecalc || !nextStepIsValid())
 	{
-		printf("Route needs to be recalculated\n");
+	  printf("Route needs to be recalculated\n");
+	  fflush(stdout);
 		planRoute(ep);
-		printf("Route is recalculated\n");
+		printf("Route is recalculated\n", stderr);
+		fflush(stdout);
 	}
 	else
 	{
@@ -977,6 +980,11 @@ int takeNextStep(Episode* currEp)
 
 	// We had a good prediction so continue to follow Rule
 	currEp->cmd = nextStep->cmd;
+
+	// if next step is a goal episode, then set route needs recalc
+	if(containsGoal(rule, FALSE) && currEpIR == rule->length-1) {
+	  g_route->needsRecalc = TRUE;
+	}
 
 	// Check if we've completed the Rule and update Route data accordingly
 	if(currEpIR == rule->length - 1)

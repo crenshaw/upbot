@@ -30,7 +30,7 @@
 #define NUM_TO_MATCH		15
 #define NUM_GOALS_TO_FIND	75
 #define DISCOUNT			1.0
-#define MAX_LEN_LHS			4
+#define MAX_LEN_LHS			1
 #define MAX_META_DEPTH		4
 #define MAX_ROUTE_LEN		15
 
