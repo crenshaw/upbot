@@ -36,6 +36,7 @@ void freeVector(Vector* victim)
 	for(i = 0; i < victim->size; i++)
 	{
 		free(victim->array[i]);
+		victim->array[i] = NULL;
 	}
 	// Free the vector memory
 	free(victim->array);

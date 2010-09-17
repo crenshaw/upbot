@@ -35,8 +35,8 @@
 #define X_INIT		1
 #define Y_INIT		1
 // Goal coords
-#define X_GOAL		7
-#define Y_GOAL		5
+#define X_GOAL		3
+#define Y_GOAL		1
 
 // Map dimensions
 #define MAP_WIDTH	9

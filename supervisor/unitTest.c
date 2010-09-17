@@ -60,6 +60,10 @@ void initWorld()
 			}
 		}//for
 
+    //%%%%DEBUGGING
+    g_world[X_INIT][Y_INIT+2] = V_GOAL;
+    
+
 	// Set up Roomba starting location
 	g_world[X_INIT][Y_INIT] = V_ROOMBA;
 	// Set up goal
@@ -94,6 +98,10 @@ void resetWorld()
 	g_heading = HDG_E;
 	g_world[X_GOAL][Y_GOAL] = V_GOAL;
 
+    //%%%DEBUGGING
+    g_world[X_INIT][Y_INIT+2] = V_GOAL;
+
+    
 	g_X = X_INIT;
 	g_Y = Y_INIT;
 

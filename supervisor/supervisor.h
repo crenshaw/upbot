@@ -53,7 +53,7 @@ typedef struct RuleStruct
     Vector *epmem;              // the episodic memory for this rule.  This will
                                 // contain either Episodes (for base rules)
                                 // or Rules (for meta-rules)
-    int isBaseRule;             // Is this a base-rule or a meta-rule?
+    int level;                  // what level is this rule?
 	int index;                  // index into epmem where the rule's LHS ends
 	int length;                 // number of entries in the LHS
 	int freq;                   // number of times this rule has "matched" epmem
@@ -89,8 +89,9 @@ int g_statsMode;
 
 // This vector will contain all episodes received from Roomba
 Vector* g_epMem;
-Vector* g_semMem;
-Route* g_route;
+Vector* g_actionRules;
+Vector* g_sequenceRules;
+Route*  g_route;
 
 // Function declarations
 extern int tick(char* sensorInput);
@@ -103,6 +104,7 @@ int setCommand(Episode* ep);
 int parseEpisode(Episode* parsedData, char* dataArr);
 int updateRules();
 int addEpisode(Vector* episodes, Episode* item);
+int addActionToSequence(Vector* sequence,  Rule* action);
 int addRule(Vector* rules, Rule* item, int checkRedundant);
 void addRuleToRoute(int ruleIdx);
 int planRoute(Episode* currEp);
@@ -111,8 +113,10 @@ int setCommand2(Episode* ep);
 int nextStepIsValid();
 void displayRoute();
 void displayEpisode(Episode* ep);
-void displayRules();
+void displayRules(Vector* ruleList, Vector* episodeList);
 void displayRule(Rule* rule);
+void displaySequence(Vector* sequence);
+void displaySequences(Vector* sequences);
 Rule* ruleMatch(int action);
 int equalEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
 int findTopMatch(double* scoreTable, double* indvScore, int command);
