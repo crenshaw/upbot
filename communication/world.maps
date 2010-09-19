@@ -1,0 +1,45 @@
+#############################################################
+maps.txt
+
+This is a file that maps can be designed in. There is a 
+specific format that must be followed.
+
+This line must be written above the map in order for the 
+parser to locate the correct map and the dimensions are 
+needed to allocate memory for the world to be read into
+
+mapNum mapWidth mapHeight
+
+The options for elements in the virtual world are as follows:
+
+Map Elements:
+W	-	Wall
+' '	-	Hallway
+G	-	Goal
+
+Roomba Elements:
+^	-	Facing North
+/	-	Facing North-East
+>	-	Facing East
+\	-	Facing South_East
+v	-	Facing South
+L	-	Facing South-West
+<	-	Facing West
+*	-	Facing North-West
+
+The one condition that needs to be fulfilled in terms of the
+actual map design is that currently the unit test does not
+support having hallways thicker than a single space.
+
+The default map is 1 and can be used as a template.
+#############################################################
+
+1 9 7
+WWWWWWWWW
+W>      W
+W WW WW W
+W WW WW W
+W WW WW W
+W      GW
+WWWWWWWWW
+

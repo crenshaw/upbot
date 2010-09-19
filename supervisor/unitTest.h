@@ -46,27 +46,20 @@
 #define TRUE		1
 #define FALSE		0
 
-// Global Variables
 int g_statsMode;
 
-int 	g_X;		// X coordfor Roomba
-int 	g_Y;		// Y coord for Roomba
-int** 	g_world;	// 2D array containing world
-int 	g_heading;	// Direction we're heading
-int		g_hitGoal;	// Did we hit a goal last time?
-
 // Functions headers
+void loadWorld();
 void initWorld();
 void freeWorld();
 void resetWorld();
-char* unitTest2(int comand, int needCleanup);
+void displayWorld();
+char* unitTest(int comand, int needCleanup);
 char* doMove(int command);
 char* setSensorString(int IR, int rCliff, int rCliffFront, 
 					 int lCliffFront, int lCliff, int caster, 
 					 int lDrop, int rDrop, int lBump, int rBump,
 					 int abort);
 int bumpSensor(int north, int east);
-void displayWorld();
-char* unitTest();
 
 #endif

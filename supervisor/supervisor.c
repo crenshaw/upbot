@@ -61,19 +61,11 @@ int tick(char* sensorInput)
     addEpisode(g_epMem->array[0], ep);
     printf("Episode created\n");
 
-    // Only update the rules if following the route didn't work.
-    // If the route correctly predicted the outcome of the previous
-    // action, then there is no new rule to add, so this saves some time
-    if(g_route->needsRecalc)
-    {
-        printf("Updating rules...\n");
-        updateRules(0);
-        printf("Successfully updated the rules\n");
-    }
+	updateRules(0);
 
     // If we found a goal, send a song to inform the world of success
     // and if not then send ep to determine a valid command
-    if(containsGoal(ep, TRUE))
+    if(containsGoal(ep, FALSE))
     {
         ep->cmd = CMD_SONG;
         g_route->needsRecalc = TRUE;
@@ -655,6 +647,9 @@ int updateRules(int level)
     // add most recently seen action rule to current sequence
     if(updateExistingRule != NULL)
     {
+printf("Adding Rule: ");
+displayRule(updateExistingRule);
+printf(" to current sequence\n");
         addActionToSequence(currSequence, updateExistingRule);
 
         // this rule then becomes an episode in our next level
@@ -1068,7 +1063,7 @@ return 1;
      currEp->cmd = nextStep->cmd;
 
      // if next step is a goal episode, then set route needs recalc
-     if(containsGoal(rule, FALSE) && currEpIR == rule->length-1) {
+     if(containsGoal(rule, TRUE) && currEpIR == rule->length-1) {
          g_route->needsRecalc = TRUE;
      }
 
@@ -1364,7 +1359,7 @@ int planRoute(Episode* currEp)
     int i;
     for(i = 0; i < ruleList->size; i++)
     {
-        if(containsGoal((Rule*)ruleList->array[i], FALSE))
+        if(containsGoal((Rule*)ruleList->array[i], TRUE))
         {
             goalRule = i;
             break;

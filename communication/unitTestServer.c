@@ -30,7 +30,7 @@
 * Last Edit: August 25, 2010
 */
 
-int main(void)
+int main(int argc, char* argv[])
 {
 
 	struct sockaddr_storage theirAddr; // connector's address information
@@ -101,12 +101,19 @@ int main(void)
 			int* cmd = (int*) malloc(sizeof(int));
 			*cmd = CMD_NO_OP;
 
-			initWorld();
+			// If args exist then pass that as a map num
+			if(argc > 1)
+			{
+				loadMap(*argv[1] - '0');
+			}else// otherwise set first map in file as default
+			{
+				loadMap(1);
+			}
 
 			while(1)
 			{
 				// send command to unitTester and receive resulting sensor data
-				str = unitTest2(*cmd, FALSE);
+				str = unitTest(*cmd, FALSE);
 
 				// Print feedback if not in statsMode
 				if(!g_statsMode)
@@ -139,7 +146,7 @@ int main(void)
 				{
 					perror("receive");
 					// send cleanup command to unit test
-					unitTest2(*cmd, TRUE);
+					unitTest(*cmd, TRUE);
 					break;
 				}
 			}
