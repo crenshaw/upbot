@@ -6,9 +6,18 @@ specific format that must be followed.
 
 This line must be written above the map in order for the 
 parser to locate the correct map and the dimensions are 
-needed to allocate memory for the world to be read into
+needed to allocate memory for the world to be read into:
 
 mapNum mapWidth mapHeight
+
+This is the line that tells the unitTest that a map is about
+to follow. 
+
+mapNum 		is the id number for a particular map
+mapWidth 	is the width of the map
+mapHeight	is the height of the map
+			These last two are used to allocate the memory
+			to contain the map.
 
 The options for elements in the virtual world are as follows:
 
@@ -34,6 +43,7 @@ support having hallways thicker than a single space.
 The default map is 1 and can be used as a template.
 #############################################################
 
+# McKallmum's World
 1 9 7
 WWWWWWWWW
 W>      W
@@ -42,4 +52,36 @@ W WW WW W
 W WW WW W
 W      GW
 WWWWWWWWW
+
+# Simple Mazes for quick shot testing
+2 5 3
+WWWWW
+W^ GW
+WWWWW
+
+3 5 4
+WWWWW
+W   W
+WvWGW
+WWWWW
+
+4 10 5
+WWWWWWWWWW
+W*       W
+W WWWWWW W
+W       GW
+WWWWWWWWWW
+
+# Dead-End Doom
+5 20 10 
+WWWWWWWWWWWWWWWWWWWW
+W>        WWWWWW   W
+WW WWWWWW        W W
+W  W   WW WWWWWWWW W
+W WW WWW        WW W
+W    WW  WWWWWW WW W
+WWWWWWW WWW  WW  W W
+WW          WWW WW W
+W  WWW WWWWWWG  W  W
+WWWWWWWWWWWWWWWWWWWW
 
