@@ -80,22 +80,21 @@ int tick(char* sensorInput)
         chooseCommand(ep);
         //}
     }
-    
+/*    
     //Debugging
     printf("Level 0 Action Rules>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     displayRules(g_actionRules->array[0], g_epMem->array[0]);
-    /*
     printf("Level 1 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     displayRules(g_semMem->array[1], g_epMem->array[1]);
     printf("Level 2 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     displayRules(g_semMem->array[2], g_epMem->array[2]);
     printf("Level 3 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     displayRules(g_semMem->array[3], g_epMem->array[3]);
-    */
+
 
     printf("Level 0 Sequences\n");
     displaySequences(g_sequenceRules->array[0]);
-
+*/
     // Print out the parsed episode if not in statsMode
     if(g_statsMode == 0)
     {

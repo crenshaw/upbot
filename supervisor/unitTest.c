@@ -78,9 +78,11 @@ void loadMap(int mapNum)
 		// Match the character to those available and set the possible vars
 		switch(c)
 		{
+			// Virtual map elements
 			case 'W': virtualElement = V_WALL; 		break;
 			case ' ': virtualElement = V_HALLWAY; 	break;
 			case 'G': virtualElement = V_GOAL; 		break;
+			// Virtual roomba elements
 			case '^': virtualElement = V_ROOMBA; g_init_heading = HDG_N; break;
 			case '/': virtualElement = V_ROOMBA; g_init_heading = HDG_NE; break;
 			case '>': virtualElement = V_ROOMBA; g_init_heading = HDG_E; break;
