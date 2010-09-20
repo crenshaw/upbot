@@ -14,7 +14,7 @@
 
 
 // The chance of choosing a random move
-int g_randChance = 80;
+int g_randChance = 100;
 // global strings for printing to console
 char* g_forward = "forward";
 char* g_right   = "right";
@@ -80,21 +80,21 @@ int tick(char* sensorInput)
         chooseCommand(ep);
         //}
     }
-/*    
+    
     //Debugging
     printf("Level 0 Action Rules>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     displayRules(g_actionRules->array[0], g_epMem->array[0]);
-    printf("Level 1 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+/*    printf("Level 1 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     displayRules(g_semMem->array[1], g_epMem->array[1]);
     printf("Level 2 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     displayRules(g_semMem->array[2], g_epMem->array[2]);
     printf("Level 3 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     displayRules(g_semMem->array[3], g_epMem->array[3]);
-
+*/
 
     printf("Level 0 Sequences\n");
     displaySequences(g_sequenceRules->array[0]);
-*/
+
     // Print out the parsed episode if not in statsMode
     if(g_statsMode == 0)
     {
@@ -253,18 +253,20 @@ int updateRules(int level)
         return -2;
     }
 
-    // If this is the first new action rule after finding a rule
+/*    // If this is the first new action rule after finding a goal,
     // then we want to create a new sequence.
-    if (episodeList->size > 2 && containsGoal(episodeList->array[episodeList->size - 3], level))
+    if (episodeList->size > 2 &&
+         containsGoal(episodeList->array[episodeList->size - 3], level))
     {
         // create the empty vector to hold the sequence
         addEntry(sequenceList, newVector());
     }
-
+*/
     // we want to have a pointer to the most recent sequence in the list
     // so we can add new action rules to it as they're encountered
     currSequence = sequenceList->array[sequenceList->size - 1];
-    
+   
+        
     //Create a candidate rule that we would create from this current
     //episode.  We won't add it to the rule list if an identical rule
     //already exists.
@@ -361,6 +363,7 @@ int updateRules(int level)
                             if (compare(episodeList, newRule->outcome,
                                         cousin->outcome, level))
                             {
+                                
                                 cousin->freq++;
                                 addNewRule = FALSE;
                                 updateExistingRule = cousin;
@@ -651,6 +654,21 @@ displayRule(updateExistingRule);
 printf(" to current sequence\n");
         addActionToSequence(currSequence, updateExistingRule);
 
+        // if updateExistingRule is percentage rule,
+        // then break and create a new sequence
+     
+        if ((currSequence->size > 1
+             && updateExistingRule->isPercentageRule))
+        {
+        // create the empty vector to hold the sequence
+            currSequence = newVector();
+            addEntry(sequenceList, currSequence);
+            if (!updateExistingRule->containsGoal)
+            {
+                addActionToSequence(currSequence, updateExistingRule);
+            }
+        }
+        
         // this rule then becomes an episode in our next level
         if(level + 1 < MAX_META_DEPTH)
         {
