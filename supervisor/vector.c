@@ -31,13 +31,7 @@ void freeVector(Vector* victim)
 	{
 		return;
 	}
-	int i;
-	// Free all memory pointed to by vector before freeing vector
-	for(i = 0; i < victim->size; i++)
-	{
-		free(victim->array[i]);
-		victim->array[i] = NULL;
-	}
+
 	// Free the vector memory
 	free(victim->array);
 	free(victim);

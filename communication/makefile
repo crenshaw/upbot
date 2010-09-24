@@ -24,6 +24,7 @@ supclient:	supervisorClient.c communication.h serverUtility.c ../supervisor/supe
 
 unittest: unitTestServer.c serverUtility.c ../supervisor/unitTest.h commandQueue.c
 	gcc -o unitTestServer.out unitTestServer.c serverUtility.c ../supervisor/unitTest.c commandQueue.c
+	gcc -o simpleTest.out ../supervisor/unitTestMain.c ../supervisor/supervisor.c ../supervisor/vector.c
 
 brainstem: brainstem.c communication.h serverUtility.c commandQueue.c tell.c compass.o nerves.o move.o sensors.o led.o song.o utility.o ../roomba/roomba.h
 	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c commandQueue.c tell.c compass.o nerves.o move.o sensors.o led.o song.o utility.o

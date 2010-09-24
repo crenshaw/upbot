@@ -51,8 +51,8 @@ typedef struct EpisodeStruct
 typedef struct RuleStruct
 {
     Vector *epmem;              // the episodic memory for this rule.  This will
-                                // contain either Episodes (for base rules)
-                                // or Rules (for meta-rules)
+                                // contain either Episodes (for level 0)
+                                // or sequences (for level 1+)
     int level;                  // what level is this rule?
 	int index;                  // index into epmem where the rule's LHS ends
 	int length;                 // number of entries in the LHS
@@ -94,6 +94,7 @@ Vector* g_sequenceRules;
 Route*  g_route;
 
 // Function declarations
+extern void simpleTest();
 extern int tick(char* sensorInput);
 extern char* interpretCommand(int cmd);
 char* interpretCommandShort(int cmd);

@@ -41,7 +41,84 @@ int g_goalCount = 0;                                            // Number of goa
 int g_goalIdx[NUM_GOALS_TO_FIND];
 
 
+/**
+ * simpleTest
+ *
+ * This function is called at regular intervals and processes
+ * the recent sensor data to determine the next action to take.
+ *
+ * @param sensorInput a char string wth sensor data
+ * @return int a command for the Roomba (negative is error)
+ */
+void simpleTest()
+{
+    char* noHit    = "0000000000                 ";  // no hit is zero
+    char* rightHit = "0000000010                 ";  // right hit is 2
+    char* leftHit  = "0000000001                 ";  // left hit is 1
+    char* bothHit  = "0000000011                 ";  // both hit is 3
+    char* goal     = "1000000000                 ";  // goal is 512
 
+    char* sensors[] = {noHit, noHit, bothHit, noHit, bothHit, noHit,
+                      noHit, noHit, noHit, noHit, bothHit, noHit,
+                      noHit, noHit, goal};
+    
+    int cmds[] = {CMD_LEFT, CMD_FORWARD, CMD_RIGHT, CMD_FORWARD,
+                 CMD_RIGHT, CMD_FORWARD, CMD_LEFT, CMD_LEFT,
+                 CMD_LEFT, CMD_FORWARD, CMD_LEFT, CMD_FORWARD,
+                 CMD_RIGHT, CMD_FORWARD};
+
+    int i;
+
+    for (i = 0; i < 15; i++)
+    {
+        // Create new Episode
+        printf("Creating and adding episode...\n");
+        Episode* ep = createEpisode(sensors[i]);
+        // Add new episode to the history
+        addEpisode(g_epMem->array[0], ep);
+        printf("Episode created\n");
+
+        updateRules(0);
+
+        // If we found a goal, send a song to inform the world of success
+        // and if not then send ep to determine a valid command
+        if(episodeContainsGoal(ep, FALSE))
+        {
+            ep->cmd = CMD_SONG;
+            g_route->needsRecalc = TRUE;
+        }
+        else
+        {
+            // Use shortcircuiting to only call takeNextStep if a goal has been
+            // found. This is because there is no route to follow until after
+            // the first goal.
+            //if(g_goalCount <= 0 || setCommand2(ep))
+            //{
+            ep->cmd = cmds[i];
+            //}
+        }
+
+        //Debugging
+        printf("Level 0 Action Rules>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+        displayRules(g_actionRules->array[0], g_epMem->array[0]);
+        /*    printf("Level 1 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+              displayRules(g_semMem->array[1], g_epMem->array[1]);
+              printf("Level 2 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+              displayRules(g_semMem->array[2], g_epMem->array[2]);
+              printf("Level 3 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+              displayRules(g_semMem->array[3], g_epMem->array[3]);
+        */
+
+        printf("Level 0 Sequences\n");
+        displaySequences(g_sequenceRules->array[0]);
+
+        // Print out the parsed episode if not in statsMode
+        if(g_statsMode == 0)
+        {
+            displayEpisode(ep);
+        }
+    }
+}// simpleTest
 
 /**
  * tick
@@ -65,7 +142,7 @@ int tick(char* sensorInput)
 
     // If we found a goal, send a song to inform the world of success
     // and if not then send ep to determine a valid command
-    if(containsGoal(ep, FALSE))
+    if(episodeContainsGoal(ep, FALSE))
     {
         ep->cmd = CMD_SONG;
         g_route->needsRecalc = TRUE;
@@ -248,7 +325,7 @@ int updateRules(int level)
 
     //If the most recent complete episode was a goal then return.  We
     //don't want any goals on the LHS of any rule.
-    if (containsGoal(episodeList->array[episodeList->size - 2], level))
+    if (episodeContainsGoal(episodeList->array[episodeList->size - 2], level))
     {
         return -2;
     }
@@ -265,8 +342,7 @@ int updateRules(int level)
     // we want to have a pointer to the most recent sequence in the list
     // so we can add new action rules to it as they're encountered
     currSequence = sequenceList->array[sequenceList->size - 1];
-   
-        
+
     //Create a candidate rule that we would create from this current
     //episode.  We won't add it to the rule list if an identical rule
     //already exists.
@@ -280,10 +356,16 @@ int updateRules(int level)
     newRule->overallFreq            = NULL;
     newRule->cousins                = NULL;
     newRule->isPercentageRule       = FALSE;
-    newRule->containsGoal           = containsGoal(episodeList->array[episodeList->size - 1], level);
+    printf("contains goal...!\n");
+    fflush(stdout);
 
+    printf("this line is crashing it\n");
+    newRule->containsGoal           = episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
+    
     printf("candidate rule: ");
+    fflush(stdout);
     displayRule(newRule);
+    printf("wait no it's not\n");
     printf("\n");
     fflush(stdout);
 
@@ -428,7 +510,7 @@ int updateRules(int level)
                             //goal on LHS
                             int newLHSEntryIndex = newRule->index - newRule->length;
 
-                            if (containsGoal(episodeList->array[newLHSEntryIndex],
+                            if (episodeContainsGoal(episodeList->array[newLHSEntryIndex],
                                              level))
                             {
 #if DEBUGGING
@@ -573,7 +655,7 @@ int updateRules(int level)
                         //-----This is the part that I added
                         int newLHSEntryIndex = newRule->index - newRule->length;
 
-                        if (containsGoal(episodeList->array[newLHSEntryIndex],
+                        if (episodeContainsGoal(episodeList->array[newLHSEntryIndex],
                                          level))
                         {
 #if DEBUGGING
@@ -654,29 +736,44 @@ displayRule(updateExistingRule);
 printf(" to current sequence\n");
         addActionToSequence(currSequence, updateExistingRule);
 
-        // if updateExistingRule is percentage rule,
-        // then break and create a new sequence
-     
-        if ((currSequence->size > 1
-             && updateExistingRule->isPercentageRule))
+        //
+
+        
+        // if the rule we just added is percentage rule or contains a
+        //goal then end the current sequence and start a new one
+        if (updateExistingRule->isPercentageRule
+            || updateExistingRule->containsGoal)
         {
-        // create the empty vector to hold the sequence
+            assert(currSequence->size > 1); 
+            
+            // this newly completed sequence becomes the next episode in the
+            // next level's episodic memory
+            if (level + 1 < MAX_META_DEPTH)
+            {
+                episodeList = g_epMem->array[level + 1];
+                addEntry(episodeList, currSequence);
+            }
+        
+            // create an vector to hold the next sequence 
             currSequence = newVector();
             addEntry(sequenceList, currSequence);
+            //typically the next sequence starts with the action that
+            //ended the last sequence.  (Exception:  last action
+            //contains a goal)
             if (!updateExistingRule->containsGoal)
             {
                 addActionToSequence(currSequence, updateExistingRule);
             }
+
+            // this sequence then becomes an episode in our next level
+            // so we need recursive call to update.
+            if(level + 1 < MAX_META_DEPTH)
+            {
+                updateRules(level + 1);
+            }
         }
         
-        // this rule then becomes an episode in our next level
-        if(level + 1 < MAX_META_DEPTH)
-        {
-            episodeList = g_epMem->array[level + 1];
-            addEntry(episodeList, updateExistingRule);
-            updateRules(level + 1);
-        }
-    }
+    }//if
 
     return 0;
 }// updateRules
@@ -867,10 +964,10 @@ void displayRule(Rule* rule)
         Vector* episodeList = (Vector*)g_epMem->array[0];
         printf("%i", interpretSensorsShort(((Episode*)episodeList->array[rule->outcome])->sensors));
     }
-    else //meta-rule
+    else
     {
         printf("{ ");
-        displayRule((Rule*)rule->epmem->array[rule->outcome]);
+        displaySequence((Vector*)rule->epmem->array[rule->outcome]);
         printf(" }");
     }
 
@@ -895,7 +992,7 @@ void displayRule(Rule* rule)
         else //meta-rule
         {
             printf("{ ");
-            displayRule((Rule*)rule->epmem->array[rule->index - i]);
+            displaySequence((Vector*)rule->epmem->array[rule->index - i]);
             printf(" }");
         }
 
@@ -1080,7 +1177,7 @@ return 1;
      currEp->cmd = nextStep->cmd;
 
      // if next step is a goal episode, then set route needs recalc
-     if(containsGoal(rule, TRUE) && currEpIR == rule->length-1) {
+     if(rule->containsGoal && currEpIR == rule->length-1) {
          g_route->needsRecalc = TRUE;
      }
 
@@ -1376,7 +1473,7 @@ int planRoute(Episode* currEp)
     int i;
     for(i = 0; i < ruleList->size; i++)
     {
-        if(containsGoal((Rule*)ruleList->array[i], TRUE))
+        if((((Rule*)ruleList->array[i])->containsGoal, TRUE))
         {
             goalRule = i;
             break;
@@ -1632,30 +1729,36 @@ int compare(Vector *list, int i1, int i2, int level)
 }//compare
 
 /**
- * containsGoal
+ * episodeContainsGoal
  *
- * This routine determines whether a given Rule or Episode contains a goal.
+ * This routine determines whether a given episode contains a
+ * goal. Depending on the level the episode may be an Episode struct
+ * or a sequence.
  *
  * @arg entry      a pointer to an Episode or Rule struct
  * @arg level      is TRUE if entry is an Episode (false for a rule)
  * @return TRUE if the entry is a goal and FALSE otherwise
  */
-int containsGoal(void *entry, int level)
+int episodeContainsGoal(void *entry, int level)
 {
-    if (!level)
+    if (level == 0)
     {
         Episode* ep = (Episode *)entry;
 
         //For base rules, a goal is indicated by the IR sensor on the episode
         return ep->sensors[SNSR_IR];
     }
-    else //meta-rule
+    else //sequence
     {
-        Rule *rule = (Rule *)entry;
-        //For a meta-rule, a goal is indicated by "containsGoal" 
+        Vector *sequence = (Vector *)entry;
+        printf("sequence->size=%d\n", sequence->size);
+        displaySequence(sequence);
+        Rule *rule = (Rule *)sequence->array[sequence->size - 1];
+        
+        //For a meta-rule, a goal is indicated by "containsGoal"
         return rule->containsGoal;
     }
-}//containsGoal
+}//episodeContainsGoal
 
 
 /**
@@ -1707,41 +1810,74 @@ void initSupervisor()
  */
 void endSupervisor() 
 {
-    int i;
-    int j;
+    // counting variables
+    int i, j, k;
 
-    for(i = 0; i < g_epMem->size; i++)
-    { 
-        freeVector((Vector*)g_epMem->array[i]);
-    }
-
-    for(i = 0; i < g_actionRules->size; i++)
+    // assume that the number of sequences,
+    // actions and episodes is the same, level-wise
+    for(i = MAX_META_DEPTH - 1; i >= 0; i--)
     {
-        Vector* cousins = ((Rule*)g_actionRules->array[i])->cousins;
-        if(cousins != NULL)
+        // Create pointers to the two associated vectors we'll be working with
+        Vector* ruleList = g_actionRules->array[i];
+        Vector* episodeList = g_epMem->array[i];
+        Vector* sequenceList = g_sequenceRules->array[i];
+        
+        // cleanup sequences at the current level
+        for(j = 0; j < sequenceList->size; j++)
         {
-
-            for(j = 0; j < cousins->size; j++) 
-            {
-                ((Rule*)cousins->array[j])->cousins = NULL;
-            }
-
-            freeVector(((Rule*)(Vector*)g_actionRules->array[i])->cousins);                 
+            freeVector((Vector*)sequenceList->array[j]);  
         }
 
-        freeVector((Vector*)g_actionRules->array[i]);
-    }  
+        //cleanup actions at the current level
+        for(j = 0; j < ruleList->size; j++)
+        {
+            //If this is an inconsistent rule we need to clean up
+            //the cousins list before we deallocate the rules
+            Vector* cousins = ((Rule*)ruleList->array[j])->cousins;
+            if(cousins != NULL)
+            {
 
-    for(i = 0; i < g_sequenceRules->size; i++)
-    {
-        freeVector((Vector*)g_sequenceRules->array[i]);  
-    }
+                //Make sure no rule has a reference to the cousins
+                //list anymore.
+                for(k = 0; k < cousins->size; k++) 
+                {
+                    ((Rule*)cousins->array[k])->cousins = NULL;
+                }
 
+                //now it's save to free the list
+                freeVector(cousins);
+            }
+
+            free((Rule*)ruleList->array[j]);
+        }//for
+
+        //cleanup the episodes at this level
+        for(j = 0; j < episodeList->size; j++)
+        {
+            //at level 0, this is an array of pointers to Episode structs
+            //which need to be cleaned up.
+            if (i == 0)
+            {
+                for(int k = 0; k < episodeList->size; k++)
+                {
+                    Episode *ep = (Episode *)episodeList->array[j];
+                free(ep);
+            }
+
+            //now safe to free the list
+            freeVector((Vector*)episodeList->array[j]);
+        }//for
+        
+        
+    }//for
+
+    //free the global list
     freeVector(g_epMem);
     freeVector(g_actionRules);
     freeVector(g_route->route);
 
     free(g_route);
+    printf("end of function\n");
 }// endSupervisor
 
 /**
