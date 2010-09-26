@@ -1827,6 +1827,7 @@ void endSupervisor()
         {
             freeVector((Vector*)sequenceList->array[j]);  
         }
+        freeVector(sequenceList);
 
         //cleanup actions at the current level
         for(j = 0; j < ruleList->size; j++)
@@ -1850,6 +1851,7 @@ void endSupervisor()
 
             free((Rule*)ruleList->array[j]);
         }//for
+        freeVector(ruleList);
 
         //cleanup the episodes at this level
         for(j = 0; j < episodeList->size; j++)
@@ -1858,15 +1860,16 @@ void endSupervisor()
             //which need to be cleaned up.
             if (i == 0)
             {
-                for(int k = 0; k < episodeList->size; k++)
+                for(k = 0; k < episodeList->size; k++)
                 {
-                    Episode *ep = (Episode *)episodeList->array[j];
-                free(ep);
+                    Episode *ep = (Episode *)episodeList->array[k];
+                    free(ep);
+                }
             }
 
             //now safe to free the list
-            freeVector((Vector*)episodeList->array[j]);
         }//for
+        freeVector((Vector*)episodeList->array[j]);
         
         
     }//for

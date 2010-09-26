@@ -70,7 +70,7 @@ void printCommand(command_t * cmd)
 {
   if(cmd != NULL)
     {
-      printf("   print command: %c received at %d seconds\n", cmd->command, cmd->timestamp);
+      printf("   print command: %c received at %d seconds\n", cmd->command, (int)cmd->timestamp);
       return;
     }
 
@@ -325,7 +325,7 @@ void printCommandQueueEntry(caddr_t q, int entry)
   printf("\nSource %s, Line %d:  command address = 0x%x\n", __FILE__, __LINE__, command);
 #endif
 
-  printf("   command queue entry %d == %c at %d seconds\n", entry, *command, *timestamp);
+  printf("   command queue entry %d == %c at %d seconds\n", entry, *command, (int)(*timestamp));
 
   return;
 
@@ -352,7 +352,7 @@ void printCommandQueueHeader(caddr_t q)
 		 *((int *)(q + CQ_SIZE_OFFSET)),
 		 *((int *)(q + CQ_RPOS_OFFSET)),
 		 *((int *)(q + CQ_WPOS_OFFSET)),
-		 (int *)(q + CQ_QUEUE_OFFSET));
+		 (unsigned int)(q + CQ_QUEUE_OFFSET));
 	  
 	  return;
     }
