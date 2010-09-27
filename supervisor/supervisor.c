@@ -10,7 +10,7 @@
  *
  */
 
-#define DEBUGGING 0
+#define DEBUGGING 1
 
 
 // The chance of choosing a random move
@@ -356,16 +356,13 @@ int updateRules(int level)
     newRule->overallFreq            = NULL;
     newRule->cousins                = NULL;
     newRule->isPercentageRule       = FALSE;
-    printf("contains goal...!\n");
     fflush(stdout);
 
-    printf("this line is crashing it\n");
     newRule->containsGoal           = episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
     
     printf("candidate rule: ");
     fflush(stdout);
     displayRule(newRule);
-    printf("wait no it's not\n");
     printf("\n");
     fflush(stdout);
 
@@ -527,7 +524,7 @@ int updateRules(int level)
                             }
 
                             //Check for reason #2: no room to expand
-                            else if(curr->index - curr->length <= 0)
+                            else if(curr->index - curr->length < 0)
                             {
 #if DEBUGGING
                                 printf("avail space: %i,  curr expands outside goal\n",
@@ -923,10 +920,43 @@ void displaySequence(Vector* sequence)
         printf(":");
     }
     printf("}\n");
+}//displaySequence
 
+/**
+ * displaySequenceShort
+ *
+ * prints a human-readable version of a sequence in a condensed format
+ *
+ * @arg sequence a vector pointer to the sequence we want to display
+ */
+void displaySequenceShort(Vector* sequence)
+{
+    int i,j; // counting variable
+    // dont print an empty sequence
+    if (sequence -> size < 1) return;
 
-    
-}
+    printf("{");
+    for(i = 0; i < sequence->size; i++)
+    {
+		// grab the level from the current sequence
+		int currLevel = ((Rule*)sequence->array[i])->level;
+		// grab the associated action rules this sequence is composed from
+		Vector* actionList = g_actionRules->array[currLevel];
+		// search for the rule that the sequence is referring to
+		for(j = 0; j < actionList->size; j++)
+		{
+			// print the index of the current action
+			if(actionList->array[j] == sequence->array[i])
+			{
+				printf("%i", j);
+				break;
+			}
+		}
+		// delimiter
+        printf(",");
+    }
+    printf("}\n");
+}//displaySequenceShort
 
 /**
  * displaySequences
@@ -940,7 +970,7 @@ void displaySequences(Vector* sequences)
     for(i = 0; i < sequences->size; i++)
     {
         printf("%3i. ", i);
-        displaySequence(sequences->array[i]);
+        displaySequenceShort(sequences->array[i]);
         printf("\n");
     }
 }
