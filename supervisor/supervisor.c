@@ -750,10 +750,21 @@ printf(" to current sequence\n");
                 episodeList = g_epMem->array[level + 1];
                 addEntry(episodeList, currSequence);
             }
-        
-            // create an vector to hold the next sequence 
-            currSequence = newVector();
-            addEntry(sequenceList, currSequence);
+        	
+			// if the sequence we just completed already exists then
+			// reset the vector's size to 0
+			// This will allow updateRules to reuse the same vector
+			// without needing to free memory
+			if(containsSequence(sequenceList, currSequence, FALSE))
+			{
+				currSequence->size = 0;
+			}
+			else
+			{
+            	// create an vector to hold the next sequence 
+            	currSequence = newVector();
+            	addEntry(sequenceList, currSequence);
+			}
             //typically the next sequence starts with the action that
             //ended the last sequence.  (Exception:  last action
             //contains a goal)
@@ -1716,6 +1727,60 @@ int compareRules(Rule* r1, Rule* r2)
 
     return TRUE;
 }//compareRules
+
+/**
+* containsSequence
+*
+* Check a list of sequences for a previous occurence of a particular
+* sequence
+*
+* @arg sequenceList A vector containing a series of sequences
+* @arg seq A vector containing our current sequence
+* @arg checkFinal If TRUE then check the final sequence in the list, else stop 
+*					2 from end
+* @return TRUE if the sequence is contained within the list
+*/
+int containsSequence(Vector* sequenceList, Vector* seq, int checkFinal)
+{
+	int i;
+	// determine what the stopping point should be
+	int stop = (checkFinal ? sequenceList->size : sequenceList->size - 1);
+	for(i = 0; i < stop; i++)
+	{
+		// if we come across the sequence in the list then return 'found'
+		if(compareSequences((Vector*)sequenceList->array[i], seq)) return TRUE;
+	}
+	// otherwise it's not there
+	return FALSE;
+}//containsSequence
+
+/**
+* compareSequences
+*
+* Compare two sequences and return TRUE if they contain the same
+* sequence of action rules. 
+*
+* @arg seq1 A vector containing the first sequence
+* @arg seq2 A vector containing the second sequence
+* @return TRUE if they are a match
+*/
+int compareSequences(Vector* seq1, Vector* seq2)
+{
+	// make sure they contain the same number of rules
+	if(seq1->size != seq2->size) return FALSE;
+	// make sure they are at the same level
+	if(((Rule*)seq1->array[0])->level != ((Rule*)seq2->array[0])->level) return FALSE;
+
+	int i;
+	// iterate through and compare corresponding action rules
+	for(i = 0; i < seq1->size; i++)
+	{
+		// if the pointers are not the same then we have no match
+		if(seq1->array[i] != seq2->array[i]) return FALSE;
+	}
+	// success, we have a match
+	return TRUE;
+}//compareSequences
 
 /**
  * compare
