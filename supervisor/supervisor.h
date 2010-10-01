@@ -118,6 +118,7 @@ void displayRules(Vector* ruleList, Vector* episodeList);
 void displayRule(Rule* rule);
 void displaySequence(Vector* sequence);
 void displaySequences(Vector* sequences);
+Vector* containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf);
 Rule* ruleMatch(int action);
 int equalEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
 int findTopMatch(double* scoreTable, double* indvScore, int command);

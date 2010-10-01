@@ -742,25 +742,32 @@ printf(" to current sequence\n");
             || updateExistingRule->containsGoal)
         {
             assert(currSequence->size > 1); 
-            
-            // this newly completed sequence becomes the next episode in the
-            // next level's episodic memory
-            if (level + 1 < MAX_META_DEPTH)
-            {
-                episodeList = g_epMem->array[level + 1];
-                addEntry(episodeList, currSequence);
-            }
-        	
+                                	
 			// if the sequence we just completed already exists then
 			// reset the vector's size to 0
 			// This will allow updateRules to reuse the same vector
 			// without needing to free memory
-			if(containsSequence(sequenceList, currSequence, FALSE))
+            Vector* duplicate = containsSequence(sequenceList, currSequence, TRUE);
+			if(duplicate != NULL)
 			{
 				currSequence->size = 0;
+                // this duplicate sequence becomes the next episode in the
+                // next level's episodic memory
+                if (level + 1 < MAX_META_DEPTH)
+                {
+                    episodeList = g_epMem->array[level + 1];
+                    addEntry(episodeList, duplicate);
+                }
 			}
 			else
 			{
+                // this newly completed sequence becomes the next episode in the
+                // next level's episodic memory
+                if (level + 1 < MAX_META_DEPTH)
+                {
+                    episodeList = g_epMem->array[level + 1];
+                    addEntry(episodeList, currSequence);
+                }
             	// create an vector to hold the next sequence 
             	currSequence = newVector();
             	addEntry(sequenceList, currSequence);
@@ -1736,22 +1743,28 @@ int compareRules(Rule* r1, Rule* r2)
 *
 * @arg sequenceList A vector containing a series of sequences
 * @arg seq A vector containing our current sequence
-* @arg checkFinal If TRUE then check the final sequence in the list, else stop 
-*					2 from end
-* @return TRUE if the sequence is contained within the list
+* @arg ignoreSelf If TRUE then if you find seq in sequenceList ignore
+*                 it (i.e., we are looking for duplicate not itself)
+* @return a pointer to the sequence if it is found, NULL otherwise
 */
-int containsSequence(Vector* sequenceList, Vector* seq, int checkFinal)
+Vector* containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf)
 {
 	int i;
+    
 	// determine what the stopping point should be
-	int stop = (checkFinal ? sequenceList->size : sequenceList->size - 1);
-	for(i = 0; i < stop; i++)
+	for(i = 0; i < sequenceList->size; i++)
 	{
 		// if we come across the sequence in the list then return 'found'
-		if(compareSequences((Vector*)sequenceList->array[i], seq)) return TRUE;
+        Vector *toCompare = (Vector*)sequenceList->array[i];
+		if(compareSequences(toCompare, seq))
+        {
+            if (!ignoreSelf) return toCompare;
+
+            if (seq != toCompare) return toCompare;
+        }
 	}
 	// otherwise it's not there
-	return FALSE;
+	return NULL;
 }//containsSequence
 
 /**
