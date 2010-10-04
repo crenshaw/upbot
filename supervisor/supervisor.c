@@ -1,14 +1,24 @@
 #include "supervisor.h"
 
-/**
+/*
  * This file contains the code for the Supervisor. All the functions
  * that are needed for processing raw sensor data are contained in 
  * this file as well as those for determining new commands
  *
  * Author: Dr. Andrew Nuxoll and Zachary Paul Faltersack
- * Last Edit: September 13, 2010
  *
  */
+
+/*
+ * Minor Maintenance To-Do List
+ *
+ * 1.  refactor the code so that it says "action" instead of "rule" and
+ *     "sequence" instead of "meta-rule"
+ * 2.  Review updateRules() and try to simplify it.  Break it up into parts?
+ * 3.  Add a method to the vector that allows insert and delete and use it?  I'm
+ *     not sure that this will make the code easier to read but it might help.
+ */
+ 
 
 #define DEBUGGING 1
 
@@ -315,7 +325,6 @@ int updateRules(int level)
     Vector* ruleList = g_actionRules->array[level];
     Vector* episodeList = g_epMem->array[level];
     Vector* sequenceList = g_sequenceRules->array[level];
-    Vector* currSequence;
 
     //You need a minimum of two episodes to make a rule
     if(episodeList->size <= 1)
@@ -330,19 +339,6 @@ int updateRules(int level)
         return -2;
     }
 
-/*    // If this is the first new action rule after finding a goal,
-    // then we want to create a new sequence.
-    if (episodeList->size > 2 &&
-         containsGoal(episodeList->array[episodeList->size - 3], level))
-    {
-        // create the empty vector to hold the sequence
-        addEntry(sequenceList, newVector());
-    }
-*/
-    // we want to have a pointer to the most recent sequence in the list
-    // so we can add new action rules to it as they're encountered
-    currSequence = sequenceList->array[sequenceList->size - 1];
-
     //Create a candidate rule that we would create from this current
     //episode.  We won't add it to the rule list if an identical rule
     //already exists.
@@ -356,9 +352,25 @@ int updateRules(int level)
     newRule->overallFreq            = NULL;
     newRule->cousins                = NULL;
     newRule->isPercentageRule       = FALSE;
-    fflush(stdout);
-
     newRule->containsGoal           = episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
+
+    //initialize containsStart to TRUE if this will be the very first rule
+    if (episodeList->size == 2)
+    {
+        newRule->containsStart          = TRUE;
+    }
+    //initialize containsStart to TRUE if the previous rule contained a goal
+    else if (((Rule *)ruleList->array[ruleList->size - 1])->containsGoal)
+    {
+        episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
+        newRule->containsStart          = TRUE;
+    }
+    //default:  containsStart=FALSE;
+    else
+    {
+        newRule->containsStart          = FALSE;
+    }
+
     
     printf("candidate rule: ");
     fflush(stdout);
@@ -582,7 +594,7 @@ int updateRules(int level)
 
 
 #if DEBUGGING
-                                printf("new %i:   ");
+                                printf("new curr:   ");
                                 displayRule(curr);
                                 printf("\n");
 
@@ -725,17 +737,19 @@ int updateRules(int level)
         free(newRule);
     }
 
-    // add most recently seen action rule to current sequence
+    //If we have added a new rule, or found an existing rule that matches the
+    //current situation then updateExistingRule will contain a pointer to that
+    //rule (otherwise NULL)
     if(updateExistingRule != NULL)
     {
 printf("Adding Rule: ");
 displayRule(updateExistingRule);
 printf(" to current sequence\n");
+
+        // add most recently seen action rule to current sequence
+        Vector* currSequence = sequenceList->array[sequenceList->size - 1];
         addActionToSequence(currSequence, updateExistingRule);
 
-        //
-
-        
         // if the rule we just added is percentage rule or contains a
         //goal then end the current sequence and start a new one
         if (updateExistingRule->isPercentageRule
@@ -772,6 +786,7 @@ printf(" to current sequence\n");
             	currSequence = newVector();
             	addEntry(sequenceList, currSequence);
 			}
+            
             //typically the next sequence starts with the action that
             //ended the last sequence.  (Exception:  last action
             //contains a goal)
@@ -786,7 +801,7 @@ printf(" to current sequence\n");
             {
                 updateRules(level + 1);
             }
-        }
+        }//if
         
     }//if
 
@@ -1203,7 +1218,7 @@ int takeNextStep(Episode* currEp)
     Vector* ruleList        = g_actionRules->array[0];
     Vector* route           = g_route->route;
     int     currRule        = g_route->currRule;
-    int             currEpIR        = g_route->currEpInRule;
+    int     currEpIR        = g_route->currEpInRule;
     Rule*   rule            = ruleList->array[*((int*)route->array[currRule])];
     Episode* nextStep       = episodeList->array[rule->index - (rule->length - 1 - currEpIR)];
 
@@ -1583,6 +1598,105 @@ int planRoute(Episode* currEp)
 }// planRoute
 
 /**
+ * initRoute
+ *
+ * this method uses Djikstra's algorithm to find a shortest path from the
+ * start state to the goal at a given level.  A route is vector of one or more
+ * sequences that define such a path.
+ *
+ * @arg level  is the level to create this route at
+ * @arg route  is the Route struct to populate with this new route.
+ * 
+ * @return a success/error code (0=success)
+ */
+int initRoute(int level, Route *route)
+{
+    
+    return 0;
+}//initRoute
+
+/**
+ * createRouteFromSequence
+ *
+ * this method initializes a given route with the rules in a given sequence.
+ * The internal variables are set as if the agent is about to begin the
+ * sequence.
+ *
+ * CAVEAT: The Route and its internal vector should already be allocated.
+ * CAVEAT: Any existing route will be lost
+ *
+ * @arg route the route to initialize
+ * @arg seq   the sequence to initialize with with
+ *
+ */
+void createRouteFromSequence(Route *route, Vector *seq)
+{
+    //%%TBD
+    
+}//createRouteFromSequence
+
+/**
+ * initPlan
+ *
+ * this method uses Djikstra's algorithm to find a shortest path from the
+ * start state to the goal.  A plan is a vector of routes (one per level)
+ * 
+ * @return a pointer to the plan or NULL if no plan was found
+ */
+Vector* initPlan()
+{
+    int i;                      // iterator
+
+    //find out what the highest level is that has any sequences
+    int level = 0;
+    for(i = MAX_META_DEPTH-1; i > 0; i--)
+    {
+        Vector *seqList = (Vector *)g_sequenceRules->array[i];
+        if (seqList->size > 0)
+        {
+            level = i;
+            break;
+        }
+    }//for
+
+
+    //If there are no sequences above level 0, we can't make a plan
+    if (level == 0)
+    {
+        return NULL;
+    }
+
+    //Initialize an empty plan.  This will eventually be our return value.
+    Vector *resultPlan = newPlan();
+
+    //Try to initialize the route at the current level
+    int retVal = initRoute(level, (Route *)resultPlan->array[level]);
+    if (retVal != 0)
+    {
+        //Give up if no route can be found
+        freePlan(resultPlan);
+        return NULL;
+    }
+
+    //Initialize the route at subsequent levels.  Each route is based on the
+    //current sequence in the route at the previous level
+    for(i = level - 1; i >= 0; i--)
+    {
+        //Get the first sequence in the previous level's route
+        Route *parentRoute = (Route *)resultPlan->array[i+1];
+        Vector *parentSeq = (Vector *)parentRoute->route->array[0];
+
+        //initialize this route with it
+        Route *currRoute = (Route *)resultPlan->array[i];
+        createRouteFromSequence(currRoute, parentSeq);
+    }//for
+
+    return resultPlan;
+}// initPlan
+
+
+
+/**
  * addRuleToRoute
  *
  * This method takes an index to a rule to add to the route
@@ -1597,6 +1711,63 @@ void addRuleToRoute(int ruleIdx)
     addEntry(g_route->route, temp);
     g_route->numRules += 1;
 }// addRuleToRoute
+
+/**
+ * newPlan()
+ *
+ * This method initializes a new, empty plan.  A plan is a Vector of Route
+ * structs. 
+ */
+Vector *newPlan()
+{
+    int i;
+    Vector *newPlan = newVector(); // return value
+    for(i = 0; i < MAX_META_DEPTH; i++)
+    {
+        Route *r = (Route*)malloc(sizeof(Route));
+
+        r->route = newVector();
+        r->currRule     = 0;
+        r->currEpInRule = 0;	
+        r->needsRecalc  = FALSE;	
+        r->numRules     = 0;
+        
+        addEntry(newPlan, r);
+    }//for
+    
+    
+}//newPlan
+
+/**
+ * freePlan()
+ *
+ * This method frees the memory used by a plan.  It frees the following memory:
+ *  - the vector that the plan is made of
+ *  - the Route structs at each level of the plan
+ *  - the vectors in the Route structs that contain pointers
+ * 
+ */
+void freePlan(Vector *plan)
+{
+    int i;
+    if (plan == NULL) return;
+
+    //for each route in the plan
+    for(i = 0; i < plan->size; i++)
+    {
+        //get a pointer to the route
+        Route *r = (Route *)plan->array[i];
+        if (r == NULL) continue;
+
+        //free both the route and it's internal vector
+        if (r->route != NULL) freeVector(r->route);
+        free(r);
+    }//for
+
+    freeVector(plan);
+
+}//freePlan
+
 
 /**
  * findTopMatch
@@ -1859,7 +2030,7 @@ int episodeContainsGoal(void *entry, int level)
     else //sequence
     {
         Vector *sequence = (Vector *)entry;
-        printf("sequence->size=%d\n", sequence->size);
+        printf("sequence->size=%d\n", (int)(sequence->size));
         displaySequence(sequence);
         Rule *rule = (Rule *)sequence->array[sequence->size - 1];
         

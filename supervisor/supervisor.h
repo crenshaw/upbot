@@ -67,6 +67,7 @@ typedef struct RuleStruct
                                 // "cousin" rules including itself.
                                 // Non-percentage rules have a NULL list.
     int containsGoal;           // Does this rule contain a goal on the RHS?
+    int containsStart;          // Does this rule contain a starting state on the LHS?
 } Rule;
 
 typedef struct RouteStruct
@@ -110,6 +111,8 @@ int addRule(Vector* rules, Rule* item, int checkRedundant);
 void addRuleToRoute(int ruleIdx);
 int planRoute(Episode* currEp);
 int takeNextStep(Episode* currEp);
+Vector *newPlan();
+void freePlan(Vector *plan);
 int setCommand2(Episode* ep);
 int nextStepIsValid();
 void displayRoute();
