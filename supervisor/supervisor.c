@@ -5,8 +5,9 @@
  * that are needed for processing raw sensor data are contained in 
  * this file as well as those for determining new commands
  *
- * Author: Dr. Andrew Nuxoll and Zachary Paul Faltersack
+ * Author: Dr. Andrew Nuxoll, Zachary Paul Faltersack, Brian Burns
  *
+ * Last updated: October 4, 2010
  */
 
 /*
@@ -370,7 +371,6 @@ int updateRules(int level)
     {
         newRule->containsStart          = FALSE;
     }
-
     
     printf("candidate rule: ");
     fflush(stdout);
@@ -1517,8 +1517,11 @@ int equalEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch)
 int planRoute(Episode* currEp)
 {
     // Set up pointers to episodic memory
-    Vector* ruleList        = g_actionRules->array[0];
-    Vector* epMem           = g_epMem->array[0];
+    Vector* sequenceList;
+    Vector* epMem;
+    int goalSequence; // used in the while loop to indicate the index of a
+                      // sequence that contains a goal
+    int i;            // counting variable
 
     // Free previous route and initialize new vector for new route
     freeVector(g_route->route);
@@ -1529,35 +1532,56 @@ int planRoute(Episode* currEp)
     g_route->currEpInRule   = 0;
     g_route->needsRecalc    = FALSE;
     g_route->numRules               = 0;
+    g_route->level = MAX_META_DEPTH - 1;
 
-
-    // Find a rule that contains a goal in its outcome
-    int goalRule = -1;
-    int i;
-    for(i = 0; i < ruleList->size; i++)
+    while (TRUE)
     {
-        if((((Rule*)ruleList->array[i])->containsGoal, TRUE))
+        // Find a rule that contains a goal in its outcome
+        goalSequence = -1;
+        sequenceList    = g_sequenceRules->array[g_route->level];
+        epMem           = g_epMem->array[g_route->level];
+
+        
+        for(i = 0; i < sequenceList->size; i++)
         {
-            goalRule = i;
+            Vector* currSequence = (Vector*)sequenceList->array[i];
+            Rule* lastRule = (Rule*)currSequence->array[currSequence->size - 1];
+            if(lastRule->containsGoal)
+            {
+                goalSequence = i;
+                break;
+            }
+        }
+        // if we found a rule, then stop
+        // otherwise, go down a level, and try again
+        if (goalSequence != -1)
+        {
             break;
         }
-    }
+        else if (g_route->level > 0)
+        {
+            g_route->level = g_route->level - 1;
+        }
+        // if we were already at level 0, and didn't find a goal rule, then
+        // we've failed
+        else
+        {
+            return 1;
+        }
+    }// while
 
-    Rule* goal = (Rule*)ruleList->array[goalRule];
+    Vector* goal = (Vector*)sequenceList->array[goalSequence];
 
-    // If no rule with goal was found, then return failure
-    if(goalRule == -1)
-    {
-        return 1;
-    }
+    //If the goal sequence also contains the a start state then the sequence is
+    //our entire route
+    //%%%TBD
 
-    // Check if goalRule happens to begin with currEp and if so, return it
-    if(equalEpisodes(epMem->array[goal->index - (goal->length - 1)], currEp, TRUE))
-    {
-        addRuleToRoute(goalRule);
-        return 0;
-    }
+    
 
+    
+    Vector* whereWeAre = (Vector*)g_epMem->array[g_route->level + 1];
+
+/********    
     // Try to piece together rules that lead to each other and create the 
     // shortest route possible. Need to make sure the outcome of the first
     // rule matches the sensor data of the first episode in the following 
@@ -1593,26 +1617,49 @@ int planRoute(Episode* currEp)
 
     // Put the goal rule at the end of the route
     addRuleToRoute(goalRule);
-
+*/
     return 0;
 }// planRoute
 
 /**
- * initRoute
+ *initRoute
  *
- * this method uses Djikstra's algorithm to find a shortest path from the
- * start state to the goal at a given level.  A route is vector of one or more
- * sequences that define such a path.
+ * *****************************************************************************
+ * ********************************* INCOMPLETE ********************************
+ * *****************************************************************************
  *
- * @arg level  is the level to create this route at
- * @arg route  is the Route struct to populate with this new route.
+ * This method uses Dijkstra's algorithm to find a shortest path from the
+ * start state to the goal state at a given level.  A route is vector of one or
+ * more sequences that define such a path.
+ *
+ * @arg level     is the level at which this route should exist
+ * @arg newRoute  is the Route struct to populate with this new route.
  * 
- * @return a success/error code (0=success)
+ * @return a success/error code
  */
-int initRoute(int level, Route *route)
+int initRoute(int level, Route* newRoute)
 {
+    // instance variables
+    Vector* route;  // the ordered list of rules stored as int indices into
+                    // ruleList
     
-    return 0;
+    int numRules;   // tells how many rules are in the route.  eventually, this
+                    // will become the value of route->numRules
+    
+    // initialize instance variables
+    route    = newRoute->route;
+    numRules = 0;
+    
+    // initialize things we know about a route that is just being created
+    newRoute->currRule     = 0;
+    newRoute->currEpInRule = 0;
+    newRoute->needsRecalc  = FALSE;
+    newRoute->level        = level;
+   
+    // update numRules field of the route with our calculated value
+    newRoute->numRules = numRules;
+    
+    return SUCCESS;
 }//initRoute
 
 /**
@@ -1652,7 +1699,7 @@ Vector* initPlan()
     for(i = MAX_META_DEPTH-1; i > 0; i--)
     {
         Vector *seqList = (Vector *)g_sequenceRules->array[i];
-        if (seqList->size > 0)
+        if (seqList->size > 1)
         {
             level = i;
             break;

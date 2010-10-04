@@ -10,8 +10,8 @@
 * returns a command to the Roomba based on the results of the 
 * data.
 *
-* Author: Zachary Paul Faltersack
-* Last edit: 27/5/10
+* Author: Zachary Paul Faltersack, Andrew Nuxoll, Brian Burns
+* Last edit: October 4, 2010
 */
 
 #include <stdio.h>
@@ -25,6 +25,7 @@
 // Boolean values
 #define TRUE				1
 #define FALSE				0
+#define SUCCESS             0
 
 // Matching defines
 #define NUM_TO_MATCH		15
@@ -72,16 +73,16 @@ typedef struct RuleStruct
 
 typedef struct RouteStruct
 {
-	Vector* route;				// The ordered list of rules(stored as int indices
+	Vector* route;				// The ordered list of rules stored as int indices
 								// into ruleList
-	int currRule;				// Where we currently are in the execution of the
+	int currSequence			// Our current location in the execution of the
 								// rules
 	int currEpInRule;			// Index into LHS of the current rule
 	int needsRecalc;			// If the data received while following the rules
 								// differs from the expected value then it needs
 								// to be recalculated and this informs when it 
 								// happens
-	int numRules;				// Number of rules in the route to goal
+    int level;                  // The level of this route
 } Route;
 
 // Global variables for monitoring and connecting
@@ -95,39 +96,39 @@ Vector* g_sequenceRules;
 Route*  g_route;
 
 // Function declarations
-extern void simpleTest();
-extern int tick(char* sensorInput);
+extern void  simpleTest();
+extern int   tick(char* sensorInput);
 extern char* interpretCommand(int cmd);
-char* interpretCommandShort(int cmd);
-int interpretSensorsShort(int *sensors);
+char*    interpretCommandShort(int cmd);
+int      interpretSensorsShort(int *sensors);
 Episode* createEpisode(char* sensorData);
-int chooseCommand(Episode* ep);
-int setCommand(Episode* ep);
-int parseEpisode(Episode* parsedData, char* dataArr);
-int updateRules();
-int addEpisode(Vector* episodes, Episode* item);
-int addActionToSequence(Vector* sequence,  Rule* action);
-int addRule(Vector* rules, Rule* item, int checkRedundant);
-void addRuleToRoute(int ruleIdx);
-int planRoute(Episode* currEp);
-int takeNextStep(Episode* currEp);
-Vector *newPlan();
-void freePlan(Vector *plan);
-int setCommand2(Episode* ep);
-int nextStepIsValid();
-void displayRoute();
-void displayEpisode(Episode* ep);
-void displayRules(Vector* ruleList, Vector* episodeList);
-void displayRule(Rule* rule);
-void displaySequence(Vector* sequence);
-void displaySequences(Vector* sequences);
-Vector* containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf);
-Rule* ruleMatch(int action);
-int equalEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
-int findTopMatch(double* scoreTable, double* indvScore, int command);
-int generateScoreTable(Vector* vector, double* score);
-double compareEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
-void initSupervisor();
-void endSupervisor();
+int      chooseCommand(Episode* ep);
+int      setCommand(Episode* ep);
+int      parseEpisode(Episode* parsedData, char* dataArr);
+int      updateRules();
+int      addEpisode(Vector* episodes, Episode* item);
+int      addActionToSequence(Vector* sequence,  Rule* action);
+int      addRule(Vector* rules, Rule* item, int checkRedundant);
+void     addRuleToRoute(int ruleIdx);
+int      planRoute(Episode* currEp);
+int      takeNextStep(Episode* currEp);
+Vector*  newPlan();
+void     freePlan(Vector *plan);
+int      setCommand2(Episode* ep);
+int      nextStepIsValid();
+void     displayRoute();
+void     displayEpisode(Episode* ep);
+void     displayRules(Vector* ruleList, Vector* episodeList);
+void     displayRule(Rule* rule);
+void     displaySequence(Vector* sequence);
+void     displaySequences(Vector* sequences);
+Vector*  containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf);
+Rule*    ruleMatch(int action);
+int      equalEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
+int      findTopMatch(double* scoreTable, double* indvScore, int command);
+int      generateScoreTable(Vector* vector, double* score);
+double   compareEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
+void     initSupervisor();
+void     endSupervisor();
 
 #endif // _SUPERVISOR_H_
