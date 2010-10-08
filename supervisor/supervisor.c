@@ -7,7 +7,7 @@
  *
  * Author: Dr. Andrew Nuxoll, Zachary Paul Faltersack, Brian Burns
  *
- * Last updated: October 4, 2010
+ * Last updated: October 7, 2010
  */
 
 /*
@@ -1150,9 +1150,9 @@ void displayRoute()
     printf("Current Route: \n");
 
     int i;
-    for(i = g_route->numRules - 1; i >= 0; i--)
+    for(i = g_route->route->size - 1; i >= 0; i--)
     {
-        if(i == g_route->currRule)
+        if(i == g_route->currSequence)
         {
             printf("-->");
         }
@@ -1217,7 +1217,7 @@ int takeNextStep(Episode* currEp)
     Vector* episodeList = g_epMem->array[0];
     Vector* ruleList        = g_actionRules->array[0];
     Vector* route           = g_route->route;
-    int     currRule        = g_route->currRule;
+    int     currRule        = g_route->currSequence;
     int     currEpIR        = g_route->currEpInRule;
     Rule*   rule            = ruleList->array[*((int*)route->array[currRule])];
     Episode* nextStep       = episodeList->array[rule->index - (rule->length - 1 - currEpIR)];
@@ -1248,7 +1248,7 @@ return 1;
      if(currEpIR == rule->length - 1)
      {
          printf("This command finishes current rule, setting up for next rule in Route\n");
-         g_route->currRule++;
+         g_route->currSequence++;
          g_route->currEpInRule = 0;
      }
      else
@@ -1276,9 +1276,9 @@ int nextStepIsValid()
     Vector* episodeList = g_epMem->array[0];
     Vector* ruleList        = g_actionRules->array[0];
     Vector* route           = g_route->route;
-    int     currRule        = g_route->currRule;
+    int     currSequence        = g_route->currSequence;
     int             currEpIR        = g_route->currEpInRule;
-    Rule*   rule            = ruleList->array[*((int*)route->array[currRule])];
+    Rule*   rule            = ruleList->array[*((int*)route->array[currSequence])];
     Episode* nextStep       = episodeList->array[rule->index - (rule->length - 1 - currEpIR)];
     Episode* currEp         = episodeList->array[episodeList->size - 1];
 
@@ -1528,10 +1528,9 @@ int planRoute(Episode* currEp)
     g_route->route = newVector();
 
     // Reset rest of Route data
-    g_route->currRule               = 0;
+    g_route->currSequence   = 0;
     g_route->currEpInRule   = 0;
     g_route->needsRecalc    = FALSE;
-    g_route->numRules               = 0;
     g_route->level = MAX_META_DEPTH - 1;
 
     while (TRUE)
@@ -1629,8 +1628,8 @@ int planRoute(Episode* currEp)
  * *****************************************************************************
  *
  * This method uses Dijkstra's algorithm to find a shortest path from the
- * start state to the goal state at a given level.  A route is vector of one or
- * more sequences that define such a path.
+ * start state to the goal state at a given level.  A route is a vector of one
+ * or more sequences that define such a path.
  *
  * @arg level     is the level at which this route should exist
  * @arg newRoute  is the Route struct to populate with this new route.
@@ -1640,24 +1639,42 @@ int planRoute(Episode* currEp)
 int initRoute(int level, Route* newRoute)
 {
     // instance variables
-    Vector* route;  // the ordered list of rules stored as int indices into
-                    // ruleList
+    Vector* route;    // the ordered list of sequences stored as int indices into
+                      // ruleList
+    int i;            // counting variable
+    int containsGoal; // used to check for the presense of a goal in level
+    Vector* sequenceRules; // pointer to sequence rules in level
+
+    // check that the requested level has sequences and a goal
+    if (g_sequenceRules->size < level) return LEVEL_NOT_POPULATED;
+    sequenceRules = g_sequenceRules->array[level];
+    containsGoal = FALSE;
+    for (i = 0; i < sequenceRules->size; i++)
+    {
+        if (((Rule*)sequenceRules->array[i])->containsGoal)
+        {
+            containsGoal = TRUE;
+            break;
+        }
+    }
+    if (!containsGoal) return NO_GOAL_IN_LEVEL;
+
+    // i now indicates the index of the first occurence of a rule in level
+    // if that sequence also contains the start state, then we're done
     
-    int numRules;   // tells how many rules are in the route.  eventually, this
-                    // will become the value of route->numRules
+
+    
+    // allocate the internal route Vector
+    newRoute->route = (Vector*)malloc(sizeof(Vector));
     
     // initialize instance variables
-    route    = newRoute->route;
-    numRules = 0;
+    route = newRoute->route;
     
     // initialize things we know about a route that is just being created
-    newRoute->currRule     = 0;
+    newRoute->currSequence = 0;
     newRoute->currEpInRule = 0;
     newRoute->needsRecalc  = FALSE;
     newRoute->level        = level;
-   
-    // update numRules field of the route with our calculated value
-    newRoute->numRules = numRules;
     
     return SUCCESS;
 }//initRoute
@@ -1756,7 +1773,6 @@ void addRuleToRoute(int ruleIdx)
     int* temp = (int*)malloc(sizeof(int));
     *temp = ruleIdx;
     addEntry(g_route->route, temp);
-    g_route->numRules += 1;
 }// addRuleToRoute
 
 /**
@@ -1774,10 +1790,9 @@ Vector *newPlan()
         Route *r = (Route*)malloc(sizeof(Route));
 
         r->route = newVector();
-        r->currRule     = 0;
+        r->currSequence = 0;
         r->currEpInRule = 0;	
         r->needsRecalc  = FALSE;	
-        r->numRules     = 0;
         
         addEntry(newPlan, r);
     }//for
@@ -2117,13 +2132,9 @@ void initSupervisor()
 
     g_route                 = (Route*)malloc(sizeof(Route));
     g_route->route          = newVector();
-    g_route->currRule       = 0;
+    g_route->currSequence   = 0;
     g_route->currEpInRule   = 0;
     g_route->needsRecalc    = TRUE;
-    g_route->numRules       = 0;
-
-
-
     
     g_connectToRoomba       = 0;
     g_statsMode             = 0;

@@ -25,7 +25,11 @@
 // Boolean values
 #define TRUE				1
 #define FALSE				0
+
+// Function return codes
 #define SUCCESS             0
+#define NO_GOAL_IN_LEVEL    1    // used by initRoute
+#define LEVEL_NOT_POPULATED 2    // used by initRoute
 
 // Matching defines
 #define NUM_TO_MATCH		15
@@ -73,9 +77,9 @@ typedef struct RuleStruct
 
 typedef struct RouteStruct
 {
-	Vector* route;				// The ordered list of rules stored as int indices
+	Vector* route;				// The ordered list of actions stored as int indices
 								// into ruleList
-	int currSequence			// Our current location in the execution of the
+	int currSequence;			// Our current location in the execution of the
 								// rules
 	int currEpInRule;			// Index into LHS of the current rule
 	int needsRecalc;			// If the data received while following the rules
