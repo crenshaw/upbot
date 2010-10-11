@@ -1,13 +1,15 @@
-#include "supervisor.h"
+#include "nsm.h"
 
 /*
- * This file contains the code for the Supervisor. All the functions
- * that are needed for processing raw sensor data are contained in 
- * this file as well as those for determining new commands
+ * nsm.c
  *
- * Author: Dr. Andrew Nuxoll, Zachary Paul Faltersack, Brian Burns
+ * This file contains our implementation of McCallum's NSM Q-Learning
+ * agent. Much of the code is drawn from the Supervisor being developed
+ * by Dr. Andrew Nuxoll, Zachary Paul Faltersack and Brian Burns.
  *
- * Last updated: October 4, 2010
+ * Author: Zachary Paul Faltersack
+ *
+ * Last updated: October 11, 2010
  */
 
 #define DEBUGGING 1

@@ -1,17 +1,16 @@
-#ifndef _SUPERVISOR_H_
-#define _SUPERVISOR_H_
+#ifndef _NSM_H_
+#define _NSM_H_
 
 /**
-* supervisor.h
+* nsm.h
 *
-* This is an implementation of the Supervisor for a Roomba.
-* It is a client that connects through a socket to the Roomba
-* and receives data packets which it then processes. It then 
-* returns a command to the Roomba based on the results of the 
-* data.
+* This is the header file for our implementation of McCallum's
+* Nearest Sequence Memory Q-Learning agent. It is largely based
+* off of the Supervisor agent being written by Dr. Andrew Nuxoll,
+* Zachary Paul Faltersack and Brian Burns.
 *
-* Author: Zachary Paul Faltersack, Andrew Nuxoll, Brian Burns
-* Last edit: October 4, 2010
+* Author: Zachary Paul Faltersack
+* Last edit: October 11, 2010
 */
 
 #include <stdio.h>
@@ -79,4 +78,4 @@ extern char* interpretCommand(int cmd);
 char*    interpretCommandShort(int cmd);
 int      interpretSensorsShort(int *sensors);
 
-#endif // _SUPERVISOR_H_
+#endif // _NSM_H_
