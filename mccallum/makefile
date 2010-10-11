@@ -3,9 +3,9 @@ CC=gcc
 
 all: supervisor
 
-supervisor: supervisor.c supervisor.h vector.h vector.c 
+supervisor: nsm.c nsm.h vector.h vector.c 
 	$(CC) -o vector.o -c vector.c
-	$(CC) -o supervisor.o -c supervisor.c
+	$(CC) -o nsm.o -c nsm.c
 
 clean:
 	rm *.out *.o
