@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "vector.h"
+#include "neighborhood.h"
 #include "../communication/communication.h"
 
 // Boolean values
@@ -49,7 +50,6 @@ typedef struct EpisodeStruct
 	double	qValue;					// Expected future discount reward
 } Episode;
 
-
 // Global variables for monitoring and connecting
 int g_connectToRoomba;
 int g_statsMode;
@@ -72,8 +72,8 @@ void	 calculateQValue();
 int      chooseCommand(Episode* ep);
 int      setCommand(Episode* ep);
 int      equalEpisodes(Episode* ep1, Episode* ep2);
-void     initSupervisor();
-void     endSupervisor();
+void     initNSM();
+void     endNSM();
 extern char* interpretCommand(int cmd);
 char*    interpretCommandShort(int cmd);
 int      interpretSensorsShort(int *sensors);

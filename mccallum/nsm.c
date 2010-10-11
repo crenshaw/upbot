@@ -446,28 +446,28 @@ int findTopMatch(double* scoreTable, double* indvScore, int command)
 
 
 /**
- * initSupervisor
+ * initNSM
  *
- * Initialize the Supervisor vectors
+ * Initialize the NSM vectors
  * 
  */
-void initSupervisor()
+void initNSM()
 {
     g_epMem         = newVector();
 
     g_connectToRoomba       = 0;
     g_statsMode             = 0;
-}//initSupervisor
+}//initNSM
 
 /**
- * endSupervisor
+ * endNSM
  *
- * Free the memory allocated for the Supervisor
+ * Free the memory allocated for the NSM agent
  */
-void endSupervisor() 
+void endNSM() 
 {
     freeVector(g_epMem);
-}//endSupervisor
+}//endNSM
 
 /**
  * interpretCommand
