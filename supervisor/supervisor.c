@@ -5,16 +5,15 @@
  * that are needed for processing raw sensor data are contained in 
  * this file as well as those for determining new commands
  *
- * Author: Dr. Andrew Nuxoll, Zachary Paul Faltersack, Brian Burns
- *
- * Last updated: October 7, 2010
+ * Authors:      Dr. Andrew Nuxoll, Zachary Paul Faltersack, Brian Burns
+ * Last updated: October 13, 2010
  */
 
 /*
  * Minor Maintenance To-Do List
  *
  * 1.  refactor the code so that it says "action" instead of "rule" and
- *     "sequence" instead of "meta-rule"
+ *     "sequence" instead of "sequence"
  * 2.  Review updateRules() and try to simplify it.  Break it up into parts?
  * 3.  Add a method to the vector that allows insert and delete and use it?  I'm
  *     not sure that this will make the code easier to read but it might help.
@@ -302,22 +301,22 @@ int parseEpisode(Episode * parsedData, char* dataArr)
  *
  * This method is designed to do a semantic rules update.  A semantic rule
  * consists of 1 or more episodes that make up the LHS of the rule followed by
- * the next episode which is it's RHS.  A semantic rule represents a hypothesis
- * that "that sequence of events leads to this event."
+ * the next episode which is its RHS.  A semantic rule represents a hypothesis
+ * that "this sequence of events leads to this event."
  *
  * CAVEAT: This is a rather complex method.  Breaking it up into smaller methods
  * would make it more complex, in our opinion.  Please rely upon our liberal
  * comments to guide you.  Also consult research notes.
  *
- * @arg level index into g_epMem and g_actionRules where the memory needs to updated    
- * @return int error code
+ * @arg    level index into g_epMem and g_actionRules where the memory needs to updated    
+ * @return int   error code
  *
  */
 int updateRules(int level)
 {
     printf("Entering level %i\n", level);
     // Ensure that the level is within the accepted range for the vectors
-    if(level < 0 || level >= MAX_META_DEPTH)
+    if(level < 0 || level >= MAX_LEVEL_DEPTH)
     {
         return -3;
     }
@@ -343,17 +342,17 @@ int updateRules(int level)
     //Create a candidate rule that we would create from this current
     //episode.  We won't add it to the rule list if an identical rule
     //already exists.
-    Rule* newRule                   = (Rule*) malloc(sizeof(Rule));
-    newRule->level                  = level;
-    newRule->epmem                  = episodeList;
-    newRule->outcome                = episodeList->size - 1;
-    newRule->index                  = episodeList->size - 2;
-    newRule->length                 = 1;
-    newRule->freq                   = 1;
-    newRule->overallFreq            = NULL;
-    newRule->cousins                = NULL;
-    newRule->isPercentageRule       = FALSE;
-    newRule->containsGoal           = episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
+    Rule* newRule            = (Rule*) malloc(sizeof(Rule));
+    newRule->level           = level;
+    newRule->epmem           = episodeList;
+    newRule->outcome         = episodeList->size - 1;
+    newRule->index           = episodeList->size - 2;
+    newRule->length          = 1;
+    newRule->freq            = 1;
+    newRule->overallFreq     = NULL;
+    newRule->cousins         = NULL;
+    newRule->isIndeterminate = FALSE;
+    newRule->containsGoal    = episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
 
     //initialize containsStart to TRUE if this will be the very first rule
     if (episodeList->size == 2)
@@ -427,7 +426,7 @@ int updateRules(int level)
                     //If the candidate rule has matched a percentage
                     //rule then there may already be a matching cousin
                     //out there
-                    if(curr->isPercentageRule)
+                    if(curr->isIndeterminate)
                     {
                         //%%%Debugging
 #if DEBUGGING
@@ -469,7 +468,7 @@ int updateRules(int level)
 #if DEBUGGING
                             printf("new cousin is unique.  Adding...\n");
 #endif
-                            newRule->isPercentageRule = TRUE;
+                            newRule->isIndeterminate = TRUE;
                             newRule->overallFreq = curr->overallFreq;
                             newRule->cousins = curr->cousins;
 
@@ -624,8 +623,8 @@ int updateRules(int level)
                                 newRule->cousins = curr->cousins;
 
                                 //Update rules
-                                curr->isPercentageRule = TRUE;
-                                newRule->isPercentageRule = TRUE;
+                                curr->isIndeterminate = TRUE;
+                                newRule->isIndeterminate = TRUE;
                                 curr->overallFreq = (int*) malloc(sizeof(int));
                                 newRule->overallFreq = curr->overallFreq;
                                 *(curr->overallFreq) = curr->freq + 1;
@@ -752,7 +751,7 @@ printf(" to current sequence\n");
 
         // if the rule we just added is percentage rule or contains a
         //goal then end the current sequence and start a new one
-        if (updateExistingRule->isPercentageRule
+        if (updateExistingRule->isIndeterminate
             || updateExistingRule->containsGoal)
         {
             assert(currSequence->size > 1); 
@@ -767,7 +766,7 @@ printf(" to current sequence\n");
 				currSequence->size = 0;
                 // this duplicate sequence becomes the next episode in the
                 // next level's episodic memory
-                if (level + 1 < MAX_META_DEPTH)
+                if (level + 1 < MAX_LEVEL_DEPTH)
                 {
                     episodeList = g_epMem->array[level + 1];
                     addEntry(episodeList, duplicate);
@@ -777,7 +776,7 @@ printf(" to current sequence\n");
 			{
                 // this newly completed sequence becomes the next episode in the
                 // next level's episodic memory
-                if (level + 1 < MAX_META_DEPTH)
+                if (level + 1 < MAX_LEVEL_DEPTH)
                 {
                     episodeList = g_epMem->array[level + 1];
                     addEntry(episodeList, currSequence);
@@ -797,7 +796,7 @@ printf(" to current sequence\n");
 
             // this sequence then becomes an episode in our next level
             // so we need recursive call to update.
-            if(level + 1 < MAX_META_DEPTH)
+            if(level + 1 < MAX_LEVEL_DEPTH)
             {
                 updateRules(level + 1);
             }
@@ -1012,7 +1011,7 @@ void displaySequences(Vector* sequences)
  * displayRule                        *RECURSIVE*
  *
  * prints a human-readable version of a rule.  If the rule is a
- * meta-rule it makes recursive calls until it reaches the base rule.
+ * sequence it makes recursive calls until it reaches the base rule.
  * The rules are printed backward (LHS on the right and vice versa)
  * for easy comparison to other rules.
  */
@@ -1035,7 +1034,7 @@ void displayRule(Rule* rule)
     }
 
     //Print the arrow 
-    if(rule->isPercentageRule)
+    if(rule->isIndeterminate)
     {
         printf(" <-%2i- ", rule->freq * 100 / *(rule->overallFreq));
     }
@@ -1052,7 +1051,7 @@ void displayRule(Rule* rule)
             printf("%i", interpretSensorsShort(((Episode*)rule->epmem->array[rule->index - i])->sensors)); 
             printf("%s", interpretCommandShort(((Episode*)rule->epmem->array[rule->index - i])->cmd));
         }
-        else //meta-rule
+        else //sequence
         {
             printf("{ ");
             displaySequence((Vector*)rule->epmem->array[rule->index - i]);
@@ -1531,7 +1530,7 @@ int planRoute(Episode* currEp)
     g_route->currSequence   = 0;
     g_route->currEpInRule   = 0;
     g_route->needsRecalc    = FALSE;
-    g_route->level = MAX_META_DEPTH - 1;
+    g_route->level = MAX_LEVEL_DEPTH - 1;
 
     while (TRUE)
     {
@@ -1713,7 +1712,7 @@ Vector* initPlan()
 
     //find out what the highest level is that has any sequences
     int level = 0;
-    for(i = MAX_META_DEPTH-1; i > 0; i--)
+    for(i = MAX_LEVEL_DEPTH-1; i > 0; i--)
     {
         Vector *seqList = (Vector *)g_sequenceRules->array[i];
         if (seqList->size > 1)
@@ -1785,7 +1784,7 @@ Vector *newPlan()
 {
     int i;
     Vector *newPlan = newVector(); // return value
-    for(i = 0; i < MAX_META_DEPTH; i++)
+    for(i = 0; i < MAX_LEVEL_DEPTH; i++)
     {
         Route *r = (Route*)malloc(sizeof(Route));
 
@@ -2063,7 +2062,7 @@ int compare(Vector *list, int i1, int i2, int level)
             return (matchScore == 2 * NUM_SENSORS);
         }   
     }
-    else //meta-rule
+    else //sequence
     {
         return compareRules(list->array[i1], list->array[i2]);
     }
@@ -2096,7 +2095,7 @@ int episodeContainsGoal(void *entry, int level)
         displaySequence(sequence);
         Rule *rule = (Rule *)sequence->array[sequence->size - 1];
         
-        //For a meta-rule, a goal is indicated by "containsGoal"
+        //For a sequence, a goal is indicated by "containsGoal"
         return rule->containsGoal;
     }
 }//episodeContainsGoal
@@ -2110,12 +2109,12 @@ int episodeContainsGoal(void *entry, int level)
  */
 void initSupervisor()
 {
-    g_epMem                 = newVector();
+    g_epMem         = newVector();
     g_actionRules   = newVector();
     g_sequenceRules = newVector();
 
     int i;
-    for(i = 0; i < MAX_META_DEPTH; i++)
+    for(i = 0; i < MAX_LEVEL_DEPTH; i++)
     {
         Vector* temp = newVector();
         addEntry(g_epMem, temp);
@@ -2152,7 +2151,7 @@ void endSupervisor()
 
     // assume that the number of sequences,
     // actions and episodes is the same, level-wise
-    for(i = MAX_META_DEPTH - 1; i >= 0; i--)
+    for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
     {
         // Create pointers to the two associated vectors we'll be working with
         Vector* ruleList = g_actionRules->array[i];

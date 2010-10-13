@@ -10,8 +10,8 @@
 * returns a command to the Roomba based on the results of the 
 * data.
 *
-* Author: Zachary Paul Faltersack, Andrew Nuxoll, Brian Burns
-* Last edit: October 4, 2010
+* Authors:      Zachary Paul Faltersack, Dr. Andrew Nuxoll, Brian Burns
+* Last updated: October 13, 2010
 */
 
 #include <stdio.h>
@@ -36,7 +36,7 @@
 #define NUM_GOALS_TO_FIND	50
 #define DISCOUNT			1.0
 #define MAX_LEN_LHS			1
-#define MAX_META_DEPTH		4
+#define MAX_LEVEL_DEPTH		4
 #define MAX_ROUTE_LEN		15
 
 // Collecting data for stats
@@ -67,7 +67,7 @@ typedef struct RuleStruct
                                 // since the value is shared by a group of cousins
 	int outcome;                // index to the outcome state *or* a flag
                                 // indicating it doesn't exist yet
-	int isPercentageRule;       // is this rule a percentage rule?
+	int isIndeterminate;        // is this rule indeterminate?
 	Vector* cousins;            // a pointer to a jointly held list of all
                                 // "cousin" rules including itself.
                                 // Non-percentage rules have a NULL list.
