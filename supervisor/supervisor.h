@@ -86,12 +86,8 @@ typedef struct RouteStruct
 								// differs from the expected value then it needs
 								// to be recalculated and this informs when it 
 								// happens
-<<<<<<< local
 	int numRules;				// Number of rules in the route to goal
-    int level;
-=======
     int level;                  // The level of this route
->>>>>>> other
 } Route;
 
 // Global variables for monitoring and connecting
