@@ -64,7 +64,7 @@ int tick(char* sensorInput)
     // and if not then send ep to determine a valid command
     if(episodeContainsGoal(ep, FALSE))
     {
-        ep->cmd = CMD_SONG;
+        ep->action = CMD_SONG;
     }
     else
     {
@@ -79,7 +79,7 @@ int tick(char* sensorInput)
         displayEpisode(ep);
     }
 
-    return ep->cmd;
+    return ep->action;
 }//tick
 
 /**
@@ -95,18 +95,19 @@ int tick(char* sensorInput)
  */
 Episode* updateHistory(char* sensorData)
 {
+	Episode* ep;
 	// If we have not experienced a single episode, we must
 	// create the first one and add it to the beginning of 
 	// our history
 	if(g_epMem->size == 0)
 	{
-		Episode* ep = (Episode*) malloc(sizeof(Episode));
+		ep = (Episode*) malloc(sizeof(Episode));
 		addEpisode(g_epMem, ep);
 	}
 	else
 	{
     	// Assign a pointer to the final episode in our history
-    	Episode* ep = g_epMem->array[g_epMem->size - 1];
+    	ep = g_epMem->array[g_epMem->size - 1];
 	}
     int retVal;     
 
@@ -122,7 +123,7 @@ Episode* updateHistory(char* sensorData)
 	// Prep the next episode in our history. This will be assigned
 	// a command, and once the sensor string is received, that data
 	// will be paired with the command that caused it to occur
-    Episode* ep = (Episode*) malloc(sizeof(Episode));
+    ep = (Episode*) malloc(sizeof(Episode));
 
 	addEpisode(g_epMem, ep);
     return ep;
@@ -184,7 +185,6 @@ int parseSensors(Episode * parsedData, char* dataArr)
     return 0;
 }// parseSensors
 
-
 /**
  * addEpisode
  *
@@ -198,7 +198,6 @@ int addEpisode(Vector* episodes, Episode* item)
 {
     return addEntry(episodes, item);
 }// addEpisode
-
 
 /**
  * displayEpisode
@@ -219,9 +218,166 @@ void displayEpisode(Episode * ep)
     }
 
     // print rest of episode data to stdout
-    printf("\nTime stamp: %i\nCommand:    %i\n\n", (int)ep->now, ep->cmd);
+    printf("\nTime stamp: %i\nCommand:    %i\n\n", (int)ep->now, ep->action);
 }// displayEpisode
 
+//---------------------------------------------------------------------------------
+// Functions for McCallum's NSM Q-Learning agent
+
+void updateLittleQ()
+{
+}//updateLittleQ
+
+void locateNearestNeighbors(int action)
+{
+}//locateNearestNeighbors
+
+void calculateQValue()
+{
+}//calculateQValue
+
+//--------------------------------------------------------------------------------
+// Functions for creating and maintaining neighborhods
+
+/**
+* initNeighborhood
+*
+* This function takes two arguments and creates a new neighborhood
+* using this data. A pointer to the neighborhood is returned to the
+* caller.
+*
+* @arg action An integer representing the command associated with the neighborhood
+* @arg k An integer indicating how many neighbors to find.
+* @return Neighborhood* A pointer to the new neighborhood
+*/
+Neighborhood* initNeighborhood(int action, int k)
+{
+	// Allocate space for the new neighborhood
+	Neighborhood* nbHd = (Neighborhood*)malloc(sizeof(Neighborhood));
+
+	// Commit neighborhood meta-data
+	nbHd->action = action;
+	nbHd->kValue = k;
+	nbHd->numNeighbors = 0;
+
+	// Allocate memory for the buffers containing our neighbors
+	// and their n-values
+	nbHd->episodes 	= (Episode**)malloc(k * sizeof(Episode*));
+	nbHd->nValues	= (int*)malloc(k * sizeof(int));
+
+	// return a pointer to the new neighborhood
+	return nbHd;
+}//initNeighborhood
+
+/**
+* cleanNeighborhood
+*
+* Takes a pointer to a neighborhood and frees all associated memory
+*
+* @arg nbHd A pointer to a neighborhood
+*/
+void cleanNeighborhood(Neighborhood* nbHd)
+{
+	free(nbHd->episodes);	// free the array containing episode pointers
+	free(nbHd->nValues);	// free the array containing ep n values
+	free(nbHd);				// free the memory containing the neighborhood itself
+}//cleanNeighborhood
+
+/**
+* addNeighbor
+*
+* This function adds the new neighbor if it fits the desired criteria 
+* to the neighborhood and then calls a sort method to maintain the order
+*
+* @arg nbHd A pointer to the current neighborhood
+* @arg ep A pointer to the new neighbor
+* @arg n The n value of the new neighbor
+* @return int Success/fail
+*/
+int addNeighbor(Neighborhood* nbHd, Episode* ep, int n)
+{
+	// If the new neighbor has a smaller n value than the last
+	// neighbor in our current neighborhood and our neighborhood 
+	// is full, then we don't need it.
+	if(n < nbHd->nValues[nbHd->numNeighbors - 1] &&
+		nbHd->numNeighbors < nbHd->kValue) return 0;
+
+	// Check if neighborhood is full, this affects where we enter
+	// the new neighbor.
+	if(nbHd->numNeighbors < nbHd->kValue)
+	{
+		nbHd->episodes[nbHd->numNeighbors] = ep;
+		nbHd->nValues[nbHd->numNeighbors] = n;
+		nbHd->numNeighbors++;
+	}
+	else
+	{
+		nbHd->episodes[nbHd->numNeighbors - 1] = ep;
+		nbHd->nValues[nbHd->numNeighbors - 1] = n;
+	}
+
+	sortNeighborhood(nbHd);
+
+	return 1;
+}//addNeighbor
+
+/**
+* sortNeighborhood
+*
+* This function will sort a neighborhood from greatest n value
+* to least n value. A more recent addition is considered a greater
+* value when compared to an old neighbor with an equivalent n value.
+*
+* @arg nbHd A pointer to a neighborhood that needs to be sorted
+*/
+void sortNeighborhood(Neighborhood* nbHd)
+{
+	int i;
+	Episode* tempEp;
+	int tempN;
+	//iterate from back to front
+	for(i = nbHd->kValue - 1; i > 0; i++)
+	{
+		// Want to move up if equal to or greater
+		// this helps to account for always choosing the closest neighbor
+		// to the current time when dealing with equivalent matches
+		if(nbHd->nValues[i] >= nbHd->nValues[i - 1])
+		{
+			// Store the moving values in temp value holders
+			tempEp = nbHd->episodes[i];
+			tempN = nbHd->nValues[i];
+
+			// push back the smaller match
+			nbHd->episodes[i] = nbHd->episodes[i - 1];
+			nbHd->nValues[i] = nbHd->nValues[i - 1];
+
+			// resave the new addition
+			nbHd->episodes[i - 1] = tempEp;
+			nbHd->nValues[i - 1] = tempN;
+		}//if
+	}//for
+}//sortNeighborhood
+
+/**
+ * getNeighbor
+ *
+ * Return the i-th neighbor in the neighborhood if available
+ *
+ * @arg i An int representing the desired index of neighbor
+ * @return Episode* A pointer to the episode that is that neighbor
+ NULL if error occurs
+ */
+Episode* getNeighbor(Neighborhood* nbHd, int i)
+{
+	// Catch any out-of-bounds errors and neighbor unavailable
+	if(i < 0 || i >= nbHd->kValue) return NULL;
+	if(i >= nbHd->numNeighbors) return NULL;
+
+	return (nbHd->episodes[i]);
+}//getNeighbor
+
+//--------------------------------------------------------------------------------
+// Main logic functions for determining next action
 
 /**
  * chooseCommand
@@ -246,23 +402,22 @@ int chooseCommand(Episode* ep)
 
     // Determine the next command, possibility of random command
     if((rand() % 100) < g_randChance || // Probability of choosing random
-		episodeList->size < NUM_TO_MATCH || // or if list is too short
+		g_epMem->size < NUM_TO_MATCH || // or if list is too short
 		g_goalCount == 0)	// or we have not yet found a goal
     {
-        ep->cmd = (rand() % (LAST_MOBILE_CMD)) + CMD_NO_OP;
+        ep->action = (rand() % (LAST_MOBILE_CMD)) + CMD_NO_OP;
     }else
     {
         // loop on setCommand until a route is chosen 
-		// that will lead to a successful cmd
+		// that will lead to a successful action
         while(setCommand(ep))
         {
             if(g_statsMode == 0) printf("Failed to set a command\n");
         }
     }
 
-    return ep->cmd;
+    return ep->action;
 }// chooseCommand
-
 
 /**
  * setCommand
@@ -290,9 +445,6 @@ int setCommand(Episode* ep)
         commandScores[i] = 0;
         commandIdxs[i] = 0;
     }
-
-    // generate partial score table
-    generateScoreTable(episodeList, partialScoreTable);
 
     // determine index with top match per command
     for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
@@ -331,7 +483,7 @@ int setCommand(Episode* ep)
                     // keep track of which command gave the best distance so far
                     bestMatch = i;
                     toggle = 1;
-                    //                                                      printf("Setting toggle, cmd: %s, tempDist: %i\n", interpretCommand(i), tempDist);
+                    //                                                      printf("Setting toggle, action: %s, tempDist: %i\n", interpretCommand(i), tempDist);
                 }// if
             }// for
         }// for 
@@ -341,11 +493,11 @@ int setCommand(Episode* ep)
     // If a goal has been found then we have an index of closest goal match
     if(g_goalCount > 0 && toggle == 1)
     {
-        ep->cmd = bestMatch;
+        ep->action = bestMatch;
     }
     else
     { 
-        // else we find cmd with greatest score
+        // else we find action with greatest score
         int max = CMD_NO_OP;
         for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
         {
@@ -357,10 +509,10 @@ int setCommand(Episode* ep)
                 max = i;
             }
         }
-        ep->cmd = max;
+        ep->action = max;
     }
 
-    // If not stats mode print scores for cmds
+    // If not stats mode print scores for actions
     if(g_statsMode == 0)
     {
         for(i = CMD_NO_OP; i < NUM_COMMANDS; i++)
@@ -371,25 +523,24 @@ int setCommand(Episode* ep)
     /*
       if(toggle != 1)
       {
-      printf("Still have not found valid bestMatch, cmd: %s\n", interpretCommand(ep->cmd));
+      printf("Still have not found valid bestMatch, action: %s\n", interpretCommand(ep->action));
       }
       else
       {
-      printf("Found valid bestMatch, cmd: %s\n", interpretCommand(ep->cmd));
+      printf("Found valid bestMatch, action: %s\n", interpretCommand(ep->action));
       }
     */
 
 
     // Report malformed episode and location of error report
-    if(ep->cmd <= CMD_ILLEGAL || ep->cmd >= NUM_COMMANDS)
+    if(ep->action <= CMD_ILLEGAL || ep->action >= NUM_COMMANDS)
     {
-        printf("Episode is bad: setCommand %s (%i)\n", interpretCommand(ep->cmd), ep->cmd);
+        printf("Episode is bad: setCommand %s (%i)\n", interpretCommand(ep->action), ep->action);
     }
 
     // return success
     return 0;
 }// setCommand
-
 
 /*
  * equalEpisodes
@@ -414,11 +565,10 @@ int equalEpisodes(Episode* ep1, Episode* ep2)
     }
 
     // Ensure episodes have same command, return false if not
-    if(ep1->cmd != ep2->cmd) return FALSE;
+    if(ep1->action != ep2->action) return FALSE;
 
     return TRUE;
 }// equalEpisodes
-
 
 /**
  * findTopMatch
@@ -430,7 +580,7 @@ int findTopMatch(double* scoreTable, double* indvScore, int command)
     Vector* episodeList = g_epMem->array[0];
     for(i = episodeList->size - 1; i >= 0; i--)
     {
-        tempVal = scoreTable[i] + (((Episode*)(episodeList->array[i]))->cmd == command ? NUM_TO_MATCH : 0);
+        tempVal = scoreTable[i] + (((Episode*)(episodeList->array[i]))->action == command ? NUM_TO_MATCH : 0);
 
         if(tempVal > maxVal)
         {
@@ -443,7 +593,6 @@ int findTopMatch(double* scoreTable, double* indvScore, int command)
 
     return max;
 }// findTopMatch
-
 
 /**
  * initNSM
@@ -475,12 +624,12 @@ void endNSM()
  * Return a char* with the string equivalent of a command
  * Use for printing to console
  *
- * @arg cmd Integer representing the command
+ * @arg action Integer representing the command
  * @return char* Char array with command as string
  */
-char* interpretCommand(int cmd)
+char* interpretCommand(int action)
 {
-    switch(cmd)
+    switch(action)
     {
         case CMD_NO_OP:
             return g_no_op;
@@ -518,12 +667,12 @@ char* interpretCommand(int cmd)
  * Return a char* with the string equivalent of a command
  * Use for printing to console
  *
- * @arg cmd Integer representing the command
+ * @arg action Integer representing the command
  * @return char* Char array with command as string
  */
-char* interpretCommandShort(int cmd)
+char* interpretCommandShort(int action)
 {
-    switch(cmd)
+    switch(action)
     {
         case CMD_NO_OP:
             return g_no_opS;

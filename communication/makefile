@@ -22,6 +22,9 @@ testCQ: testCommandQueue.c commandQueue.c tell.c serverUtility.c
 supclient:	supervisorClient.c communication.h serverUtility.c ../supervisor/supervisor.h ../supervisor/vector.h commandQueue.c
 	gcc -o supervisorClient.out supervisorClient.c serverUtility.c ../supervisor/supervisor.c ../supervisor/vector.c commandQueue.c
 
+mccClient: mccallumClient.c communication.h serverUtility.c ../mccallum/nsm.h ../mccallum/vector.h commandQueue.c
+	gcc -o mccallumClient.out mccallumClient.c serverUtility.c ../mccallum/nsm.c ../mccallum/vector.c commandQueue.c
+
 unittest: unitTestServer.c serverUtility.c ../supervisor/unitTest.h commandQueue.c
 	gcc -o unitTestServer.out unitTestServer.c serverUtility.c ../supervisor/unitTest.c commandQueue.c
 	gcc -o simpleTest.out ../supervisor/unitTestMain.c ../supervisor/supervisor.c ../supervisor/vector.c

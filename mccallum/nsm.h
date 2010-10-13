@@ -19,7 +19,6 @@
 #include <string.h>
 
 #include "vector.h"
-#include "neighborhood.h"
 #include "../communication/communication.h"
 
 // Boolean values
@@ -50,6 +49,16 @@ typedef struct EpisodeStruct
 	double	qValue;					// Expected future discount reward
 } Episode;
 
+// Neighborhood struct for finding k-nearest neighbors
+typedef struct NeighborhoodStruct
+{
+	int action;			// int to represent action associated with this neighborhood
+	int kValue;			// k is the number of neighbors
+	int numNeighbors;	// represents how many neighbors we have so far in the array
+	Episode** episodes;	// init to array of len k to hold ptrs to k Nearest Neighbors
+	int* nValues;		// init to array of len k to hold ptrs to l NN scores
+} Neighborhood;
+
 // Global variables for monitoring and connecting
 int g_connectToRoomba;
 int g_statsMode;
@@ -68,6 +77,13 @@ void     displayEpisode(Episode* ep);
 void	 updateLittleQ();
 void	 locateKNearestNeighbors(int action);
 void	 calculateQValue();
+//-----------------------------------------
+// Functions for creating and maintaining neighborhoods
+Neighborhood* initNeighborhood(int cmd, int k);
+void cleanNeighborhood(Neighborhood* nbHd);
+int addNeighbor(Neighborhood* nbHd, Episode* ep, int n);
+void sortNeighborhood(Neighborhood* nbHd);
+Episode* getNeighbor(Neighborhood* nbHd, int i);
 //-----------------------------------------
 int      chooseCommand(Episode* ep);
 int      setCommand(Episode* ep);
