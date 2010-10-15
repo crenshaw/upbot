@@ -2,17 +2,17 @@
 #define _SUPERVISOR_H_
 
 /**
-* supervisor.h
-*
-* This is an implementation of the Supervisor for a Roomba.
-* It is a client that connects through a socket to the Roomba
-* and receives data packets which it then processes. It then 
-* returns a command to the Roomba based on the results of the 
-* data.
-*
-* Authors:      Zachary Paul Faltersack, Dr. Andrew Nuxoll, Brian Burns
-* Last updated: October 13, 2010
-*/
+ * supervisor.h
+ *
+ * This is an implementation of the Supervisor for a Roomba.
+ * It is a client that connects through a socket to the Roomba
+ * and receives data packets which it then processes. It then 
+ * returns a command to the Roomba based on the results of the 
+ * data.
+ *
+ * Authors:      Zachary Paul Faltersack, Dr. Andrew Nuxoll, Brian Burns
+ * Last updated: October 13, 2010
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
