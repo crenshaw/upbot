@@ -77,17 +77,16 @@ typedef struct RuleStruct
 
 typedef struct RouteStruct
 {
-	Vector* route;				// The ordered list of actions stored as int indices
-								// into ruleList
-	int currSequence;			// Our current location in the execution of the
-								// rules
-	int currEpInRule;			// Index into LHS of the current rule
-	int needsRecalc;			// If the data received while following the rules
-								// differs from the expected value then it needs
-								// to be recalculated and this informs when it 
-								// happens
-	int numRules;				// Number of rules in the route to goal
     int level;                  // The level of this route
+    Vector* sequences;          // An ordered list of sequences that make up
+                                // this route
+	Vector* actions;            // An ordered list of pointers to actions that
+                                // make up this route
+	int currAction;  			// An index into the actions vector that
+                                // indicates what action should be executed next
+	int needsRecalc;			// Indicates that this route is no longer valid
+                                // (probably because environmental input is no
+                                // longer matching)
 } Route;
 
 // Global variables for monitoring and connecting
@@ -119,6 +118,7 @@ int      planRoute(Episode* currEp);
 int      takeNextStep(Episode* currEp);
 Vector*  newPlan();
 void     freePlan(Vector *plan);
+void initRouteFromSequence(Route *route, Vector *seq);
 int      setCommand2(Episode* ep);
 int      nextStepIsValid();
 void     displayRoute();
