@@ -34,6 +34,9 @@
 #define DISCOUNT			1.0
 #define LEARNING_RATE		1.0
 
+// Defines for NSM
+#define K_NEAREST			5
+
 // Collecting data for stats
 #define STATS_MODE			0
 
@@ -75,11 +78,13 @@ void     displayEpisode(Episode* ep);
 //-----------------------------------------
 // Functions to add for McCallum's algorithm
 void	 updateLittleQ();
-void	 locateKNearestNeighbors(int action);
+Neighborhood* locateKNearestNeighbors(int action);
+int		 calculateNValue(int currState);
 void	 calculateQValue();
 //-----------------------------------------
 // Functions for creating and maintaining neighborhoods
-Neighborhood* initNeighborhood(int cmd, int k);
+Neighborhood* initNeighborhood(int action, int k);
+void destroyNeighborhood(Neighborhood* nbHd);
 void cleanNeighborhood(Neighborhood* nbHd);
 int addNeighbor(Neighborhood* nbHd, Episode* ep, int n);
 void sortNeighborhood(Neighborhood* nbHd);

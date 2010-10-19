@@ -228,9 +228,44 @@ void updateLittleQ()
 {
 }//updateLittleQ
 
-void locateNearestNeighbors(int action)
+Neighborhood* locateKNearestNeighbors(int action)
 {
+	Neighborhod* nbHd = initNeighborhood(action, K_NEAREST);
+
+	int i;
+
+
 }//locateNearestNeighbors
+
+/**
+* calculateNValue
+*
+* This function takes an index into the vector of states (g_epMem)
+* and calculates the neighborhood metric for the associated state
+*
+* @arg currState An int that contains the index of the current state being processed
+*
+* @return int This is the n value that was calculated for the state
+*/
+int calculateNValue(int currState)
+{
+	int i = 0;
+
+	// Determine if the action matches the one that we are testing for. If not, then
+	// the n value is zero and we can return
+	if(((Episode*)g_epMem->array[currState])->action == ((Episode*)g_epMem->array[g_epMem->size - 1])->action)
+	{
+		// Make sure the array indices are within bounds and
+		// compare the respective episodes to see if we need to increment the neighborhood metric
+		while(currState - i >= 0 && g_epMem->size - 1 - i >= 0 &&
+		equalEpisodes(g_epMem->array[currState - 1 - i], g_epMem->array[g_epMem->size - 1 - i]))
+		{
+			i++;
+		}
+	}
+	
+	return i;
+}//calculateNValue
 
 void calculateQValue()
 {
@@ -270,24 +305,41 @@ Neighborhood* initNeighborhood(int action, int k)
 }//initNeighborhood
 
 /**
-* cleanNeighborhood
+* destroyNeighborhood
 *
 * Takes a pointer to a neighborhood and frees all associated memory
 *
 * @arg nbHd A pointer to a neighborhood
 */
-void cleanNeighborhood(Neighborhood* nbHd)
+void destroyNeighborhood(Neighborhood* nbHd)
 {
 	free(nbHd->episodes);	// free the array containing episode pointers
 	free(nbHd->nValues);	// free the array containing ep n values
 	free(nbHd);				// free the memory containing the neighborhood itself
+}//destroyNeighborhood
+
+/**
+* cleanNeighborhood
+*
+* Takes a pointer to a neighborhood and resets necessary values in 
+* order to reuse it in the future.
+* By setting the numNeighbor count back to 0, we can in effect clear
+* the entire struct, because all additions are entered with respect 
+* to that counter.
+*
+* @arg nbHd A pointer to the neighborhood
+*/
+void cleanNeighborhood(Neighborhood* nbHd)
+{
+	// Reset the counter to 0
+	nbHd->numNeighbors = 0;
 }//cleanNeighborhood
 
 /**
 * addNeighbor
 *
-* This function adds the new neighbor if it fits the desired criteria 
-* to the neighborhood and then calls a sort method to maintain the order
+* This function adds the new neighbor if it is one of the nearest neighbors
+* seen so far. It then calls a sort method to maintain the order
 *
 * @arg nbHd A pointer to the current neighborhood
 * @arg ep A pointer to the new neighbor
