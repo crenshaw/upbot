@@ -59,7 +59,7 @@ typedef struct NeighborhoodStruct
 	int kValue;			// k is the number of neighbors
 	int numNeighbors;	// represents how many neighbors we have so far in the array
 	Episode** episodes;	// init to array of len k to hold ptrs to k Nearest Neighbors
-	int* nValues;		// init to array of len k to hold ptrs to l NN scores
+	int* nValues;		// init to array of len k to hold ptrs to k NN scores
 } Neighborhood;
 
 // Global variables for monitoring and connecting
@@ -75,6 +75,7 @@ Episode* updateHistory(char* sensorData);
 int      parseSensors(Episode* parsedData, char* dataArr);
 int      addEpisode(Vector* episodes, Episode* item);
 void     displayEpisode(Episode* ep);
+void	 displayEpisodeShort(Episode* ep);
 //-----------------------------------------
 // Functions to add for McCallum's algorithm
 void	 updateLittleQ();
@@ -89,6 +90,8 @@ void cleanNeighborhood(Neighborhood* nbHd);
 int addNeighbor(Neighborhood* nbHd, Episode* ep, int n);
 void sortNeighborhood(Neighborhood* nbHd);
 Episode* getNeighbor(Neighborhood* nbHd, int i);
+void displayNeighborhood(Neighborhood* nbHd);
+void displayNeighborSequence(Episode* ep, int n, int isCurr);
 //-----------------------------------------
 int      chooseCommand(Episode* ep);
 int      setCommand(Episode* ep);
