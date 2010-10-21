@@ -95,33 +95,26 @@ void simpleTest()
         if(episodeContainsGoal(ep, FALSE))
         {
             ep->cmd = CMD_SONG;
-            g_route->needsRecalc = TRUE;
+            if (g_plan != NULL)
+            {
+                Route *r = g_plan->array[MAX_LEVEL_DEPTH - 1];
+                r->needsRecalc = TRUE;
+            }
         }
         else
         {
-            // Use shortcircuiting to only call takeNextStep if a goal has been
-            // found. This is because there is no route to follow until after
-            // the first goal.
-            //if(g_goalCount <= 0 || setCommand2(ep))
-            //{
+            //issue the next command from the cmds array
             ep->cmd = cmds[i];
-            //}
         }
 
-        //Debugging
+#ifdef DEBUGGING
         printf("Level 0 Action Rules>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
         displayRules(g_actionRules->array[0], g_epMem->array[0]);
-        /*    printf("Level 1 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-              displayRules(g_semMem->array[1], g_epMem->array[1]);
-              printf("Level 2 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-              displayRules(g_semMem->array[2], g_epMem->array[2]);
-              printf("Level 3 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-              displayRules(g_semMem->array[3], g_epMem->array[3]);
-        */
 
-        printf("Level 0 Sequences\n");
+        printf("Level 0 Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
         displaySequences(g_sequenceRules->array[0]);
-
+#endif
+        
         // Print out the parsed episode if not in statsMode
         if(g_statsMode == 0)
         {
@@ -144,6 +137,7 @@ int tick(char* sensorInput)
     // Create new Episode
     printf("Creating and adding episode...");
     Episode* ep = createEpisode(sensorInput);
+
     // Add new episode to the history
     addEpisode(g_epMem->array[0], ep);
     printf("Episode created\n");
@@ -155,32 +149,31 @@ int tick(char* sensorInput)
     if(episodeContainsGoal(ep, FALSE))
     {
         ep->cmd = CMD_SONG;
-        g_route->needsRecalc = TRUE;
+        if (g_plan != NULL)
+        {
+            Route *r = g_plan->array[MAX_LEVEL_DEPTH - 1];
+            r->needsRecalc = TRUE;
+        }
     }
     else
     {
+        //%%%AMN:  What is this code??
         // Use shortcircuiting to only call takeNextStep if a goal has been
         // found. This is because there is no route to follow until after
         // the first goal.
         //if(g_goalCount <= 0 || setCommand2(ep))
         //{
-        chooseCommand(ep);
+        ep->cmd = chooseCommand();
         //}
     }
     
-    //Debugging
+#ifdef DEBUGGING
     printf("Level 0 Action Rules>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     displayRules(g_actionRules->array[0], g_epMem->array[0]);
-/*    printf("Level 1 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-    displayRules(g_semMem->array[1], g_epMem->array[1]);
-    printf("Level 2 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-    displayRules(g_semMem->array[2], g_epMem->array[2]);
-    printf("Level 3 >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-    displayRules(g_semMem->array[3], g_epMem->array[3]);
-*/
 
-    printf("Level 0 Sequences\n");
+    printf("Level 0 Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     displaySequences(g_sequenceRules->array[0]);
+#endif
 
     // Print out the parsed episode if not in statsMode
     if(g_statsMode == 0)
@@ -393,11 +386,6 @@ int updateRules(int level)
         //Compare the i-th rule to the candidate rule
         Rule* curr = (Rule*)ruleList->array[i];
 
-        //         //%%%For Debugging:
-        //         printf("begin comparison to rule #%i: ", i);
-        //         displayRule(curr);
-        //         printf("\n");
-
         for(j = 0; j < newRule->length; j++)
         {
             //Find out if the j-th part of the LHS matches
@@ -428,7 +416,6 @@ int updateRules(int level)
                     //out there
                     if(curr->isIndeterminate)
                     {
-                        //%%%Debugging
 #if DEBUGGING
                         printf("comparing cousins: \n");
 #endif
@@ -438,7 +425,6 @@ int updateRules(int level)
                         {
                             Rule* cousin = curr->cousins->array[k];
 
-                            //%%%Debugging
 #if DEBUGGING
                             printf("\t");
                             displayRule(cousin);
@@ -1063,75 +1049,105 @@ void displayRule(Rule* rule)
 }// displayRule
 
 /**
- * chooseCommand
+ * chooseCommand_SemiRandom
  *
- * This function takes a pointer to a new episode and chooses a command
- * that should accompany this episode
+ * This function selects a random command that would create a new action rule
+ * based upon the agent's most recent sensing.  If no such new action rule can
+ * be made, then it just chooses a random command without qualification.
  *
- * @arg ep a pointer to the most recent episode
- * @return int the command that was chosen
+ * CAVEAT:  This routine assumes that CMD_NO_OP is the lowest numbered command
+ * and that they commands are numbered consecutively afterwards.
+ *
  */
-int chooseCommand(Episode* ep)
+int chooseCommand_SemiRandom()
 {
-    int i, j;       // indices for loops
-
-    // seed rand if first time called
-    static int needSeed = TRUE;
-    if(needSeed == TRUE)
+    int i;                      // iterator
+    
+    //Make an array of boolean values (one per command) and init them all to
+    //TRUE. This array will eventually indicates whether the given command would
+    //create a unique episode (TRUE) or not (FALSE).
+    int numCmds = LAST_MOBILE_CMD - CMD_NO_OP;       // number of commands
+    int valid[numCmds];
+    for(i = 0; i < numCmds; i++)
     {
-        needSeed = FALSE;
-        srand(time(NULL));
+        valid[i] = TRUE;        // innocent until proven guilty
     }
-
-    // Determine the next command, possibility of random command
-    // If a random command is chosen, then a command that would 
-    // create a new rule is preferred. If no new rule can be made,
-    // then just choose complete random.
-    Vector* episodeList = g_epMem->array[0];
-    int foundNewRule = 0;
-
-    //%%%DEBUGGING: take random actions for now
-    if((rand() % 100) < g_randChance || episodeList->size < NUM_TO_MATCH || g_goalCount == 0)
+    
+    //Find all the level 0 episodes whose sensor values match the most recent
+    //sensing.  Mark the commands associated with those episodes as invalid
+    Vector *epList = g_epMem->array[0];
+    Episode *lastEpisode = (Episode*)epList->array[epList->size - 1];
+    for(i = 0; i < epList->size - 2; i++) // iterate over all but most recent
     {
-/*     if(g_goalCount == 0) */
-/*     { */
-/*         // Use flag to jump out of loop if a command is found that will */
-/*         // create a new rule. Due to order of processing loop statements, */
-/*         // we must subtract 1 from i to ensure it stays on the correct */
-/*         // command once out of the loop. */
-/*         for(i = CMD_NO_OP; i < LAST_MOBILE_CMD && !foundNewRule; i++) */
-/*         { */
-/*             if(ruleMatch(i) == NULL) */
-/*             { */
-/*                 foundNewRule = TRUE; */
-/*                 i -= 1; */
-/*             } */
-/*         } */
-
-/*         // If we can make a new rule then do it, otherwise choose a random command */
-/*         if(foundNewRule) */
-/*         { */
-/*             ep->cmd = i; */
-/*         } */
-/*         else */
-/*         { */
-            ep->cmd = (rand() % (LAST_MOBILE_CMD)) + CMD_NO_OP;
-/*         } */
-    }else
-    {
-        // loop on setCommand until a route is chosen that will lead to a successful cmd
-        while(setCommand2(ep))
+        Episode *currEpisode = (Episode *)epList->array[i];
+        if (compareEpisodes(currEpisode, lastEpisode, FALSE))
         {
-            if(g_statsMode == 0)
-            {
-                printf("Failed to set a command\n");
-            }
+            int index = currEpisode->cmd - CMD_NO_OP;
+            valid[index] = FALSE; // guilty!  (episode already exists)
+        }
+    }//for
+
+    
+    //Select a random starting position in the valid array.  This indicates our
+    //default choice for a command.  NOTE: We start the search in a random
+    //position so that the agent won't always default to the lowest numbered
+    //command.
+    int start = (rand() % numCmds); // random start
+
+    //Starting with the random position and treating "valid" as a circular array
+    //scan until the first valid command is found.
+    for(i = 0; i < numCmds; i++)
+    {
+        int index = (start + i) % numCmds; 
+        if (valid[index])
+        {
+            return index + CMD_NO_OP;
         }
     }
-    //      printf("COMMAND TO BE SENT %s (%i)\n", interpretCommand(ep->cmd), ep->cmd);
 
+    //if no valid command is found, then just use the randomly selected default
+    return start + CMD_NO_OP;
 
-    return ep->cmd;
+}//chooseCommand_SemiRandom
+
+/**
+ * chooseCommand
+ *
+ * This function decides what command to issue next.  Typically this selection
+ * will be the next step in a plan.  However, the agent may decide to modify the
+ * plan as part of the command selection process.  If no plan exists, a random
+ * command is selected.
+ *
+ * TODO: This code needs to be modified in the future to support a possibility
+ *        of modifying the current plan with a replacement rule before selecitn
+ *        the next command in the plan.
+ *
+ * @return int the command that was chosen
+ */
+int chooseCommand()
+{
+    //If there is no plan, try to create one
+    if (g_plan == NULL)
+    {
+        g_plan = initPlan();
+        
+    }//if
+
+    //If there still is no plan at this point then that means the agent doesn't
+    //have enough experience yet.  Select a semi-random command that would
+    //create a new action rule.  
+    if (g_plan == NULL)
+    {
+        return chooseCommand_SemiRandom();
+    }//if
+
+    //%%%If the current sensing violates the expectaitons of the plan, we need
+    //%%%to replan.
+    
+    //If we've reached this point then there is a plan.  At this point, the
+    //agent should select the next step in the plan.  
+    return chooseCommand_WithPlan();
+
 }// chooseCommand
 
 /**
@@ -1140,23 +1156,25 @@ int chooseCommand(Episode* ep)
  * Display the current route. Prints the rules that make up
  * the route in reverse order to make it easier visually to
  * read the steps.
+ *
  */
 void displayRoute()
 {
     Vector* semMem = g_actionRules->array[0];
-    Vector* route = g_route->actions;
+    Route * route = g_plan->array[0];
+    Vector* actions = route->actions;
 
     printf("Current Route: \n");
 
     int i;
-    for(i = route->size - 1; i >= 0; i--)
+    for(i = actions->size - 1; i >= 0; i--)
     {
-        if(i == g_route->currAction)
+        if(i == route->currAction)
         {
             printf("-->");
         }
         printf("\t{ ");
-        displayRule(semMem->array[*((int*)route->array[i])]);
+        displayRule(semMem->array[*((int*)actions->array[i])]);
         printf(" }\n");
     }// for
     printf("\n");
@@ -1179,18 +1197,19 @@ int setCommand2(Episode* ep)
     fflush(stdout);
 
     // If last command did not result in expected outcome
-    if(g_route->needsRecalc || !nextStepIsValid())
-    {
-        printf("Route needs to be recalculated\n");
-        fflush(stdout);
-        planRoute(ep);
-        printf("Route is recalculated\n", stderr);
-        fflush(stdout);
-    }
-    else
-    {
-        printf("Route is good\n");
-    }
+///%%%% Temporarily commented out.  This needs to be fixed! -:AMN:
+    // if(g_route->needsRecalc || !nextStepIsValid())
+    // {
+    //     printf("Route needs to be recalculated\n");
+    //     fflush(stdout);
+    //     planRoute(ep);
+    //     printf("Route is recalculated\n", stderr);
+    //     fflush(stdout);
+    // }
+    // else
+    // {
+    //     printf("Route is good\n");
+    // }
 
     displayRoute();
 
@@ -1198,570 +1217,71 @@ int setCommand2(Episode* ep)
     return takeNextStep(ep);
 }// setCommand2
 
-/*
- * NOTE: THe following two methods and the planRoute method (further down) are
- * currently commented out because of changes made to the Route struct.  In the
- * (near) future we'll need to refactor them to work with the new plan and route
- * scheme.
- *
- * 13 Oct 2010 by :AMN:
- */
-
-// /**
-//  * takeNextStep
-//  *
-//  * This function attempts to complete a rule. If any discrepencies
-//  * show up between the rule and actual sensor data, then the rule 
-//  * is abandoned for completion and an error code is returned
-//  *
-//  * @arg currEp a pointer to the current episode to be checked
-//  *
-//  * @return int An error code
-//  */
-// int takeNextStep(Episode* currEp)
-// {
-//     // set up useful variables
-
-//     Vector* episodeList = g_epMem->array[0];
-//     Vector* ruleList        = g_actionRules->array[0];
-//     Vector* route           = g_route->route;
-//     int     currRule        = g_route->currSequence;
-//     int     currEpIR        = g_route->currEpInRule;
-//     Rule*   rule            = ruleList->array[*((int*)route->array[currRule])];
-//     Episode* nextStep       = episodeList->array[rule->index - (rule->length - 1 - currEpIR)];
-
-//     // I'm pretty sure this check is no longer needed because of how I changed
-//     // the structure of setCommand2, but just in case I'm leaving this here.
-//     // Once we know it's unnecessary we can remove it
-// /*
-// // We want to make sure that after completing the most recent command
-// // the expected state is equal to current state, otherwise we need to
-// // replan our route.
-// if(!nextStepIsValid())
-// {
-// printf("Next step is no longer valid, returning\n");
-// return 1;
-// }
-// */
-
-//      // We had a good prediction so continue to follow Rule
-//      currEp->cmd = nextStep->cmd;
-
-//      // if next step is a goal episode, then set route needs recalc
-//      if(rule->containsGoal && currEpIR == rule->length-1) {
-//          g_route->needsRecalc = TRUE;
-//      }
-
-//      // Check if we've completed the Rule and update Route data accordingly
-//      if(currEpIR == rule->length - 1)
-//      {
-//          printf("This command finishes current rule, setting up for next rule in Route\n");
-//          g_route->currSequence++;
-//          g_route->currEpInRule = 0;
-//      }
-//      else
-//      {
-//          g_route->currEpInRule++;
-//      }
-
-//      return 0;
-// }// takeNextStep
-
-// /**
-//  * nextStepIsValid
-//  *
-//  * Checks the current state versus the Route and determines
-//  * if the previous command's outcome matches with the expected
-//  * outcome of the Route.
-//  */
-// int nextStepIsValid()
-// {
-//     if(g_route->needsRecalc)
-//     {
-//         return FALSE;
-//     }
-
-//     Vector* episodeList = g_epMem->array[0];
-//     Vector* ruleList        = g_actionRules->array[0];
-//     Vector* route           = g_route->route;
-//     int     currSequence        = g_route->currSequence;
-//     int             currEpIR        = g_route->currEpInRule;
-//     Rule*   rule            = ruleList->array[*((int*)route->array[currSequence])];
-//     Episode* nextStep       = episodeList->array[rule->index - (rule->length - 1 - currEpIR)];
-//     Episode* currEp         = episodeList->array[episodeList->size - 1];
-
-//     if(!equalEpisodes(currEp, nextStep, TRUE))
-//     {
-//         g_route->needsRecalc = TRUE;
-//         return FALSE;
-//     }
-
-//     return TRUE;
-// }// isNextStepValid
-
 /**
- * setCommand
+ * getStartAction
  *
- * Find the match scores for each of the available commands (currently condensed list)
- * If a goal has been found, then find the index of the best match (closest to subsequent goal)
+ * Find out if any action in this sequence contains a start state and return the
+ * index of that action
  *
- * @arg ep pointer to new episode
- * @return int status code
- */
-int setCommand(Episode* ep)
-{       
-    int tempIdx, tempDist;                                                  // temp vars
-    int i,j,k;                                                                              // looping indices
-    int bestMatch = CMD_NO_OP;
-    double commandScores[NUM_COMMANDS];                             // Array to store scores for commands
-    int commandIdxs[NUM_COMMANDS];
-    int toggle = 0;
-    Vector* episodeList = g_epMem->array[0];
-    double partialScoreTable[episodeList->size];
-
-    // initialize scores to 0
-    for(i = 0; i < NUM_COMMANDS; i++)
-    {
-        commandScores[i] = 0;
-        commandIdxs[i] = 0;
-    }
-
-    // generate partial score table
-    generateScoreTable(episodeList, partialScoreTable);
-
-    // determine index with top match per command
-    for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
-    {
-        commandIdxs[i] = findTopMatch(partialScoreTable, commandScores, i);
-    }
-
-    // can only successfully search if at minimum history contains
-    // NUM_TO_MATCH episodes
-    if(g_goalCount > 0)
-    {
-        // Set distance to goal equal to largest possible distance
-        tempDist = episodeList->size;
-        // Test out the available commands
-        for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
-        {
-            // find index closest to a subsequent goal
-            tempIdx = commandIdxs[i];
-
-            // If the goal has been found then determine which of the three episodes
-            // with the greatest scores is closest to the goal
-
-            for(j = 0; j < g_goalCount; j++)
-            {
-                /*                                              printf("dist: %i\n", g_goalIdx[j] - tempIdx);
-                                                                printf("idx1: %i idx2: %i\n", g_goalIdx[j], tempIdx);
-                */
-
-                // Make sure distance is greater than 0 and 
-                // If the distance between the episode and goal is less than previous
-                // then save it
-                if(g_goalIdx[i] - tempIdx > 0 && g_goalIdx[j] - tempIdx < tempDist)
-                {
-                    // keep track of the current best distance
-                    tempDist = g_goalIdx[j] - tempIdx;
-                    // keep track of which command gave the best distance so far
-                    bestMatch = i;
-                    toggle = 1;
-                    //                                                      printf("Setting toggle, cmd: %s, tempDist: %i\n", interpretCommand(i), tempDist);
-                }// if
-            }// for
-        }// for 
-    }// if
-
-
-    // If a goal has been found then we have an index of closest goal match
-    if(g_goalCount > 0 && toggle == 1)
-    {
-        ep->cmd = bestMatch;
-    }
-    else
-    { 
-        // else we find cmd with greatest score
-        int max = CMD_NO_OP;
-        for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
-        {
-            //Debug lines
-            /*                      double maxScore = NUM_TO_MATCH * NUM_SENSORS * 2;
-                                    printf("Max score: %g out of: %g for command: %s\n", commandScores[i], maxScore, interpretCommand(i)); */
-            if(commandScores[max] < commandScores[i])
-            {
-                max = i;
-            }
-        }
-        ep->cmd = max;
-    }
-
-    // If not stats mode print scores for cmds
-    if(g_statsMode == 0)
-    {
-        for(i = CMD_NO_OP; i < NUM_COMMANDS; i++)
-        {
-            printf("%s score: %f\n", interpretCommand(i), commandScores[i]);
-        }
-    }
-    /*
-      if(toggle != 1)
-      {
-      printf("Still have not found valid bestMatch, cmd: %s\n", interpretCommand(ep->cmd));
-      }
-      else
-      {
-      printf("Found valid bestMatch, cmd: %s\n", interpretCommand(ep->cmd));
-      }
-    */
-
-
-    // Report malformed episode and location of error report
-    if(ep->cmd <= CMD_ILLEGAL || ep->cmd >= NUM_COMMANDS)
-    {
-        printf("Episode is bad: setCommand %s (%i)\n", interpretCommand(ep->cmd), ep->cmd);
-    }
-
-    // return success
-    return 0;
-}// setCommand
-
-/**
- * ruleMatch
- *
- * Inspect the LHS of the rules we've written and determine
- * if the current state is a match to a rule given a potential
- * action.  
- *
- * @arg action An integer that represents a command or action
- *
- * @return Rule* A pointer to the rule that matches, NULL if no
- *                              match is found
- */
-Rule* ruleMatch(int action)
-{
-    // Create temporary pointers to working memory
-    Vector* episodeList = g_epMem->array[0];
-    Vector* ruleList        = g_actionRules->array[0];
-    int i,j, isMatch;
-
-    // Assign the action to our most recent episode
-    ((Episode*)episodeList->array[episodeList->size - 1])->cmd = action;
-
-    // Iterate through list of rules and see if any rule matches
-    // current state
-    for(i = 0; i < ruleList->size; i++)
-    {
-        Rule* rule = ruleList->array[i];
-        // Assume rule is a match to current state, if not, search will continue. 
-        // The first rule that matches to its full length will be returned
-        // We know this is the right match because any other rule that has the
-        //              same LHS to that point would have caused another episode to be added
-        //              and increased the length. So matching to full rule length ensures
-        //              a unique match to current state
-        isMatch = 1;
-        for(j = 0; j < rule->length && isMatch; j++)
-        {
-            if(!equalEpisodes(episodeList->array[rule->index - j],
-                              episodeList->array[episodeList->size - 1 - j],
-                              FALSE))
-            {
-                isMatch = 0;
-            }
-        }// for
-
-        // Return the current episode's command to its original default value
-        // and return the rule that matched
-        if(isMatch)
-        {
-            ((Episode*)episodeList->array[episodeList->size - 1])->cmd = action;
-            return rule;
-        }
-    }// for 
-
-    return NULL;
-}// ruleMatch
-
-/*
- * equalEpisodes
- *
- * This method takes two episodes and returns a boolean indicating
- * if they are a match. A match is when both the sensor data and 
- * the action are the same in each episode.
- *
- * @arg ep1 A pointer to the first episode
- * @arg ep2 A pointer to the second episode
- *
- * @return int A boolean indicating if they are a full match
- */
-int equalEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch)
-{
-    int i;
-    // Ensure the sensor data match between episodes and return
-    // false if not
-    for(i = 0; i < NUM_SENSORS; i++)
-    {
-        if(ep1->sensors[i] != ep2->sensors[i]) return FALSE;
-    }
-
-    // Ensure episodes have same command, return false if not
-    if(isCurrMatch == FALSE && ep1->cmd != ep2->cmd) return FALSE;
-
-    return TRUE;
-}// equalEpisodes
-
-
-/*
- * NOTE:  this code commented out.  See NOTE above for explanation
- *
- * 13 Oct 2010 - :AMN:
- */
-
-// /**
-//  * planRoute
-//  *
-//  * Take a state and determine a route to a desired state by matching
-//  * the outcome of a rule to the sensors for the first episode on
-//  * the LHS of the follwing rule. It then returns this list of rules
-//  * to follow.
-//  *
-//  * @arg currEp The current state to map to goal
-//  *
-//  * @return int A error code
-//  */
-// int planRoute(Episode* currEp)
-// {
-//     // Set up pointers to episodic memory
-//     Vector* sequenceList;
-//     Vector* epMem;
-//     int goalSequence; // used in the while loop to indicate the index of a
-//                       // sequence that contains a goal
-//     int i;            // counting variable
-
-//     // Free previous route and initialize new vector for new route
-//     freeVector(g_route->route);
-//     g_route->route = newVector();
-
-//     // Reset rest of Route data
-//     g_route->currSequence   = 0;
-//     g_route->currEpInRule   = 0;
-//     g_route->needsRecalc    = FALSE;
-//     g_route->level = MAX_META_DEPTH - 1;
-
-//     while (TRUE)
-//     {
-//         // Find a rule that contains a goal in its outcome
-//         goalSequence = -1;
-//         sequenceList    = g_sequenceRules->array[g_route->level];
-//         epMem           = g_epMem->array[g_route->level];
-
-        
-//         for(i = 0; i < sequenceList->size; i++)
-//         {
-//             Vector* currSequence = (Vector*)sequenceList->array[i];
-//             Rule* lastRule = (Rule*)currSequence->array[currSequence->size - 1];
-//             if(lastRule->containsGoal)
-//             {
-//                 goalSequence = i;
-//                 break;
-//             }
-//         }
-//         // if we found a rule, then stop
-//         // otherwise, go down a level, and try again
-//         if (goalSequence != -1)
-//         {
-//             break;
-//         }
-//         else if (g_route->level > 0)
-//         {
-//             g_route->level = g_route->level - 1;
-//         }
-//         // if we were already at level 0, and didn't find a goal rule, then
-//         // we've failed
-//         else
-//         {
-//             return 1;
-//         }
-//     }// while
-
-//     Vector* goal = (Vector*)sequenceList->array[goalSequence];
-
-//     //If the goal sequence also contains the a start state then the sequence is
-//     //our entire route
-//     //%%%TBD
-
-    
-
-    
-//     Vector* whereWeAre = (Vector*)g_epMem->array[g_route->level + 1];
-
-// /********    
-//     // Try to piece together rules that lead to each other and create the 
-//     // shortest route possible. Need to make sure the outcome of the first
-//     // rule matches the sensor data of the first episode in the following 
-//     // rule.
-//     for(i = 0; i < ruleList->size; i++)
-//     {
-//         // Get pointer to current rule and compare to currState
-//         // If matched, continue to see if it completes the route
-//         // by having the outcome match the goal Rule
-//         Rule* currRule = (Rule*)ruleList->array[i];
-//         if(equalEpisodes(epMem->array[currRule->index - (currRule->length - 1)], currEp, TRUE))
-//         {
-//             // If completes the route, save last rule, save the rule length and break
-//             if(equalEpisodes(epMem->array[goal->index - (goal->length - 1)], epMem->array[currRule->outcome], TRUE))
-//             {
-//                 addRuleToRoute(i);
-//                 break;
-//             }
-//             // Otherwise add the next rule, reset the rule index and continue
-//             else
-//             {
-//                 addRuleToRoute(i);
-//                 currEp = (Episode*)epMem->array[currRule->outcome];
-//                 //                              i = 0;
-//             }//else
-
-//             if(g_route->numRules >= MAX_ROUTE_LEN)
-//             {
-//                 break;
-//             }
-//         }// if
-//     }// for
-
-//     // Put the goal rule at the end of the route
-//     addRuleToRoute(goalRule);
-// */
-//     return 0;
-// }// planRoute
-
-/**
- *initRoute
- *
- * *****************************************************************************
- * ********************************* INCOMPLETE ********************************
- * *****************************************************************************
- *
- * This method uses Dijkstra's algorithm to find a shortest path from the
- * start state to the goal state at a given level.  A route is a vector of one
- * or more sequences that define such a path.
- *
- * @arg level     is the level at which this route should exist
- * @arg newRoute  is the Route struct to populate with this new route.
+ * @arg seq  the sequence to search
  * 
- * @return a success/error code
+ * @return the index of an action in the sequence that contains a start or -1 if
+ *         there is no such action
  */
-int initRoute(int level, Route* newRoute)
+int getStartAction(Vector *seq)
 {
-    // instance variables
-    Vector* route;          // the ordered list of sequences stored as
-                            // int indices into ruleList
-    int i,j;                // counting variable
-    Vector* sequenceRules;  // pointer to sequence rules in level
-    Vector* candRoutes = newVector();  //candidate Route structs to return to caller
+    int j;                      // loop iterator
+    int result = -1;            // default: not found 
 
-    // check that the requested level exists
-    if (g_sequenceRules->size < level) return LEVEL_NOT_POPULATED;
-
-    /*--------------------------------------------------------------------------
-     * Find all the sequences at the given level that contain a goal.  Create an
-     * incomplete route with each one that ends with this sequence
-     */
-    
-    // Iterate over each sequence at the given level
-    // (Note:  iteration is descending so as to give preference to the most
-    // recently added sequences)
-    sequenceRules = g_sequenceRules->array[level];
-    for (i = sequenceRules->size-1; i >= 0; i--)
+    //Iterate over each action in the sequence
+    for(j = 0; j < seq->size; j++)
     {
-        Vector *currSeq = (Vector*)sequenceRules->array[i];
-        //Find out if any action in this sequence contains a goal
-        //(Note:  iteration is descending since the last rule is most likely to
-        //have the goal)
-        for(j = currSeq->size-1; j >= 0; j--)
+        Rule *currRule = (Rule *)seq->array[j];
+
+        //If this action contains a start state then record its index and break
+        if (currRule->containsStart)
         {
-            Rule *currRule = (Rule *)currSeq->array[j];
-
-            //If this rule contains a goal then create the candidate route and
-            //add it to the list
-            if (currRule->containsGoal)
-            {
-                //Create the route
-                Route *route = (Route*)malloc(sizeof(Route));
-                route->actions = newVector();
-                route->sequences = newVector();
-                initRouteFromSequence(route, currSeq);
-
-                //add to the candidates list
-                newEntry(candRoutes, route);
-
-                break;          // move on to the next sequence
-            }
-        }//for
-    }//for
-
-    //Make sure that at least one candidate route was found
-    if (candRoutes->size == 0) return NO_GOAL_IN_LEVEL;
-
-    /*--------------------------------------------------------------------------
-     * Sort the candidate routes from shortest to longest (selection sort)
-     */
-    for(i = 0; i < candRoutes->size-1; i++)
-    {
-        int indexOfSmallest = i;
-        int smallestLen = ((Route *)candRoutes->array[i])->actions->size;
-        for(j = i+1; j < candRoutes->size; j++)
-        {
-            int len = ((Route*)candRoutes->array[i])->actions->size;
-            if (len < smallestLen)
-            {
-                indexOfSmallest = j;
-                smallestLen = len;
-            }
+            result = j;
+            break;          // move on to the next sequence
         }
-
-        //swap
-        void *temp = candRoutes->array[i];
-        candRoutes->array[i] = candRoutes->array[indexOfSmallest];
-        candRoutes->array[indexOfSmallest] = temp;
     }//for
-    
-    /*--------------------------------------------------------------------------
-     * Iterate over the candidate routes expanding them until the shortest
-     * route to the goal is found (Dijkstra's algorithm)
-     */
-    //Iterate over all candidate routes
-    //(Note: the size of the candRoutes vector will grow as the search continues)
-    for(i = 0; i < candRoutes->size; i++)
+
+    return result;
+}//getStartAction
+
+/**
+ * getGoalAction
+ *
+ * Find out if any action in this sequence contains a goal and return the index
+ * of that action
+ *
+ * @arg seq  the sequence to search
+ * 
+ * @return the index of an action in the sequence that contains a goal or -1 if
+ *         there is no such action
+ */
+int getGoalAction(Vector *seq)
+{
+    int j;                      // loop iterator
+    int result = -1;            // default: not found 
+
+    //Iterate over each action in the sequence
+    //(Note:  iteration is descending since the last rule is most likely to
+    //have the goal)
+    for(j = seq->size-1; j >= 0; j--)
     {
-        Route *route = (Route *)candRoutes->array[i];
+        Rule *currRule = (Rule *)seq->array[j];
 
-        //%%%If the route contains a goal, we're done.  Copy the details of this
-        //%%%route to the newRoute struct we were given and exit the loop.
-
-        //%%%Extract the last sequence in this route
-        
-        //%%%Search all the rules at the level above for rules that end with
-        //%%%this last sequence
-        //%%%for(...)
+        //If this action contains a goal then record its index and break
+        if (currRule->containsGoal)
         {
-            //%%%Extract the preceding sequence
-
-            //%%%Verify this sequence hasn't been used already (equivalent of
-            //%%%"node already visited" in Dijkstra's formal algorithm)
-
-            //%%%Create a new route that is a clone of the current one
-
-            //%%%Add the discovered sequence to this route clone
-
-            //%%%Add this new candidate route to the candRoutes array
-        }//for
+            result = j;
+            break;          // move on to the next sequence
+        }
     }//for
 
-    //%%%Clean up the candRoutes list (showing care to preserve the newRoute)
-    
-    
-    return SUCCESS;
-}//initRoute
+    return result;
+}//getGoalAction
 
 /**
  * initRouteFromSequence
@@ -1799,6 +1319,184 @@ void initRouteFromSequence(Route *route, Vector *seq)
     }
     
 }//initRouteFromSequence
+
+
+/**
+ *initRoute
+ *
+ * This method uses Dijkstra's algorithm to find a shortest path from the
+ * start state to the goal state at a given level.
+ *
+ * @arg level     is the level at which this route should exist
+ * @arg newRoute  is the Route struct to populate with this new route.
+ * 
+ * @return a success/error code
+ */
+int initRoute(int level, Route* newRoute)
+{
+    // instance variables
+    Vector* route;          // the ordered list of sequences stored as
+                            // int indices into ruleList
+    int i,j;                // counting variable
+    Vector* sequenceRules;  // pointer to sequence rules in level
+    Vector* candRoutes = newVector();  //candidate Route structs to return to caller
+
+    // check that the requested level exists
+    if (g_sequenceRules->size < level) return LEVEL_NOT_POPULATED;
+
+    /*--------------------------------------------------------------------------
+     * Find all the sequences at the given level that contain a goal.  Create an
+     * incomplete route with each one that ends with this sequence
+     */
+    
+    // Iterate over each sequence at the given level
+    // (Note:  iteration is descending so as to give preference to the most
+    // recently added sequences)
+    sequenceRules = g_sequenceRules->array[level];
+    for (i = sequenceRules->size-1; i >= 0; i--)
+    {
+        Vector *currSeq = (Vector*)sequenceRules->array[i];
+
+        //If the sequence contains a goal, then reate a partial route from it
+        //and add it to the candidates list
+        int actionIdx = getGoalAction(currSeq);
+        if (actionIdx >= 0)
+        {
+                //Create the route
+                Route *route = (Route*)malloc(sizeof(Route));
+                route->actions = newVector();
+                route->sequences = newVector();
+                initRouteFromSequence(route, currSeq);
+
+                //add to the candidates list
+                newEntry(candRoutes, route);
+
+        }//if
+    }//for
+
+    //Make sure that at least one candidate route was found
+    if (candRoutes->size == 0) return NO_GOAL_IN_LEVEL;
+
+    /*--------------------------------------------------------------------------
+     * Sort the candidate routes from shortest to longest (selection sort)
+     */
+    for(i = 0; i < candRoutes->size-1; i++)
+    {
+        int indexOfSmallest = i;
+        int smallestLen = ((Route *)candRoutes->array[i])->actions->size;
+        for(j = i+1; j < candRoutes->size; j++)
+        {
+            int len = ((Route*)candRoutes->array[i])->actions->size;
+            if (len < smallestLen)
+            {
+                indexOfSmallest = j;
+                smallestLen = len;
+            }
+        }
+
+        //swap
+        void *temp = candRoutes->array[i];
+        candRoutes->array[i] = candRoutes->array[indexOfSmallest];
+        candRoutes->array[indexOfSmallest] = temp;
+    }//for
+    
+    /*--------------------------------------------------------------------------
+     * Iterate over the candidate routes expanding them until the shortest
+     * route to the goal is found (Dijkstra's algorithm)
+     */
+    //Iterate over all candidate routes
+    //(Note: the size of the candRoutes vector will grow as the search continues)
+    for(i = 0; i < candRoutes->size; i++)
+    {
+        //Find the shortest route that hasn't been examined yet
+        Route *route = (Route *)candRoutes->array[i];
+        int routeLen = route->actions->size;
+        int routePos = i;
+        for(j = i+1; j < candRoutes->size; j++)
+        {
+            Route *possiblyShorter = (Route *)candRoutes->array[j];
+            int psLen = possiblyShorter->actions->size;
+
+            //If a shorter one is found, update route, routeLen and routePos
+            if (psLen < routeLen)
+            {
+                route = possiblyShorter;
+                routeLen = psLen;
+                routePos = j;
+            }
+        }
+
+        //Move this shortest unexamined route to the current position in the
+        //candRoutes vector via a swap
+        if (routePos != i)
+        {
+            void *tmp = candRoutes->array[i];
+            candRoutes->array[i] = candRoutes->array[j];
+            candRoutes->array[j] = tmp;
+        }
+                
+
+        //If the first sequence in this route contains a start state, we're
+        //done.  Copy the details of this route to the newRoute struct we were
+        //given and exit the loop.
+        Vector *firstSeq = (Vector *)route->sequences->array[0];
+        int actionIdx = getStartAction(firstSeq);
+        if (actionIdx >= 0)
+        {
+            newRoute->level = route->level;
+            newRoute->sequences = cloneVector(route->sequences);
+            newRoute->actions = cloneVector(route->actions);
+            newRoute->currAction = 0;
+            newRoute->needsRecalc = FALSE;
+
+            break;
+        }
+
+        //Search all the sequences to find any that meet these criteria:
+        //1.  the last action in the sequence matches the first action of the first
+        //    sequence in the current candidate route.  (In other words, a
+        //    sequence that can extend that candidate route.)
+        //2.  the sequence is not already in the candidate route
+        Rule *firstRule = (Rule *)firstSeq->array[0];
+        for (i = 0; i < sequenceRules->size; i++)
+        {
+            Vector *currSeq = (Vector*)sequenceRules->array[i];
+
+            //If this sequence can't extend the candidate route then skip ite
+            Rule *lastRule = (Rule *)currSeq->array[currSeq->size-1];
+            if (lastRule != firstRule) continue;
+            
+            //Verify this sequence hasn't been used already (equivalent of "node
+            //already visited" in Dijkstra's formal algorithm)
+            if (findEntry(route->sequences, currSeq)) continue;
+
+            //If we've reached this point, then we can create a new candidate
+            //route that is an extension of the first one
+            Route *newCand = (Route*)malloc(sizeof(Route));
+            newCand->actions = newVector();
+            newCand->sequences = newVector();
+            initRouteFromSequence(newCand, currSeq);
+            addVector(newCand->actions, route->actions);
+            addVector(newCand->sequences, route->sequences);
+            
+            //Add this new candidate route to the candRoutes array
+            addEntry(candRoutes, newCand);
+        }//for
+        
+    }//for
+
+    //Clean up the RAM in the candRoutes list
+    for(i = 0; i < candRoutes->size; i++)
+    {
+        Route *route = (Route *)candRoutes->array[i];
+        freeVector(route->actions);
+        freeVector(route->sequences);
+        free(route);
+    }
+    freeVector(candRoutes);
+    
+    return SUCCESS;
+}//initRoute
 
 /**
  * initPlan
@@ -1943,93 +1641,42 @@ int findTopMatch(double* scoreTable, double* indvScore, int command)
     return max;
 }// findTopMatch
 
-
 /**
- * generateScoreTable
- *
- * search for a series of episodes that best matches the last NUM_TO_MATCH
- * episodes
- *
- * @arg vector the vector containing full history of episodes
- * @arg score a pointer to double we can use to store/return score
- * @return int Error code
- */
-int generateScoreTable(Vector* vector, double* score)
-{
-    int i,j, returnIdx = 0;
-    double tempScore = 0.0, discount = 1.0;
-    Vector* episodeList = g_epMem->array[0];
-    int start = episodeList->size - NUM_TO_MATCH - 1; // subtract 1 to begin 1 episode before curr state
-
-    if(g_goalCount > 0)
-    {
-        start = g_goalIdx[g_goalCount - 1] - NUM_TO_MATCH;
-    }
-
-    // Iterate through vector and search from each index
-    for(i = start; i >= 0; i--)
-    {
-        // reset tempscore
-        tempScore = 0;
-
-        for(j = NUM_TO_MATCH - 1; j >= 0; j--)
-        {
-            // If any state that occurs before the final episode in the match is a goal
-            // state then break because that means our current final episode is being 
-            // matched to one after a goal, which doesn't help to find the goal again
-            if(((Episode*)(vector->array[i + j]))->sensors[SNSR_IR] == 1)
-            {
-                break;
-            }
-
-            // compare two episodes and add result to score with appropriate discount
-            //                                      V-index iterate to beginning            V-index to current episode frame
-            tempScore += (discount * compareEpisodes(vector->array[i + j], vector->array[vector->size - NUM_TO_MATCH + j], (j == NUM_TO_MATCH - 1 ? TRUE : FALSE)));
-            discount *= DISCOUNT;
-        }//for
-
-        score[i + NUM_TO_MATCH - 1] = tempScore;
-    }// for
-    // return success
-    return 0;
-}// generateScoreTable
-
-/**
- * compare
+ * compareEpisodes
  *
  * Compare the sensor arrays of two episodes and return if they match or not
  *
  * @arg ep1 a pointer to an episode
  * @arg ep2 a pointer to another episode
- * @return double The score telling us how close these episodes match
+ * @arg compCmd  TRUE indicates the comparison should include the cmd. FALSE
+ *               indicates that only the sensor array should be compared
+ * @return TRUE if the episodes match and FALSE otherwise
  */
-double compareEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch)
+int compareEpisodes(Episode* ep1, Episode* ep2, int compCmd)
 {
     int i;
-    double match = 0;
 
-    // Iterate through the episodes' sensor data and determine if they are matching episodes
+    // Iterate through the episodes' sensor data and determine if they are
+    // matching episodes
     for(i = 0; i < NUM_SENSORS; i++)
     {
-        if(ep1->sensors[i] == ep2->sensors[i])
+        if(ep1->sensors[i] != ep2->sensors[i])
         {
-            match++;
+            return FALSE;
         }
     }
 
-    // Only add the value for command match if not the last episode in state
-    if(isCurrMatch == FALSE)
+    //Compare the commands if that's required
+    if(compCmd)
     {
         // add num_sensors to give cmd 1/2 value
-        if(ep1->cmd == ep2->cmd)
+        if(ep1->cmd != ep2->cmd)
         {
-            match += NUM_SENSORS;
+            return FALSE;
         }
     }
 
-    // return the total value of the match between episodes
-    //      printf("Match score %g\n", match);
-    return match;
+    return TRUE;
 }// compareEpisodes
 
 /**
@@ -2055,6 +1702,38 @@ int compareRules(Rule* r1, Rule* r2)
 
     return TRUE;
 }//compareRules
+
+/**
+* containsEpisode
+*
+* Check a list of episodes for a previous occurence of a particular
+* episode
+*
+* @arg episodeList A vector containing a series of sequences
+* @arg ep  a pointer to the episode struct to search for
+* @arg ignoreSelf If TRUE then if you find ep in episodeList ignore
+*                 it (i.e., we are looking for a duplicate not itself)
+* @return a pointer to the matching episode if it is found, NULL otherwise
+*/
+Episode* containsEpisode(Vector* episodeList, Episode* ep, int ignoreSelf)
+{
+	int i;
+    
+	for(i = 0; i < episodeList->size; i++)
+	{
+        Episode *toCompare = (Episode*)episodeList->array[i];
+
+        //See if the episodes match
+		if(compareEpisodes(toCompare, ep, TRUE))
+        {
+            //Handle the ignoreSelf parameter
+            if (!ignoreSelf) return toCompare;
+            if (ep != toCompare) return toCompare;
+        }
+	}
+	// otherwise it's not there
+	return NULL;
+}//containsEpisode
 
 /**
 * containsSequence
@@ -2138,18 +1817,8 @@ int compare(Vector *list, int i1, int i2, int level)
         int noRHS = (i1 == list->size - 1) || (i2 == list->size - 1);
 
         //Determine a match score
-        double matchScore = compareEpisodes(list->array[i1],
-                                            list->array[i2], noRHS);
-
-        //See if that match score is a perfect match
-        if (noRHS)
-        {
-            return (matchScore == NUM_SENSORS);
-        }
-        else
-        {
-            return (matchScore == 2 * NUM_SENSORS);
-        }   
+        return compareEpisodes(list->array[i1],
+                               list->array[i2], !noRHS);
     }
     else //sequence
     {
@@ -2218,14 +1887,15 @@ void initSupervisor()
         addEntry(g_sequenceRules->array[i], newVector());
     }
 
-    //TODO:  g_route needs to be refactored
-    g_route                 = (Route*)malloc(sizeof(Route));
-    g_route->actions          = newVector();
-    g_route->currAction   = 0;
-    g_route->needsRecalc    = TRUE;
-    
+    g_plan = NULL;              // no plan can be made at this point
+
     g_connectToRoomba       = 0;
     g_statsMode             = 0;
+
+
+    // seed rand 
+    srand(time(NULL));
+    
 }// initSupervisor
 
 /**
@@ -2303,7 +1973,8 @@ void endSupervisor()
     freeVector(g_epMem);
     freeVector(g_actionRules);
 
-    free(g_route);
+    //%%%TODO: free g_plan
+    
     printf("end of function\n");
 }// endSupervisor
 

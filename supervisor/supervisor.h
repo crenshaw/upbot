@@ -97,7 +97,7 @@ int g_statsMode;
 Vector* g_epMem;
 Vector* g_actionRules;
 Vector* g_sequenceRules;
-Route*  g_route;
+Vector* g_plan;                 // a plan is a vector of N routes, 1 per level
 
 // Function declarations
 extern void  simpleTest();
@@ -106,7 +106,7 @@ extern char* interpretCommand(int cmd);
 char*    interpretCommandShort(int cmd);
 int      interpretSensorsShort(int *sensors);
 Episode* createEpisode(char* sensorData);
-int      chooseCommand(Episode* ep);
+int      chooseCommand();
 int      setCommand(Episode* ep);
 int      parseEpisode(Episode* parsedData, char* dataArr);
 int      updateRules();
@@ -118,7 +118,8 @@ int      planRoute(Episode* currEp);
 int      takeNextStep(Episode* currEp);
 Vector*  newPlan();
 void     freePlan(Vector *plan);
-void initRouteFromSequence(Route *route, Vector *seq);
+Vector*  initPlan();
+void     initRouteFromSequence(Route *route, Vector *seq);
 int      setCommand2(Episode* ep);
 int      nextStepIsValid();
 void     displayRoute();
@@ -132,7 +133,7 @@ Rule*    ruleMatch(int action);
 int      equalEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
 int      findTopMatch(double* scoreTable, double* indvScore, int command);
 int      generateScoreTable(Vector* vector, double* score);
-double   compareEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
+int compareEpisodes(Episode* ep1, Episode* ep2, int compCmd);
 void     initSupervisor();
 void     endSupervisor();
 

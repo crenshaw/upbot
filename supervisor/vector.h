@@ -22,6 +22,7 @@ Vector* newVector();
 void freeVector(Vector* victim);
 int addEntry(Vector* vector, void* item);
 void* getEntry(Vector* vector, int index);
-
+int findEntry(Vector* vector, void *entry);
+Vector *cloneVector(Vector *vector);
 
 #endif // _VECTOR_H_
