@@ -833,22 +833,22 @@ int addActionToSequence(Vector* sequence, Action* action)
  *
  * @return int A status code
  */
-int addAction(Vector* rules, Action* item, int checkRedundant)
+int addAction(Vector* actions, Action* item, int checkRedundant)
 {
-    if(checkRedundant && rules->size > 0)
+    if(checkRedundant && actions->size > 0)
     {
         int i;
-        for(i = 0; i < rules->size - 1; i++)
+        for(i = 0; i < actions->size - 1; i++)
         {
-            if(rules->array[i] == item)
+            if(actions->array[i] == item)
             {
                 return -1;
             }
         }
     }
 
-    return addEntry(rules, item);
-}// addrule
+    return addEntry(actions, item);
+}// addAction
 
 /**
  * displayEpisode

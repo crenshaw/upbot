@@ -112,7 +112,7 @@ int      parseEpisode(Episode* parsedData, char* dataArr);
 int      updateAll();
 int      addEpisode(Vector* episodes, Episode* item);
 int      addActionToSequence(Vector* sequence,  Action* action);
-int      addAction(Vector* rules, Action* item, int checkRedundant);
+int      addAction(Vector* actions, Action* item, int checkRedundant);
 void     addActionToRoute(int ruleIdx);
 int      planRoute(Episode* currEp);
 int      takeNextStep(Episode* currEp);
