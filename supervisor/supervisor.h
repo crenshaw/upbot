@@ -52,8 +52,8 @@ typedef struct EpisodeStruct
 	int 	cmd;
 } Episode;
 
-// Rule struct
-typedef struct RuleStruct
+// Action struct
+typedef struct ActionStruct
 {
     Vector *epmem;              // the episodic memory for this rule.  This will
                                 // contain either Episodes (for level 0)
@@ -73,7 +73,7 @@ typedef struct RuleStruct
                                 // Non-percentage rules have a NULL list.
     int containsGoal;           // Does this rule contain a goal on the RHS?
     int containsStart;          // Does this rule contain a starting state on the LHS?
-} Rule;
+} Action;
 
 typedef struct RouteStruct
 {
@@ -111,8 +111,8 @@ int      setCommand(Episode* ep);
 int      parseEpisode(Episode* parsedData, char* dataArr);
 int      updateRules();
 int      addEpisode(Vector* episodes, Episode* item);
-int      addActionToSequence(Vector* sequence,  Rule* action);
-int      addRule(Vector* rules, Rule* item, int checkRedundant);
+int      addActionToSequence(Vector* sequence,  Action* action);
+int      addRule(Vector* rules, Action* item, int checkRedundant);
 void     addRuleToRoute(int ruleIdx);
 int      planRoute(Episode* currEp);
 int      takeNextStep(Episode* currEp);
@@ -129,11 +129,11 @@ void     displayRule(Rule* rule);
 void     displaySequence(Vector* sequence);
 void     displaySequences(Vector* sequences);
 Vector*  containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf);
-Rule*    ruleMatch(int action);
+Action*  ruleMatch(int action);
 int      equalEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
 int      findTopMatch(double* scoreTable, double* indvScore, int command);
 int      generateScoreTable(Vector* vector, double* score);
-int compareEpisodes(Episode* ep1, Episode* ep2, int compCmd);
+int      compareEpisodes(Episode* ep1, Episode* ep2, int compCmd);
 void     initSupervisor();
 void     endSupervisor();
 

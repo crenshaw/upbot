@@ -335,7 +335,7 @@ int updateRules(int level)
     //Create a candidate rule that we would create from this current
     //episode.  We won't add it to the rule list if an identical rule
     //already exists.
-    Rule* newRule            = (Rule*) malloc(sizeof(Rule));
+    Action* newRule            = (Action*) malloc(sizeof(Action));
     newRule->level           = level;
     newRule->epmem           = episodeList;
     newRule->outcome         = episodeList->size - 1;
@@ -353,7 +353,7 @@ int updateRules(int level)
         newRule->containsStart          = TRUE;
     }
     //initialize containsStart to TRUE if the previous rule contained a goal
-    else if (((Rule *)ruleList->array[ruleList->size - 1])->containsGoal)
+    else if (((Action *)ruleList->array[ruleList->size - 1])->containsGoal)
     {
         episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
         newRule->containsStart          = TRUE;
@@ -380,11 +380,11 @@ int updateRules(int level)
     int i,j;
     int matchComplete = FALSE;
     int addNewRule = TRUE;
-    Rule* updateExistingRule = NULL;
+    Action* updateExistingRule = NULL;
     for(i = 0; i < ruleList->size; i++)
     {
         //Compare the i-th rule to the candidate rule
-        Rule* curr = (Rule*)ruleList->array[i];
+        Action* curr = (Action*)ruleList->array[i];
 
         for(j = 0; j < newRule->length; j++)
         {
@@ -423,7 +423,7 @@ int updateRules(int level)
                         //Iterate over cousins and find one with same outcome as candidate rule
                         for(k = 0; k < curr->cousins->size; k++)
                         {
-                            Rule* cousin = curr->cousins->array[k];
+                            Action* cousin = curr->cousins->array[k];
 
 #if DEBUGGING
                             printf("\t");
@@ -816,7 +816,7 @@ int addEpisode(Vector* episodes, Episode* item)
  * @arg action rule pointer to action rule to be added
  * @return int status code (0 == success)
  */
-int addActionToSequence(Vector* sequence, Rule* action)
+int addActionToSequence(Vector* sequence, Action* action)
 {
     return addEntry(sequence, action);
 }// addActionToSequence
@@ -833,7 +833,7 @@ int addActionToSequence(Vector* sequence, Rule* action)
  *
  * @return int A status code
  */
-int addRule(Vector* rules, Rule* item, int checkRedundant)
+int addRule(Vector* rules, Action* item, int checkRedundant)
 {
     if(checkRedundant && rules->size > 0)
     {
@@ -895,7 +895,7 @@ void displayRules(Vector *ruleList, Vector *episodeList)
     }
 
     //determine if episodeList contains sequences or Episode structs
-    int isEpList = ((Rule *)(ruleList->array[0]))->level == 0;
+    int isEpList = ((Action *)(ruleList->array[0]))->level == 0;
 
     //print the last 20 episodic memories
     printf("EpMem: ");
@@ -957,7 +957,7 @@ void displaySequenceShort(Vector* sequence)
     for(i = 0; i < sequence->size; i++)
     {
 		// grab the level from the current sequence
-		int currLevel = ((Rule*)sequence->array[i])->level;
+		int currLevel = ((Action*)sequence->array[i])->level;
 		// grab the associated action rules this sequence is composed from
 		Vector* actionList = g_actionRules->array[currLevel];
 		// search for the rule that the sequence is referring to
@@ -1001,7 +1001,7 @@ void displaySequences(Vector* sequences)
  * The rules are printed backward (LHS on the right and vice versa)
  * for easy comparison to other rules.
  */
-void displayRule(Rule* rule)
+void displayRule(Action* rule)
 {
     int i,j;
 
@@ -1236,7 +1236,7 @@ int getStartAction(Vector *seq)
     //Iterate over each action in the sequence
     for(j = 0; j < seq->size; j++)
     {
-        Rule *currRule = (Rule *)seq->array[j];
+        Action *currRule = (Action *)seq->array[j];
 
         //If this action contains a start state then record its index and break
         if (currRule->containsStart)
@@ -1270,7 +1270,7 @@ int getGoalAction(Vector *seq)
     //have the goal)
     for(j = seq->size-1; j >= 0; j--)
     {
-        Rule *currRule = (Rule *)seq->array[j];
+        Action *currRule = (Action *)seq->array[j];
 
         //If this action contains a goal then record its index and break
         if (currRule->containsGoal)
@@ -1304,7 +1304,7 @@ void initRouteFromSequence(Route *route, Vector *seq)
     route->needsRecalc  = FALSE;
 
     //Calculate the level of this route by looking at a rule in the sequence
-    Rule *r = (Rule *)seq->array[0];
+    Action *r = (Action *)seq->array[0];
     route->level        = r->level;
 
     //This route will contain only one sequence, the given one
@@ -1314,7 +1314,7 @@ void initRouteFromSequence(Route *route, Vector *seq)
     int i;
     for(i = 0; i < seq->size; i++)
     {
-        r = (Rule *)seq->array[i];
+        r = (Action *)seq->array[i];
         addEntry(route->actions, r);
     }
     
@@ -1457,13 +1457,13 @@ int initRoute(int level, Route* newRoute)
         //    sequence in the current candidate route.  (In other words, a
         //    sequence that can extend that candidate route.)
         //2.  the sequence is not already in the candidate route
-        Rule *firstRule = (Rule *)firstSeq->array[0];
+        Action *firstRule = (Action *)firstSeq->array[0];
         for (i = 0; i < sequenceRules->size; i++)
         {
             Vector *currSeq = (Vector*)sequenceRules->array[i];
 
             //If this sequence can't extend the candidate route then skip ite
-            Rule *lastRule = (Rule *)currSeq->array[currSeq->size-1];
+            Action *lastRule = (Action *)currSeq->array[currSeq->size-1];
             if (lastRule != firstRule) continue;
             
             //Verify this sequence hasn't been used already (equivalent of "node
@@ -1689,7 +1689,7 @@ int compareEpisodes(Episode* ep1, Episode* ep2, int compCmd)
  * @arg r2  second rule to compare
  * @return TRUE if the rules match and false otherwise
  */
-int compareRules(Rule* r1, Rule* r2)
+int compareRules(Action* r1, Action* r2)
 {
     //Make sure that both rules use the same episodic memory
     if (r1->epmem != r2->epmem) return FALSE;
@@ -1782,7 +1782,7 @@ int compareSequences(Vector* seq1, Vector* seq2)
 	// make sure they contain the same number of rules
 	if(seq1->size != seq2->size) return FALSE;
 	// make sure they are at the same level
-	if(((Rule*)seq1->array[0])->level != ((Rule*)seq2->array[0])->level) return FALSE;
+	if(((Action*)seq1->array[0])->level != ((Action*)seq2->array[0])->level) return FALSE;
 
 	int i;
 	// iterate through and compare corresponding action rules
@@ -1799,9 +1799,9 @@ int compareSequences(Vector* seq1, Vector* seq2)
  * compare
  *
  * This is a general purpose compare that works with either Episode or
- * Rule structs.  It calls compareRules or compareEpisodes as needed.
+ * Action structs.  It calls compareRules or compareEpisodes as needed.
  *
- * @arg list        a pointer to a Vector of either Episode or Rule structs
+ * @arg list        a pointer to a Vector of either Episode or Action structs
  * @arg i1         index of first entry to compare
  * @arg i2         index of second entry to compare
  * @arg level      is TRUE if vec contains episodes and FALSE if it
@@ -1833,7 +1833,7 @@ int compare(Vector *list, int i1, int i2, int level)
  * goal. Depending on the level the episode may be an Episode struct
  * or a sequence.
  *
- * @arg entry      a pointer to an Episode or Rule struct
+ * @arg entry      a pointer to an Episode or Action struct
  * @arg level      is TRUE if entry is an Episode (false for a rule)
  * @return TRUE if the entry is a goal and FALSE otherwise
  */
@@ -1851,7 +1851,7 @@ int episodeContainsGoal(void *entry, int level)
         Vector *sequence = (Vector *)entry;
         printf("sequence->size=%d\n", (int)(sequence->size));
         displaySequence(sequence);
-        Rule *rule = (Rule *)sequence->array[sequence->size - 1];
+        Action *rule = (Action *)sequence->array[sequence->size - 1];
         
         //For a sequence, a goal is indicated by "containsGoal"
         return rule->containsGoal;
@@ -1929,7 +1929,7 @@ void endSupervisor()
         {
             //If this is an inconsistent rule we need to clean up
             //the cousins list before we deallocate the rules
-            Vector* cousins = ((Rule*)ruleList->array[j])->cousins;
+            Vector* cousins = ((Action*)ruleList->array[j])->cousins;
             if(cousins != NULL)
             {
 
@@ -1937,14 +1937,14 @@ void endSupervisor()
                 //list anymore.
                 for(k = 0; k < cousins->size; k++) 
                 {
-                    ((Rule*)cousins->array[k])->cousins = NULL;
+                    ((Action*)cousins->array[k])->cousins = NULL;
                 }
 
                 //now it's save to free the list
                 freeVector(cousins);
             }
 
-            free((Rule*)ruleList->array[j]);
+            free((Action*)ruleList->array[j]);
         }//for
         freeVector(ruleList);
 
