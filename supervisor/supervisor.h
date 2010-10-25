@@ -11,7 +11,7 @@
  * data.
  *
  * Authors:      Zachary Paul Faltersack, Dr. Andrew Nuxoll, Brian Burns
- * Last updated: October 13, 2010
+ * Last updated: October 25, 2010
  */
 
 #include <stdio.h>
