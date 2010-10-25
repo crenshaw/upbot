@@ -58,16 +58,16 @@ typedef struct ActionStruct
     Vector *epmem;              // the episodic memory for this rule.  This will
                                 // contain either Episodes (for level 0)
                                 // or sequences (for level 1+)
-    int level;                  // what level is this rule?
-	int index;                  // index into epmem where the rule's LHS ends
-	int length;                 // number of entries in the LHS
-	int freq;                   // number of times this rule has "matched" epmem
+    int  level;                 // what level is this rule?
+	int  index;                 // index into epmem where the rule's LHS ends
+	int  length;                // number of entries in the LHS
+	int  freq;                  // number of times this rule has "matched" epmem
 	int* overallFreq;           // number of times just the most recent sensor
                                 // data has matched epmem. This is a pointer
                                 // since the value is shared by a group of cousins
 	int outcome;                // index to the outcome state *or* a flag
                                 // indicating it doesn't exist yet
-	int isIndeterminate;        // is this rule indeterminate?
+	int     isIndeterminate;    // is this rule indeterminate?
 	Vector* cousins;            // a pointer to a jointly held list of all
                                 // "cousin" rules including itself.
                                 // Non-percentage rules have a NULL list.
@@ -97,7 +97,7 @@ int g_statsMode;
 Vector* g_epMem;
 Vector* g_actions;
 Vector* g_sequences;
-Vector* g_plan;                 // a plan is a vector of N routes, 1 per level
+Vector* g_plan;        // a plan is a vector of N routes, 1 per level
 
 // Function declarations
 extern void  simpleTest();
@@ -109,11 +109,11 @@ Episode* createEpisode(char* sensorData);
 int      chooseCommand();
 int      setCommand(Episode* ep);
 int      parseEpisode(Episode* parsedData, char* dataArr);
-int      updateRules();
+int      updateAll();
 int      addEpisode(Vector* episodes, Episode* item);
 int      addActionToSequence(Vector* sequence,  Action* action);
-int      addRule(Vector* rules, Action* item, int checkRedundant);
-void     addRuleToRoute(int ruleIdx);
+int      addAction(Vector* rules, Action* item, int checkRedundant);
+void     addActionToRoute(int ruleIdx);
 int      planRoute(Episode* currEp);
 int      takeNextStep(Episode* currEp);
 Vector*  newPlan();
@@ -124,12 +124,12 @@ int      setCommand2(Episode* ep);
 int      nextStepIsValid();
 void     displayRoute();
 void     displayEpisode(Episode* ep);
-void     displayRules(Vector* ruleList, Vector* episodeList);
-void     displayRule(Rule* rule);
+void     displayActions(Vector* ruleList, Vector* episodeList);
+void     displayAction(Action* rule);
 void     displaySequence(Vector* sequence);
 void     displaySequences(Vector* sequences);
 Vector*  containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf);
-Action*  ruleMatch(int action);
+Action*  actionMatch(int action);
 int      equalEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
 int      findTopMatch(double* scoreTable, double* indvScore, int command);
 int      generateScoreTable(Vector* vector, double* score);

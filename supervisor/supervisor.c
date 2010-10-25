@@ -14,7 +14,7 @@
  *
  * 1.  refactor the code so that it says "action" instead of "rule" and
  *     "sequence" instead of "sequence"
- * 2.  Review updateRules() and try to simplify it.  Break it up into parts?
+ * 2.  Review updateAll() and try to simplify it.  Break it up into parts?
  * 3.  Add a method to the vector that allows insert and delete and use it?  I'm
  *     not sure that this will make the code easier to read but it might help.
  */
@@ -88,7 +88,7 @@ void simpleTest()
         addEpisode(g_epMem->array[0], ep);
         printf("Episode created\n");
 
-        updateRules(0);
+        updateAll(0);
 
         // If we found a goal, send a song to inform the world of success
         // and if not then send ep to determine a valid command
@@ -109,7 +109,7 @@ void simpleTest()
 
 #ifdef DEBUGGING
         printf("Level 0 Action Rules>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-        displayRules(g_actions->array[0], g_epMem->array[0]);
+        displayActions(g_actions->array[0], g_epMem->array[0]);
 
         printf("Level 0 Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
         displaySequences(g_sequences->array[0]);
@@ -142,7 +142,7 @@ int tick(char* sensorInput)
     addEpisode(g_epMem->array[0], ep);
     printf("Episode created\n");
 
-	updateRules(0);
+	updateAll(0);
 
     // If we found a goal, send a song to inform the world of success
     // and if not then send ep to determine a valid command
@@ -169,7 +169,7 @@ int tick(char* sensorInput)
     
 #ifdef DEBUGGING
     printf("Level 0 Action Rules>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-    displayRules(g_actions->array[0], g_epMem->array[0]);
+    displayActions(g_actions->array[0], g_epMem->array[0]);
 
     printf("Level 0 Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     displaySequences(g_sequences->array[0]);
@@ -290,7 +290,7 @@ int parseEpisode(Episode * parsedData, char* dataArr)
 }// parseEpisode
 
 /**
- * updateRules                    *RECURSIVE*
+ * updateAll                    *RECURSIVE*
  *
  * This method is designed to do a semantic rules update.  A semantic rule
  * consists of 1 or more episodes that make up the LHS of the rule followed by
@@ -305,7 +305,7 @@ int parseEpisode(Episode * parsedData, char* dataArr)
  * @return int   error code
  *
  */
-int updateRules(int level)
+int updateAll(int level)
 {
     printf("Entering level %i\n", level);
     // Ensure that the level is within the accepted range for the vectors
@@ -366,7 +366,7 @@ int updateRules(int level)
     
     printf("candidate rule: ");
     fflush(stdout);
-    displayRule(newRule);
+    displayAction(newRule);
     printf("\n");
     fflush(stdout);
 
@@ -393,9 +393,9 @@ int updateRules(int level)
             {
 #if DEBUGGING
                 printf("found match between %i-th entries of: ", j);
-                displayRule(curr);
+                displayAction(curr);
                 printf(" and ");
-                displayRule(newRule);
+                displayAction(newRule);
                 printf("\n");
                 fflush(stdout);
 #endif
@@ -427,9 +427,9 @@ int updateRules(int level)
 
 #if DEBUGGING
                             printf("\t");
-                            displayRule(cousin);
+                            displayAction(cousin);
                             printf(" AND ");
-                            displayRule(newRule);
+                            displayAction(newRule);
                             printf("\n");
                             fflush(stdout);
 #endif
@@ -458,7 +458,7 @@ int updateRules(int level)
                             newRule->overallFreq = curr->overallFreq;
                             newRule->cousins = curr->cousins;
 
-                            addRule(newRule->cousins, newRule, FALSE);
+                            addAction(newRule->cousins, newRule, FALSE);
                         }
 
                         // Regardless of whether candidate rule is
@@ -554,7 +554,7 @@ int updateRules(int level)
                                        newRule->length);
                                 fflush(stdout);
                                 printf("new candidate: ");
-                                displayRule(newRule);
+                                displayAction(newRule);
                                 printf("\n");
                                 fflush(stdout);
 #endif
@@ -580,11 +580,11 @@ int updateRules(int level)
 
 #if DEBUGGING
                                 printf("new curr:   ");
-                                displayRule(curr);
+                                displayAction(curr);
                                 printf("\n");
 
                                 printf("new cand: ");
-                                displayRule(newRule);
+                                displayAction(newRule);
                                 printf("\n");
                                 fflush(stdout);
 #endif
@@ -604,8 +604,8 @@ int updateRules(int level)
                                 // allocate cousins list and add both peer
                                 // percentage rules into same cousins list
                                 curr->cousins = newVector();
-                                addRule(curr->cousins, curr, TRUE);
-                                addRule(curr->cousins, newRule, TRUE);
+                                addAction(curr->cousins, curr, TRUE);
+                                addAction(curr->cousins, newRule, TRUE);
                                 newRule->cousins = curr->cousins;
 
                                 //Update rules
@@ -673,7 +673,7 @@ int updateRules(int level)
                             printf("expanded new rule to len %i\n",
                                    newRule->length);
                             printf("new candidate: ");
-                            displayRule(newRule);
+                            displayAction(newRule);
                             printf("\n");
                             fflush(stdout);
 #endif
@@ -708,9 +708,9 @@ int updateRules(int level)
     if(addNewRule == TRUE)
     {
         printf("Adding new rule: ");
-        displayRule(newRule);
+        displayAction(newRule);
         printf("\n");
-        addRule(ruleList, newRule, FALSE);
+        addAction(ruleList, newRule, FALSE);
 
         // set this flag so that we recursively update the next level
         // with this rule
@@ -728,7 +728,7 @@ int updateRules(int level)
     if(updateExistingRule != NULL)
     {
 printf("Adding Rule: ");
-displayRule(updateExistingRule);
+displayAction(updateExistingRule);
 printf(" to current sequence\n");
 
         // add most recently seen action rule to current sequence
@@ -744,7 +744,7 @@ printf(" to current sequence\n");
                                 	
 			// if the sequence we just completed already exists then
 			// reset the vector's size to 0
-			// This will allow updateRules to reuse the same vector
+			// This will allow updateAll to reuse the same vector
 			// without needing to free memory
             Vector* duplicate = containsSequence(sequenceList, currSequence, TRUE);
 			if(duplicate != NULL)
@@ -784,14 +784,14 @@ printf(" to current sequence\n");
             // so we need recursive call to update.
             if(level + 1 < MAX_LEVEL_DEPTH)
             {
-                updateRules(level + 1);
+                updateAll(level + 1);
             }
         }//if
         
     }//if
 
     return 0;
-}// updateRules
+}// updateAll
 
 /**
  * addEpisode
@@ -822,7 +822,7 @@ int addActionToSequence(Vector* sequence, Action* action)
 }// addActionToSequence
 
 /**
- * addRule
+ * addAction
  *
  * Add the given rule to the rules array and checks if the rule
  * already exists
@@ -833,7 +833,7 @@ int addActionToSequence(Vector* sequence, Action* action)
  *
  * @return int A status code
  */
-int addRule(Vector* rules, Action* item, int checkRedundant)
+int addAction(Vector* rules, Action* item, int checkRedundant)
 {
     if(checkRedundant && rules->size > 0)
     {
@@ -873,7 +873,7 @@ void displayEpisode(Episode * ep)
 }// displayEpisode
 
 /**
- * displayRules
+ * displayActions
  *
  * prints a human-readable version of a vector of rules along with the
  * last 20 episodes in episodic memory that the rules were generated from.
@@ -881,7 +881,7 @@ void displayEpisode(Episode * ep)
  * @arg ruleList     the rules to display
  * @arg episodeList  the episodes used to create this list 
  */
-void displayRules(Vector *ruleList, Vector *episodeList)
+void displayActions(Vector *ruleList, Vector *episodeList)
 {
     //don't print empty lists
     if (ruleList->size == 0) return;
@@ -890,7 +890,7 @@ void displayRules(Vector *ruleList, Vector *episodeList)
     for(i = 0; i < ruleList->size; i++)
     {
         printf("%3i. ", i);
-        displayRule(ruleList->array[i]);
+        displayAction(ruleList->array[i]);
         printf("\n");
     }
 
@@ -910,13 +910,13 @@ void displayRules(Vector *ruleList, Vector *episodeList)
         }
         else //episodeList contains Rule structs
         {
-            displayRule(episodeList->array[episodeList->size - i]);
+            displayAction(episodeList->array[episodeList->size - i]);
         }
 
     }//for
     printf("\n");
     printf("---------------\n");
-}// displayRules
+}// displayActions
 
 /**
  * displaySequence
@@ -934,7 +934,7 @@ void displaySequence(Vector* sequence)
     printf("{");
     for(i = 0; i < sequence->size; i++)
     {
-        displayRule(sequence->array[i]);
+        displayAction(sequence->array[i]);
         printf(":");
     }
     printf("}\n");
@@ -994,14 +994,14 @@ void displaySequences(Vector* sequences)
 }
 
 /**
- * displayRule                        *RECURSIVE*
+ * displayAction                        *RECURSIVE*
  *
  * prints a human-readable version of a rule.  If the rule is a
  * sequence it makes recursive calls until it reaches the base rule.
  * The rules are printed backward (LHS on the right and vice versa)
  * for easy comparison to other rules.
  */
-void displayRule(Action* rule)
+void displayAction(Action* rule)
 {
     int i,j;
 
@@ -1046,7 +1046,7 @@ void displayRule(Action* rule)
 
     }//for
 
-}// displayRule
+}// displayAction
 
 /**
  * chooseCommand_SemiRandom
@@ -1174,7 +1174,7 @@ void displayRoute()
             printf("-->");
         }
         printf("\t{ ");
-        displayRule(semMem->array[*((int*)actions->array[i])]);
+        displayAction(semMem->array[*((int*)actions->array[i])]);
         printf(" }\n");
     }// for
     printf("\n");
@@ -1883,7 +1883,7 @@ void initSupervisor()
         temp = newVector();
         addEntry(g_sequences, temp);
 
-        // pad sequence rule vector to avoid crash on first call of updateRules()
+        // pad sequence rule vector to avoid crash on first call of updateAll()
         addEntry(g_sequences->array[i], newVector());
     }
 
