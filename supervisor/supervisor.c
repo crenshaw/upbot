@@ -109,10 +109,10 @@ void simpleTest()
 
 #ifdef DEBUGGING
         printf("Level 0 Action Rules>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-        displayRules(g_actionRules->array[0], g_epMem->array[0]);
+        displayRules(g_actions->array[0], g_epMem->array[0]);
 
         printf("Level 0 Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-        displaySequences(g_sequenceRules->array[0]);
+        displaySequences(g_sequences->array[0]);
 #endif
         
         // Print out the parsed episode if not in statsMode
@@ -169,10 +169,10 @@ int tick(char* sensorInput)
     
 #ifdef DEBUGGING
     printf("Level 0 Action Rules>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-    displayRules(g_actionRules->array[0], g_epMem->array[0]);
+    displayRules(g_actions->array[0], g_epMem->array[0]);
 
     printf("Level 0 Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-    displaySequences(g_sequenceRules->array[0]);
+    displaySequences(g_sequences->array[0]);
 #endif
 
     // Print out the parsed episode if not in statsMode
@@ -301,7 +301,7 @@ int parseEpisode(Episode * parsedData, char* dataArr)
  * would make it more complex, in our opinion.  Please rely upon our liberal
  * comments to guide you.  Also consult research notes.
  *
- * @arg    level index into g_epMem and g_actionRules where the memory needs to updated    
+ * @arg    level index into g_epMem and g_actions where the memory needs to updated    
  * @return int   error code
  *
  */
@@ -315,9 +315,9 @@ int updateRules(int level)
     }
 
     // Create pointers to the two associated vectors we'll be working with
-    Vector* ruleList = g_actionRules->array[level];
+    Vector* ruleList = g_actions->array[level];
     Vector* episodeList = g_epMem->array[level];
-    Vector* sequenceList = g_sequenceRules->array[level];
+    Vector* sequenceList = g_sequences->array[level];
 
     //You need a minimum of two episodes to make a rule
     if(episodeList->size <= 1)
@@ -959,7 +959,7 @@ void displaySequenceShort(Vector* sequence)
 		// grab the level from the current sequence
 		int currLevel = ((Action*)sequence->array[i])->level;
 		// grab the associated action rules this sequence is composed from
-		Vector* actionList = g_actionRules->array[currLevel];
+		Vector* actionList = g_actions->array[currLevel];
 		// search for the rule that the sequence is referring to
 		for(j = 0; j < actionList->size; j++)
 		{
@@ -1160,7 +1160,7 @@ int chooseCommand()
  */
 void displayRoute()
 {
-    Vector* semMem = g_actionRules->array[0];
+    Vector* semMem = g_actions->array[0];
     Route * route = g_plan->array[0];
     Vector* actions = route->actions;
 
@@ -1342,7 +1342,7 @@ int initRoute(int level, Route* newRoute)
     Vector* candRoutes = newVector();  //candidate Route structs to return to caller
 
     // check that the requested level exists
-    if (g_sequenceRules->size < level) return LEVEL_NOT_POPULATED;
+    if (g_sequences->size < level) return LEVEL_NOT_POPULATED;
 
     /*--------------------------------------------------------------------------
      * Find all the sequences at the given level that contain a goal.  Create an
@@ -1352,7 +1352,7 @@ int initRoute(int level, Route* newRoute)
     // Iterate over each sequence at the given level
     // (Note:  iteration is descending so as to give preference to the most
     // recently added sequences)
-    sequenceRules = g_sequenceRules->array[level];
+    sequenceRules = g_sequences->array[level];
     for (i = sequenceRules->size-1; i >= 0; i--)
     {
         Vector *currSeq = (Vector*)sequenceRules->array[i];
@@ -1514,7 +1514,7 @@ Vector* initPlan()
     int level = 0;
     for(i = MAX_LEVEL_DEPTH-1; i > 0; i--)
     {
-        Vector *seqList = (Vector *)g_sequenceRules->array[i];
+        Vector *seqList = (Vector *)g_sequences->array[i];
         if (seqList->size > 1)
         {
             level = i;
@@ -1868,8 +1868,8 @@ int episodeContainsGoal(void *entry, int level)
 void initSupervisor()
 {
     g_epMem         = newVector();
-    g_actionRules   = newVector();
-    g_sequenceRules = newVector();
+    g_actions   = newVector();
+    g_sequences = newVector();
 
     int i;
     for(i = 0; i < MAX_LEVEL_DEPTH; i++)
@@ -1878,13 +1878,13 @@ void initSupervisor()
         addEntry(g_epMem, temp);
 
         temp = newVector();
-        addEntry(g_actionRules, temp);
+        addEntry(g_actions, temp);
 
         temp = newVector();
-        addEntry(g_sequenceRules, temp);
+        addEntry(g_sequences, temp);
 
         // pad sequence rule vector to avoid crash on first call of updateRules()
-        addEntry(g_sequenceRules->array[i], newVector());
+        addEntry(g_sequences->array[i], newVector());
     }
 
     g_plan = NULL;              // no plan can be made at this point
@@ -1913,9 +1913,9 @@ void endSupervisor()
     for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
     {
         // Create pointers to the two associated vectors we'll be working with
-        Vector* ruleList = g_actionRules->array[i];
+        Vector* ruleList = g_actions->array[i];
         Vector* episodeList = g_epMem->array[i];
-        Vector* sequenceList = g_sequenceRules->array[i];
+        Vector* sequenceList = g_sequences->array[i];
         
         // cleanup sequences at the current level
         for(j = 0; j < sequenceList->size; j++)
@@ -1971,7 +1971,7 @@ void endSupervisor()
 
     //free the global list
     freeVector(g_epMem);
-    freeVector(g_actionRules);
+    freeVector(g_actions);
 
     //%%%TODO: free g_plan
     

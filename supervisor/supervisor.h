@@ -95,8 +95,8 @@ int g_statsMode;
 
 // This vector will contain all episodes received from Roomba
 Vector* g_epMem;
-Vector* g_actionRules;
-Vector* g_sequenceRules;
+Vector* g_actions;
+Vector* g_sequences;
 Vector* g_plan;                 // a plan is a vector of N routes, 1 per level
 
 // Function declarations
