@@ -6,7 +6,7 @@
  * this file as well as those for determining new commands
  *
  * Authors:      Dr. Andrew Nuxoll, Zachary Paul Faltersack, Brian Burns
- * Last updated: October 25, 2010
+ * Last updated: October 26, 2010
  */
 
 /*
@@ -108,7 +108,7 @@ void simpleTest()
         }
 
 #ifdef DEBUGGING
-        printf("Level 0 Action Rules>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+        printf("Level 0 Actions >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
         displayActions(g_actions->array[0], g_epMem->array[0]);
 
         printf("Level 0 Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
@@ -168,7 +168,7 @@ int tick(char* sensorInput)
     }
     
 #ifdef DEBUGGING
-    printf("Level 0 Action Rules>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+    printf("Level 0 Actions>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
     displayActions(g_actions->array[0], g_epMem->array[0]);
 
     printf("Level 0 Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
@@ -315,7 +315,7 @@ int updateAll(int level)
     }
 
     // Create pointers to the two associated vectors we'll be working with
-    Vector* ruleList = g_actions->array[level];
+    Vector* actionList = g_actions->array[level];
     Vector* episodeList = g_epMem->array[level];
     Vector* sequenceList = g_sequences->array[level];
 
@@ -353,7 +353,7 @@ int updateAll(int level)
         newRule->containsStart          = TRUE;
     }
     //initialize containsStart to TRUE if the previous rule contained a goal
-    else if (((Action *)ruleList->array[ruleList->size - 1])->containsGoal)
+    else if (((Action *)actionList->array[actionList->size - 1])->containsGoal)
     {
         episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
         newRule->containsStart          = TRUE;
@@ -381,10 +381,10 @@ int updateAll(int level)
     int matchComplete = FALSE;
     int addNewRule = TRUE;
     Action* updateExistingRule = NULL;
-    for(i = 0; i < ruleList->size; i++)
+    for(i = 0; i < actionList->size; i++)
     {
         //Compare the i-th rule to the candidate rule
-        Action* curr = (Action*)ruleList->array[i];
+        Action* curr = (Action*)actionList->array[i];
 
         for(j = 0; j < newRule->length; j++)
         {
@@ -710,7 +710,7 @@ int updateAll(int level)
         printf("Adding new rule: ");
         displayAction(newRule);
         printf("\n");
-        addAction(ruleList, newRule, FALSE);
+        addAction(actionList, newRule, FALSE);
 
         // set this flag so that we recursively update the next level
         // with this rule
@@ -878,24 +878,24 @@ void displayEpisode(Episode * ep)
  * prints a human-readable version of a vector of rules along with the
  * last 20 episodes in episodic memory that the rules were generated from.
  *
- * @arg ruleList     the rules to display
+ * @arg actionList     the rules to display
  * @arg episodeList  the episodes used to create this list 
  */
-void displayActions(Vector *ruleList, Vector *episodeList)
+void displayActions(Vector *actionList, Vector *episodeList)
 {
     //don't print empty lists
-    if (ruleList->size == 0) return;
+    if (actionList->size == 0) return;
 
     int i;
-    for(i = 0; i < ruleList->size; i++)
+    for(i = 0; i < actionList->size; i++)
     {
         printf("%3i. ", i);
-        displayAction(ruleList->array[i]);
+        displayAction(actionList->array[i]);
         printf("\n");
     }
 
     //determine if episodeList contains sequences or Episode structs
-    int isEpList = ((Action *)(ruleList->array[0]))->level == 0;
+    int isEpList = ((Action *)(actionList->array[0]))->level == 0;
 
     //print the last 20 episodic memories
     printf("EpMem: ");
@@ -1336,7 +1336,7 @@ int initRoute(int level, Route* newRoute)
 {
     // instance variables
     Vector* route;          // the ordered list of sequences stored as
-                            // int indices into ruleList
+                            // int indices into actionList
     int i,j;                // counting variable
     Vector* sequenceRules;  // pointer to sequence rules in level
     Vector* candRoutes = newVector();  //candidate Route structs to return to caller
@@ -1913,7 +1913,7 @@ void endSupervisor()
     for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
     {
         // Create pointers to the two associated vectors we'll be working with
-        Vector* ruleList = g_actions->array[i];
+        Vector* actionList = g_actions->array[i];
         Vector* episodeList = g_epMem->array[i];
         Vector* sequenceList = g_sequences->array[i];
         
@@ -1925,11 +1925,11 @@ void endSupervisor()
         freeVector(sequenceList);
 
         //cleanup actions at the current level
-        for(j = 0; j < ruleList->size; j++)
+        for(j = 0; j < actionList->size; j++)
         {
             //If this is an inconsistent rule we need to clean up
             //the cousins list before we deallocate the rules
-            Vector* cousins = ((Action*)ruleList->array[j])->cousins;
+            Vector* cousins = ((Action*)actionList->array[j])->cousins;
             if(cousins != NULL)
             {
 
@@ -1944,9 +1944,9 @@ void endSupervisor()
                 freeVector(cousins);
             }
 
-            free((Action*)ruleList->array[j]);
+            free((Action*)actionList->array[j]);
         }//for
-        freeVector(ruleList);
+        freeVector(actionList);
 
         //cleanup the episodes at this level
         for(j = 0; j < episodeList->size; j++)

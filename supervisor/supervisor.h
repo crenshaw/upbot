@@ -124,7 +124,7 @@ int      setCommand2(Episode* ep);
 int      nextStepIsValid();
 void     displayRoute();
 void     displayEpisode(Episode* ep);
-void     displayActions(Vector* ruleList, Vector* episodeList);
+void     displayActions(Vector* actionList, Vector* episodeList);
 void     displayAction(Action* rule);
 void     displaySequence(Vector* sequence);
 void     displaySequences(Vector* sequences);
