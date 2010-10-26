@@ -292,17 +292,12 @@ int parseEpisode(Episode * parsedData, char* dataArr)
 /**
  * updateAll                    *RECURSIVE*
  *
- * This method is designed to do a semantic rules update.  A semantic rule
- * consists of 1 or more episodes that make up the LHS of the rule followed by
- * the next episode which is its RHS.  A semantic rule represents a hypothesis
- * that "this sequence of events leads to this event."
- *
  * CAVEAT: This is a rather complex method.  Breaking it up into smaller methods
  * would make it more complex, in our opinion.  Please rely upon our liberal
  * comments to guide you.  Also consult research notes.
  *
  * @arg    level index into g_epMem and g_actions where the memory needs to updated    
- * @return int   error code
+ * @return int   success / error code
  *
  */
 int updateAll(int level)
@@ -335,38 +330,38 @@ int updateAll(int level)
     //Create a candidate rule that we would create from this current
     //episode.  We won't add it to the rule list if an identical rule
     //already exists.
-    Action* newRule            = (Action*) malloc(sizeof(Action));
-    newRule->level           = level;
-    newRule->epmem           = episodeList;
-    newRule->outcome         = episodeList->size - 1;
-    newRule->index           = episodeList->size - 2;
-    newRule->length          = 1;
-    newRule->freq            = 1;
-    newRule->overallFreq     = NULL;
-    newRule->cousins         = NULL;
-    newRule->isIndeterminate = FALSE;
-    newRule->containsGoal    = episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
+    Action* newAction            = (Action*) malloc(sizeof(Action));
+    newAction->level           = level;
+    newAction->epmem           = episodeList;
+    newAction->outcome         = episodeList->size - 1;
+    newAction->index           = episodeList->size - 2;
+    newAction->length          = 1;
+    newAction->freq            = 1;
+    newAction->overallFreq     = NULL;
+    newAction->cousins         = NULL;
+    newAction->isIndeterminate = FALSE;
+    newAction->containsGoal    = episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
 
     //initialize containsStart to TRUE if this will be the very first rule
     if (episodeList->size == 2)
     {
-        newRule->containsStart          = TRUE;
+        newAction->containsStart          = TRUE;
     }
     //initialize containsStart to TRUE if the previous rule contained a goal
     else if (((Action *)actionList->array[actionList->size - 1])->containsGoal)
     {
         episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
-        newRule->containsStart          = TRUE;
+        newAction->containsStart          = TRUE;
     }
     //default:  containsStart=FALSE;
     else
     {
-        newRule->containsStart          = FALSE;
+        newAction->containsStart          = FALSE;
     }
     
     printf("candidate rule: ");
     fflush(stdout);
-    displayAction(newRule);
+    displayAction(newAction);
     printf("\n");
     fflush(stdout);
 
@@ -386,30 +381,30 @@ int updateAll(int level)
         //Compare the i-th rule to the candidate rule
         Action* curr = (Action*)actionList->array[i];
 
-        for(j = 0; j < newRule->length; j++)
+        for(j = 0; j < newAction->length; j++)
         {
             //Find out if the j-th part of the LHS matches
-            if (compare(episodeList, newRule->index - j, curr->index - j, level))
+            if (compare(episodeList, newAction->index - j, curr->index - j, level))
             {
 #if DEBUGGING
                 printf("found match between %i-th entries of: ", j);
                 displayAction(curr);
                 printf(" and ");
-                displayAction(newRule);
+                displayAction(newAction);
                 printf("\n");
                 fflush(stdout);
 #endif
 
                 //If the LHS match so far but we haven't reached the end
                 //of either rule then continue comparing them
-                if (newRule->length > j+1 && curr->length > j+1)
+                if (newAction->length > j+1 && curr->length > j+1)
                 {
                     continue;
                 }
 
                 //If we've matched to the end and they are the same
                 //length, then the LHS's match.
-                if(newRule->length == curr->length)
+                if(newAction->length == curr->length)
                 {
                     //If the candidate rule has matched a percentage
                     //rule then there may already be a matching cousin
@@ -429,14 +424,14 @@ int updateAll(int level)
                             printf("\t");
                             displayAction(cousin);
                             printf(" AND ");
-                            displayAction(newRule);
+                            displayAction(newAction);
                             printf("\n");
                             fflush(stdout);
 #endif
 
                             //If we find one with same outcome, increase
                             //frequency and inform not to add rule
-                            if (compare(episodeList, newRule->outcome,
+                            if (compare(episodeList, newAction->outcome,
                                         cousin->outcome, level))
                             {
                                 
@@ -454,11 +449,11 @@ int updateAll(int level)
 #if DEBUGGING
                             printf("new cousin is unique.  Adding...\n");
 #endif
-                            newRule->isIndeterminate = TRUE;
-                            newRule->overallFreq = curr->overallFreq;
-                            newRule->cousins = curr->cousins;
+                            newAction->isIndeterminate = TRUE;
+                            newAction->overallFreq = curr->overallFreq;
+                            newAction->cousins = curr->cousins;
 
-                            addAction(newRule->cousins, newRule, FALSE);
+                            addAction(newAction->cousins, newAction, FALSE);
                         }
 
                         // Regardless of whether candidate rule is
@@ -471,7 +466,7 @@ int updateAll(int level)
                     else    //Found a LHS match to a non-percentage rule
                     {
                         //Now see if the RHS of both rules match
-                        if (compare(episodeList, newRule->outcome,
+                        if (compare(episodeList, newAction->outcome,
                                     curr->outcome, level))
                         {
                             //We have a complete match between the
@@ -490,11 +485,11 @@ int updateAll(int level)
                             printf("LHS match but RHS doesn't while comparing to %i...\n", i);
                             fflush(stdout);
 #endif
-                            // We want to expand the newRule and curr
+                            // We want to expand the newAction and curr
                             // to create (hopefully) distinct rules
                             // There are 3 reasons this may not work.
 
-                            // 1. Expanding curr/newRule would include
+                            // 1. Expanding curr/newAction would include
                             //    a goal on LHS
                             // 2. Expanding current rule would
                             //    overflow episodic memory
@@ -502,7 +497,7 @@ int updateAll(int level)
 
                             //Check for reason #1:  Expansion creates
                             //goal on LHS
-                            int newLHSEntryIndex = newRule->index - newRule->length;
+                            int newLHSEntryIndex = newAction->index - newAction->length;
 
                             if (episodeContainsGoal(episodeList->array[newLHSEntryIndex],
                                              level))
@@ -532,9 +527,9 @@ int updateAll(int level)
                                 //The current rule can't be expanded
                                 //so we consider it degenerate and
                                 //replace it with the new rule.
-                                curr->index                             = newRule->index;
-                                curr->outcome               = newRule->outcome;
-                                curr->length                        = newRule->length;
+                                curr->index                             = newAction->index;
+                                curr->outcome               = newAction->outcome;
+                                curr->length                        = newAction->length;
                                 curr->freq                                  = 1;
 
                                 //done with update
@@ -542,19 +537,19 @@ int updateAll(int level)
                                 addNewRule = FALSE;
                             }
 
-                            //if the newRule is currently shorter than
+                            //if the newAction is currently shorter than
                             //the current rule, then it can safely be
                             //expanded 
-                            else if (newRule->length < curr->length)
+                            else if (newAction->length < curr->length)
                             {
-                                newRule->length++;
+                                newAction->length++;
 
 #if DEBUGGING
                                 printf("partial match with curr, extending new rule to %i\n",
-                                       newRule->length);
+                                       newAction->length);
                                 fflush(stdout);
                                 printf("new candidate: ");
-                                displayAction(newRule);
+                                displayAction(newAction);
                                 printf("\n");
                                 fflush(stdout);
 #endif
@@ -575,7 +570,7 @@ int updateAll(int level)
                                 //end up different
                                 curr->length++;
                                 curr->freq = 1;
-                                newRule->length++;
+                                newAction->length++;
 
 
 #if DEBUGGING
@@ -584,7 +579,7 @@ int updateAll(int level)
                                 printf("\n");
 
                                 printf("new cand: ");
-                                displayAction(newRule);
+                                displayAction(newAction);
                                 printf("\n");
                                 fflush(stdout);
 #endif
@@ -605,14 +600,14 @@ int updateAll(int level)
                                 // percentage rules into same cousins list
                                 curr->cousins = newVector();
                                 addAction(curr->cousins, curr, TRUE);
-                                addAction(curr->cousins, newRule, TRUE);
-                                newRule->cousins = curr->cousins;
+                                addAction(curr->cousins, newAction, TRUE);
+                                newAction->cousins = curr->cousins;
 
                                 //Update rules
                                 curr->isIndeterminate = TRUE;
-                                newRule->isIndeterminate = TRUE;
+                                newAction->isIndeterminate = TRUE;
                                 curr->overallFreq = (int*) malloc(sizeof(int));
-                                newRule->overallFreq = curr->overallFreq;
+                                newAction->overallFreq = curr->overallFreq;
                                 *(curr->overallFreq) = curr->freq + 1;
 
                                 //We're done with this match
@@ -622,7 +617,7 @@ int updateAll(int level)
                         }// else
                     }// else
                 }// if
-                else // newRule and curr have different lengths
+                else // newAction and curr have different lengths
                 {
                     //If we make it here, the candidate rule and
                     //current rule are different lengths but they do
@@ -630,24 +625,24 @@ int updateAll(int level)
 
                     //If the candidate is longer then consider it a
                     //degenerate rule and stop
-                    if (newRule->length > curr->length)
+                    if (newAction->length > curr->length)
                     {
                         matchComplete = TRUE;
                         addNewRule = FALSE;
 #if DEBUGGING
-                        printf("newRule matches but is bigger than current rule.  Aborting.\n");
+                        printf("newAction matches but is bigger than current rule.  Aborting.\n");
                         fflush(stdout);
 #endif
                     }
 //===============================================================================
-// I think that this code needs to probably be expanded to prevent the newRule
+// I think that this code needs to probably be expanded to prevent the newAction
 // from expanding beyond its limits, as above.
                     //If the new rule can be expanded, try doing so to
                     //see if that makes it unique
-                    else if(newRule->length < MAX_LEN_LHS)
+                    else if(newAction->length < MAX_LEN_LHS)
                     {
                         //-----This is the part that I added
-                        int newLHSEntryIndex = newRule->index - newRule->length;
+                        int newLHSEntryIndex = newAction->index - newAction->length;
 
                         if (episodeContainsGoal(episodeList->array[newLHSEntryIndex],
                                          level))
@@ -667,13 +662,13 @@ int updateAll(int level)
                         //----------------------------------
                         else
                         {
-                            newRule->length++;
+                            newAction->length++;
 
 #if DEBUGGING
                             printf("expanded new rule to len %i\n",
-                                   newRule->length);
+                                   newAction->length);
                             printf("new candidate: ");
-                            displayAction(newRule);
+                            displayAction(newAction);
                             printf("\n");
                             fflush(stdout);
 #endif
@@ -708,18 +703,18 @@ int updateAll(int level)
     if(addNewRule == TRUE)
     {
         printf("Adding new rule: ");
-        displayAction(newRule);
+        displayAction(newAction);
         printf("\n");
-        addAction(actionList, newRule, FALSE);
+        addAction(actionList, newAction, FALSE);
 
         // set this flag so that we recursively update the next level
         // with this rule
-        updateExistingRule = newRule;
+        updateExistingRule = newAction;
        
     }
     else
     {
-        free(newRule);
+        free(newAction);
     }
 
     //If we have added a new rule, or found an existing rule that matches the

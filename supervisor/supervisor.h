@@ -34,13 +34,13 @@
 // Matching defines
 #define NUM_TO_MATCH		15
 #define NUM_GOALS_TO_FIND	50
-#define DISCOUNT			1.0
-#define MAX_LEN_LHS			1
+#define DISCOUNT                1.0
+#define MAX_LEN_LHS	        1
 #define MAX_LEVEL_DEPTH		4
 #define MAX_ROUTE_LEN		15
 
 // Collecting data for stats
-#define STATS_MODE			0
+#define STATS_MODE		0
 
 #define DECREASE_RANDOM(randChance) if((randChance) > 10) { (randChance) -= 5;}
 
@@ -65,7 +65,7 @@ typedef struct ActionStruct
     int* overallFreq;         // number of times just the most recent sensor
                               // data has matched epmem. This is a pointer
                               // since the value is shared by a group of cousins
-    int outcome;              // index to the outcome state *or* a flag
+    int  outcome;             // index to the outcome state *or* a flag
                               // indicating it doesn't exist yet
     int     isIndeterminate;  // is this rule indeterminate?
     Vector* cousins;          // a pointer to a jointly held list of all
