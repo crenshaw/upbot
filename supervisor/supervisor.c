@@ -25,6 +25,7 @@
 
 // The chance of choosing a random move
 int g_randChance = 100;
+
 // global strings for printing to console
 char* g_forward = "forward";
 char* g_right   = "right";
@@ -47,7 +48,7 @@ char* g_songS    = "SO";
 char* g_unknownS = "$$";
 
 // Keep track of goals
-int g_goalCount = 0;                                            // Number of goals found so far
+int g_goalCount = 0;              // Number of goals found so far
 int g_goalIdx[NUM_GOALS_TO_FIND];
 
 
@@ -359,26 +360,26 @@ int updateAll(int level)
         newAction->containsStart          = FALSE;
     }
     
-    printf("candidate rule: ");
+    printf("candidate action: ");
     fflush(stdout);
     displayAction(newAction);
     printf("\n");
     fflush(stdout);
 
-    //Iterate over every rule in the list and compare it to our new
-    //candidate rule.  If the candidate is unique, it'll be added to
-    //the rule list.  If it's a partial match (same LHS , different
+    //Iterate over every action in the list and compare it to our new
+    //candidate action.  If the candidate is unique, it'll be added to
+    //the action list.  If it's a partial match (same LHS , different
     //RHS) but can't be made unique without increasing size of LHS
-    //then create a pool of percentage rules.  If the candidate
-    //matches an existing rule, it'll be discarded and the existing
-    //rule's frequency will be updated
+    //then create a pool of indeterminate actions.  If the candidate
+    //matches an existing action, it'll be discarded and the existing
+    //action's frequency will be updated
     int i,j;
     int matchComplete = FALSE;
     int addNewAction = TRUE;
     Action* updateExistingAction = NULL;
     for(i = 0; i < actionList->size; i++)
     {
-        //Compare the i-th rule to the candidate rule
+        //Compare the i-th action to the candidate action
         Action* curr = (Action*)actionList->array[i];
 
         for(j = 0; j < newAction->length; j++)
@@ -396,7 +397,7 @@ int updateAll(int level)
 #endif
 
                 //If the LHS match so far but we haven't reached the end
-                //of either rule then continue comparing them
+                //of either action then continue comparing them
                 if (newAction->length > j+1 && curr->length > j+1)
                 {
                     continue;
@@ -406,8 +407,8 @@ int updateAll(int level)
                 //length, then the LHS's match.
                 if(newAction->length == curr->length)
                 {
-                    //If the candidate rule has matched a percentage
-                    //rule then there may already be a matching cousin
+                    //If the candidate action has matched a percentage
+                    //action then there may already be a matching cousin
                     //out there
                     if(curr->isIndeterminate)
                     {
@@ -415,7 +416,7 @@ int updateAll(int level)
                         printf("comparing cousins: \n");
 #endif
                         int k;
-                        //Iterate over cousins and find one with same outcome as candidate rule
+                        //Iterate over cousins and find one with same outcome as candidate action
                         for(k = 0; k < curr->cousins->size; k++)
                         {
                             Action* cousin = curr->cousins->array[k];
@@ -430,7 +431,7 @@ int updateAll(int level)
 #endif
 
                             //If we find one with same outcome, increase
-                            //frequency and inform not to add rule
+                            //frequency and inform not to add action
                             if (compare(episodeList, newAction->outcome,
                                         cousin->outcome, level))
                             {
@@ -442,7 +443,7 @@ int updateAll(int level)
                             }
                         }//for 
 
-                        //If no cousins match candidate rule, add it
+                        //If no cousins match candidate action, add it
                         //as a new cousin
                         if(addNewAction)
                         {
@@ -456,22 +457,22 @@ int updateAll(int level)
                             addAction(newAction->cousins, newAction, FALSE);
                         }
 
-                        // Regardless of whether candidate rule is
+                        // Regardless of whether candidate action is
                         // unique we need to increase overall
                         // frequency for all cousins in the list and
                         // end the matching process
                         (*(curr->overallFreq))++;
                         matchComplete = TRUE;
                     }
-                    else    //Found a LHS match to a non-percentage rule
+                    else    //Found a LHS match to a non-indeterminate action
                     {
-                        //Now see if the RHS of both rules match
+                        //Now see if the RHS of both actions match
                         if (compare(episodeList, newAction->outcome,
                                     curr->outcome, level))
                         {
                             //We have a complete match between the
-                            //candidate and an existing rule, so just
-                            //update the existing rule
+                            //candidate and an existing action, so just
+                            //update the existing action
                             curr->freq++;
 
                             //Done with update
@@ -486,14 +487,14 @@ int updateAll(int level)
                             fflush(stdout);
 #endif
                             // We want to expand the newAction and curr
-                            // to create (hopefully) distinct rules
+                            // to create (hopefully) distinct actions
                             // There are 3 reasons this may not work.
 
                             // 1. Expanding curr/newAction would include
                             //    a goal on LHS
-                            // 2. Expanding current rule would
+                            // 2. Expanding current action would
                             //    overflow episodic memory
-                            // 3. Current rule is already maximum length
+                            // 3. Current action is already maximum length
 
                             //Check for reason #1:  Expansion creates
                             //goal on LHS
@@ -508,9 +509,9 @@ int updateAll(int level)
                                 fflush(stdout);
 #endif
 
-                                //the new rule can't be expanded so we
+                                //the new action can't be expanded so we
                                 //consider it degenerate so just abort
-                                //and create no new rules or updates
+                                //and create no new actions or updates
                                 matchComplete = TRUE;
                                 addNewAction = FALSE;
                             }
@@ -524,9 +525,9 @@ int updateAll(int level)
                                 fflush(stdout);
 #endif
 
-                                //The current rule can't be expanded
+                                //The current action can't be expanded
                                 //so we consider it degenerate and
-                                //replace it with the new rule.
+                                //replace it with the new action.
                                 curr->index                             = newAction->index;
                                 curr->outcome               = newAction->outcome;
                                 curr->length                        = newAction->length;
@@ -538,7 +539,7 @@ int updateAll(int level)
                             }
 
                             //if the newAction is currently shorter than
-                            //the current rule, then it can safely be
+                            //the current action, then it can safely be
                             //expanded 
                             else if (newAction->length < curr->length)
                             {
@@ -555,8 +556,8 @@ int updateAll(int level)
 #endif
                             }
 
-                            //If the current rule can be expanded then
-                            //expand both the current and candidate rules
+                            //If the current action can be expanded then
+                            //expand both the current and candidate actions
                             else if(curr->length < MAX_LEN_LHS)
                             {
 #if DEBUGGING
@@ -565,7 +566,7 @@ int updateAll(int level)
                                 fflush(stdout);
 #endif
 
-                                //both current rule and new rule can
+                                //both current action and new action can
                                 //be expanded so do so in hopes that they will
                                 //end up different
                                 curr->length++;
@@ -585,7 +586,7 @@ int updateAll(int level)
 #endif
 
                             }
-                            else  //current rule can't be expanded without
+                            else  //current action can't be expanded without
                             //exceeding max length (reason #3)
                             {
 #if DEBUGGING
@@ -593,17 +594,17 @@ int updateAll(int level)
                                 fflush(stdout);
 #endif
 
-                                // We need to convert both the current rule and
-                                // the candidate rule into percentage rules
+                                // We need to convert both the current action and
+                                // the candidate action into indeterminate actions
 
                                 // allocate cousins list and add both peer
-                                // percentage rules into same cousins list
+                                // indetermiante actions into same cousins list
                                 curr->cousins = newVector();
                                 addAction(curr->cousins, curr, TRUE);
                                 addAction(curr->cousins, newAction, TRUE);
                                 newAction->cousins = curr->cousins;
 
-                                //Update rules
+                                //Update actions
                                 curr->isIndeterminate = TRUE;
                                 newAction->isIndeterminate = TRUE;
                                 curr->overallFreq = (int*) malloc(sizeof(int));
@@ -619,12 +620,12 @@ int updateAll(int level)
                 }// if
                 else // newAction and curr have different lengths
                 {
-                    //If we make it here, the candidate rule and
-                    //current rule are different lengths but they do
-                    //match up to the length of the shorter rule.
+                    //If we make it here, the candidate action and
+                    //current action are different lengths but they do
+                    //match up to the length of the shorter action.
 
                     //If the candidate is longer then consider it a
-                    //degenerate rule and stop
+                    //degenerate action and stop
                     if (newAction->length > curr->length)
                     {
                         matchComplete = TRUE;
@@ -637,7 +638,7 @@ int updateAll(int level)
 //===============================================================================
 // I think that this code needs to probably be expanded to prevent the newAction
 // from expanding beyond its limits, as above.
-                    //If the new rule can be expanded, try doing so to
+                    //If the new action can be expanded, try doing so to
                     //see if that makes it unique
                     else if(newAction->length < MAX_LEN_LHS)
                     {
@@ -653,9 +654,9 @@ int updateAll(int level)
                             fflush(stdout);
 #endif
 
-                            //the new rule can't be expanded so we
+                            //the new action can't be expanded so we
                             //consider it degenerate so just abort
-                            //and create no new rules or updates
+                            //and create no new actions or updates
                             matchComplete = TRUE;
                             addNewAction = FALSE;
                         }
@@ -683,23 +684,23 @@ int updateAll(int level)
                     }
                 }// else
             }// if
-            else // j-th episodes in rules do not match
+            else // j-th episodes in actions do not match
             {
-                //The current rule's nth entry doesn't match so we can
-                //abort the comparison even if the candidate rule has
+                //The current action's nth entry doesn't match so we can
+                //abort the comparison even if the candidate action has
                 //more entries in its LHS
                 break;
             }
         }// for
 
-        // if matched rule break out of loop and free memory 
+        // if matched action break out of loop and free memory 
         if(matchComplete == TRUE)
         {
             break;
         }
     }// for
 
-    //Add the new rule
+    //Add the new action
     if(addNewAction == TRUE)
     {
         printf("Adding new action: ");
@@ -708,7 +709,7 @@ int updateAll(int level)
         addAction(actionList, newAction, FALSE);
 
         // set this flag so that we recursively update the next level
-        // with this rule
+        // with this action
         updateExistingAction = newAction;
        
     }
@@ -717,21 +718,21 @@ int updateAll(int level)
         free(newAction);
     }
 
-    //If we have added a new rule, or found an existing rule that matches the
+    //If we have added a new action, or found an existing action that matches the
     //current situation then updateExistingAction will contain a pointer to that
-    //rule (otherwise NULL)
+    //action (otherwise NULL)
     if(updateExistingAction != NULL)
     {
 printf("Adding Action: ");
 displayAction(updateExistingAction);
 printf(" to current sequence\n");
 
-        // add most recently seen action rule to current sequence
+        // add most recently seen action to current sequence
         Vector* currSequence = sequenceList->array[sequenceList->size - 1];
         addActionToSequence(currSequence, updateExistingAction);
 
-        // if the rule we just added is percentage rule or contains a
-        //goal then end the current sequence and start a new one
+        // if the action we just added is indeterminate or contains a
+        // goal then, end the current sequence and start a new one
         if (updateExistingAction->isIndeterminate
             || updateExistingAction->containsGoal)
         {
@@ -819,12 +820,12 @@ int addActionToSequence(Vector* sequence, Action* action)
 /**
  * addAction
  *
- * Adds the given action to the actions array and checks if the rule
+ * Adds the given action to the actions array and checks if the action
  * already exists
  *
  * @arg actions        pointer to the vector of actions
  * @arg item           pointer to the Action we're adding
- * @arg checkRedundant Boolean to determine if we need to check if rule exists
+ * @arg checkRedundant Boolean to determine if we need to check if action exists
  *
  * @return int A status code
  */
@@ -1261,7 +1262,7 @@ int getGoalAction(Vector *seq)
     int result = -1;            // default: not found 
 
     //Iterate over each action in the sequence
-    //(Note:  iteration is descending since the last rule is most likely to
+    //(Note:  iteration is descending since the last action is most likely to
     //have the goal)
     for(j = seq->size-1; j >= 0; j--)
     {
@@ -1281,7 +1282,7 @@ int getGoalAction(Vector *seq)
 /**
  * initRouteFromSequence
  *
- * this method initializes a given route with the rules in a given sequence.
+ * this method initializes a given route with the actions in a given sequence.
  * The internal variables are set as if the agent is about to begin the
  * sequence.
  *
@@ -1298,7 +1299,7 @@ void initRouteFromSequence(Route *route, Vector *seq)
     route->currAction = 0;
     route->needsRecalc  = FALSE;
 
-    //Calculate the level of this route by looking at a rule in the sequence
+    //Calculate the level of this route by looking at a action in the sequence
     Action *r = (Action *)seq->array[0];
     route->level        = r->level;
 
@@ -1330,10 +1331,10 @@ void initRouteFromSequence(Route *route, Vector *seq)
 int initRoute(int level, Route* newRoute)
 {
     // instance variables
-    Vector* route;          // the ordered list of sequences stored as
-                            // int indices into actionList
-    int i,j;                // counting variable
-    Vector* sequenceRules;  // pointer to sequence rules in level
+    Vector* route;      // the ordered list of sequences stored as
+                        // int indices into actionList
+    int i,j;            // counting variable
+    Vector* sequences;  // pointer to sequences in level
     Vector* candRoutes = newVector();  //candidate Route structs to return to caller
 
     // check that the requested level exists
@@ -1347,10 +1348,10 @@ int initRoute(int level, Route* newRoute)
     // Iterate over each sequence at the given level
     // (Note:  iteration is descending so as to give preference to the most
     // recently added sequences)
-    sequenceRules = g_sequences->array[level];
-    for (i = sequenceRules->size-1; i >= 0; i--)
+    sequences = g_sequences->array[level];
+    for (i = sequences->size-1; i >= 0; i--)
     {
-        Vector *currSeq = (Vector*)sequenceRules->array[i];
+        Vector *currSeq = (Vector*)sequences->array[i];
 
         //If the sequence contains a goal, then reate a partial route from it
         //and add it to the candidates list
@@ -1452,14 +1453,14 @@ int initRoute(int level, Route* newRoute)
         //    sequence in the current candidate route.  (In other words, a
         //    sequence that can extend that candidate route.)
         //2.  the sequence is not already in the candidate route
-        Action *firstRule = (Action *)firstSeq->array[0];
-        for (i = 0; i < sequenceRules->size; i++)
+        Action *firstAction = (Action *)firstSeq->array[0];
+        for (i = 0; i < sequences->size; i++)
         {
-            Vector *currSeq = (Vector*)sequenceRules->array[i];
+            Vector *currSeq = (Vector*)sequences->array[i];
 
             //If this sequence can't extend the candidate route then skip ite
-            Action *lastRule = (Action *)currSeq->array[currSeq->size-1];
-            if (lastRule != firstRule) continue;
+            Action *lastAction = (Action *)currSeq->array[currSeq->size-1];
+            if (lastAction != firstAction) continue;
             
             //Verify this sequence hasn't been used already (equivalent of "node
             //already visited" in Dijkstra's formal algorithm)
@@ -1675,28 +1676,28 @@ int compareEpisodes(Episode* ep1, Episode* ep2, int compCmd)
 }// compareEpisodes
 
 /**
- * compareRules
+ * compareActions
  *
- * Compares two rules to each other and returns TRUE if they have the
+ * Compares two actions to each other and returns TRUE if they have the
  * same LHS and RHS.  This is a shallow comparison.
  *
- * @arg r1  first rule to compare
- * @arg r2  second rule to compare
- * @return TRUE if the rules match and false otherwise
+ * @arg r1  first action to compare
+ * @arg r2  second action to compare
+ * @return TRUE if the actions match and false otherwise
  */
-int compareRules(Action* r1, Action* r2)
+int compareActions(Action* r1, Action* r2)
 {
-    //Make sure that both rules use the same episodic memory
+    //Make sure that both actions use the same episodic memory
     if (r1->epmem != r2->epmem) return FALSE;
 
-    //Make sure that both rules have the same index
+    //Make sure that both actions have the same index
     if (r1->index != r2->index) return FALSE;
 
-    //Make sure that both rules have the same length
+    //Make sure that both actions have the same length
     if (r1->length != r2->length) return FALSE;
 
     return TRUE;
-}//compareRules
+}//compareActions
 
 /**
 * containsEpisode
@@ -1766,7 +1767,7 @@ Vector* containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf)
 * compareSequences
 *
 * Compare two sequences and return TRUE if they contain the same
-* sequence of action rules. 
+* sequence of actions. 
 *
 * @arg seq1 A vector containing the first sequence
 * @arg seq2 A vector containing the second sequence
@@ -1774,13 +1775,13 @@ Vector* containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf)
 */
 int compareSequences(Vector* seq1, Vector* seq2)
 {
-	// make sure they contain the same number of rules
+	// make sure they contain the same number of actions
 	if(seq1->size != seq2->size) return FALSE;
 	// make sure they are at the same level
 	if(((Action*)seq1->array[0])->level != ((Action*)seq2->array[0])->level) return FALSE;
 
 	int i;
-	// iterate through and compare corresponding action rules
+	// iterate through and compare corresponding action
 	for(i = 0; i < seq1->size; i++)
 	{
 		// if the pointers are not the same then we have no match
@@ -1794,20 +1795,20 @@ int compareSequences(Vector* seq1, Vector* seq2)
  * compare
  *
  * This is a general purpose compare that works with either Episode or
- * Action structs.  It calls compareRules or compareEpisodes as needed.
+ * Action structs.  It calls compareActions or compareEpisodes as needed.
  *
  * @arg list        a pointer to a Vector of either Episode or Action structs
  * @arg i1         index of first entry to compare
  * @arg i2         index of second entry to compare
  * @arg level      is TRUE if vec contains episodes and FALSE if it
- *                 contains rules
- * @return TRUE if the rules match and false otherwise
+ *                 contains actions
+ * @return TRUE if the actions match and false otherwise
  */
 int compare(Vector *list, int i1, int i2, int level)
 {
     if (!level)
     {
-        //If it's a base rule we need to know if one of the entries
+        //If it's a base action we need to know if one of the entries
         //we're comparing has no RHS yet.
         int noRHS = (i1 == list->size - 1) || (i2 == list->size - 1);
 
@@ -1817,7 +1818,7 @@ int compare(Vector *list, int i1, int i2, int level)
     }
     else //sequence
     {
-        return compareRules(list->array[i1], list->array[i2]);
+        return compareActions(list->array[i1], list->array[i2]);
     }
 }//compare
 
@@ -1829,7 +1830,8 @@ int compare(Vector *list, int i1, int i2, int level)
  * or a sequence.
  *
  * @arg entry      a pointer to an Episode or Action struct
- * @arg level      is TRUE if entry is an Episode (false for a rule)
+ * @arg level      is TRUE if entry is an Episode (false for an action
+)
  * @return TRUE if the entry is a goal and FALSE otherwise
  */
 int episodeContainsGoal(void *entry, int level)
@@ -1838,7 +1840,7 @@ int episodeContainsGoal(void *entry, int level)
     {
         Episode* ep = (Episode *)entry;
 
-        //For base rules, a goal is indicated by the IR sensor on the episode
+        //For base actions, a goal is indicated by the IR sensor on the episode
         return ep->sensors[SNSR_IR];
     }
     else //sequence
@@ -1846,10 +1848,10 @@ int episodeContainsGoal(void *entry, int level)
         Vector *sequence = (Vector *)entry;
         printf("sequence->size=%d\n", (int)(sequence->size));
         displaySequence(sequence);
-        Action *rule = (Action *)sequence->array[sequence->size - 1];
+        Action *action = (Action *)sequence->array[sequence->size - 1];
         
         //For a sequence, a goal is indicated by "containsGoal"
-        return rule->containsGoal;
+        return action->containsGoal;
     }
 }//episodeContainsGoal
 
@@ -1878,7 +1880,7 @@ void initSupervisor()
         temp = newVector();
         addEntry(g_sequences, temp);
 
-        // pad sequence rule vector to avoid crash on first call of updateAll()
+        // pad sequence vector to avoid crash on first call of updateAll()
         addEntry(g_sequences->array[i], newVector());
     }
 
@@ -1922,13 +1924,13 @@ void endSupervisor()
         //cleanup actions at the current level
         for(j = 0; j < actionList->size; j++)
         {
-            //If this is an inconsistent rule we need to clean up
-            //the cousins list before we deallocate the rules
+            //If this is an inconsistent action we need to clean up
+            //the cousins list before we deallocate the actions
             Vector* cousins = ((Action*)actionList->array[j])->cousins;
             if(cousins != NULL)
             {
 
-                //Make sure no rule has a reference to the cousins
+                //Make sure no action has a reference to the cousins
                 //list anymore.
                 for(k = 0; k < cousins->size; k++) 
                 {

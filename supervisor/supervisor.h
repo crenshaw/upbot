@@ -55,24 +55,24 @@ typedef struct EpisodeStruct
 // Action struct
 typedef struct ActionStruct
 {
-    Vector *epmem;            // the episodic memory for this rule.  This will
+    Vector *epmem;            // the episodic memory for this action.  This will
                               // contain either Episodes (for level 0)
                               // or sequences (for level 1+)
-    int  level;               // what level is this rule?
-    int  index;               // index into epmem where the rule's LHS ends
+    int  level;               // what level is this action?
+    int  index;               // index into epmem where the action's LHS ends
     int  length;              // number of entries in the LHS
-    int  freq;                // number of times this rule has "matched" epmem
+    int  freq;                // number of times this action has "matched" epmem
     int* overallFreq;         // number of times just the most recent sensor
                               // data has matched epmem. This is a pointer
                               // since the value is shared by a group of cousins
     int  outcome;             // index to the outcome state *or* a flag
                               // indicating it doesn't exist yet
-    int     isIndeterminate;  // is this rule indeterminate?
+    int     isIndeterminate;  // is this action indeterminate?
     Vector* cousins;          // a pointer to a jointly held list of all
-                              // "cousin" rules including itself.
-                              // Non-percentage rules have a NULL list.
-    int containsGoal;         // Does this rule contain a goal on the RHS?
-    int containsStart;        // Does this rule contain a starting state on the LHS?
+                              // "cousin" actions including itself.
+                              // Non-indeterminate actions have a NULL list.
+    int containsGoal;         // Does this action contain a goal on the RHS?
+    int containsStart;        // Does this action contain a starting state on the LHS?
 } Action;
 
 typedef struct RouteStruct
@@ -113,7 +113,7 @@ int      updateAll();
 int      addEpisode(Vector* episodes, Episode* item);
 int      addActionToSequence(Vector* sequence,  Action* action);
 int      addAction(Vector* actions, Action* item, int checkRedundant);
-void     addActionToRoute(int ruleIdx);
+void     addActionToRoute(int actionIdx);
 int      planRoute(Episode* currEp);
 int      takeNextStep(Episode* currEp);
 Vector*  newPlan();
@@ -125,7 +125,7 @@ int      nextStepIsValid();
 void     displayRoute();
 void     displayEpisode(Episode* ep);
 void     displayActions(Vector* actionList, Vector* episodeList);
-void     displayAction(Action* rule);
+void     displayAction(Action* action);
 void     displaySequence(Vector* sequence);
 void     displaySequences(Vector* sequences);
 Vector*  containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf);
