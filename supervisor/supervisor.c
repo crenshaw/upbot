@@ -374,7 +374,7 @@ int updateAll(int level)
     //rule's frequency will be updated
     int i,j;
     int matchComplete = FALSE;
-    int addNewRule = TRUE;
+    int addNewAction = TRUE;
     Action* updateExistingRule = NULL;
     for(i = 0; i < actionList->size; i++)
     {
@@ -436,7 +436,7 @@ int updateAll(int level)
                             {
                                 
                                 cousin->freq++;
-                                addNewRule = FALSE;
+                                addNewAction = FALSE;
                                 updateExistingRule = cousin;
                                 break;
                             }
@@ -444,7 +444,7 @@ int updateAll(int level)
 
                         //If no cousins match candidate rule, add it
                         //as a new cousin
-                        if(addNewRule)
+                        if(addNewAction)
                         {
 #if DEBUGGING
                             printf("new cousin is unique.  Adding...\n");
@@ -476,7 +476,7 @@ int updateAll(int level)
 
                             //Done with update
                             matchComplete = TRUE;
-                            addNewRule = FALSE;
+                            addNewAction = FALSE;
                             updateExistingRule = curr;
                         }
                         else    //RHS does not match
@@ -512,7 +512,7 @@ int updateAll(int level)
                                 //consider it degenerate so just abort
                                 //and create no new rules or updates
                                 matchComplete = TRUE;
-                                addNewRule = FALSE;
+                                addNewAction = FALSE;
                             }
 
                             //Check for reason #2: no room to expand
@@ -534,7 +534,7 @@ int updateAll(int level)
 
                                 //done with update
                                 matchComplete = TRUE;
-                                addNewRule = FALSE;
+                                addNewAction = FALSE;
                             }
 
                             //if the newAction is currently shorter than
@@ -612,7 +612,7 @@ int updateAll(int level)
 
                                 //We're done with this match
                                 matchComplete = TRUE;
-                                addNewRule = TRUE;
+                                addNewAction = TRUE;
                             }// else
                         }// else
                     }// else
@@ -628,7 +628,7 @@ int updateAll(int level)
                     if (newAction->length > curr->length)
                     {
                         matchComplete = TRUE;
-                        addNewRule = FALSE;
+                        addNewAction = FALSE;
 #if DEBUGGING
                         printf("newAction matches but is bigger than current rule.  Aborting.\n");
                         fflush(stdout);
@@ -657,7 +657,7 @@ int updateAll(int level)
                             //consider it degenerate so just abort
                             //and create no new rules or updates
                             matchComplete = TRUE;
-                            addNewRule = FALSE;
+                            addNewAction = FALSE;
                         }
                         //----------------------------------
                         else
@@ -700,7 +700,7 @@ int updateAll(int level)
     }// for
 
     //Add the new rule
-    if(addNewRule == TRUE)
+    if(addNewAction == TRUE)
     {
         printf("Adding new rule: ");
         displayAction(newAction);
