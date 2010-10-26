@@ -55,38 +55,38 @@ typedef struct EpisodeStruct
 // Action struct
 typedef struct ActionStruct
 {
-    Vector *epmem;              // the episodic memory for this rule.  This will
-                                // contain either Episodes (for level 0)
-                                // or sequences (for level 1+)
-    int  level;                 // what level is this rule?
-	int  index;                 // index into epmem where the rule's LHS ends
-	int  length;                // number of entries in the LHS
-	int  freq;                  // number of times this rule has "matched" epmem
-	int* overallFreq;           // number of times just the most recent sensor
-                                // data has matched epmem. This is a pointer
-                                // since the value is shared by a group of cousins
-	int outcome;                // index to the outcome state *or* a flag
-                                // indicating it doesn't exist yet
-	int     isIndeterminate;    // is this rule indeterminate?
-	Vector* cousins;            // a pointer to a jointly held list of all
-                                // "cousin" rules including itself.
-                                // Non-percentage rules have a NULL list.
-    int containsGoal;           // Does this rule contain a goal on the RHS?
-    int containsStart;          // Does this rule contain a starting state on the LHS?
+    Vector *epmem;            // the episodic memory for this rule.  This will
+                              // contain either Episodes (for level 0)
+                              // or sequences (for level 1+)
+    int  level;               // what level is this rule?
+    int  index;               // index into epmem where the rule's LHS ends
+    int  length;              // number of entries in the LHS
+    int  freq;                // number of times this rule has "matched" epmem
+    int* overallFreq;         // number of times just the most recent sensor
+                              // data has matched epmem. This is a pointer
+                              // since the value is shared by a group of cousins
+    int outcome;              // index to the outcome state *or* a flag
+                              // indicating it doesn't exist yet
+    int     isIndeterminate;  // is this rule indeterminate?
+    Vector* cousins;          // a pointer to a jointly held list of all
+                              // "cousin" rules including itself.
+                              // Non-percentage rules have a NULL list.
+    int containsGoal;         // Does this rule contain a goal on the RHS?
+    int containsStart;        // Does this rule contain a starting state on the LHS?
 } Action;
 
 typedef struct RouteStruct
 {
-    int level;                  // The level of this route
-    Vector* sequences;          // An ordered list of sequences that make up
-                                // this route
-	Vector* actions;            // An ordered list of pointers to actions that
-                                // make up this route
-	int currAction;  			// An index into the actions vector that
-                                // indicates what action should be executed next
-	int needsRecalc;			// Indicates that this route is no longer valid
-                                // (probably because environmental input is no
-                                // longer matching)
+    int level;                // The level of this route
+    Vector* sequences;        // An ordered list of sequences that make up
+                              // this route  
+    Vector* actions;          // An ordered list of pointers to actions that
+                              // make up this route
+    int currAction;           // An index into the actions vector that
+                              // indicates what action should be executed next
+    int needsRecalc;          // Indicates that this route is no longer valid
+                              // (probably because environmental input is no
+                              // longer matching)
 } Route;
 
 // Global variables for monitoring and connecting
