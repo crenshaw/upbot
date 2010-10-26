@@ -375,7 +375,7 @@ int updateAll(int level)
     int i,j;
     int matchComplete = FALSE;
     int addNewAction = TRUE;
-    Action* updateExistingRule = NULL;
+    Action* updateExistingAction = NULL;
     for(i = 0; i < actionList->size; i++)
     {
         //Compare the i-th rule to the candidate rule
@@ -437,7 +437,7 @@ int updateAll(int level)
                                 
                                 cousin->freq++;
                                 addNewAction = FALSE;
-                                updateExistingRule = cousin;
+                                updateExistingAction = cousin;
                                 break;
                             }
                         }//for 
@@ -477,7 +477,7 @@ int updateAll(int level)
                             //Done with update
                             matchComplete = TRUE;
                             addNewAction = FALSE;
-                            updateExistingRule = curr;
+                            updateExistingAction = curr;
                         }
                         else    //RHS does not match
                         {
@@ -503,7 +503,7 @@ int updateAll(int level)
                                              level))
                             {
 #if DEBUGGING
-                                printf("NewRule expands into goal at index: %i\n",
+                                printf("NewAction expands into goal at index: %i\n",
                                        newLHSEntryIndex);
                                 fflush(stdout);
 #endif
@@ -545,7 +545,7 @@ int updateAll(int level)
                                 newAction->length++;
 
 #if DEBUGGING
-                                printf("partial match with curr, extending new rule to %i\n",
+                                printf("partial match with curr, extending new action to %i\n",
                                        newAction->length);
                                 fflush(stdout);
                                 printf("new candidate: ");
@@ -560,7 +560,7 @@ int updateAll(int level)
                             else if(curr->length < MAX_LEN_LHS)
                             {
 #if DEBUGGING
-                                printf("len of curr rule (%i) = %i < %i so increasing to %i\n",
+                                printf("len of curr action (%i) = %i < %i so increasing to %i\n",
                                        i, curr->length, MAX_LEN_LHS, curr->length+1);
                                 fflush(stdout);
 #endif
@@ -630,7 +630,7 @@ int updateAll(int level)
                         matchComplete = TRUE;
                         addNewAction = FALSE;
 #if DEBUGGING
-                        printf("newAction matches but is bigger than current rule.  Aborting.\n");
+                        printf("newAction matches but is bigger than current action.  Aborting.\n");
                         fflush(stdout);
 #endif
                     }
@@ -648,7 +648,7 @@ int updateAll(int level)
                                          level))
                         {
 #if DEBUGGING
-                            printf("2. NewRule expands into goal at index: %i\n",
+                            printf("2. NewAction expands into goal at index: %i\n",
                                    newLHSEntryIndex);
                             fflush(stdout);
 #endif
@@ -665,7 +665,7 @@ int updateAll(int level)
                             newAction->length++;
 
 #if DEBUGGING
-                            printf("expanded new rule to len %i\n",
+                            printf("expanded new action to len %i\n",
                                    newAction->length);
                             printf("new candidate: ");
                             displayAction(newAction);
@@ -702,14 +702,14 @@ int updateAll(int level)
     //Add the new rule
     if(addNewAction == TRUE)
     {
-        printf("Adding new rule: ");
+        printf("Adding new action: ");
         displayAction(newAction);
         printf("\n");
         addAction(actionList, newAction, FALSE);
 
         // set this flag so that we recursively update the next level
         // with this rule
-        updateExistingRule = newAction;
+        updateExistingAction = newAction;
        
     }
     else
@@ -718,22 +718,22 @@ int updateAll(int level)
     }
 
     //If we have added a new rule, or found an existing rule that matches the
-    //current situation then updateExistingRule will contain a pointer to that
+    //current situation then updateExistingAction will contain a pointer to that
     //rule (otherwise NULL)
-    if(updateExistingRule != NULL)
+    if(updateExistingAction != NULL)
     {
-printf("Adding Rule: ");
-displayAction(updateExistingRule);
+printf("Adding Action: ");
+displayAction(updateExistingAction);
 printf(" to current sequence\n");
 
         // add most recently seen action rule to current sequence
         Vector* currSequence = sequenceList->array[sequenceList->size - 1];
-        addActionToSequence(currSequence, updateExistingRule);
+        addActionToSequence(currSequence, updateExistingAction);
 
         // if the rule we just added is percentage rule or contains a
         //goal then end the current sequence and start a new one
-        if (updateExistingRule->isIndeterminate
-            || updateExistingRule->containsGoal)
+        if (updateExistingAction->isIndeterminate
+            || updateExistingAction->containsGoal)
         {
             assert(currSequence->size > 1); 
                                 	
@@ -770,9 +770,9 @@ printf(" to current sequence\n");
             //typically the next sequence starts with the action that
             //ended the last sequence.  (Exception:  last action
             //contains a goal)
-            if (!updateExistingRule->containsGoal)
+            if (!updateExistingAction->containsGoal)
             {
-                addActionToSequence(currSequence, updateExistingRule);
+                addActionToSequence(currSequence, updateExistingAction);
             }
 
             // this sequence then becomes an episode in our next level
@@ -805,10 +805,10 @@ int addEpisode(Vector* episodes, Episode* item)
 /**
  * addActionToSequence
  *
- * Add an action rule to a sequence
+ * Add an action to a sequence
  *
- * @arg sequence pointer to vector containing action rules in sequence
- * @arg action rule pointer to action rule to be added
+ * @arg sequence pointer to vector containing actions in sequence
+ * @arg action pointer to action to be added
  * @return int status code (0 == success)
  */
 int addActionToSequence(Vector* sequence, Action* action)
@@ -819,11 +819,11 @@ int addActionToSequence(Vector* sequence, Action* action)
 /**
  * addAction
  *
- * Add the given rule to the rules array and checks if the rule
+ * Adds the given action to the actions array and checks if the rule
  * already exists
  *
- * @arg rules A pointer to the vector of rules
- * @arg item A pointer to the Rule we're adding
+ * @arg actions        pointer to the vector of actions
+ * @arg item           pointer to the Action we're adding
  * @arg checkRedundant Boolean to determine if we need to check if rule exists
  *
  * @return int A status code
@@ -870,10 +870,10 @@ void displayEpisode(Episode * ep)
 /**
  * displayActions
  *
- * prints a human-readable version of a vector of rules along with the
- * last 20 episodes in episodic memory that the rules were generated from.
+ * prints a human-readable version of a vector of actions along with the
+ * last 20 episodes in episodic memory from which the actions were generated.
  *
- * @arg actionList     the rules to display
+ * @arg actionList   the actions to display
  * @arg episodeList  the episodes used to create this list 
  */
 void displayActions(Vector *actionList, Vector *episodeList)
@@ -903,7 +903,7 @@ void displayActions(Vector *actionList, Vector *episodeList)
             Episode *ep = (Episode*)episodeList->array[episodeList->size - i];
             printf("%i %s, ", interpretSensorsShort(ep->sensors), interpretCommandShort(ep->cmd));
         }
-        else //episodeList contains Rule structs
+        else //episodeList contains Action structs
         {
             displayAction(episodeList->array[episodeList->size - i]);
         }
@@ -953,9 +953,9 @@ void displaySequenceShort(Vector* sequence)
     {
 		// grab the level from the current sequence
 		int currLevel = ((Action*)sequence->array[i])->level;
-		// grab the associated action rules this sequence is composed from
+		// grab the associated actions this sequence is composed from
 		Vector* actionList = g_actions->array[currLevel];
-		// search for the rule that the sequence is referring to
+		// search for the action that the sequence is referring to
 		for(j = 0; j < actionList->size; j++)
 		{
 			// print the index of the current action
@@ -991,33 +991,33 @@ void displaySequences(Vector* sequences)
 /**
  * displayAction                        *RECURSIVE*
  *
- * prints a human-readable version of a rule.  If the rule is a
- * sequence it makes recursive calls until it reaches the base rule.
- * The rules are printed backward (LHS on the right and vice versa)
- * for easy comparison to other rules.
+ * prints a human-readable version of an action.  If the action is a
+ * sequence, it makes recursive calls until it reaches the base action.
+ * The actions are printed backward (LHS on the right and vice versa)
+ * for easy comparison to other actions.
  */
-void displayAction(Action* rule)
+void displayAction(Action* action)
 {
     int i,j;
 
 
     //Print the RHS
-    if (rule->level == 0)
+    if (action->level == 0)
     {
         Vector* episodeList = (Vector*)g_epMem->array[0];
-        printf("%i", interpretSensorsShort(((Episode*)episodeList->array[rule->outcome])->sensors));
+        printf("%i", interpretSensorsShort(((Episode*)episodeList->array[action->outcome])->sensors));
     }
     else
     {
         printf("{ ");
-        displaySequence((Vector*)rule->epmem->array[rule->outcome]);
+        displaySequence((Vector*)action->epmem->array[action->outcome]);
         printf(" }");
     }
 
     //Print the arrow 
-    if(rule->isIndeterminate)
+    if(action->isIndeterminate)
     {
-        printf(" <-%2i- ", rule->freq * 100 / *(rule->overallFreq));
+        printf(" <-%2i- ", action->freq * 100 / *(action->overallFreq));
     }
     else
     {
@@ -1025,17 +1025,17 @@ void displayAction(Action* rule)
     }
 
     //Print the LHS
-    for(i = 0; i < rule->length; i++)
+    for(i = 0; i < action->length; i++)
     {
-        if (rule->level == 0)
+        if (action->level == 0)
         {
-            printf("%i", interpretSensorsShort(((Episode*)rule->epmem->array[rule->index - i])->sensors)); 
-            printf("%s", interpretCommandShort(((Episode*)rule->epmem->array[rule->index - i])->cmd));
+            printf("%i", interpretSensorsShort(((Episode*)action->epmem->array[action->index - i])->sensors)); 
+            printf("%s", interpretCommandShort(((Episode*)action->epmem->array[action->index - i])->cmd));
         }
         else //sequence
         {
             printf("{ ");
-            displaySequence((Vector*)rule->epmem->array[rule->index - i]);
+            displaySequence((Vector*)action->epmem->array[action->index - i]);
             printf(" }");
         }
 
@@ -1046,8 +1046,8 @@ void displayAction(Action* rule)
 /**
  * chooseCommand_SemiRandom
  *
- * This function selects a random command that would create a new action rule
- * based upon the agent's most recent sensing.  If no such new action rule can
+ * This function selects a random command that would create a new action
+ * based upon the agent's most recent sensing.  If no such new action can
  * be made, then it just chooses a random command without qualification.
  *
  * CAVEAT:  This routine assumes that CMD_NO_OP is the lowest numbered command
@@ -1114,7 +1114,7 @@ int chooseCommand_SemiRandom()
  * command is selected.
  *
  * TODO: This code needs to be modified in the future to support a possibility
- *        of modifying the current plan with a replacement rule before selecitn
+ *        of modifying the current plan with a replacement action before selecitn
  *        the next command in the plan.
  *
  * @return int the command that was chosen
@@ -1130,7 +1130,7 @@ int chooseCommand()
 
     //If there still is no plan at this point then that means the agent doesn't
     //have enough experience yet.  Select a semi-random command that would
-    //create a new action rule.  
+    //create a new action.  
     if (g_plan == NULL)
     {
         return chooseCommand_SemiRandom();
@@ -1148,7 +1148,7 @@ int chooseCommand()
 /**
  * displayRoute
  *
- * Display the current route. Prints the rules that make up
+ * Display the current route. Prints the actions that make up
  * the route in reverse order to make it easier visually to
  * read the steps.
  *
@@ -1231,10 +1231,10 @@ int getStartAction(Vector *seq)
     //Iterate over each action in the sequence
     for(j = 0; j < seq->size; j++)
     {
-        Action *currRule = (Action *)seq->array[j];
+        Action *currAction = (Action *)seq->array[j];
 
         //If this action contains a start state then record its index and break
-        if (currRule->containsStart)
+        if (currAction->containsStart)
         {
             result = j;
             break;          // move on to the next sequence
@@ -1265,10 +1265,10 @@ int getGoalAction(Vector *seq)
     //have the goal)
     for(j = seq->size-1; j >= 0; j--)
     {
-        Action *currRule = (Action *)seq->array[j];
+        Action *currAction = (Action *)seq->array[j];
 
         //If this action contains a goal then record its index and break
-        if (currRule->containsGoal)
+        if (currAction->containsGoal)
         {
             result = j;
             break;          // move on to the next sequence
