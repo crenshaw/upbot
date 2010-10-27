@@ -12,10 +12,8 @@
 /*
  * Minor Maintenance To-Do List
  *
- * 1.  refactor the code so that it says "action" instead of "rule" and
- *     "sequence" instead of "sequence"
- * 2.  Review updateAll() and try to simplify it.  Break it up into parts?
- * 3.  Add a method to the vector that allows insert and delete and use it?  I'm
+ * 1.  Review updateAll() and try to simplify it.  Break it up into parts?
+ * 2.  Add a method to the vector that allows insert and delete and use it?  I'm
  *     not sure that this will make the code easier to read but it might help.
  */
  
@@ -331,7 +329,7 @@ int updateAll(int level)
     //Create a candidate rule that we would create from this current
     //episode.  We won't add it to the rule list if an identical rule
     //already exists.
-    Action* newAction            = (Action*) malloc(sizeof(Action));
+    Action* newAction          = (Action*) malloc(sizeof(Action));
     newAction->level           = level;
     newAction->epmem           = episodeList;
     newAction->outcome         = episodeList->size - 1;
@@ -346,7 +344,7 @@ int updateAll(int level)
     //initialize containsStart to TRUE if this will be the very first rule
     if (episodeList->size == 2)
     {
-        newAction->containsStart          = TRUE;
+        newAction->containsStart    = TRUE;
     }
     //initialize containsStart to TRUE if the previous rule contained a goal
     else if (((Action *)actionList->array[actionList->size - 1])->containsGoal)
@@ -357,7 +355,7 @@ int updateAll(int level)
     //default:  containsStart=FALSE;
     else
     {
-        newAction->containsStart          = FALSE;
+        newAction->containsStart    = FALSE;
     }
     
     printf("candidate action: ");
@@ -1139,6 +1137,8 @@ int chooseCommand()
 
     //%%%If the current sensing violates the expectaitons of the plan, we need
     //%%%to replan.
+
+    
     
     //If we've reached this point then there is a plan.  At this point, the
     //agent should select the next step in the plan.  
