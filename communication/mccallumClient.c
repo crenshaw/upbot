@@ -344,10 +344,10 @@ void printStats(FILE* log)
 void reportGoalFound(int sockfd, FILE* log)
 {
 	// Store the new goal timestamp and increment count
-	g_goalsTimeStamp[g_goalsFound] = ((Episode*)g_epMem->array[g_epMem->size - 1])->now;
+	g_goalsTimeStamp[g_goalsFound] = ((Episode*)g_epMem->array[g_epMem->size - 2])->now;
 	g_goalsFound++;
 
-	// Only print if not in stats mode
+/*	// Only print if not in stats mode
 	if(g_goalsFound > 1)
 	{
 		printf("Goal %i found after %i episodes at timestamp %i\n"
@@ -361,10 +361,10 @@ void reportGoalFound(int sockfd, FILE* log)
 							, g_goalsFound
 							, g_goalsTimeStamp[g_goalsFound - 1]);
 	}
-
+*/
 	// Send a success command
-	int cmd = CMD_SONG;
-	sendCommand(sockfd, cmd);
+//	int cmd = CMD_SONG;
+//	sendCommand(sockfd, cmd);
 
 	// If connected to Roomba pause to allow time to return Roomba to Init
 	if(g_connectToRoomba == 1)
@@ -453,17 +453,18 @@ int main(int argc, char *argv[])
 
 		// If goal is found increase goal count and store the index it was found at
 //		if(((Episode*)getEntry(episodeList, episodeList->size - 1))->sensors[SNSR_IR] == 1)
-		if(((Episode*)g_epMem->array[g_epMem->size - 1])->sensors[SNSR_IR] == 1)
+		if(g_epMem->size > 2)
+		if(((Episode*)g_epMem->array[g_epMem->size - 2])->sensors[SNSR_IR] == 1)
 		{
 			reportGoalFound(sockfd, log);
 		}
-		else
-		{
+//		else
+//		{ 
 			if(sendCommand(sockfd, cmd) < 0)
 			{
 				perror("Error sending to socket");
 			}
-		}
+//		} 
 
 		// Once we've found all the goals, print out some data about the search
 		if(g_goalsFound >= NUM_GOALS_TO_FIND)
