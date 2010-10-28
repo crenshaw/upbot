@@ -31,18 +31,18 @@
 #define NUM_GOALS_TO_FIND   50
 
 // Defines for Q-Learning algorithm
-#define DISCOUNT            0.7
-#define LEARNING_RATE       0.8
+#define DISCOUNT            0.9
+#define LEARNING_RATE       0.1
 #define REWARD_SUCCESS      1.0
-#define REWARD_FAIL         0.2
+#define REWARD_FAIL         0.3
 
 // Defines for NSM
-#define K_NEAREST           5
+#define K_NEAREST           8
 
 // Collecting data for stats
 #define STATS_MODE          0
 
-#define DECREASE_RANDOM(randChance) if((randChance) > 10) { (randChance) -= 5;}
+#define DECREASE_RANDOM(randChance) if((randChance) > 5) { (randChance) *= .9;}
 
 // Sensor data struct
 typedef struct EpisodeStruct
