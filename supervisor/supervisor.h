@@ -80,10 +80,10 @@ typedef struct RouteStruct
     int level;                // The level of this route
     Vector* sequences;        // An ordered list of sequences that make up
                               // this route  
-    Vector* actions;          // An ordered list of pointers to actions that
-                              // make up this route
-    int currAction;           // An index into the actions vector that
-                              // indicates what action should be executed next
+    int currSeqIndex;         // The current sequence in this plan that is being executed
+    int currActIndex;         // An index into the current sequence in this plan
+                              // that indicates what action is currently being
+                              // executed
     int needsRecalc;          // Indicates that this route is no longer valid
                               // (probably because environmental input is no
                               // longer matching)
@@ -130,7 +130,6 @@ void     displaySequence(Vector* sequence);
 void     displaySequences(Vector* sequences);
 Vector*  containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf);
 Action*  actionMatch(int action);
-int      equalEpisodes(Episode* ep1, Episode* ep2, int isCurrMatch);
 int      findTopMatch(double* scoreTable, double* indvScore, int command);
 int      generateScoreTable(Vector* vector, double* score);
 int      compareEpisodes(Episode* ep1, Episode* ep2, int compCmd);

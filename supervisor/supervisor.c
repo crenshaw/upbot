@@ -156,14 +156,7 @@ int tick(char* sensorInput)
     }
     else
     {
-        //%%%AMN:  What is this code??
-        // Use shortcircuiting to only call takeNextStep if a goal has been
-        // found. This is because there is no route to follow until after
-        // the first goal.
-        //if(g_goalCount <= 0 || setCommand2(ep))
-        //{
         ep->cmd = chooseCommand();
-        //}
     }
     
 #ifdef DEBUGGING
@@ -1105,6 +1098,86 @@ int chooseCommand_SemiRandom()
 }//chooseCommand_SemiRandom
 
 /**
+ * nextStepIsValid
+ *
+ * Checks the current state versus the Route and determines
+ * if the previous command's outcome matches with the expected
+ * outcome of the Route.
+ */
+int nextStepIsValid()
+{
+    //If there is no plan then there is no next step
+    if (g_plan == NULL) return FALSE;
+    
+    //If the current plan needs recalc then the next step is
+    //automatically invalid
+    int i;
+    for(i = 0; i < g_plan->size; i++)
+    {
+        Route *r = (Route *)g_plan->array[i];
+        
+        if(r->needsRecalc)
+        {
+            return FALSE;
+        }
+    }//for
+
+    //Get the current action that we should have just executed if we followed
+    //the plan
+    Route* level0Route = (Route *)g_plan->array[0];
+    Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
+    Action* currAction = currSequence->array[level0Route->currActIndex];
+
+    //Get the current sensing from the episode list
+    Vector *episodeList = g_epMem->array[0];
+    Episode* currEp     = episodeList->array[episodeList->size - 1];
+    
+    //compare the current sensing to the expected sensing from the current action
+    Episode* nextStep = currAction->epmem->array[currAction->index+1];
+    return equalEpisodes(currEp, nextStep, FALSE);
+    
+}// isNextStepValid
+
+/**
+ * chooseCommand_WithPlan
+ *
+ * This function increments to the next action in the current plan and extracts
+ * the associated cmd to return to the caller.
+ *
+ * CAVEAT:  g_plan should contain a valid plan that does not need recalc
+ */
+int chooseCommand_WithPlan()
+{
+    int i;                      // iterator
+
+    //Get the current sequence from the plan
+    Route* level0Route = (Route *)g_plan->array[0];
+    Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
+
+    //If the current action is the last action in the sequence then we need to
+    //go to the next sequence
+    if (level0Route->currActIndex == currSequence->size - 1)
+    {
+        (level0Route->currSeqIndex)++;
+        currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
+        level0Route->currActIndex = 1; // not 0, since sequence overlap by 1 action
+    }
+
+    //Otherwise just go to the next action in the current sequence
+    else
+    {
+        (level0Route->currActIndex)++;
+    }
+
+    //Extract the the new current action and the command on its LHS
+    Action* currAction = currSequence->array[level0Route->currActIndex];
+    Episode* nextStep = currAction->epmem->array[currAction->index+1];
+    return nextStep->cmd;
+
+}//chooseCommand_WithPlan
+
+
+/**
  * chooseCommand
  *
  * This function decides what command to issue next.  Typically this selection
@@ -1135,10 +1208,16 @@ int chooseCommand()
         return chooseCommand_SemiRandom();
     }//if
 
-    //%%%If the current sensing violates the expectaitons of the plan, we need
-    //%%%to replan.
+    //If the current sensing violates the expectaitons of the plan, we need to
+    //replan.
+    if (nextStepIsValid())
+    {
+        //TODO:  We need to replan here.  Current initPlan method does not
+        //support this
 
-    
+        //%%%temporarily do this:
+        return chooseCommand_SemiRandom();
+    }
     
     //If we've reached this point then there is a plan.  At this point, the
     //agent should select the next step in the plan.  
@@ -1156,24 +1235,30 @@ int chooseCommand()
  */
 void displayRoute()
 {
-    Vector* semMem = g_actions->array[0];
+    Vector* actionList = g_actions->array[0];
     Route * route = g_plan->array[0];
-    Vector* actions = route->actions;
+    Vector* sequences = route->sequences;
 
     printf("Current Route: \n");
 
-    int i;
-    for(i = actions->size - 1; i >= 0; i--)
+    int i,j;
+    for(i = 0; i < sequences->size; i++)
     {
-        if(i == route->currAction)
+        Vector *seq = (Vector *)sequences->array[i];
+        for(j = seq->size - 1; j >= 0; j--)
         {
-            printf("-->");
-        }
-        printf("\t{ ");
-        displayAction(semMem->array[*((int*)actions->array[i])]);
-        printf(" }\n");
-    }// for
+            Action *action = seq->array[j];
+            if(j == route->currActIndex)
+            {
+                printf("-->");
+            }
+            printf("\t{ ");
+            displayAction(action);
+            printf(" }\n");
+        }// for
+    }
     printf("\n");
+    
 }// displayRoute
 
 
@@ -1296,7 +1381,8 @@ int getGoalAction(Vector *seq)
 void initRouteFromSequence(Route *route, Vector *seq)
 {
     //Do the easy ones first
-    route->currAction = 0;
+    route->currActIndex = 0;
+    route->currSeqIndex = 0;
     route->needsRecalc  = FALSE;
 
     //Calculate the level of this route by looking at a action in the sequence
@@ -1306,16 +1392,30 @@ void initRouteFromSequence(Route *route, Vector *seq)
     //This route will contain only one sequence, the given one
     addEntry(route->sequences, seq);
 
-    //Insert all the given sequence's actions into this route
-    int i;
-    for(i = 0; i < seq->size; i++)
-    {
-        r = (Action *)seq->array[i];
-        addEntry(route->actions, r);
-    }
-    
 }//initRouteFromSequence
 
+/**
+ * routeLength
+ *
+ * calculates the length of a route (counted as the number of actions in all the
+ * sequences that make up the route.
+ *
+ * @arg r the route to calculate the length of
+ *
+ * @return result
+ */
+int routeLength(Route *r)
+{
+    int i;                      // iterator
+    int result = 0;             // counter to sum the lengths of the sequences
+    for(i = 0; i < r->sequences->size; i++)
+    {
+        Vector *seq = (Vector *)r->sequences->array[i];
+        result += seq->size;
+    }//for
+
+    return result;
+}//routeLength
 
 /**
  *initRoute
@@ -1353,14 +1453,13 @@ int initRoute(int level, Route* newRoute)
     {
         Vector *currSeq = (Vector*)sequences->array[i];
 
-        //If the sequence contains a goal, then reate a partial route from it
+        //If the sequence contains a goal, then create a partial route from it
         //and add it to the candidates list
         int actionIdx = getGoalAction(currSeq);
         if (actionIdx >= 0)
         {
                 //Create the route
                 Route *route = (Route*)malloc(sizeof(Route));
-                route->actions = newVector();
                 route->sequences = newVector();
                 initRouteFromSequence(route, currSeq);
 
@@ -1379,10 +1478,10 @@ int initRoute(int level, Route* newRoute)
     for(i = 0; i < candRoutes->size-1; i++)
     {
         int indexOfSmallest = i;
-        int smallestLen = ((Route *)candRoutes->array[i])->actions->size;
+        int smallestLen = routeLength(((Route *)candRoutes->array[i]));
         for(j = i+1; j < candRoutes->size; j++)
         {
-            int len = ((Route*)candRoutes->array[i])->actions->size;
+            int len = routeLength(((Route*)candRoutes->array[i]));
             if (len < smallestLen)
             {
                 indexOfSmallest = j;
@@ -1406,12 +1505,12 @@ int initRoute(int level, Route* newRoute)
     {
         //Find the shortest route that hasn't been examined yet
         Route *route = (Route *)candRoutes->array[i];
-        int routeLen = route->actions->size;
+        int routeLen = routeLength(route);
         int routePos = i;
         for(j = i+1; j < candRoutes->size; j++)
         {
             Route *possiblyShorter = (Route *)candRoutes->array[j];
-            int psLen = possiblyShorter->actions->size;
+            int psLen = routeLength(possiblyShorter);
 
             //If a shorter one is found, update route, routeLen and routePos
             if (psLen < routeLen)
@@ -1441,8 +1540,8 @@ int initRoute(int level, Route* newRoute)
         {
             newRoute->level = route->level;
             newRoute->sequences = cloneVector(route->sequences);
-            newRoute->actions = cloneVector(route->actions);
-            newRoute->currAction = 0;
+            newRoute->currSeqIndex = 0;
+            newRoute->currActIndex = 0;
             newRoute->needsRecalc = FALSE;
 
             break;
@@ -1469,10 +1568,8 @@ int initRoute(int level, Route* newRoute)
             //If we've reached this point, then we can create a new candidate
             //route that is an extension of the first one
             Route *newCand = (Route*)malloc(sizeof(Route));
-            newCand->actions = newVector();
             newCand->sequences = newVector();
             initRouteFromSequence(newCand, currSeq);
-            addVector(newCand->actions, route->actions);
             addVector(newCand->sequences, route->sequences);
             
             //Add this new candidate route to the candRoutes array
@@ -1485,7 +1582,6 @@ int initRoute(int level, Route* newRoute)
     for(i = 0; i < candRoutes->size; i++)
     {
         Route *route = (Route *)candRoutes->array[i];
-        freeVector(route->actions);
         freeVector(route->sequences);
         free(route);
     }
@@ -1497,8 +1593,8 @@ int initRoute(int level, Route* newRoute)
 /**
  * initPlan
  *
- * this method uses Djikstra's algorithm to find a shortest path from the
- * start state to the goal.  A plan is a vector of routes (one per level)
+ * this method creates a plan for reaching the goal state from the starting
+ * state.  A plan is a vector of routes (one per level)
  * 
  * @return a pointer to the plan or NULL if no plan was found
  */
@@ -1570,9 +1666,9 @@ Vector *newPlan()
     {
         Route *r = (Route*)malloc(sizeof(Route));
 
-        r->actions = newVector();
         r->sequences = newVector();
-        r->currAction = 0;
+        r->currSeqIndex = 0;
+        r->currActIndex = 0;
         r->needsRecalc  = FALSE;	
         
         addEntry(newPlan, r);
@@ -1602,8 +1698,7 @@ void freePlan(Vector *plan)
         Route *r = (Route *)plan->array[i];
         if (r == NULL) continue;
 
-        //free both the route and it's internal vectors
-        if (r->actions != NULL) freeVector(r->actions);
+        //free both the route and its internal vector
         if (r->sequences != NULL) freeVector(r->sequences);
         free(r);
     }//for
