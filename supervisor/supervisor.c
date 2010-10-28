@@ -1136,7 +1136,7 @@ int nextStepIsValid()
     Episode* nextStep = currAction->epmem->array[currAction->index+1];
     return equalEpisodes(currEp, nextStep, FALSE);
     
-}// isNextStepValid
+}//nextStepIsValid
 
 /**
  * chooseCommand_WithPlan
