@@ -10,7 +10,7 @@
 * Zachary Paul Faltersack and Brian Burns.
 *
 * Author: Zachary Paul Faltersack
-* Last edit: October 22, 2010
+* Last edit: October 27, 2010
 */
 
 #include <stdio.h>
