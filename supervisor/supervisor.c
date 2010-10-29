@@ -142,9 +142,9 @@ int tick(char* sensorInput)
     printf("Episode created\n");
 
 	updateAll(0);
-
     // If we found a goal, send a song to inform the world of success
     // and if not then send ep to determine a valid command
+    
     if(episodeContainsGoal(ep, FALSE))
     {
         ep->cmd = CMD_SONG;
@@ -319,6 +319,7 @@ int updateAll(int level)
         return -2;
     }
 
+    
     //Create a candidate rule that we would create from this current
     //episode.  We won't add it to the rule list if an identical rule
     //already exists.
@@ -1059,20 +1060,23 @@ int chooseCommand_SemiRandom()
     {
         valid[i] = TRUE;        // innocent until proven guilty
     }
-    
+
     //Find all the level 0 episodes whose sensor values match the most recent
     //sensing.  Mark the commands associated with those episodes as invalid
     Vector *epList = g_epMem->array[0];
     Episode *lastEpisode = (Episode*)epList->array[epList->size - 1];
-    for(i = 0; i < epList->size - 2; i++) // iterate over all but most recent
+    if (epList->size >= 2)
     {
-        Episode *currEpisode = (Episode *)epList->array[i];
-        if (compareEpisodes(currEpisode, lastEpisode, FALSE))
+        for(i = 0; i < (epList->size - 2); i++) // iterate over all but most recent
         {
-            int index = currEpisode->cmd - CMD_NO_OP;
-            valid[index] = FALSE; // guilty!  (episode already exists)
-        }
-    }//for
+            Episode *currEpisode = (Episode *)epList->array[i];
+            if (compareEpisodes(currEpisode, lastEpisode, FALSE))
+            {
+                int index = currEpisode->cmd - CMD_NO_OP;
+                valid[index] = FALSE; // guilty!  (episode already exists)
+            }
+        }//for
+    }//if
 
     
     //Select a random starting position in the valid array.  This indicates our
@@ -1134,7 +1138,7 @@ int nextStepIsValid()
     
     //compare the current sensing to the expected sensing from the current action
     Episode* nextStep = currAction->epmem->array[currAction->index+1];
-    return equalEpisodes(currEp, nextStep, FALSE);
+    return compareEpisodes(currEp, nextStep, FALSE);
     
 }// isNextStepValid
 
@@ -1208,6 +1212,9 @@ int chooseCommand()
         return chooseCommand_SemiRandom();
     }//if
 
+    //%%DEBUGGING
+    displayPlan();
+
     //If the current sensing violates the expectaitons of the plan, we need to
     //replan.
     if (nextStepIsValid())
@@ -1228,75 +1235,64 @@ int chooseCommand()
 /**
  * displayRoute
  *
+ * prints the contents of a Route struct in a user readable format to stdout
+ *
+ * @arg route ptr to the route to print
+ */
+void displayRoute(Route *route)
+{
+    Vector* sequences = route->sequences;
+
+    printf("-----===== foo =====-----\n");
+    fflush(stdout);
+    
+    int i,j;
+    for(i = 0; i < sequences->size; i++)
+    {
+        Vector *seq = (Vector *)sequences->array[i];
+        for(j = 0; j < seq->size; j++)
+        {
+            Action *action = seq->array[j];
+            Episode *ep = (Episode*)action->epmem->array[action->index];
+            if(j == route->currActIndex)
+            {
+                printf("-->");
+                displayAction(action);
+            }
+            printf("%s ", interpretCommandShort(ep->cmd));
+        }// for
+    }
+    printf("\n");
+    
+    printf("-----===== bar =====-----\n");
+    fflush(stdout);
+    
+}//displayRoute
+
+/**
+ * displayPlan
+ *
  * Display the current route. Prints the actions that make up
  * the route in reverse order to make it easier visually to
  * read the steps.
  *
  */
-void displayRoute()
+void displayPlan()
 {
-    Vector* actionList = g_actions->array[0];
     Route * route = g_plan->array[0];
-    Vector* sequences = route->sequences;
+    printf("Current Plan: \n");
 
-    printf("Current Route: \n");
-
-    int i,j;
-    for(i = 0; i < sequences->size; i++)
+    int i;
+    for(i = 0; i < MAX_LEVEL_DEPTH; i++)
     {
-        Vector *seq = (Vector *)sequences->array[i];
-        for(j = seq->size - 1; j >= 0; j--)
-        {
-            Action *action = seq->array[j];
-            if(j == route->currActIndex)
-            {
-                printf("-->");
-            }
-            printf("\t{ ");
-            displayAction(action);
-            printf(" }\n");
-        }// for
+        Route * r = g_plan->array[i];
+        printf("level=%d \n", r->level);
     }
-    printf("\n");
     
-}// displayRoute
+    displayRoute(route);
 
-
-/**
- * setCommand2
- *
- * This method sets the command for the most recent episode.
- * If the route needs to be recalculated, it does that and 
- * then it takes the next step on the route.
- *
- * @arg ep A pointer to the newest episode
- * @return int status code
- */
-int setCommand2(Episode* ep)
-{
-    printf("Checking if route needs recalculating\n");
-    fflush(stdout);
-
-    // If last command did not result in expected outcome
-///%%%% Temporarily commented out.  This needs to be fixed! -:AMN:
-    // if(g_route->needsRecalc || !nextStepIsValid())
-    // {
-    //     printf("Route needs to be recalculated\n");
-    //     fflush(stdout);
-    //     planRoute(ep);
-    //     printf("Route is recalculated\n", stderr);
-    //     fflush(stdout);
-    // }
-    // else
-    // {
-    //     printf("Route is good\n");
-    // }
-
-    displayRoute();
-
-    // attempt to follow the route and filter back success/error code
-    return takeNextStep(ep);
-}// setCommand2
+    
+}// displayPlan
 
 /**
  * getStartAction
@@ -1464,7 +1460,7 @@ int initRoute(int level, Route* newRoute)
                 initRouteFromSequence(route, currSeq);
 
                 //add to the candidates list
-                newEntry(candRoutes, route);
+                addEntry(candRoutes, route);
 
         }//if
     }//for
@@ -1641,15 +1637,21 @@ Vector* initPlan()
         Route *parentRoute = (Route *)resultPlan->array[i+1];
         Vector *parentSeq = (Vector *)parentRoute->sequences->array[0];
 
-        //initialize this route with it
+        //Get the first action from that sequence
+        Action *parentAct = (Action *)parentSeq->array[0];
+
+        //Get the first episode from that action.  Since the parent action is at
+        //least a level 1 action, this episode will always be a sequence
+        //(Vector*) whose level is the current level.
+        Vector *seq = (Vector *)parentAct->epmem->array[parentAct->index];
+        
+        //initialize this route with the extracted sequence
         Route *currRoute = (Route *)resultPlan->array[i];
-        initRouteFromSequence(currRoute, parentSeq);
+        initRouteFromSequence(currRoute, seq);
     }//for
 
     return resultPlan;
 }// initPlan
-
-
 
 /**
  * newPlan()
@@ -1666,6 +1668,7 @@ Vector *newPlan()
     {
         Route *r = (Route*)malloc(sizeof(Route));
 
+        r->level = i;
         r->sequences = newVector();
         r->currSeqIndex = 0;
         r->currActIndex = 0;
@@ -1673,7 +1676,8 @@ Vector *newPlan()
         
         addEntry(newPlan, r);
     }//for
-    
+
+    return newPlan;
     
 }//newPlan
 
