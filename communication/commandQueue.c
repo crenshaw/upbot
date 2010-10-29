@@ -348,11 +348,11 @@ void printCommandQueueHeader(caddr_t q)
   // of the command queue header.
   if( q != NULL)
     {
-       	  printf("\n    Size: %d. \n    Reader Pos: %d. \n    Writer Pos: %d \n    pointer: 0x%x \n",
+       	  printf("\n    Size: %d. \n    Reader Pos: %d. \n    Writer Pos: %d \n    pointer: 0x%lx \n",
 		 *((int *)(q + CQ_SIZE_OFFSET)),
 		 *((int *)(q + CQ_RPOS_OFFSET)),
 		 *((int *)(q + CQ_WPOS_OFFSET)),
-		 (unsigned int)(q + CQ_QUEUE_OFFSET));
+		 (unsigned long)(q + CQ_QUEUE_OFFSET));
 	  
 	  return;
     }

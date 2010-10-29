@@ -304,7 +304,8 @@ void printStats(FILE* log)
 	if(g_statsMode == 0)
 	{
 		// Print the number of goals found and episodes recieved
-		printf("Roomba has found the Goal %i times.\nSupervisor has received %i episodes.\n", NUM_GOALS_TO_FIND, episodeList->size);
+		printf("Roomba has found the Goal %i times.\nSupervisor has received %ui episodes.\n",
+               NUM_GOALS_TO_FIND, (unsigned int)episodeList->size);
 		int i;
 		// Print the timestamp that each goal was found at
 		for(i = 0; i < NUM_GOALS_TO_FIND; i++)

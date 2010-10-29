@@ -129,6 +129,8 @@ Vector *cloneVector(Vector *vector)
     {
         addEntry(result, vector->array[i]);
     }
+
+    return result;
 }//cloneVector
 
 /**
