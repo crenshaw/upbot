@@ -16,7 +16,7 @@
 
 
 // The chance of choosing a random move
-double g_randChance = 100;
+double g_randChance = 75;
 
 // Global strings for printing to console
 // Full commands
@@ -64,6 +64,8 @@ int tick(char* sensorInput)
     Episode* ep = updateHistory(sensorInput);
     printf("History updated\n\n");
 
+    printf("++++++++++++++++++++++++++++++++++++++++++\n");
+	printf("Number of goals found: %i\n", g_goalCount);
     printf("++++++++++++++++++++++++++++++++++++++++++\n");
 
     // Select the next command to be sent to the roomba
@@ -185,16 +187,13 @@ int parseSensors(Episode * parsedData, char* dataArr)
         g_goalIdx[g_goalCount] = parsedData->now;
         g_goalCount++;
         // Assign reward for success
-        parsedData->reward = REWARD_SUCCESS;
+        parsedData->reward = parsedData->qValue = REWARD_SUCCESS;
     }
     else
     {
         // Assign reward for failure
-        parsedData->reward = REWARD_FAIL;
+        parsedData->reward = parsedData->qValue = REWARD_FAIL;
     }
-
-	// Default the expected future discounted reward for now
-	parsedData->qValue = 0;
 
     return 0;
 }//parseSensors
@@ -284,11 +283,26 @@ void updateAllLittleQ(Episode* ep)
 
     // Update the q values for each of the voting episodes for the most recent action
     int i;
-    for(i = 0; i < nbHd->numNeighbors; i++) setNewLittleQ(nbHd->episodes[i], utility);
 
+//------------- This
+    for(i = 0; i < nbHd->numNeighbors; i++) setNewLittleQ(nbHd->episodes[i], utility);
+	
 	// Finally, update the most recent episode's Q value 
 	setNewLittleQ(ep, utility);
     printf("Done updating expected discounted rewards\n");
+
+//------------- Or This
+/*	for(i = 0; i < g_epMem->size; i++)
+	{
+		if(((Episode*)g_epMem->array[i])->action == 
+		   ((Episode*)g_epMem->array[g_epMem->size - 1])->action)
+		{
+			setNewLittleQ(g_epMem->array[i], utility);
+		}
+	}
+*/
+//------------- But not both
+
     
     // Print out the updated neighborhood
 	printf("Updated neighborhood\n");
@@ -311,7 +325,7 @@ void updateAllLittleQ(Episode* ep)
 int setNewLittleQ(Episode* ep, double utility)
 {
     // Set the new q value for the episode
-    printf("Calculating and setting new expected future discounted reward\n");
+    //printf("Calculating and setting new expected future discounted reward\n");
     ep->qValue = (1.0 - LEARNING_RATE) * (ep->qValue) + LEARNING_RATE * (ep->reward + DISCOUNT * utility);
     return SUCCESS;
 }//setNewLittleQ
@@ -698,11 +712,11 @@ int chooseCommand(Episode* ep)
 
     // Determine the next command, possibility of random command
     if((rand() % 100) < g_randChance || // Probability of choosing random
-        g_epMem->size < NUM_TO_MATCH || // or if list is too short
-        g_goalCount == 0)               // or we have not yet found a goal
+        g_epMem->size < MIN_HISTORY_LEN)               // or we have not yet found a goal
     {
         ep->action = (rand() % (LAST_MOBILE_CMD)) + CMD_NO_OP;
-    }else
+    }
+	else
     {
         // loop on setCommand until a route is chosen 
         // that will lead to a successful action
@@ -723,8 +737,8 @@ int chooseCommand(Episode* ep)
  */
 int setCommand(Episode* ep)
 {       
-    int i, holder;
-    double tempQ, topQ = 0;
+    int i, holder = 0;
+    double tempQ, topQ = -100;
     for(i = 0; i < LAST_MOBILE_CMD; i++)
     {
         if((tempQ = calculateQValue(g_neighborhoods->array[i])) > topQ)

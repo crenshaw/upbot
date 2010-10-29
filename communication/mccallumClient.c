@@ -406,6 +406,7 @@ void processCommand(int* cmd, char* buf, FILE* log)
 	// If tick gave us an invalid command, exit with appropriate error code
 	if(*cmd >= NUM_COMMANDS)
 	{
+		printf("Illegal command is: %i\n", *cmd);
 		perror("Illegal command");
 		exit(*cmd);
 	}
