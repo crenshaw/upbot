@@ -137,4 +137,4 @@ int      compareEpisodes(Episode* ep1, Episode* ep2, int compCmd);
 void     initSupervisor();
 void     endSupervisor();
 
-#endif // _SUPERVISOR_H_
+#endif //_SUPERVISOR_H_

@@ -120,7 +120,7 @@ void simpleTest()
             displayEpisode(ep);
         }
     }
-}// simpleTest
+}//simpleTest
 
 /**
  * tick
@@ -174,7 +174,7 @@ int tick(char* sensorInput)
     }
 
     return ep->cmd;
-}// tick
+}//tick
 
 /**
  * createEpisode
@@ -201,7 +201,7 @@ Episode* createEpisode(char* sensorData)
         exit(retVal);
     }
     return ep;
-}// createEpisode
+}//createEpisode
 
 /**
  * parseEpisode
@@ -279,7 +279,7 @@ int parseEpisode(Episode * parsedData, char* dataArr)
     parsedData->cmd = CMD_NO_OP;
 
     return 0;
-}// parseEpisode
+}//parseEpisode
 
 /**
  * updateAll                    *RECURSIVE*
@@ -779,7 +779,7 @@ printf(" to current sequence\n");
     }//if
 
     return 0;
-}// updateAll
+}//updateAll
 
 /**
  * addEpisode
@@ -807,7 +807,7 @@ int addEpisode(Vector* episodes, Episode* item)
 int addActionToSequence(Vector* sequence, Action* action)
 {
     return addEntry(sequence, action);
-}// addActionToSequence
+}//addActionToSequence
 
 /**
  * addAction
@@ -836,7 +836,7 @@ int addAction(Vector* actions, Action* item, int checkRedundant)
     }
 
     return addEntry(actions, item);
-}// addAction
+}//addAction
 
 /**
  * displayEpisode
@@ -858,7 +858,7 @@ void displayEpisode(Episode * ep)
 
     // print rest of episode data to stdout
     printf("\nTime stamp: %i\nCommand:    %i\n\n", (int)ep->now, ep->cmd);
-}// displayEpisode
+}//displayEpisode
 
 /**
  * displayActions
@@ -904,7 +904,7 @@ void displayActions(Vector *actionList, Vector *episodeList)
     }//for
     printf("\n");
     printf("---------------\n");
-}// displayActions
+}//displayActions
 
 /**
  * displaySequence
@@ -979,7 +979,7 @@ void displaySequences(Vector* sequences)
         displaySequenceShort(sequences->array[i]);
         printf("\n");
     }
-}
+}//displaySequences
 
 /**
  * displayAction                        *RECURSIVE*
@@ -1034,7 +1034,7 @@ void displayAction(Action* action)
 
     }//for
 
-}// displayAction
+}//displayAction
 
 /**
  * chooseCommand_SemiRandom
@@ -1140,7 +1140,7 @@ int nextStepIsValid()
     Episode* nextStep = currAction->epmem->array[currAction->index+1];
     return compareEpisodes(currEp, nextStep, FALSE);
     
-}// isNextStepValid
+}//isNextStepValid
 
 /**
  * chooseCommand_WithPlan
@@ -1230,7 +1230,7 @@ int chooseCommand()
     //agent should select the next step in the plan.  
     return chooseCommand_WithPlan();
 
-}// chooseCommand
+}//chooseCommand
 
 /**
  * displayRoute
@@ -1292,7 +1292,7 @@ void displayPlan()
     displayRoute(route);
 
     
-}// displayPlan
+}//displayPlan
 
 /**
  * getStartAction
@@ -1734,7 +1734,7 @@ int findTopMatch(double* scoreTable, double* indvScore, int command)
     indvScore[command] = maxVal;
 
     return max;
-}// findTopMatch
+}//findTopMatch
 
 /**
  * compareEpisodes
@@ -1772,7 +1772,7 @@ int compareEpisodes(Episode* ep1, Episode* ep2, int compCmd)
     }
 
     return TRUE;
-}// compareEpisodes
+}//compareEpisodes
 
 /**
  * compareActions
@@ -1992,7 +1992,7 @@ void initSupervisor()
     // seed rand 
     srand(time(NULL));
     
-}// initSupervisor
+}//initSupervisor
 
 /**
  * endSupervisor
@@ -2072,7 +2072,7 @@ void endSupervisor()
     //%%%TODO: free g_plan
     
     printf("end of function\n");
-}// endSupervisor
+}//endSupervisor
 
 /**
  * interpretCommand
@@ -2158,7 +2158,7 @@ char* interpretCommandShort(int cmd)
             return g_unknownS;
             break;
     }
-}// interpretCommandShort
+}//interpretCommandShort
 
 /**
  * interpretSensorsShort
@@ -2186,5 +2186,5 @@ int interpretSensorsShort(int *sensors)
     }
 
     return result;
-}// interpretSensorsShort
+}//interpretSensorsShort
 
