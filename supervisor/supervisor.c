@@ -142,6 +142,7 @@ int tick(char* sensorInput)
     printf("Episode created\n");
 
 	updateAll(0);
+
     // If we found a goal, send a song to inform the world of success
     // and if not then send ep to determine a valid command
     
@@ -319,7 +320,6 @@ int updateAll(int level)
         return -2;
     }
 
-    
     //Create a candidate rule that we would create from this current
     //episode.  We won't add it to the rule list if an identical rule
     //already exists.
