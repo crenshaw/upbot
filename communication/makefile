@@ -1,6 +1,10 @@
 # makefile for communication 
 CC=arm-linux-gcc
-CFLAGS= -static  
+CFLAGS= -static
+
+ifeq ($(DEBUG),gdb)
+DEBUG_OPT=-g 
+endif
 
 all: server client sserver sclient supclient unittest brainstem
 
@@ -26,8 +30,8 @@ mccClient: mccallumClient.c communication.h serverUtility.c ../mccallum/nsm.h ..
 	gcc -o mccallumClient.out mccallumClient.c serverUtility.c ../mccallum/nsm.c ../mccallum/vector.c commandQueue.c
 
 unittest: unitTestServer.c serverUtility.c ../supervisor/unitTest.h commandQueue.c
-	gcc -o unitTestServer.out unitTestServer.c serverUtility.c ../supervisor/unitTest.c commandQueue.c
-	gcc -o simpleTest.out ../supervisor/unitTestMain.c ../supervisor/supervisor.c ../supervisor/vector.c
+	gcc $(DEBUG_OPT)-o unitTestServer.out unitTestServer.c serverUtility.c ../supervisor/unitTest.c commandQueue.c
+	gcc $(DEBUG_OPT)-o simpleTest.out ../supervisor/unitTestMain.c ../supervisor/supervisor.c ../supervisor/vector.c
 
 brainstem: brainstem.c communication.h serverUtility.c commandQueue.c tell.c compass.o nerves.o move.o sensors.o led.o song.o utility.o ../roomba/roomba.h
 	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c commandQueue.c tell.c compass.o nerves.o move.o sensors.o led.o song.o utility.o
