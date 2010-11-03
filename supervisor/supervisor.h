@@ -11,7 +11,7 @@
  * data.
  *
  * Authors:      Zachary Paul Faltersack, Dr. Andrew Nuxoll, Brian Burns
- * Last updated: October 25, 2010
+ * Last updated: November 3, 2010
  */
 
 #include <stdio.h>
@@ -89,6 +89,14 @@ typedef struct RouteStruct
                               // longer matching)
 } Route;
 
+typedef struct ReplacementStruct
+{
+    Vector* original;    // vector of Actions to replace
+    Action* replacement; // single Action to replace original
+    double  confidence;  // level of certainty in the reliablility of this
+                         // replacment (0.0 ... 1.0)
+} Replacement;
+
 // Global variables for monitoring and connecting
 int g_connectToRoomba;
 int g_statsMode;
@@ -97,7 +105,8 @@ int g_statsMode;
 Vector* g_epMem;
 Vector* g_actions;
 Vector* g_sequences;
-Vector* g_plan;        // a plan is a vector of N routes, 1 per level
+Vector* g_plan;         // a plan is a vector of N routes, 1 per level
+Vector* g_replacements; // list of all of our replacement "rules"
 
 // Function declarations
 extern char* interpretCommand(int cmd);
@@ -109,10 +118,12 @@ int      addAction(Vector* actions, Action* item, int checkRedundant);
 void     addActionToRoute(int actionIdx);
 int      addActionToSequence(Vector* sequence,  Action* action);
 int      addEpisode(Vector* episodes, Episode* item);
+
 int      chooseCommand();
 int      compareEpisodes(Episode* ep1, Episode* ep2, int compCmd);
 Vector*  containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf);
 Episode* createEpisode(char* sensorData);
+
 void     displayAction(Action* action);
 void     displayActions(Vector* actionList, Vector* episodeList);
 void     displayEpisode(Episode* ep);
@@ -120,22 +131,31 @@ void     displayPlan();
 void     displayRoute(Route *);
 void     displaySequence(Vector* sequence);
 void     displaySequences(Vector* sequences);
+
 void     endSupervisor();
+
 int      findTopMatch(double* scoreTable, double* indvScore, int command);
 void     freePlan(Vector *plan);
+
 int      generateScoreTable(Vector* vector, double* score);
+
 Vector*  initPlan();
 void     initRouteFromSequence(Route *route, Vector *seq);
 void     initSupervisor();
 char*    interpretCommandShort(int cmd);
 int      interpretSensorsShort(int *sensors);
+
 Vector*  newPlan();
 int      nextStepIsValid();
+
 int      parseEpisode(Episode* parsedData, char* dataArr);
 int      planRoute(Episode* currEp);
+
 int      setCommand(Episode* ep);
 int      setCommand2(Episode* ep);
+
 int      takeNextStep(Episode* currEp);
+
 int      updateAll();
 
 #endif //_SUPERVISOR_H_

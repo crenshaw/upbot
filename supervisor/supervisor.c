@@ -6,7 +6,7 @@
  * this file as well as those for determining new commands
  *
  * Authors:      Dr. Andrew Nuxoll, Zachary Paul Faltersack, Brian Burns
- * Last updated: October 26, 2010
+ * Last updated: November 3, 2010
  */
 
 /*
