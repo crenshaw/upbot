@@ -1963,14 +1963,23 @@ int episodeContainsGoal(void *entry, int level)
  */
 void initSupervisor()
 {
-    g_epMem         = newVector();
-    g_actions   = newVector();
-    g_sequences = newVector();
 
-    int i;
+    // member variables
+    int     i;          // loop iterator
+    Vector* temp;       // used in init loop below
+
+    // initialize variables
+    g_epMem           = newVector();
+    g_actions         = newVector();
+    g_sequences       = newVector();
+    g_replacements    = newVector();
+    g_plan            = NULL;        // no plan can be made at this point
+    g_connectToRoomba = 0;
+    g_statsMode       = 0;           // no output optimization
+
     for(i = 0; i < MAX_LEVEL_DEPTH; i++)
     {
-        Vector* temp = newVector();
+        temp = newVector();
         addEntry(g_epMem, temp);
 
         temp = newVector();
@@ -1979,17 +1988,14 @@ void initSupervisor()
         temp = newVector();
         addEntry(g_sequences, temp);
 
+        temp = newVector();
+        addEntry(g_replacements, temp);
+
         // pad sequence vector to avoid crash on first call of updateAll()
         addEntry(g_sequences->array[i], newVector());
     }
 
-    g_plan = NULL;              // no plan can be made at this point
-
-    g_connectToRoomba       = 0;
-    g_statsMode             = 0;
-
-
-    // seed rand 
+    // seed rand (sow some wild oats)
     srand(time(NULL));
     
 }//initSupervisor
@@ -2001,26 +2007,30 @@ void initSupervisor()
  */
 void endSupervisor() 
 {
-    // counting variables
+    // loop iterators
     int i, j, k;
+
+    // temporaries for loop below
+    Vector *actionList, *episodeList, *sequenceList, *replacementList;
 
     // assume that the number of sequences,
     // actions and episodes is the same, level-wise
     for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
     {
         // Create pointers to the two associated vectors we'll be working with
-        Vector* actionList = g_actions->array[i];
-        Vector* episodeList = g_epMem->array[i];
-        Vector* sequenceList = g_sequences->array[i];
+        actionList      =  g_actions->array     [i];
+        episodeList     =  g_epMem->array       [i];
+        sequenceList    =  g_sequences->array   [i];
+        //replacementList =  g_replacements->array[i];
         
-        // cleanup sequences at the current level
+        // clean up sequences at the current level
         for(j = 0; j < sequenceList->size; j++)
         {
             freeVector((Vector*)sequenceList->array[j]);  
         }
         freeVector(sequenceList);
 
-        //cleanup actions at the current level
+        //clean up actions at the current level
         for(j = 0; j < actionList->size; j++)
         {
             //If this is an inconsistent action we need to clean up
@@ -2044,7 +2054,7 @@ void endSupervisor()
         }//for
         freeVector(actionList);
 
-        //cleanup the episodes at this level
+        //clean up the episodes at this level
         for(j = 0; j < episodeList->size; j++)
         {
             //at level 0, this is an array of pointers to Episode structs
@@ -2061,6 +2071,7 @@ void endSupervisor()
             //now safe to free the list
         }//for
         freeVector((Vector*)episodeList->array[j]);
+
         
         
     }//for
@@ -2070,6 +2081,7 @@ void endSupervisor()
     freeVector(g_actions);
 
     //%%%TODO: free g_plan
+    //%%%TODO: clean up g_replacements
     
     printf("end of function\n");
 }//endSupervisor
@@ -2167,8 +2179,8 @@ char* interpretCommandShort(int cmd)
  * Since all sensors are binary we can combine them all into one
  * binary integer.
  *
- * @arg int* Sensors array of ints representing the sensors (must be
- *           of length NUM_SENSORS)
+ * @arg    int* Sensors array of ints representing the sensors (must be
+ *              of length NUM_SENSORS)
  * @return int that summarizes sensors
  */
 int interpretSensorsShort(int *sensors)
@@ -2188,3 +2200,31 @@ int interpretSensorsShort(int *sensors)
     return result;
 }//interpretSensorsShort
 
+/**
+ * findReplacements
+ *
+ * Find all replacements
+ *
+ * @return Vector* of replacements
+ */
+Vector* findReplacements()
+{
+    //%%%TBD
+    return NULL;
+}
+
+/**
+ * doReplacement
+ *
+ * Take the specified replacement "rule" and apply it to the specified
+ * sequence.
+ *
+ * @arg    sequence    a sequence of actions over which to apply a replacement
+ * @arg    replacement the Replacement to apply
+ * @return Vector* that is the original sequence with the replacement applied
+ */
+Vector* doReplacement(Vector* sequence, Replacement* replacement)
+{
+    //%%%TBD
+    return NULL;
+}

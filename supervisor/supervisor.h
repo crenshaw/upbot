@@ -67,7 +67,7 @@ typedef struct ActionStruct
                               // since the value is shared by a group of cousins
     int  outcome;             // index to the outcome state *or* a flag
                               // indicating it doesn't exist yet
-    int     isIndeterminate;  // is this action indeterminate?
+    int  isIndeterminate;     // is this action indeterminate?
     Vector* cousins;          // a pointer to a jointly held list of all
                               // "cousin" actions including itself.
                               // Non-indeterminate actions have a NULL list.
@@ -91,10 +91,11 @@ typedef struct RouteStruct
 
 typedef struct ReplacementStruct
 {
-    Vector* original;    // vector of Actions to replace
-    Action* replacement; // single Action to replace original
-    double  confidence;  // level of certainty in the reliablility of this
-                         // replacment (0.0 ... 1.0)
+    int     level;            // action level of this replacement "rule"
+    Vector* original;         // vector of Actions to replace
+    Action* replacement;      // single Action to replace original
+    double  confidence;       // level of certainty in the reliablility of this
+                              // replacment (0.0 ... 1.0)
 } Replacement;
 
 // Global variables for monitoring and connecting
@@ -108,7 +109,7 @@ Vector* g_sequences;
 Vector* g_plan;         // a plan is a vector of N routes, 1 per level
 Vector* g_replacements; // list of all of our replacement "rules"
 
-// Function declarations
+// Function Prototypes
 extern char* interpretCommand(int cmd);
 extern void  simpleTest();
 extern int   tick(char* sensorInput);
@@ -118,12 +119,10 @@ int      addAction(Vector* actions, Action* item, int checkRedundant);
 void     addActionToRoute(int actionIdx);
 int      addActionToSequence(Vector* sequence,  Action* action);
 int      addEpisode(Vector* episodes, Episode* item);
-
 int      chooseCommand();
 int      compareEpisodes(Episode* ep1, Episode* ep2, int compCmd);
 Vector*  containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf);
 Episode* createEpisode(char* sensorData);
-
 void     displayAction(Action* action);
 void     displayActions(Vector* actionList, Vector* episodeList);
 void     displayEpisode(Episode* ep);
@@ -131,31 +130,24 @@ void     displayPlan();
 void     displayRoute(Route *);
 void     displaySequence(Vector* sequence);
 void     displaySequences(Vector* sequences);
-
+Vector*  doReplacement(Vector* seq, Replacement* r);
 void     endSupervisor();
-
+Vector*  findReplacements();
 int      findTopMatch(double* scoreTable, double* indvScore, int command);
 void     freePlan(Vector *plan);
-
 int      generateScoreTable(Vector* vector, double* score);
-
 Vector*  initPlan();
 void     initRouteFromSequence(Route *route, Vector *seq);
 void     initSupervisor();
 char*    interpretCommandShort(int cmd);
 int      interpretSensorsShort(int *sensors);
-
 Vector*  newPlan();
 int      nextStepIsValid();
-
 int      parseEpisode(Episode* parsedData, char* dataArr);
 int      planRoute(Episode* currEp);
-
 int      setCommand(Episode* ep);
 int      setCommand2(Episode* ep);
-
 int      takeNextStep(Episode* currEp);
-
 int      updateAll();
 
 #endif //_SUPERVISOR_H_
