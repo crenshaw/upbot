@@ -15,6 +15,8 @@
  * 1.  Review updateAll() and try to simplify it.  Break it up into parts?
  * 2.  Add a method to the vector that allows insert and delete and use it?  I'm
  *     not sure that this will make the code easier to read but it might help.
+ * 3.  endSupervisor needs to be fixed.  We're hemmoraging RAM.
+ * 4.  freePlan() is not being called when an existing plan is being replaced
  */
  
 
@@ -107,6 +109,10 @@ void simpleTest()
         }
 
 #ifdef DEBUGGING
+        //Make a plan if I can
+        g_plan = initPlan();
+        displayPlan();
+
         printf("Level 0 Actions >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
         displayActions(g_actions->array[0], g_epMem->array[0]);
 
@@ -1212,9 +1218,6 @@ int chooseCommand()
         return chooseCommand_SemiRandom();
     }//if
 
-    //%%DEBUGGING
-    displayPlan();
-
     //If the current sensing violates the expectaitons of the plan, we need to
     //replan.
     if (nextStepIsValid())
@@ -1233,19 +1236,21 @@ int chooseCommand()
 }//chooseCommand
 
 /**
- * displayRoute
+ * displayRoute                 *RECURSIVE*
  *
- * prints the contents of a Route struct in a user readable format to stdout
+ * prints the contents of a Route struct to stdout.  A user readable vertical
+ * tree format is used to print the entire route.  Recursive calls are made to
+ * handle lower levels.
  *
- * @arg route ptr to the route to print
+ *
+ * @arg route     ptr to the route to print
+ * @arg recurse   indicates whether the routine should recurse into sub-level
+ *                sequences (if any)
  */
-void displayRoute(Route *route)
+void displayRoute(Route *route, int recurse)
 {
     Vector* sequences = route->sequences;
 
-    printf("-----===== foo =====-----\n");
-    fflush(stdout);
-    
     int i,j;
     for(i = 0; i < sequences->size; i++)
     {
@@ -1253,19 +1258,76 @@ void displayRoute(Route *route)
         for(j = 0; j < seq->size; j++)
         {
             Action *action = seq->array[j];
-            Episode *ep = (Episode*)action->epmem->array[action->index];
-            if(j == route->currActIndex)
+            
+            //At level 0, we're dealing with actual Episode structs
+            //So just print a short version of the sensor data
+            if (route->level == 0)
             {
-                printf("-->");
-                displayAction(action);
-            }
-            printf("%s ", interpretCommandShort(ep->cmd));
-        }// for
-    }
-    printf("\n");
-    
-    printf("-----===== bar =====-----\n");
-    fflush(stdout);
+                Episode *ep = (Episode*)action->epmem->array[action->index];
+                printf("%i%s", interpretSensorsShort(ep->sensors), interpretCommandShort(ep->cmd));
+
+                //If the commend we just printed is the most recent command
+                //then go back and append an asterisk to indicate that
+                if(j == route->currActIndex)
+                {
+                    printf("*");
+                }
+
+                //if this is not the last action, then print a comma separator
+                if (j != seq->size - 1)
+                {
+                    printf(", ");
+                }
+            }//if
+
+            //For level 1 and higher, just print the sequence number
+            //and use a recursive call to print its constituent subsequences (if
+            //the user requested it)
+            else
+            {
+                //Get the episode at the next level down that corresponds to the
+                //LHS of this action
+                Vector *epSeq = (Vector *)action->epmem->array[action->index];
+                
+                //Lookup the index of this sequence in the global list of all
+                //sequences 
+                Vector *seqList = (Vector *)g_sequences->array[route->level - 1];
+                int index = findEntry(seqList, epSeq);
+
+                //print the index
+                //indent based on level to make a vertical tree
+                int indent = 2*(MAX_LEVEL_DEPTH - route->level);
+                printf("%*sSequence #%d on level %d: ", indent, "", index, route->level - 1);
+
+                //for level 2+ we want a newline now to get the tree format to
+                //look right
+                if (level >= 2) printf("\n");
+                    
+                //If the user has requested a recursive print, then we need to
+                //construct a temporary Route that represents the next level
+                //down
+                if (recurse)
+                {
+                    Route *tmpRoute = (Route*)malloc(sizeof(Route));
+                    tmpRoute->sequences = newVector();
+                    initRouteFromSequence(tmpRoute, epSeq);
+
+                    //Recursive call
+                    displayRoute(tmpRoute, recurse);
+
+                    //Free the route
+                    freeVector(tmpRoute->sequences);
+                    free(tmpRoute);
+                }
+
+                //for level 1 we want a newline now to get the tree format to
+                //look right
+                if (level == 1) printf("\n");
+                    
+            }//else
+
+        }// for each action
+    }//for each sequence 
     
 }//displayRoute
 
@@ -1279,17 +1341,34 @@ void displayRoute(Route *route)
  */
 void displayPlan()
 {
-    Route * route = g_plan->array[0];
-    printf("Current Plan: \n");
-
-    int i;
-    for(i = 0; i < MAX_LEVEL_DEPTH; i++)
+    //Make sure there is a plan to print!
+    if (g_plan == NULL)
     {
-        Route * r = g_plan->array[i];
-        printf("level=%d \n", r->level);
+        printf("NO PLAN!\n");
+        return;
     }
     
-    displayRoute(route);
+    //Find the highest level route in the plan that's not empty
+    int i;
+    Route* r = NULL;
+    for(i = MAX_LEVEL_DEPTH; i >= 0; i--)
+    {
+        r = g_plan->array[i];
+        if ((r != NULL) && (r->sequences->size > 0))
+        {
+            break;
+        }
+    }
+
+    //Make sure this plan has at least one route
+    if (r == NULL)
+    {
+        printf("EMPTY PLAN!\n");
+        return;
+    }
+    
+    printf("Current Plan: \n");
+    displayRoute(r, TRUE);
 
     
 }//displayPlan
@@ -1391,10 +1470,48 @@ void initRouteFromSequence(Route *route, Vector *seq)
 }//initRouteFromSequence
 
 /**
+ * sequenceLength                    *RECURSIVE*
+ *
+ * calculates the length of a sequence (counted as the number of level 0 actions
+ * in the sequence).  If the given sequence is not at level 0, a recursive call
+ * is made for each of its subsequences.
+ *
+ * @arg seq   the sequence to calculate the length of
+ * @arg level the level of this sequence
+ *
+ * @return result
+ */
+int sequenceLength(Vector *seq, int level)
+{
+    int i;                      // iterator
+    int result = 0;             // counter to sum the lengths of the sequences
+
+    //If we're at level 0 we can just return the length
+    if (level == 0)
+    {
+        return seq->size;
+    }
+
+    //At higher levels, sum the the lengths of the subsequences
+    for(i = 0; i < seq->size; i++)
+    {
+        Action *action = (Action *)seq->array[i];
+        Vector *subSeq = (Vector *)action->epmem->array[action->index];
+        
+        result += sequenceLength(subSeq, level - 1);
+    }//for
+
+    //Since the sequences overlap by one action each, result needs to be
+    //decreased to avoid double counting
+    result -= (seq->size - 1);
+
+    return result;
+}//sequenceLength
+/**
  * routeLength
  *
- * calculates the length of a route (counted as the number of actions in all the
- * sequences that make up the route.
+ * calculates the length of a route (counted as the number of level 0 actions in
+ * all the sequences that make up the route.
  *
  * @arg r the route to calculate the length of
  *
@@ -1407,7 +1524,7 @@ int routeLength(Route *r)
     for(i = 0; i < r->sequences->size; i++)
     {
         Vector *seq = (Vector *)r->sequences->array[i];
-        result += seq->size;
+        result += sequenceLength(seq, r->level);
     }//for
 
     return result;
@@ -1477,7 +1594,7 @@ int initRoute(int level, Route* newRoute)
         int smallestLen = routeLength(((Route *)candRoutes->array[i]));
         for(j = i+1; j < candRoutes->size; j++)
         {
-            int len = routeLength(((Route*)candRoutes->array[i]));
+            int len = routeLength(((Route*)candRoutes->array[j]));
             if (len < smallestLen)
             {
                 indexOfSmallest = j;
@@ -1490,6 +1607,14 @@ int initRoute(int level, Route* newRoute)
         candRoutes->array[i] = candRoutes->array[indexOfSmallest];
         candRoutes->array[indexOfSmallest] = temp;
     }//for
+
+    for(i = 0; i < candRoutes->size; i++)
+    {
+        Route *r = ((Route*)candRoutes->array[i]);
+        printf("cand route %d at %ld of size %d\n",
+               i, (long)candRoutes->array[i], routeLength(r));
+        displayRoute(r, TRUE);
+    }
     
     /*--------------------------------------------------------------------------
      * Iterate over the candidate routes expanding them until the shortest
@@ -1522,10 +1647,16 @@ int initRoute(int level, Route* newRoute)
         if (routePos != i)
         {
             void *tmp = candRoutes->array[i];
-            candRoutes->array[i] = candRoutes->array[j];
-            candRoutes->array[j] = tmp;
+            candRoutes->array[i] = candRoutes->array[routePos];
+            candRoutes->array[routePos] = tmp;
         }
                 
+#if DEBUGGING
+        printf("Examining candidate route %d:\n", i);
+        fflush(stdout);
+        displayRoute(route, FALSE);
+        fflush(stdout);
+#endif
 
         //If the first sequence in this route contains a start state, we're
         //done.  Copy the details of this route to the newRoute struct we were
@@ -1541,7 +1672,7 @@ int initRoute(int level, Route* newRoute)
             newRoute->needsRecalc = FALSE;
 
             break;
-        }
+        }//if
 
         //Search all the sequences to find any that meet these criteria:
         //1.  the last action in the sequence matches the first action of the first
@@ -1622,12 +1753,19 @@ Vector* initPlan()
 
     //Try to initialize the route at the current level
     int retVal = initRoute(level, (Route *)resultPlan->array[level]);
-    if (retVal != 0)
+    if (retVal != SUCCESS)
     {
         //Give up if no route can be found
         freePlan(resultPlan);
         return NULL;
     }
+
+#if DEBUGGING
+        printf("Success: found route to goal:\n");
+        fflush(stdout);
+        displayRoute((Route *)resultPlan->array[level], TRUE);
+        fflush(stdout);
+#endif
 
     //Initialize the route at subsequent levels.  Each route is based on the
     //current sequence in the route at the previous level
@@ -2064,7 +2202,14 @@ void endSupervisor()
                 for(k = 0; k < episodeList->size; k++)
                 {
                     Episode *ep = (Episode *)episodeList->array[k];
-                    free(ep);
+
+                    /*
+                     * I'm commenting out this line for now.  It creates a huge
+                     * memory leak but leaving it in creates a double free
+                     * somewhere that I can't readily diagnose.  I am going to
+                     * focus on the functionality right now.  -:AMN: 03 Nov 2010
+                     */
+                    //%%%FIXME: free(ep);
                 }
             }
 

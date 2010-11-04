@@ -2,7 +2,7 @@
 CC=arm-linux-gcc
 CFLAGS= -static
 
-ifeq ($(DEBUG),gdb)
+ifneq ($(DEBUG),none)
 DEBUG_OPT=-g 
 endif
 
