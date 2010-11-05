@@ -282,7 +282,12 @@ int handshake(char* ipAddr)
 		{
 		}
 	}// if
-
+/*		
+	int cmd = CMD_ILLEGAL;
+	if(send(sockfd, &cmd, 1, 0) == -1)
+	{
+	}
+*/
 	// Free the space allocated for recv buffer
 	free(buf);
 
@@ -346,6 +351,13 @@ void reportGoalFound(int sockfd, FILE* log)
 	// Store the new goal timestamp and increment count
 	g_goalsTimeStamp[g_goalsFound] = ((Episode*)g_epMem->array[g_epMem->size - 2])->now;
 	g_goalsFound++;
+
+	if(g_statsMode != 0)
+	{
+		fprintf(log, "%i:", (g_goalsFound <= 1 ? g_goalsTimeStamp[g_goalsFound - 1] : g_goalsTimeStamp[g_goalsFound - 1]-g_goalsTimeStamp[g_goalsFound-2]));
+		if(g_goalsFound == NUM_GOALS_TO_FIND) fprintf(log, "\n");
+		fflush(log);
+	}
 
 /*	// Only print if not in stats mode
 	if(g_goalsFound > 1)
@@ -428,7 +440,7 @@ int main(int argc, char *argv[])
 
 	// Open log file for output
 	char* buf = (char*) malloc(sizeof(char) * MAXDATASIZE);
-	FILE* log = fopen("supClient.log", "a");
+	FILE* log = fopen("mccallum.log", "a");
 
 	// File was not opened correctly
 	if(!log)
@@ -442,7 +454,8 @@ int main(int argc, char *argv[])
 
 	// Socket stuff
 	int sockfd = handshake(argv[1]);
-	int cmd = CMD_LEFT;				// command to send to Roomba
+	int cmd = CMD_ILLEGAL;				// This is the reset command, used to ensure init
+										// state of the virtual environment
 
 	// Main send/recv processing loop
 	while(1)
@@ -470,7 +483,7 @@ int main(int argc, char *argv[])
 		// Once we've found all the goals, print out some data about the search
 		if(g_goalsFound >= NUM_GOALS_TO_FIND)
 		{
-			printStats(log);
+			//printStats(log);
 			// exit the while loop
 			printf("All goals found. Exiting.\n");
 			break;

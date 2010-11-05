@@ -27,22 +27,20 @@
 #define SUCCESS             0
 
 // Matching defines
-#define NUM_GOALS_TO_FIND   1000
+#define NUM_GOALS_TO_FIND   200
 
 // Defines for Q-Learning algorithm
-#define DISCOUNT            0.9
-#define LEARNING_RATE       0.75
+#define DISCOUNT            0.8
+#define LEARNING_RATE       0.85
 #define REWARD_SUCCESS      1.0
-#define REWARD_FAIL         -0.001
+#define REWARD_FAIL         -0.2
 
 // Defines for NSM
 #define K_NEAREST           8
-#define MIN_HISTORY_LEN		100
+#define MIN_HISTORY_LEN		50
 
-// Collecting data for stats
-#define STATS_MODE          0
-
-#define DECREASE_RANDOM(randChance) if((randChance) > 15) { (randChance) *= .8;}
+// Macros
+#define DECREASE_RANDOM(randChance) if((randChance) > 6) { (randChance) *= .6;}
 
 // Sensor data struct
 typedef struct EpisodeStruct

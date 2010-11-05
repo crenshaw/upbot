@@ -117,15 +117,15 @@ void loadMap(int mapNum)
 	fclose(maps);
 
 	// Do not want stats mode most of the time
-	g_statsMode = 0;
+	g_statsMode = 1;
 	
 	// Set up the world vars according to what we read in
 	resetWorld();
 
 	// Print out the World that we just read in
-	printf("====================== Initial Map =======================\n");
+	if(!g_statsMode) printf("====================== Initial Map =======================\n");
 	displayWorld();
-	printf("==========================================================\n");
+	if(!g_statsMode) printf("==========================================================\n");
 }//loadMap
 
 /**
@@ -185,13 +185,13 @@ void displayWorld()
 			switch(g_world[j][i])
 			{
 				case V_WALL:
-					printf("W");
+					if(!g_statsMode) printf("W");
 					break;
 				case V_HALLWAY:
-					printf(" ");
+					if(!g_statsMode) printf(" ");
 					break;
 				case V_GOAL:
-					printf("G");
+					if(!g_statsMode) printf("G");
 					break;
 				case V_ROOMBA:
 					// Have a different symbol depending on the heading of the Roomba
@@ -199,36 +199,36 @@ void displayWorld()
 					switch(g_heading)
 					{
 						case HDG_N:
-							printf("^");
+							if(!g_statsMode) printf("^");
 							break;
 						case HDG_NE:
-							printf("/");
+							if(!g_statsMode) printf("/");
 							break;
 						case HDG_E:
-							printf(">");
+							if(!g_statsMode) printf(">");
 							break;
 						case HDG_SE:
-							printf("\\");
+							if(!g_statsMode) printf("\\");
 							break;
 						case HDG_S:
-							printf("v");
+							if(!g_statsMode) printf("v");
 							break;
 						case HDG_SW:
-							printf("L");
+							if(!g_statsMode) printf("L");
 							break;
 						case HDG_W:
-							printf("<");
+							if(!g_statsMode) printf("<");
 							break;
 						case HDG_NW:
-							printf("*");
+							if(!g_statsMode) printf("*");
 							break;
 					}//switch
 					break;
 			}//switch
 		}//for
-		printf("\n");
+		if(!g_statsMode) printf("\n");
 	}//for
-	printf("\n");
+	if(!g_statsMode) printf("\n");
 }//displayWorld
 
 /**
@@ -430,6 +430,9 @@ char* doMove(int command)
 		case CMD_SONG:
 			if(!g_statsMode) printf("Song\n");
 			break;
+		case CMD_ILLEGAL:
+			if(!g_statsMode) printf("Resetting world\n");
+			resetWorld();
 		default:
 			if(!g_statsMode) printf("Invalid command: %i\n", command);
 			break;
