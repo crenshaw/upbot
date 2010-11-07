@@ -135,6 +135,7 @@ void     endSupervisor();
 Vector*  findReplacements();
 int      findTopMatch(double* scoreTable, double* indvScore, int command);
 void     freePlan(Vector *plan);
+void     freeRoute(Route *r);
 int      generateScoreTable(Vector* vector, double* score);
 Vector*  initPlan();
 void     initRouteFromSequence(Route *route, Vector *seq);
