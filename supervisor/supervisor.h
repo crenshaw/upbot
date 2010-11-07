@@ -127,7 +127,7 @@ void     displayAction(Action* action);
 void     displayActions(Vector* actionList, Vector* episodeList);
 void     displayEpisode(Episode* ep);
 void     displayPlan();
-void     displayRoute(Route *);
+void     displayRoute(Route *, int recurse);
 void     displaySequence(Vector* sequence);
 void     displaySequences(Vector* sequences);
 Vector*  doReplacement(Vector* seq, Replacement* r);

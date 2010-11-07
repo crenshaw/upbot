@@ -1301,7 +1301,7 @@ void displayRoute(Route *route, int recurse)
 
                 //for level 2+ we want a newline now to get the tree format to
                 //look right
-                if (level >= 2) printf("\n");
+                if (route->level >= 2) printf("\n");
                     
                 //If the user has requested a recursive print, then we need to
                 //construct a temporary Route that represents the next level
@@ -1322,7 +1322,7 @@ void displayRoute(Route *route, int recurse)
 
                 //for level 1 we want a newline now to get the tree format to
                 //look right
-                if (level == 1) printf("\n");
+                if (route->level == 1) printf("\n");
                     
             }//else
 
