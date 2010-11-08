@@ -2419,28 +2419,75 @@ int interpretSensorsShort(int *sensors)
 /**
  * findReplacements
  *
- * Find all replacements
+ * Find replacements in g_replacements that could be applied to g_route at its
+ * current point of execution.
  *
  * @return Vector* of replacements
  */
 Vector* findReplacements()
 {
-    //%%%TBD
-    return NULL;
+    // instance variables
+    Vector* replacements;  // holds replacements found
+
+    // initialize instance variables
+
+    
+    return replacements;
 }
+
 
 /**
  * doReplacement
  *
- * Take the specified replacement "rule" and apply it to the specified
+ * Take the specified replacement and apply it to the specified
  * sequence.
  *
  * @arg    sequence    a sequence of actions over which to apply a replacement
  * @arg    replacement the Replacement to apply
- * @return Vector* that is the original sequence with the replacement applied
+ * @return Vector*     original sequence with the replacement applied
  */
 Vector* doReplacement(Vector* sequence, Replacement* replacement)
 {
-    //%%%TBD
-    return NULL;
+    // instance variables
+    Vector* withReplacement;  // will hold our sequence with the replacement
+                              // applied
+
+
+    // initialize instance variables;
+    withReplacement = newVector();
+    
+    
+    return withReplacement;
 }
+
+/**
+ * newReplacement
+ *
+ * Allocates the necessary memory and initialize the fields of a Replacement
+ *
+ * @arg level             the level at which this replacement is being constructed
+ * @arg originalActions   vector of 2 actions to be placed by replacement
+ * @arg replacementAciton the action to be substituted
+ * @return a pointer to the new replacemet
+ */
+Replacement* newReplacement(int replLevel,
+                            Vector* originalActions, Action* replacementAction)
+{
+    // instance variables
+    Replacement* replacement;
+
+    assert(replLevel <= MAX_LEVEL_DEPTH);
+
+    // initialize instance variables
+    replacement = malloc(sizeof(Replacement));
+
+    // initialize Replacement fields
+    replacement->level       = replLevel;
+    replacement->original    = originalActions;
+    replacement->replacement = replacementAction;
+    replacement->confidence  = 0.9;
+    // I think we said we'd use this value to start with, but I'm not sure,
+    // and I suppose we can always change to something else later if we need to.
+    
+    return replacement;
+}//newReplacement
