@@ -2468,15 +2468,19 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
  * @arg level             the level at which this replacement is being constructed
  * @arg originalActions   vector of 2 actions to be placed by replacement
  * @arg replacementAciton the action to be substituted
+ * @arg confidenceLevel   our initial confidence in this replacement
  * @return a pointer to the new replacemet
  */
-Replacement* newReplacement(int replLevel,
-                            Vector* originalActions, Action* replacementAction)
+Replacement* newReplacement(int replLevel, Vector* originalActions,
+                            Action* replacementAction, double confidenceLevel)
 {
     // instance variables
     Replacement* replacement;
 
+    // check the input values (for now) to be sure they make sense
     assert(replLevel <= MAX_LEVEL_DEPTH);
+    assert(confidenceLevel < MAX_CONFIDENCE
+           && confidenceLevel > MIN_CONFIDENCE);
 
     // initialize instance variables
     replacement = malloc(sizeof(Replacement));
@@ -2485,7 +2489,7 @@ Replacement* newReplacement(int replLevel,
     replacement->level       = replLevel;
     replacement->original    = originalActions;
     replacement->replacement = replacementAction;
-    replacement->confidence  = 0.9;
+    replacement->confidence  = confidenceLevel;
     // I think we said we'd use this value to start with, but I'm not sure,
     // and I suppose we can always change to something else later if we need to.
     
