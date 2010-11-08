@@ -1179,7 +1179,7 @@ void updatePlan(int level)
     //Uh-oh.  To complete this update, we need to update the parent too
     updatePlan(level+1);
 
-    //Extact the current action from the newly updated parent route
+    //Extract the current action from the newly updated parent route
     Route *parentRoute = (Route *)g_plan->array[level + 1];
     Vector *parentSeq = (Vector *)parentRoute->sequences->array[parentRoute->currSeqIndex];
     Action *parentAct = (Action *)parentSeq->array[parentRoute->currActIndex];
@@ -1575,6 +1575,7 @@ int sequenceLength(Vector *seq, int level)
 
     return result;
 }//sequenceLength
+
 /**
  * routeLength
  *
@@ -1654,7 +1655,10 @@ int initRoute(int level, Route* newRoute)
     if (candRoutes->size == 0) return NO_GOAL_IN_LEVEL;
 
     /*--------------------------------------------------------------------------
-     * Sort the candidate routes from shortest to longest (selection sort)
+     * Sort the candidate routes from shortest to longest (selection
+     * sort)
+     * NOTE:  Since the next section keeps adding more candidates and
+     * sorts them dynamically, this pre-sorting may be a waste of time?
      */
     for(i = 0; i < candRoutes->size-1; i++)
     {
@@ -1676,6 +1680,8 @@ int initRoute(int level, Route* newRoute)
         candRoutes->array[indexOfSmallest] = temp;
     }//for
 
+#ifdef DEBUGGING
+    //Print all the candidate routes
     for(i = 0; i < candRoutes->size; i++)
     {
         Route *r = ((Route*)candRoutes->array[i]);
@@ -1683,6 +1689,7 @@ int initRoute(int level, Route* newRoute)
                i, (long)candRoutes->array[i], routeLength(r));
         displayRoute(r, TRUE);
     }
+#endif
     
     /*--------------------------------------------------------------------------
      * Iterate over the candidate routes expanding them until the shortest
