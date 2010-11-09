@@ -2463,7 +2463,7 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
 /**
  * newReplacement
  *
- * Allocates the necessary memory and initialize the fields of a Replacement
+ * Allocates the necessary memory and initializes the fields of a Replacement
  *
  * @arg level             the level at which this replacement is being constructed
  * @arg originalActions   vector of 2 actions to be placed by replacement
@@ -2490,8 +2490,6 @@ Replacement* newReplacement(int replLevel, Vector* originalActions,
     replacement->original    = originalActions;
     replacement->replacement = replacementAction;
     replacement->confidence  = confidenceLevel;
-    // I think we said we'd use this value to start with, but I'm not sure,
-    // and I suppose we can always change to something else later if we need to.
     
     return replacement;
 }//newReplacement

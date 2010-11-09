@@ -145,7 +145,8 @@ void         initSupervisor();
 char*        interpretCommandShort(int cmd);
 int          interpretSensorsShort(int *sensors);
 Vector*      newPlan();
-Replacement* newReplacement();
+Replacement* newReplacement(int level, Vector* originalActions, 
+                            Action* replacementAction, double confidenceLevel);
 int          nextStepIsValid();
 int          parseEpisode(Episode* parsedData, char* dataArr);
 int          planRoute(Episode* currEp);
