@@ -18,11 +18,11 @@ typedef struct VectorStruct
 } Vector;
 
 // Function declarations ( see vector.c)
-Vector* newVector();
-void freeVector(Vector* victim);
-int addEntry(Vector* vector, void* item);
-void* getEntry(Vector* vector, int index);
-int findEntry(Vector* vector, void *entry);
-Vector *cloneVector(Vector *vector);
+int     addEntry   (Vector* vector, void* item);
+Vector* cloneVector(Vector* vector);
+int     findEntry  (Vector* vector, void* entry);
+void    freeVector (Vector* victim);
+void*   getEntry   (Vector* vector, int index);
+Vector* newVector  ();
 
 #endif // _VECTOR_H_

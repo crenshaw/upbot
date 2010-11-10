@@ -2422,7 +2422,7 @@ int interpretSensorsShort(int *sensors)
  * Find replacements in g_replacements that could be applied to g_route at its
  * current point of execution.
  *
- * @return Vector* of replacements
+ * @return Vector* of possible replacements
  */
 Vector* findReplacements()
 {
@@ -2430,8 +2430,9 @@ Vector* findReplacements()
     Vector* replacements;  // holds replacements found
 
     // initialize instance variables
+    replacements = newVector();
 
-    
+    // iterate through    
     return replacements;
 }
 
@@ -2456,6 +2457,12 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
     int i;                    // loop iterator
 
 
+    // check to make sure the level of each of our replacement and sequence
+    // match and that sequence has at least two actions
+    assert(sequence->array != NULL);
+    assert(sequence->size > 1);
+    assert(((Action*)sequence->array[0])->level == replacement->level);
+    
     // initialize instance variables;
     withReplacement = newVector();
 
@@ -2474,8 +2481,8 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
             i++;  // increment an extra space so we skip over these two when the
                   // loop repeats
         }
-        else // just add the next action in sequence to withReplacement
-        {
+        else
+        {   // just add the next action in sequence to withReplacement
             addActionToSequence(withReplacement, (Action*)sequence->array[i]);
         }
     }
