@@ -2420,7 +2420,7 @@ int interpretSensorsShort(int *sensors)
  * findReplacements
  *
  * Find replacements in g_replacements that could be applied to g_route at its
- * current point of execution.
+ * current point of execution. Replacements aren't applied, only enumerated.
  *
  * @return Vector* of possible replacements
  */
@@ -2428,11 +2428,27 @@ Vector* findReplacements()
 {
     // instance variables
     Vector* replacements;  // holds replacements found
+    int     i, j;          // loop iterators\
+    int     count;         // number of replacements we've found
 
     // initialize instance variables
     replacements = newVector();
+    count = 0;
 
-    // iterate through    
+    // iterate through each level of replacements and routes, adding found
+    // replacements to replacements as we go
+    for(i = 0; i < MAX_LEVEL_DEPTH; i++)
+    {
+        
+    }
+
+    // if we didn't find any replacements, then we should free the vector
+    // allocated
+    if (count == 0)
+    {
+        free(replacements);
+    }
+    
     return replacements;
 }
 
