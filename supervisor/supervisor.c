@@ -2442,6 +2442,8 @@ Vector* findReplacements()
  * Take the specified replacement and apply it to the specified
  * sequence.
  *
+ * CAVEAT: This function depends on a Replacement replacing exactly 2 Actions.
+ *
  * @arg    sequence    a sequence of actions over which to apply a replacement
  * @arg    replacement the Replacement to apply
  * @return Vector*     original sequence with the replacement applied
@@ -2451,11 +2453,32 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
     // instance variables
     Vector* withReplacement;  // will hold our sequence with the replacement
                               // applied
+    int i;                    // loop iterator
 
 
     // initialize instance variables;
     withReplacement = newVector();
-    
+
+    // iterate through original vector, adding elements to
+    // withReplacement not applicable to replacement and substituting
+    // replacements where appropriate
+    for(i = 0; i < sequence->size; i++)
+    {
+        // if the next two actions in sequence match the original
+        // actions in replacement, then substitute the replacement
+        if (i+1 < sequence->size // check to make sure we don't run off the end
+            && sequence->array[i] == replacement->original->array[i]
+            && sequence->array[i+1] == replacement->original->array[i+1])
+        {
+            addActionToSequence(withReplacement, replacement->replacement);
+            i++;  // increment an extra space so we skip over these two when the
+                  // loop repeats
+        }
+        else // just add the next action in sequence to withReplacement
+        {
+            addActionToSequence(withReplacement, (Action*)sequence->array[i]);
+        }
+    }
     
     return withReplacement;
 }
@@ -2463,7 +2486,17 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
 /**
  * newReplacement
  *
- * Allocates the necessary memory and initializes the fields of a Replacement
+ * Allocates the necessary memory and initializes the fields of a
+ * Replacement
+ *
+ * CAVEAT: This function requires (albeit only for the assertion
+ * contained) that a Replacement replace exactly two Actions.
+ *
+ * SPACE NOTE: If we stick with a replacement replacing exactly 2 Actions,
+ * the originalActions parameter could be changed to a pointer to two
+ * sequential actions (assuming the two actions are always adjacent)
+ * and remove the requirement of allocated a new Vector to hold the
+ * original Actions to be replaced.
  *
  * @arg level             the level at which this replacement is being constructed
  * @arg originalActions   vector of 2 actions to be placed by replacement
@@ -2481,6 +2514,7 @@ Replacement* newReplacement(int replLevel, Vector* originalActions,
     assert(replLevel <= MAX_LEVEL_DEPTH);
     assert(confidenceLevel < MAX_CONFIDENCE
            && confidenceLevel > MIN_CONFIDENCE);
+    assert(originalActions->size == 2);
 
     // initialize instance variables
     replacement = malloc(sizeof(Replacement));
