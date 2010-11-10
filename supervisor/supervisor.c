@@ -2422,29 +2422,35 @@ int interpretSensorsShort(int *sensors)
  * Find replacements in g_replacements that could be applied to g_route at its
  * current point of execution. Replacements aren't applied, only enumerated.
  *
- * @return Vector* of possible replacements
+ * @return Vector* of possible replacements; NULL is returned if no replacements
+ *                 were found.
  */
 Vector* findReplacements()
 {
     // instance variables
     Vector* replacements;  // holds replacements found
-    int     i, j;          // loop iterators\
-    int     count;         // number of replacements we've found
-
+    int     i, j;          // loop iterators
+    
     // initialize instance variables
     replacements = newVector();
-    count = 0;
 
     // iterate through each level of replacements and routes, adding found
     // replacements to replacements as we go
     for(i = 0; i < MAX_LEVEL_DEPTH; i++)
     {
-        
+        // check that a plan exists at this level
+        if (g_plan->array[i] != NULL)
+        {
+            // a plan exists at this level, so consider where we are currently
+            // in this plan
+            
+            
+        }
     }
 
     // if we didn't find any replacements, then we should free the vector
-    // allocated
-    if (count == 0)
+    // allocated earlier
+    if (replacements->size == 0)
     {
         free(replacements);
     }
