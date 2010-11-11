@@ -2422,14 +2422,22 @@ int interpretSensorsShort(int *sensors)
  * Find replacements in g_replacements that could be applied to g_route at its
  * current point of execution. Replacements aren't applied, only enumerated.
  *
+ * CAVEAT: This function does not find replacements across adjacent sequences in
+ *         g_plans.  This might be something to consider in the future.
+ *
  * @return Vector* of possible replacements; NULL is returned if no replacements
  *                 were found.
  */
 Vector* findReplacements()
 {
     // instance variables
-    Vector* replacements;  // holds replacements found
-    int     i, j;          // loop iterators
+    Vector* replacements;        // holds replacements found
+    int     i, j;                // loop iterators
+    Route*  route;               // used in the loop to store the considered route
+    Action  *action1, *action2;  // points to two adjacent actions in a sequence
+                                 // to test their replacibility
+    Vector* original;            // a holder for original actions below to save
+                                 // ourselves from pointer-dereferencing Hell
     
     // initialize instance variables
     replacements = newVector();
@@ -2441,11 +2449,30 @@ Vector* findReplacements()
         // check that a plan exists at this level
         if (g_plan->array[i] != NULL)
         {
-            // a plan exists at this level, so consider where we are currently
-            // in this plan
-            
-            
-        }
+	  // a plan exists at this level, so consider where we are currently
+	  // in this plan, and look for a valid replacement
+	  route   = (Route*)(g_plan->array[i]);
+
+	  // check to make sure that there are two actions left to test
+	  if ( ((Vector*)((Vector*)(route->sequences)->array[route->currSeqIndex])->size) > (route->currActIndex + 1))
+	  {
+	      action1 = (Action*)((Vector*)((Vector*)(route->sequences)->array[route->currSeqIndex])->array[route->currActIndex]);
+	      action2 = (Action*)((Vector*)((Vector*)(route->sequences)->array[route->currSeqIndex])->array[route->currActIndex + 1]);
+
+	      // look for existing replacements that match the next two actions
+	      // iterate through the vector of replacements at this level
+	      for (j = 0; j < ((Vector*)(g_replacements->array[i]))->size; j++)
+	        {
+	          original = ((Replacement*)(((Vector*)(g_replacements->array[i]))->array[j]))->original;
+	          if (((Action*)original->array[0]) == action1
+		      && ((Action*)original->array[1]) == action2 )
+		    // then this sequence matches the replacement
+		    {
+		      addEntry(replacements, (Replacement*)(((Vector*)(g_replacements->array[i]))->array[j]));
+		    }
+	        }
+	  }
+	}
     }
 
     // if we didn't find any replacements, then we should free the vector
