@@ -2438,6 +2438,7 @@ Vector* findReplacements()
                                  // to test their replacibility
     Vector* original;            // a holder for original actions below to save
                                  // ourselves from pointer-dereferencing Hell
+    int size;                    // holder for if statement below
     
     // initialize instance variables
     replacements = newVector();
@@ -2454,7 +2455,8 @@ Vector* findReplacements()
 	  route   = (Route*)(g_plan->array[i]);
 
 	  // check to make sure that there are two actions left to test
-	  if ( ((Vector*)((Vector*)(route->sequences)->array[route->currSeqIndex])->size) > (route->currActIndex + 1))
+	  size = ((Vector*)((Vector*)(route->sequences)->array[route->currSeqIndex]))->size;
+	  if ( size > (route->currActIndex + 1) )
 	  {
 	      action1 = (Action*)((Vector*)((Vector*)(route->sequences)->array[route->currSeqIndex])->array[route->currActIndex]);
 	      action2 = (Action*)((Vector*)((Vector*)(route->sequences)->array[route->currSeqIndex])->array[route->currActIndex + 1]);
