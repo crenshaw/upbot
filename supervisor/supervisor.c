@@ -5,8 +5,8 @@
  * that are needed for processing raw sensor data are contained in 
  * this file as well as those for determining new commands
  *
- * Authors:      Dr. Andrew Nuxoll, Zachary Paul Faltersack, Brian Burns
- * Last updated: November 3, 2010
+ * Authors:      Zachary Paul Faltersack, Brian Burns, Andrew Nuxoll
+ * Last updated: November 11, 2010
  */
 
 /*
@@ -18,8 +18,17 @@
  * 3.  endSupervisor needs to be fixed.  We're hemmoraging RAM.
  * 4.  freePlan() is not being called when an existing plan is being replaced
  */
- 
 
+/*
+ * Long Term Wish List
+ *
+ * 1.  Right now the code depends upon the agent knowing what states
+ *     are start states and which are goal states.  I'd like to remove
+ *     at least the former requirement if not both.  I think it could
+ *     be done.
+ */
+
+//Setting this turns on verbose output to aid debugging
 #define DEBUGGING 1
 
 
@@ -112,12 +121,6 @@ void simpleTest()
         //Make a plan if I can
         g_plan = initPlan();
         displayPlan();
-
-        printf("Level 0 Actions >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-        displayActions(g_actions->array[0], g_epMem->array[0]);
-
-        printf("Level 0 Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-        displaySequences(g_sequences->array[0]);
 #endif
         
         // Print out the parsed episode if not in statsMode
@@ -151,7 +154,6 @@ int tick(char* sensorInput)
 
     // If we found a goal, send a song to inform the world of success
     // and if not then send ep to determine a valid command
-    
     if(episodeContainsGoal(ep, FALSE))
     {
         ep->cmd = CMD_SONG;
@@ -166,14 +168,6 @@ int tick(char* sensorInput)
         ep->cmd = chooseCommand();
     }
     
-#ifdef DEBUGGING
-    printf("Level 0 Actions>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-    displayActions(g_actions->array[0], g_epMem->array[0]);
-
-    printf("Level 0 Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-    displaySequences(g_sequences->array[0]);
-#endif
-
     // Print out the parsed episode if not in statsMode
     if(g_statsMode == 0)
     {
@@ -301,7 +295,26 @@ int parseEpisode(Episode * parsedData, char* dataArr)
  */
 int updateAll(int level)
 {
+#ifdef DEBUGGING
     printf("Entering level %i\n", level);
+    fflush(stdout);
+
+    printf("Level %d Episodes >>>>>>>>>>>>>>>>>>>>>>>>>>>\n", level);
+    displayEpisodes(g_epMem->array[level], level);
+    fflush(stdout);
+
+    printf("Level %d Actions >>>>>>>>>>>>>>>>>>>>>>>>>>>\n", level);
+    displayActions(g_actions->array[level]);
+    fflush(stdout);
+
+    printf("Level %i Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", level);
+    displaySequences(g_sequences->array[level]);
+    fflush(stdout);
+
+    printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< End of Level %i Data\n", level);
+    fflush(stdout);
+#endif
+    
     // Ensure that the level is within the accepted range for the vectors
     if(level < 0 || level >= MAX_LEVEL_DEPTH)
     {
@@ -341,28 +354,32 @@ int updateAll(int level)
     newAction->isIndeterminate = FALSE;
     newAction->containsGoal    = episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
 
-    //initialize containsStart to TRUE if this will be the very first rule
-    if (episodeList->size == 2)
+    //We need to properly initialize containsStart
+    //containsStart is TRUE if this will be the very first action at
+    //this level
+    if (actionList->size == 0)
     {
-        newAction->containsStart    = TRUE;
+        newAction->containsStart = TRUE;
     }
-    //initialize containsStart to TRUE if the previous rule contained a goal
+    //containsStart is TRUE if the previous action contained a goal
     else if (((Action *)actionList->array[actionList->size - 1])->containsGoal)
     {
         episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
-        newAction->containsStart          = TRUE;
+        newAction->containsStart = TRUE;
     }
     //default:  containsStart=FALSE;
     else
     {
-        newAction->containsStart    = FALSE;
+        newAction->containsStart = FALSE;
     }
-    
+
+#ifdef DEBUGGING
     printf("candidate action: ");
     fflush(stdout);
     displayAction(newAction);
     printf("\n");
     fflush(stdout);
+#endif
 
     //Iterate over every action in the list and compare it to our new
     //candidate action.  If the candidate is unique, it'll be added to
@@ -703,7 +720,7 @@ int updateAll(int level)
     //Add the new action
     if(addNewAction == TRUE)
     {
-        printf("Adding new action: ");
+        printf("Adding new action to level %i action list: ", level);
         displayAction(newAction);
         printf("\n");
         addAction(actionList, newAction, FALSE);
@@ -723,15 +740,18 @@ int updateAll(int level)
     //action (otherwise NULL)
     if(updateExistingAction != NULL)
     {
-#ifdef DEBUGGING
-        printf("Adding Action: ");
-        displayAction(updateExistingAction);
-        printf(" to current sequence\n");
-        fflush(stdout);
-#endif
-
         // add most recently seen action to current sequence
         Vector* currSequence = sequenceList->array[sequenceList->size - 1];
+        
+#ifdef DEBUGGING
+        printf("Adding action: ");
+        displayAction(updateExistingAction);
+        fflush(stdout);
+        printf(" to current sequence:");
+        displaySequenceShort(currSequence);
+        printf("\n");
+        fflush(stdout);
+#endif
         addActionToSequence(currSequence, updateExistingAction);
 
         // if the action we just added is indeterminate or contains a
@@ -739,8 +759,6 @@ int updateAll(int level)
         if (updateExistingAction->isIndeterminate
             || updateExistingAction->containsGoal)
         {
-            assert(currSequence->size > 1); 
-                                	
 			// if the sequence we just completed already exists then
 			// reset the vector's size to 0
 			// This will allow updateAll to reuse the same vector
@@ -759,10 +777,18 @@ int updateAll(int level)
 			}
 			else
 			{
-                // this newly completed sequence becomes the next episode in the
-                // next level's episodic memory
-                if (level + 1 < MAX_LEVEL_DEPTH)
+                // this newly completed sequence becomes the next
+                // episode in the next level's episodic memory UNLESS:
+                // - the required level doesn't exist
+                // - the sequence only contains one entry (i.e., its
+                //   sole action contains a path from start to goal)
+                if ((level + 1 < MAX_LEVEL_DEPTH) || (currSequence->size != 1))
                 {
+#ifdef DEBUGGING
+                    printf("Creating a new level %i episode with sequence: ", level + 1);
+                    displaySequence(currSequence);
+                    fflush(stdout);
+#endif
                     episodeList = g_epMem->array[level + 1];
                     addEntry(episodeList, currSequence);
                 }
@@ -779,8 +805,8 @@ int updateAll(int level)
                 addActionToSequence(currSequence, updateExistingAction);
             }
 
-            // this sequence then becomes an episode in our next level
-            // so we need recursive call to update.
+            // this sequence has become an episode in our next level so make a
+            // recursive call to update.
             if(level + 1 < MAX_LEVEL_DEPTH)
             {
                 updateAll(level + 1);
@@ -821,6 +847,36 @@ int addActionToSequence(Vector* sequence, Action* action)
 }//addActionToSequence
 
 /**
+ * addSequenceAsEpisode
+ *
+ * Add an sequence at level N as an episode at level N+1
+ *
+ * @arg sequence   pointer to vector containing actions in sequence
+ * @return int status code (0 == success)
+ */
+int addSequenceAsEpisode(Vector* sequence)
+{
+    //An empty sequence should not be added!
+    assert(sequence->size > 0);
+    
+    //determine the level of this sequence be examining one of its actions
+    Action *action = (Action *)sequence->array[0];
+    int level = action->level;
+
+    //Make sure the level isn't too high
+    if (level + 1 >= MAX_LEVEL_DEPTH)
+    {
+        return LEVEL_NOT_POPULATED;
+    }
+
+    //Retrieve the episode list for the next level up
+    Vector *epList = (Vector *)g_epMem->array[level + 1];
+
+    //Insert the sequence
+    return addEntry(epList, sequence);
+}//addSequenceAsEpisode
+
+/**
  * addAction
  *
  * Adds the given action to the actions array and checks if the action
@@ -852,7 +908,7 @@ int addAction(Vector* actions, Action* item, int checkRedundant)
 /**
  * displayEpisode
  *
- * Display the contents of an episode
+ * Display the contents of an Episode struct in a verbose human readable format
  *
  * @arg ep a pointer to an episode
  */
@@ -868,22 +924,83 @@ void displayEpisode(Episode * ep)
     }
 
     // print rest of episode data to stdout
-    printf("\nTime stamp: %i\nCommand:    %i\n\n", (int)ep->now, ep->cmd);
+    printf("\nTime stamp: %i\nCommand:    %s\n\n",
+           (int)ep->now, interpretCommand(ep->cmd));
 }//displayEpisode
+
+/**
+ * displayEpisodeShort
+ *
+ * Display the contents of an Episode struct in an abbreviated human readable
+ * format
+ *
+ * @arg ep a pointer to an episode
+ */
+void displayEpisodeShort(Episode * ep)
+{
+    if (ep == NULL)
+    {
+        printf("<null episode!>");
+        return;
+    }
+    
+    printf("%i%s", interpretSensorsShort(ep->sensors), interpretCommandShort(ep->cmd));
+}//displayEpisodeShort
+
+/**
+ * displayEpisodes
+ *
+ * prints a human-readable version of a vector that contains either Episodes
+ * structs (level 0) or Sequences (level 1+).  
+ *
+ * @arg episodeList  the episode list to print
+ * @arg level        the level of this episode list
+ */
+void displayEpisodes(Vector *episodeList, int level)
+{
+    //Handle an empty list
+    if (episodeList->size == 0)
+    {
+        printf("<no episodes>\n");
+        return;
+    }
+    
+    int i;
+    for(i = 0; i < episodeList->size; i++)
+    {
+        if (level == 0)
+        {
+            Episode *ep = (Episode*)episodeList->array[i];
+            displayEpisodeShort(ep);
+            if (i + 1 < episodeList->size) printf(", "); // delimiter
+        }
+        else //episodeList contains sequences
+        {
+            printf("%i. ", i);
+            Vector *seq = (Vector *)episodeList->array[i];
+            displaySequenceShort(seq);
+            printf("\n");
+        }
+    }//for
+
+}//displayEpisodes
 
 /**
  * displayActions
  *
- * prints a human-readable version of a vector of actions along with the
- * last 20 episodes in episodic memory from which the actions were generated.
+ * prints a human-readable version of a vector of actions 
  *
  * @arg actionList   the actions to display
- * @arg episodeList  the episodes used to create this list 
  */
-void displayActions(Vector *actionList, Vector *episodeList)
+void displayActions(Vector *actionList)
 {
-    //don't print empty lists
-    if (actionList->size == 0) return;
+    //Handle an empty list
+    if (actionList->size == 0)
+    {
+        printf("<no actions>\n");
+        return;
+    }
+    
 
     int i;
     for(i = 0; i < actionList->size; i++)
@@ -893,28 +1010,6 @@ void displayActions(Vector *actionList, Vector *episodeList)
         printf("\n");
     }
 
-    //determine if episodeList contains sequences or Episode structs
-    int isEpList = ((Action *)(actionList->array[0]))->level == 0;
-
-    //print the last 20 episodic memories
-    printf("EpMem: ");
-    for(i = 1; i <= 20; i++)
-    {
-        if (i > episodeList->size) break;
-
-        if (isEpList)
-        {
-            Episode *ep = (Episode*)episodeList->array[episodeList->size - i];
-            printf("%i %s, ", interpretSensorsShort(ep->sensors), interpretCommandShort(ep->cmd));
-        }
-        else //episodeList contains Action structs
-        {
-            displayAction(episodeList->array[episodeList->size - i]);
-        }
-
-    }//for
-    printf("\n");
-    printf("---------------\n");
 }//displayActions
 
 /**
@@ -927,15 +1022,21 @@ void displayActions(Vector *actionList, Vector *episodeList)
 void displaySequence(Vector* sequence)
 {
     int i; // counting variable
-    // dont print an empty sequence
-    if (sequence -> size < 1) return;
+    
+    // handle empty sequences here
+    if (sequence -> size < 1)
+    {
+        printf("{ <empty sequence> }");
+        return;
+    }
 
     printf("{");
     for(i = 0; i < sequence->size; i++)
     {
         displayAction(sequence->array[i]);
-        printf(":");
+        printf(",");
     }
+
     printf("}\n");
 }//displaySequence
 
@@ -950,7 +1051,13 @@ void displaySequenceShort(Vector* sequence)
 {
     int i,j; // counting variable
     // dont print an empty sequence
-    if (sequence -> size < 1) return;
+    // handle empty sequences here
+    if (sequence -> size < 1)
+    {
+        printf("{ <empty sequence> }");
+        return;
+    }
+
 
     printf("{");
     for(i = 0; i < sequence->size; i++)
@@ -970,9 +1077,9 @@ void displaySequenceShort(Vector* sequence)
 			}
 		}
 		// delimiter
-        printf(",");
+        if (i + 1 < sequence->size) printf(",");
     }
-    printf("}\n");
+    printf("}");
 }//displaySequenceShort
 
 /**
@@ -983,6 +1090,13 @@ void displaySequenceShort(Vector* sequence)
  */
 void displaySequences(Vector* sequences)
 {
+    //Handle an empty list
+    if (sequences->size == 0)
+    {
+        printf("<no sequences>\n");
+        return;
+    }
+    
     int i, j;
     for(i = 0; i < sequences->size; i++)
     {
@@ -1004,46 +1118,67 @@ void displayAction(Action* action)
 {
     int i,j;
 
-
-    //Print the RHS
-    if (action->level == 0)
-    {
-        Vector* episodeList = (Vector*)g_epMem->array[0];
-        printf("%i", interpretSensorsShort(((Episode*)episodeList->array[action->outcome])->sensors));
-    }
-    else
-    {
-        printf("{ ");
-        displaySequence((Vector*)action->epmem->array[action->outcome]);
-        printf(" }");
-    }
-
-    //Print the arrow 
-    if(action->isIndeterminate)
-    {
-        printf(" <-%2i- ", action->freq * 100 / *(action->overallFreq));
-    }
-    else
-    {
-        printf(" <---- ");
-    }
+    //Indicate if this is a start action
+    if (action->containsStart) printf("s");
 
     //Print the LHS
     for(i = 0; i < action->length; i++)
     {
         if (action->level == 0)
         {
-            printf("%i", interpretSensorsShort(((Episode*)action->epmem->array[action->index - i])->sensors)); 
-            printf("%s", interpretCommandShort(((Episode*)action->epmem->array[action->index - i])->cmd));
+            displayEpisodeShort((Episode*)action->epmem->array[action->index - i]);
         }
         else //sequence
         {
-            printf("{ ");
-            displaySequence((Vector*)action->epmem->array[action->index - i]);
-            printf(" }");
+            //Get the episode at the next level down that corresponds to the
+            //LHS of this action
+            Vector *epSeq = (Vector *)action->epmem->array[action->index - i];
+                
+            //Lookup the index of this sequence in the global list of all
+            //sequences 
+            Vector *seqList = (Vector *)g_sequences->array[action->level - 1];
+            int index = findEntry(seqList, epSeq);
+
+            //print the index
+            printf("%i", index);
         }
 
     }//for
+
+    //Print the arrow 
+    if(action->isIndeterminate)
+    {
+        printf(" -%2i-> ", action->freq * 100 / *(action->overallFreq));
+    }
+    else
+    {
+        printf(" ----> ");
+    }
+
+    //Print the RHS
+    if (action->level == 0)
+    {
+        Vector* episodeList = (Vector*)g_epMem->array[0];
+        displayEpisodeShort((Episode*)episodeList->array[action->outcome]);
+    }
+    else
+    {
+        //Get the episode at the next level down that corresponds to the
+        //LHS of this action
+        Vector *epSeq = (Vector *)action->epmem->array[action->outcome];
+                
+        //Lookup the index of this sequence in the global list of all
+        //sequences 
+        Vector *seqList = (Vector *)g_sequences->array[action->level - 1];
+        int index = findEntry(seqList, epSeq);
+
+        //print the index
+        printf("%i", index);
+    }
+
+    //Indicate if this is a goal action
+    if (action->containsGoal) printf("g");
+
 
 }//displayAction
 
@@ -1149,6 +1284,16 @@ int nextStepIsValid()
     
     //compare the current sensing to the expected sensing from the current action
     Episode* nextStep = currAction->epmem->array[currAction->index+1];
+#ifdef DEBUGGING
+    printf("comparing the current sensing:");
+    displayEpisodeShort(currEp);
+    fflush(stdout);
+    printf(" to the expected sensing: ");
+    displayEpisodeShort(nextStep);
+    printf("\n");
+    fflush(stdout);
+#endif
+    
     return compareEpisodes(currEp, nextStep, FALSE);
     
 }//isNextStepValid
@@ -1164,12 +1309,27 @@ int nextStepIsValid()
  */
 void updatePlan(int level)
 {
+    
+#if DEBUGGING
+    printf("-----===== foo =====-----\n");
+    fflush(stdout);
+#endif
+    
     //Should never have to update the highest level in the plan.  Because doing
     //so should take us to the goal which means we'd be replanning right now.
     assert(level+1 <  MAX_LEVEL_DEPTH);
 
     //Get the route at this level and increment the action index
     Route* route = (Route *)g_plan->array[level];
+#if DEBUGGING
+    printf("Updating Route:\n", (long)route);
+    displayRoute(route, FALSE);
+    printf("\n");
+    fflush(stdout);
+#endif
+    assert(route != NULL);
+    assert(route->sequences != NULL);
+    assert(route->sequences->size > 0);
     (route->currActIndex)++;
 
     //If we did not just walk off the end of the current sequence, we're done
@@ -1200,6 +1360,11 @@ void updatePlan(int level)
     //TODO: This is where confidence values on active replacement rules for
     //would be updated
     
+#if DEBUGGING
+    printf("-----===== bar =====-----\n");
+    fflush(stdout);
+#endif
+
 }//updatePlan
 
 /**
@@ -1214,26 +1379,25 @@ int chooseCommand_WithPlan()
 {
     int i;                      // iterator
 
-#if DEBUGGING
-    printf("-----===== foo =====-----\n");
+#ifdef DEBUGGING
+    printf("Choosing command from plan:\n");
+    fflush(stdout);
+    displayPlan();
     fflush(stdout);
 #endif
     
-    //This method will move the "current action" pointer to the next action.
-    updatePlan(0);
-        
-    //Get the current sequence from the plan
+    //Get the level 0 route from from the plan
     Route* level0Route = (Route *)g_plan->array[0];
-    Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
 
-    //Extract the the new current action
+    //move the "current action" pointer to the next action as a result
+    //of taking this action
+    updatePlan(0);
+
+    //Extract the current action
+    Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
     Action* currAction = currSequence->array[level0Route->currActIndex];
     Episode* nextStep = currAction->epmem->array[currAction->index];
 
-#if DEBUGGING
-    printf("-----===== bar =====-----\n");
-    fflush(stdout);
-#endif
     //return the command prescribed by the current action
     return nextStep->cmd;
 
@@ -1260,7 +1424,14 @@ int chooseCommand()
     if (g_plan == NULL)
     {
         g_plan = initPlan();
-        
+#if DEBUGGING
+        if (g_plan != NULL)
+        {
+            printf("New plan:\n");
+            fflush(stdout);
+            displayPlan();
+        }
+#endif
     }//if
 
     //If there still is no plan at this point then that means the agent doesn't
@@ -1273,7 +1444,7 @@ int chooseCommand()
 
     //If the current sensing violates the expectaitons of the plan, we need to
     //replan.
-    if (nextStepIsValid())
+    if (! nextStepIsValid())
     {
         //TODO:  We need to replan here.  Current initPlan method does not
         //support this
@@ -1304,6 +1475,13 @@ void displayRoute(Route *route, int recurse)
 {
     Vector* sequences = route->sequences;
 
+    //handle the empty case
+    if (sequences->size == 0)
+    {
+        printf("\t<empty route>\n");
+        return;
+    }
+
     int i,j;
     for(i = 0; i < sequences->size; i++)
     {
@@ -1317,11 +1495,11 @@ void displayRoute(Route *route, int recurse)
             if (route->level == 0)
             {
                 Episode *ep = (Episode*)action->epmem->array[action->index];
-                printf("%i%s", interpretSensorsShort(ep->sensors), interpretCommandShort(ep->cmd));
+                displayEpisodeShort(ep);
 
-                //If the commend we just printed is the most recent command
-                //then go back and append an asterisk to indicate that
-                if(j == route->currActIndex)
+                //If the command we just printed is the most recent
+                //command then append an asterisk to indicate that
+                if((i == route->currSeqIndex) && (j == route->currActIndex))
                 {
                     printf("*");
                 }
@@ -1350,7 +1528,15 @@ void displayRoute(Route *route, int recurse)
                 //print the index
                 //indent based on level to make a vertical tree
                 int indent = 2*(MAX_LEVEL_DEPTH - route->level);
-                printf("%*sSequence #%d on level %d: ", indent, "", index, route->level - 1);
+                printf("%*sSequence #%d on level %d", indent, "", index, route->level - 1);
+
+                //If the command we just printed is the most recent
+                //command then append an asterisk to indicate that
+                if((i == route->currSeqIndex) && (j == route->currActIndex))
+                {
+                    printf("*");
+                }
+                if (recurse) printf(": ");
 
                 //for level 2+ we want a newline now to get the tree format to
                 //look right
@@ -1420,7 +1606,6 @@ void displayPlan()
         return;
     }
     
-    printf("Current Plan: \n");
     displayRoute(r, TRUE);
 
     
@@ -1863,6 +2048,7 @@ Vector* initPlan()
         initRouteFromSequence(currRoute, seq);
     }//for
 
+
     return resultPlan;
 }// initPlan
 
@@ -2153,12 +2339,10 @@ int episodeContainsGoal(void *entry, int level)
     }
     else //sequence
     {
+        //For a sequence, a goal is indicated by the "containsGoal" field being
+        //TRUE on the last action in the sequence
         Vector *sequence = (Vector *)entry;
-        printf("sequence->size=%d\n", (int)(sequence->size));
-        displaySequence(sequence);
         Action *action = (Action *)sequence->array[sequence->size - 1];
-        
-        //For a sequence, a goal is indicated by "containsGoal"
         return action->containsGoal;
     }
 }//episodeContainsGoal

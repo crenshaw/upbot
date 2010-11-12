@@ -84,13 +84,13 @@ void loadMap(int mapNum)
 			case 'G': virtualElement = V_GOAL; 		break;
 			// Virtual roomba elements
 			case '^': virtualElement = V_ROOMBA; g_init_heading = HDG_N; break;
-			case '/': virtualElement = V_ROOMBA; g_init_heading = HDG_NE; break;
+			case '7': virtualElement = V_ROOMBA; g_init_heading = HDG_NE; break;
 			case '>': virtualElement = V_ROOMBA; g_init_heading = HDG_E; break;
-			case '\\':virtualElement = V_ROOMBA; g_init_heading = HDG_SE; break;
+			case 'J':virtualElement = V_ROOMBA; g_init_heading = HDG_SE; break;
 			case 'v': virtualElement = V_ROOMBA; g_init_heading = HDG_S; break;
 			case 'L': virtualElement = V_ROOMBA; g_init_heading = HDG_SW; break;
 			case '<': virtualElement = V_ROOMBA; g_init_heading = HDG_W; break;
-			case '*': virtualElement = V_ROOMBA; g_init_heading = HDG_NW; break;
+			case 'F': virtualElement = V_ROOMBA; g_init_heading = HDG_NW; break;
 			case '\n':counter--; break;	// Must subtract 1 here in order for counter to still
 										// be accurate as position marker in map
 		}
