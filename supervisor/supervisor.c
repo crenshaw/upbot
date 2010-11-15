@@ -2665,7 +2665,8 @@ Vector* findReplacements()
     // allocated earlier
     if (replacements->size == 0)
     {
-        free(replacements);
+        freeVector(replacements);
+        replacements = NULL;
     }
     
     return replacements;
@@ -2682,7 +2683,7 @@ Vector* findReplacements()
  *
  * @arg    sequence    a sequence of actions over which to apply a replacement
  * @arg    replacement the Replacement to apply
- * @return Vector*     original sequence with the replacement applied
+ * @return Vector*     copy of original sequence with the replacement applied
  */
 Vector* doReplacement(Vector* sequence, Replacement* replacement)
 {
