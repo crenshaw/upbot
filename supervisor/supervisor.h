@@ -29,7 +29,7 @@
 // Function return codes
 #define SUCCESS             0
 #define NO_GOAL_IN_LEVEL    1    // used by initRoute
-#define LEVEL_NOT_POPULATED 2    // used by initRoute
+#define LEVEL_NOT_POPULATED 2    // used by initRoute, updatePlan
 
 // Matching defines
 #define NUM_TO_MATCH        (15)
@@ -153,6 +153,7 @@ Replacement* newReplacement(int level, Vector* originalActions,
                             Action* replacementAction, double confidenceLevel);
 int          nextStepIsValid();
 int          parseEpisode(Episode* parsedData, char* dataArr);
+int          planNeedsRecalc(Vector *plan);
 int          planRoute(Episode* currEp);
 int          setCommand(Episode* ep);
 int          setCommand2(Episode* ep);

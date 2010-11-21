@@ -35,6 +35,9 @@ int** g_world;
 int g_heading;
 int g_hitGoal;
 
+//keep track of number times goal is found
+int g_goalCount = 0;
+
 /**
 * loadMap
 *
@@ -164,7 +167,8 @@ void resetWorld()
 	// return roomba to init
 	g_world[g_X][g_Y] = V_ROOMBA;
 
-	if(g_statsMode)	printf("Hit Goal\n");
+    g_goalCount++;
+	if(g_statsMode)	printf("Hit Goal %d\n", g_goalCount);
 }//resetWorld
 
 /**

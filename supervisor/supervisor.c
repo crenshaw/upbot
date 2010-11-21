@@ -117,7 +117,7 @@ void simpleTest()
             ep->cmd = cmds[i];
         }
 
-#ifdef DEBUGGING
+#if DEBUGGING
         //Make a plan if I can
         g_plan = initPlan();
         displayPlan();
@@ -142,37 +142,50 @@ void simpleTest()
  */
 int tick(char* sensorInput)
 {
+    int goalCount = 0;
+    
     // Create new Episode
+#if DEBUGGING
     printf("Creating and adding episode...");
+#endif
     Episode* ep = createEpisode(sensorInput);
 
     // Add new episode to the history
     addEpisode(g_epMem->array[0], ep);
-    printf("Episode created\n");
 
 	updateAll(0);
+#if DEBUGGING
+    printf("updateAll complete\n");
+#endif
 
     // If we found a goal, send a song to inform the world of success
     // and if not then send ep to determine a valid command
     if(episodeContainsGoal(ep, FALSE))
     {
+        goalCount++;
+        printf("GOAL %d FOUND!\n", goalCount);
+        
         ep->cmd = CMD_SONG;
+
+        //Current, presumably successful, plan no longer needed
         if (g_plan != NULL)
         {
-            Route *r = g_plan->array[MAX_LEVEL_DEPTH - 1];
-            r->needsRecalc = TRUE;
+            freePlan(g_plan);
+            g_plan = NULL;
         }
     }
     else
     {
         ep->cmd = chooseCommand();
     }
-    
+
+#if DEBUGGING
     // Print out the parsed episode if not in statsMode
     if(g_statsMode == 0)
     {
         displayEpisode(ep);
     }
+#endif
 
     return ep->cmd;
 }//tick
@@ -295,12 +308,13 @@ int parseEpisode(Episode * parsedData, char* dataArr)
  */
 int updateAll(int level)
 {
-#ifdef DEBUGGING
+#if DEBUGGING
     printf("Entering level %i\n", level);
     fflush(stdout);
 
     printf("Level %d Episodes >>>>>>>>>>>>>>>>>>>>>>>>>>>\n", level);
     displayEpisodes(g_epMem->array[level], level);
+    printf("\n", level);
     fflush(stdout);
 
     printf("Level %d Actions >>>>>>>>>>>>>>>>>>>>>>>>>>>\n", level);
@@ -373,7 +387,7 @@ int updateAll(int level)
         newAction->containsStart = FALSE;
     }
 
-#ifdef DEBUGGING
+#if DEBUGGING
     printf("candidate action: ");
     fflush(stdout);
     displayAction(newAction);
@@ -542,9 +556,12 @@ int updateAll(int level)
                                 fflush(stdout);
 #endif
 
-                                //The current action can't be expanded
-                                //so we consider it degenerate and
-                                //replace it with the new action.
+                                //The current action can't be expanded so we
+                                //consider it degenerate and replace it with the
+                                //new action.
+
+                                //AMN: We may need to handle this differently.
+                                //It's pretty kludgey.
                                 curr->index                             = newAction->index;
                                 curr->outcome               = newAction->outcome;
                                 curr->length                        = newAction->length;
@@ -743,7 +760,7 @@ int updateAll(int level)
         // add most recently seen action to current sequence
         Vector* currSequence = sequenceList->array[sequenceList->size - 1];
         
-#ifdef DEBUGGING
+#if DEBUGGING
         printf("Adding action: ");
         displayAction(updateExistingAction);
         fflush(stdout);
@@ -784,7 +801,7 @@ int updateAll(int level)
                 //   sole action contains a path from start to goal)
                 if ((level + 1 < MAX_LEVEL_DEPTH) || (currSequence->size != 1))
                 {
-#ifdef DEBUGGING
+#if DEBUGGING
                     printf("Creating a new level %i episode with sequence: ", level + 1);
                     displaySequence(currSequence);
                     fflush(stdout);
@@ -1197,6 +1214,11 @@ int chooseCommand_SemiRandom()
 {
     int i;                      // iterator
     
+#if DEBUGGING
+    printf("Choosing a random action: ");
+    fflush(stdout);
+#endif
+
     //Make an array of boolean values (one per command) and init them all to
     //TRUE. This array will eventually indicates whether the given command would
     //create a unique episode (TRUE) or not (FALSE).
@@ -1238,11 +1260,19 @@ int chooseCommand_SemiRandom()
         int index = (start + i) % numCmds; 
         if (valid[index])
         {
+#if DEBUGGING
+            printf("%d\n", index + CMD_NO_OP);
+            fflush(stdout);
+#endif
             return index + CMD_NO_OP;
         }
     }
 
     //if no valid command is found, then just use the randomly selected default
+#if DEBUGGING
+    printf("%d\n", start + CMD_NO_OP);
+    fflush(stdout);
+#endif
     return start + CMD_NO_OP;
 
 }//chooseCommand_SemiRandom
@@ -1253,27 +1283,15 @@ int chooseCommand_SemiRandom()
  * Checks the current state versus the Route and determines
  * if the previous command's outcome matches with the expected
  * outcome of the Route.
+ *
  */
 int nextStepIsValid()
 {
     //If there is no plan then there is no next step
     if (g_plan == NULL) return FALSE;
     
-    //If the current plan needs recalc then the next step is
-    //automatically invalid
-    int i;
-    for(i = 0; i < g_plan->size; i++)
-    {
-        Route *r = (Route *)g_plan->array[i];
-        
-        if(r->needsRecalc)
-        {
-            return FALSE;
-        }
-    }//for
-
     //Get the current action that we should have just executed if we followed
-    //the plan
+    //the plan.  Note that "index-1" is used since the plan has already been updated.
     Route* level0Route = (Route *)g_plan->array[0];
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
     Action* currAction = currSequence->array[level0Route->currActIndex];
@@ -1283,8 +1301,9 @@ int nextStepIsValid()
     Episode* currEp     = episodeList->array[episodeList->size - 1];
     
     //compare the current sensing to the expected sensing from the current action
-    Episode* nextStep = currAction->epmem->array[currAction->index+1];
-#ifdef DEBUGGING
+    Episode* nextStep = currAction->epmem->array[currAction->index];
+#if DEBUGGING
+    fflush(stdout);
     printf("comparing the current sensing:");
     displayEpisodeShort(currEp);
     fflush(stdout);
@@ -1292,6 +1311,10 @@ int nextStepIsValid()
     displayEpisodeShort(nextStep);
     printf("\n");
     fflush(stdout);
+
+    printf("Drawn from route: ");
+    displayRoute(level0Route, FALSE);
+    printf("\n");
 #endif
     
     return compareEpisodes(currEp, nextStep, FALSE);
@@ -1306,38 +1329,103 @@ int nextStepIsValid()
  * plan so that it's ready to continue with the next level 0 sequence.
  *
  * @arg level   the current level being updated
+ *
+ * @return SUCCESS or an error code
  */
-void updatePlan(int level)
+int updatePlan(int level)
 {
     
 #if DEBUGGING
-    printf("-----===== foo =====-----\n");
+    printf("-----===== begin updatePlan =====-----\n");
     fflush(stdout);
 #endif
     
-    //Should never have to update the highest level in the plan.  Because doing
-    //so should take us to the goal which means we'd be replanning right now.
-    assert(level+1 <  MAX_LEVEL_DEPTH);
+    //If there is no route at this level, report this
+    if (level+1 >=  MAX_LEVEL_DEPTH)
+    {
+        return LEVEL_NOT_POPULATED;
+    }
 
     //Get the route at this level and increment the action index
     Route* route = (Route *)g_plan->array[level];
 #if DEBUGGING
-    printf("Updating Route:\n", (long)route);
+    printf("Updating Level %d Route:\n", level);
     displayRoute(route, FALSE);
     printf("\n");
     fflush(stdout);
 #endif
-    assert(route != NULL);
-    assert(route->sequences != NULL);
-    assert(route->sequences->size > 0);
+
+    //Make sure the route at this level is valid
+    if ( (route == NULL)
+         || (route->sequences == NULL)
+         || (route->sequences->size == 0) )
+    {
+        route->needsRecalc = TRUE;
+        return LEVEL_NOT_POPULATED;
+    }
+
+    //The most important step! 
     (route->currActIndex)++;
 
     //If we did not just walk off the end of the current sequence, we're done
     Vector *currSequence = (Vector *)route->sequences->array[route->currSeqIndex];
-    if (route->currActIndex < currSequence->size) return;
+    if (route->currActIndex < currSequence->size)
+    {
+#if DEBUGGING
+        printf("Updated level %d route successfully.\n", level);
+        fflush(stdout);
+#endif
+        return SUCCESS;
+    }
 
-    //Uh-oh.  To complete this update, we need to update the parent too
-    updatePlan(level+1);
+#if DEBUGGING
+    printf("Current plan sequence at level %d has run out\n", level);
+    fflush(stdout);
+#endif
+    
+    //Uh-oh.  The current sequence has run out.
+    //First, see if there is a next sequence at this level
+    if (route->currSeqIndex + 1 < route->sequences->size)
+    {
+        //Just move to the next sequence at this level
+        (route->currSeqIndex++);
+
+        //Since sequences overlap by 1, we need to start at 2nd entry in the
+        //sequence (index = 1)
+        route->currActIndex = 1;
+
+#if DEBUGGING
+        //Make sure this next sequence is valid
+        currSequence = (Vector *)route->sequences->array[route->currSeqIndex];
+        assert(currSequence->size > 0);
+
+        printf("Moved to sequence #%d of %d at level %d.\n",
+               route->currSeqIndex + 1, route->sequences->size, level);
+        fflush(stdout);
+#endif
+        
+        return SUCCESS;
+    }//if
+        
+
+    //Since there is no next sequences, recursively call update plan if there is
+    //a parent plan that can provide us with a next sequence
+    int retVal = updatePlan(level+1);
+
+    //If the update failed (probably because the current action is the last one
+    //of the plan) then mark this route as needing recalc.  No further update
+    //can be performed.
+    if (retVal != SUCCESS)
+    {
+#if DEBUGGING
+        printf("Failed to retrieve new sequence from parent at level %d.\n",
+               level + 1);
+        fflush(stdout);
+#endif
+        
+        route->needsRecalc = TRUE;
+        return retVal;
+    }
 
     //Extract the current action from the newly updated parent route
     Route *parentRoute = (Route *)g_plan->array[level + 1];
@@ -1355,15 +1443,21 @@ void updatePlan(int level)
     route = (Route*)malloc(sizeof(Route));
     route->sequences = newVector();
     initRouteFromSequence(route, seq);
+    route->currActIndex = 1;    // skip overlapping first action
     g_plan->array[level] = route;
 
     //TODO: This is where confidence values on active replacement rules for
     //would be updated
     
 #if DEBUGGING
-    printf("-----===== bar =====-----\n");
+    printf("Updated level %d route with help from parent at level %d\n",
+           level, level + 1);
+    printf("Updated route: ");
+    displayRoute(route, FALSE);
     fflush(stdout);
 #endif
+
+    return SUCCESS;
 
 }//updatePlan
 
@@ -1379,7 +1473,7 @@ int chooseCommand_WithPlan()
 {
     int i;                      // iterator
 
-#ifdef DEBUGGING
+#if DEBUGGING
     printf("Choosing command from plan:\n");
     fflush(stdout);
     displayPlan();
@@ -1389,14 +1483,14 @@ int chooseCommand_WithPlan()
     //Get the level 0 route from from the plan
     Route* level0Route = (Route *)g_plan->array[0];
 
-    //move the "current action" pointer to the next action as a result
-    //of taking this action
-    updatePlan(0);
-
     //Extract the current action
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
     Action* currAction = currSequence->array[level0Route->currActIndex];
     Episode* nextStep = currAction->epmem->array[currAction->index];
+
+    //move the "current action" pointer to the next action as a result
+    //of taking this action
+    updatePlan(0);
 
     //return the command prescribed by the current action
     return nextStep->cmd;
@@ -1420,7 +1514,7 @@ int chooseCommand_WithPlan()
  */
 int chooseCommand()
 {
-    //If there is no plan, try to create one
+    //If the current plan is null, try to build a new one
     if (g_plan == NULL)
     {
         g_plan = initPlan();
@@ -1439,16 +1533,26 @@ int chooseCommand()
     //create a new action.  
     if (g_plan == NULL)
     {
+
+#if DEBUGGING
+        printf("No valid plan available.  Taking a random action.\n");
+        fflush(stdout);
+#endif
         return chooseCommand_SemiRandom();
     }//if
 
-    //If the current sensing violates the expectaitons of the plan, we need to
-    //replan.
-    if (! nextStepIsValid())
+
+    //The plan exists but if isn't working anymore then, we need to replan.
+    if ( ( planNeedsRecalc(g_plan) || (! nextStepIsValid()) ) )
     {
         //TODO:  We need to replan here.  Current initPlan method does not
-        //support this
+        //support this so, for now, just act randomly.
 
+#if DEBUGGING
+        printf("<Insert Replan Here>\n");
+        fflush(stdout);
+#endif
+        
         //%%%temporarily do this:
         return chooseCommand_SemiRandom();
     }
@@ -1865,7 +1969,7 @@ int initRoute(int level, Route* newRoute)
         candRoutes->array[indexOfSmallest] = temp;
     }//for
 
-#ifdef DEBUGGING
+#if DEBUGGING
     //Print all the candidate routes
     for(i = 0; i < candRoutes->size; i++)
     {
@@ -2087,7 +2191,8 @@ Vector *newPlan()
  *  - the vector that the plan is made of
  *  - the Route structs at each level of the plan
  *  - the vectors in the Route structs that contain pointers
- * 
+ *
+ * @arg plan   the plan to free
  */
 void freePlan(Vector *plan)
 {
@@ -2105,6 +2210,37 @@ void freePlan(Vector *plan)
     freeVector(plan);
 
 }//freePlan
+
+
+/**
+ * planNeedsRecalc()
+ *
+ * This determines whether the current plan is valid
+ *
+ * @arg plan   the plan to
+ *
+ * @return TRUE if the plan needs to be recalcualted, false otherwise
+ */
+int planNeedsRecalc(Vector *plan)
+{
+    //If the plan doesn't exist is certainly isn't valid
+    if (plan == NULL) return TRUE;
+
+    //See if any of the constituent routes are invalid
+    int i;
+    for(i = 0; i < g_plan->size; i++)
+    {
+        Route *r = (Route *)g_plan->array[i];
+        
+        if(r->needsRecalc)
+        {
+            return TRUE;
+        }
+    }//for
+
+    return FALSE;
+
+}//planNeedsRecalc
 
 
 /**
