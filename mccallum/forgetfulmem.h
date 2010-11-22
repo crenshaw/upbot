@@ -1,5 +1,5 @@
-#ifndef _QUEUE_H_
-#define _QUEUE_H_
+#ifndef _FORGETFULMEM_H_
+#define _FORGETFULMEM_H_
 
 #include <stdlib.h>
 #include <assert.h>
@@ -16,18 +16,18 @@
 */
 
 // A struct to contain our queue and its metadata
-typedef struct QueueStruct 
+typedef struct ForgetFulMemStruct 
 {
 	int 	capacity;			// Total storage size
 	size_t 	size;				// Current number of items
 	void** 	array;				// The actual queue
 	int 	currPhysicalIdx;	// The current index that final item is at
-} Queue;
+} ForgetfulMem;
 
 //---------Function declarations-----------
-Queue* newQueue(int cap);
-void freeQueue(Queue* q);
-void* addEntry(Queue* q, void* item);
-void* getEntry(Queue* q, int index);
+ForgetfulMem* newFMem(int cap);
+void freeFMem(ForgetfulMem* fm);
+void* addEntryFM(ForgetfulMem* fm, void* item);
+void* getEntryFM(ForgetfulMem* fm, int index);
 
-#endif	// _QUEUE_H_
+#endif	// _FORGETFULMEM_H_

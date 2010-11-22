@@ -349,7 +349,7 @@ void printStats(FILE* log)
 void reportGoalFound(int sockfd, FILE* log)
 {
 	// Store the new goal timestamp and increment count
-	g_goalsTimeStamp[g_goalsFound] = ((Episode*)g_epMem->array[g_epMem->size - 2])->now;
+	g_goalsTimeStamp[g_goalsFound] = ((Episode*)getEntryFM(g_epMem, g_epMem->size - 2))->now;   //((Episode*)g_epMem->array[g_epMem->size - 2])->now;
 	g_goalsFound++;
 
 	if(g_statsMode != 0)
@@ -468,8 +468,10 @@ int main(int argc, char *argv[])
 		// If goal is found increase goal count and store the index it was found at
 //		if(((Episode*)getEntry(episodeList, episodeList->size - 1))->sensors[SNSR_IR] == 1)
 		if(g_epMem->size > 2)
-		if(((Episode*)g_epMem->array[g_epMem->size - 2])->sensors[SNSR_IR] == 1)
+		//if(((Episode*)g_epMem->array[g_epMem->size - 2])->sensors[SNSR_IR] == 1)
+		if(((Episode*)getEntryFM(g_epMem, g_epMem->size - 2))->sensors[SNSR_IR] == 1)
 		{
+//			printf("Number of episodes: %i\n", g_epMem->size);
 			reportGoalFound(sockfd, log);
 		}
 //		else

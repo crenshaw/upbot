@@ -19,6 +19,7 @@
 #include <string.h>
 
 #include "vector.h"
+#include "forgetfulmem.h"
 #include "../communication/communication.h"
 
 // Boolean values
@@ -33,14 +34,16 @@
 #define DISCOUNT            0.8
 #define LEARNING_RATE       0.85
 #define REWARD_SUCCESS      1.0
-#define REWARD_FAIL         -0.2
+#define REWARD_FAIL         -1.0
 
 // Defines for NSM
-#define K_NEAREST           8
-#define MIN_HISTORY_LEN		50
+#define K_NEAREST           	8
+#define MIN_HISTORY_LEN			5
+#define FORGETTING_THRESHOLD	2500
+#define DO_NSM					1
 
 // Macros
-#define DECREASE_RANDOM(randChance) if((randChance) > 6) { (randChance) *= .6;}
+#define DECREASE_RANDOM(randChance) if((randChance) > 4) { (randChance) *= .6;}
 
 // Sensor data struct
 typedef struct EpisodeStruct
@@ -67,14 +70,16 @@ int g_connectToRoomba;
 int g_statsMode;
 
 // This vector will contain all episodes received from Roomba
-Vector* g_epMem;
+//Vector* g_epMem;
 Vector* g_neighborhoods;
+
+ForgetfulMem* g_epMem;
 
 // Function declarations
 extern int   tick(char* sensorInput);
 Episode* updateHistory(char* sensorData);
 int      parseSensors(Episode* parsedData, char* dataArr);
-int      addEpisode(Vector* episodes, Episode* item);
+int      addEpisode(ForgetfulMem* episodes, Episode* item);
 void     displayEpisode(Episode* ep);
 void     displayEpisodeShort(Episode* ep);
 //-----------------------------------------

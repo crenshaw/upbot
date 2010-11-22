@@ -5,8 +5,8 @@
  * that are needed for processing raw sensor data are contained in 
  * this file as well as those for determining new commands
  *
- * Authors:      Zachary Paul Faltersack, Brian Burns, Andrew Nuxoll
- * Last updated: November 11, 2010
+ * Authors:      Dr. Andrew Nuxoll, Zachary Paul Faltersack, Brian Burns
+ * Last updated: November 3, 2010
  */
 
 /*
@@ -18,17 +18,8 @@
  * 3.  endSupervisor needs to be fixed.  We're hemmoraging RAM.
  * 4.  freePlan() is not being called when an existing plan is being replaced
  */
+ 
 
-/*
- * Long Term Wish List
- *
- * 1.  Right now the code depends upon the agent knowing what states
- *     are start states and which are goal states.  I'd like to remove
- *     at least the former requirement if not both.  I think it could
- *     be done.
- */
-
-//Setting this turns on verbose output to aid debugging
 #define DEBUGGING 1
 
 
@@ -117,10 +108,16 @@ void simpleTest()
             ep->cmd = cmds[i];
         }
 
-#if DEBUGGING
+#ifdef DEBUGGING
         //Make a plan if I can
         g_plan = initPlan();
         displayPlan();
+
+        printf("Level 0 Actions >>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+        displayActions(g_actions->array[0], g_epMem->array[0]);
+
+        printf("Level 0 Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+        displaySequences(g_sequences->array[0]);
 #endif
         
         // Print out the parsed episode if not in statsMode
@@ -142,50 +139,46 @@ void simpleTest()
  */
 int tick(char* sensorInput)
 {
-    int goalCount = 0;
-    
     // Create new Episode
-#if DEBUGGING
     printf("Creating and adding episode...");
-#endif
     Episode* ep = createEpisode(sensorInput);
 
     // Add new episode to the history
     addEpisode(g_epMem->array[0], ep);
+    printf("Episode created\n");
 
 	updateAll(0);
-#if DEBUGGING
-    printf("updateAll complete\n");
-#endif
 
     // If we found a goal, send a song to inform the world of success
     // and if not then send ep to determine a valid command
+    
     if(episodeContainsGoal(ep, FALSE))
     {
-        goalCount++;
-        printf("GOAL %d FOUND!\n", goalCount);
-        
         ep->cmd = CMD_SONG;
-
-        //Current, presumably successful, plan no longer needed
         if (g_plan != NULL)
         {
-            freePlan(g_plan);
-            g_plan = NULL;
+            Route *r = g_plan->array[MAX_LEVEL_DEPTH - 1];
+            r->needsRecalc = TRUE;
         }
     }
     else
     {
         ep->cmd = chooseCommand();
     }
+    
+#ifdef DEBUGGING
+    printf("Level 0 Actions>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+    displayActions(g_actions->array[0], g_epMem->array[0]);
 
-#if DEBUGGING
+    printf("Level 0 Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+    displaySequences(g_sequences->array[0]);
+#endif
+
     // Print out the parsed episode if not in statsMode
     if(g_statsMode == 0)
     {
         displayEpisode(ep);
     }
-#endif
 
     return ep->cmd;
 }//tick
@@ -308,27 +301,7 @@ int parseEpisode(Episode * parsedData, char* dataArr)
  */
 int updateAll(int level)
 {
-#if DEBUGGING
     printf("Entering level %i\n", level);
-    fflush(stdout);
-
-    printf("Level %d Episodes >>>>>>>>>>>>>>>>>>>>>>>>>>>\n", level);
-    displayEpisodes(g_epMem->array[level], level);
-    printf("\n", level);
-    fflush(stdout);
-
-    printf("Level %d Actions >>>>>>>>>>>>>>>>>>>>>>>>>>>\n", level);
-    displayActions(g_actions->array[level]);
-    fflush(stdout);
-
-    printf("Level %i Sequences>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n", level);
-    displaySequences(g_sequences->array[level]);
-    fflush(stdout);
-
-    printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< End of Level %i Data\n", level);
-    fflush(stdout);
-#endif
-    
     // Ensure that the level is within the accepted range for the vectors
     if(level < 0 || level >= MAX_LEVEL_DEPTH)
     {
@@ -368,32 +341,28 @@ int updateAll(int level)
     newAction->isIndeterminate = FALSE;
     newAction->containsGoal    = episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
 
-    //We need to properly initialize containsStart
-    //containsStart is TRUE if this will be the very first action at
-    //this level
-    if (actionList->size == 0)
+    //initialize containsStart to TRUE if this will be the very first rule
+    if (episodeList->size == 2)
     {
-        newAction->containsStart = TRUE;
+        newAction->containsStart    = TRUE;
     }
-    //containsStart is TRUE if the previous action contained a goal
+    //initialize containsStart to TRUE if the previous rule contained a goal
     else if (((Action *)actionList->array[actionList->size - 1])->containsGoal)
     {
         episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
-        newAction->containsStart = TRUE;
+        newAction->containsStart          = TRUE;
     }
     //default:  containsStart=FALSE;
     else
     {
-        newAction->containsStart = FALSE;
+        newAction->containsStart    = FALSE;
     }
-
-#if DEBUGGING
+    
     printf("candidate action: ");
     fflush(stdout);
     displayAction(newAction);
     printf("\n");
     fflush(stdout);
-#endif
 
     //Iterate over every action in the list and compare it to our new
     //candidate action.  If the candidate is unique, it'll be added to
@@ -556,12 +525,9 @@ int updateAll(int level)
                                 fflush(stdout);
 #endif
 
-                                //The current action can't be expanded so we
-                                //consider it degenerate and replace it with the
-                                //new action.
-
-                                //AMN: We may need to handle this differently.
-                                //It's pretty kludgey.
+                                //The current action can't be expanded
+                                //so we consider it degenerate and
+                                //replace it with the new action.
                                 curr->index                             = newAction->index;
                                 curr->outcome               = newAction->outcome;
                                 curr->length                        = newAction->length;
@@ -737,7 +703,7 @@ int updateAll(int level)
     //Add the new action
     if(addNewAction == TRUE)
     {
-        printf("Adding new action to level %i action list: ", level);
+        printf("Adding new action: ");
         displayAction(newAction);
         printf("\n");
         addAction(actionList, newAction, FALSE);
@@ -757,18 +723,15 @@ int updateAll(int level)
     //action (otherwise NULL)
     if(updateExistingAction != NULL)
     {
-        // add most recently seen action to current sequence
-        Vector* currSequence = sequenceList->array[sequenceList->size - 1];
-        
-#if DEBUGGING
-        printf("Adding action: ");
+#ifdef DEBUGGING
+        printf("Adding Action: ");
         displayAction(updateExistingAction);
-        fflush(stdout);
-        printf(" to current sequence:");
-        displaySequenceShort(currSequence);
-        printf("\n");
+        printf(" to current sequence\n");
         fflush(stdout);
 #endif
+
+        // add most recently seen action to current sequence
+        Vector* currSequence = sequenceList->array[sequenceList->size - 1];
         addActionToSequence(currSequence, updateExistingAction);
 
         // if the action we just added is indeterminate or contains a
@@ -776,6 +739,8 @@ int updateAll(int level)
         if (updateExistingAction->isIndeterminate
             || updateExistingAction->containsGoal)
         {
+            assert(currSequence->size > 1); 
+                                	
 			// if the sequence we just completed already exists then
 			// reset the vector's size to 0
 			// This will allow updateAll to reuse the same vector
@@ -794,18 +759,10 @@ int updateAll(int level)
 			}
 			else
 			{
-                // this newly completed sequence becomes the next
-                // episode in the next level's episodic memory UNLESS:
-                // - the required level doesn't exist
-                // - the sequence only contains one entry (i.e., its
-                //   sole action contains a path from start to goal)
-                if ((level + 1 < MAX_LEVEL_DEPTH) && (currSequence->size != 1))
+                // this newly completed sequence becomes the next episode in the
+                // next level's episodic memory
+                if (level + 1 < MAX_LEVEL_DEPTH)
                 {
-#if DEBUGGING
-                    printf("Creating a new level %i episode with sequence: ", level + 1);
-                    displaySequence(currSequence);
-                    fflush(stdout);
-#endif
                     episodeList = g_epMem->array[level + 1];
                     addEntry(episodeList, currSequence);
                 }
@@ -822,8 +779,8 @@ int updateAll(int level)
                 addActionToSequence(currSequence, updateExistingAction);
             }
 
-            // this sequence has become an episode in our next level so make a
-            // recursive call to update.
+            // this sequence then becomes an episode in our next level
+            // so we need recursive call to update.
             if(level + 1 < MAX_LEVEL_DEPTH)
             {
                 updateAll(level + 1);
@@ -864,36 +821,6 @@ int addActionToSequence(Vector* sequence, Action* action)
 }//addActionToSequence
 
 /**
- * addSequenceAsEpisode
- *
- * Add an sequence at level N as an episode at level N+1
- *
- * @arg sequence   pointer to vector containing actions in sequence
- * @return int status code (0 == success)
- */
-int addSequenceAsEpisode(Vector* sequence)
-{
-    //An empty sequence should not be added!
-    assert(sequence->size > 0);
-    
-    //determine the level of this sequence be examining one of its actions
-    Action *action = (Action *)sequence->array[0];
-    int level = action->level;
-
-    //Make sure the level isn't too high
-    if (level + 1 >= MAX_LEVEL_DEPTH)
-    {
-        return LEVEL_NOT_POPULATED;
-    }
-
-    //Retrieve the episode list for the next level up
-    Vector *epList = (Vector *)g_epMem->array[level + 1];
-
-    //Insert the sequence
-    return addEntry(epList, sequence);
-}//addSequenceAsEpisode
-
-/**
  * addAction
  *
  * Adds the given action to the actions array and checks if the action
@@ -925,7 +852,7 @@ int addAction(Vector* actions, Action* item, int checkRedundant)
 /**
  * displayEpisode
  *
- * Display the contents of an Episode struct in a verbose human readable format
+ * Display the contents of an episode
  *
  * @arg ep a pointer to an episode
  */
@@ -941,83 +868,22 @@ void displayEpisode(Episode * ep)
     }
 
     // print rest of episode data to stdout
-    printf("\nTime stamp: %i\nCommand:    %s\n\n",
-           (int)ep->now, interpretCommand(ep->cmd));
+    printf("\nTime stamp: %i\nCommand:    %i\n\n", (int)ep->now, ep->cmd);
 }//displayEpisode
-
-/**
- * displayEpisodeShort
- *
- * Display the contents of an Episode struct in an abbreviated human readable
- * format
- *
- * @arg ep a pointer to an episode
- */
-void displayEpisodeShort(Episode * ep)
-{
-    if (ep == NULL)
-    {
-        printf("<null episode!>");
-        return;
-    }
-    
-    printf("%i%s", interpretSensorsShort(ep->sensors), interpretCommandShort(ep->cmd));
-}//displayEpisodeShort
-
-/**
- * displayEpisodes
- *
- * prints a human-readable version of a vector that contains either Episodes
- * structs (level 0) or Sequences (level 1+).  
- *
- * @arg episodeList  the episode list to print
- * @arg level        the level of this episode list
- */
-void displayEpisodes(Vector *episodeList, int level)
-{
-    //Handle an empty list
-    if (episodeList->size == 0)
-    {
-        printf("<no episodes>\n");
-        return;
-    }
-    
-    int i;
-    for(i = 0; i < episodeList->size; i++)
-    {
-        if (level == 0)
-        {
-            Episode *ep = (Episode*)episodeList->array[i];
-            displayEpisodeShort(ep);
-            if (i + 1 < episodeList->size) printf(", "); // delimiter
-        }
-        else //episodeList contains sequences
-        {
-            printf("%i. ", i);
-            Vector *seq = (Vector *)episodeList->array[i];
-            displaySequenceShort(seq);
-            printf("\n");
-        }
-    }//for
-
-}//displayEpisodes
 
 /**
  * displayActions
  *
- * prints a human-readable version of a vector of actions 
+ * prints a human-readable version of a vector of actions along with the
+ * last 20 episodes in episodic memory from which the actions were generated.
  *
  * @arg actionList   the actions to display
+ * @arg episodeList  the episodes used to create this list 
  */
-void displayActions(Vector *actionList)
+void displayActions(Vector *actionList, Vector *episodeList)
 {
-    //Handle an empty list
-    if (actionList->size == 0)
-    {
-        printf("<no actions>\n");
-        return;
-    }
-    
+    //don't print empty lists
+    if (actionList->size == 0) return;
 
     int i;
     for(i = 0; i < actionList->size; i++)
@@ -1027,6 +893,28 @@ void displayActions(Vector *actionList)
         printf("\n");
     }
 
+    //determine if episodeList contains sequences or Episode structs
+    int isEpList = ((Action *)(actionList->array[0]))->level == 0;
+
+    //print the last 20 episodic memories
+    printf("EpMem: ");
+    for(i = 1; i <= 20; i++)
+    {
+        if (i > episodeList->size) break;
+
+        if (isEpList)
+        {
+            Episode *ep = (Episode*)episodeList->array[episodeList->size - i];
+            printf("%i %s, ", interpretSensorsShort(ep->sensors), interpretCommandShort(ep->cmd));
+        }
+        else //episodeList contains Action structs
+        {
+            displayAction(episodeList->array[episodeList->size - i]);
+        }
+
+    }//for
+    printf("\n");
+    printf("---------------\n");
 }//displayActions
 
 /**
@@ -1039,21 +927,15 @@ void displayActions(Vector *actionList)
 void displaySequence(Vector* sequence)
 {
     int i; // counting variable
-    
-    // handle empty sequences here
-    if (sequence -> size < 1)
-    {
-        printf("{ <empty sequence> }");
-        return;
-    }
+    // dont print an empty sequence
+    if (sequence -> size < 1) return;
 
     printf("{");
     for(i = 0; i < sequence->size; i++)
     {
         displayAction(sequence->array[i]);
-        printf(",");
+        printf(":");
     }
-
     printf("}\n");
 }//displaySequence
 
@@ -1068,13 +950,7 @@ void displaySequenceShort(Vector* sequence)
 {
     int i,j; // counting variable
     // dont print an empty sequence
-    // handle empty sequences here
-    if (sequence -> size < 1)
-    {
-        printf("{ <empty sequence> }");
-        return;
-    }
-
+    if (sequence -> size < 1) return;
 
     printf("{");
     for(i = 0; i < sequence->size; i++)
@@ -1094,9 +970,9 @@ void displaySequenceShort(Vector* sequence)
 			}
 		}
 		// delimiter
-        if (i + 1 < sequence->size) printf(",");
+        printf(",");
     }
-    printf("}");
+    printf("}\n");
 }//displaySequenceShort
 
 /**
@@ -1107,13 +983,6 @@ void displaySequenceShort(Vector* sequence)
  */
 void displaySequences(Vector* sequences)
 {
-    //Handle an empty list
-    if (sequences->size == 0)
-    {
-        printf("<no sequences>\n");
-        return;
-    }
-    
     int i, j;
     for(i = 0; i < sequences->size; i++)
     {
@@ -1135,67 +1004,46 @@ void displayAction(Action* action)
 {
     int i,j;
 
-    //Indicate if this is a start action
-    if (action->containsStart) printf("s");
+
+    //Print the RHS
+    if (action->level == 0)
+    {
+        Vector* episodeList = (Vector*)g_epMem->array[0];
+        printf("%i", interpretSensorsShort(((Episode*)episodeList->array[action->outcome])->sensors));
+    }
+    else
+    {
+        printf("{ ");
+        displaySequence((Vector*)action->epmem->array[action->outcome]);
+        printf(" }");
+    }
+
+    //Print the arrow 
+    if(action->isIndeterminate)
+    {
+        printf(" <-%2i- ", action->freq * 100 / *(action->overallFreq));
+    }
+    else
+    {
+        printf(" <---- ");
+    }
 
     //Print the LHS
     for(i = 0; i < action->length; i++)
     {
         if (action->level == 0)
         {
-            displayEpisodeShort((Episode*)action->epmem->array[action->index - i]);
+            printf("%i", interpretSensorsShort(((Episode*)action->epmem->array[action->index - i])->sensors)); 
+            printf("%s", interpretCommandShort(((Episode*)action->epmem->array[action->index - i])->cmd));
         }
         else //sequence
         {
-            //Get the episode at the next level down that corresponds to the
-            //LHS of this action
-            Vector *epSeq = (Vector *)action->epmem->array[action->index - i];
-                
-            //Lookup the index of this sequence in the global list of all
-            //sequences 
-            Vector *seqList = (Vector *)g_sequences->array[action->level - 1];
-            int index = findEntry(seqList, epSeq);
-
-            //print the index
-            printf("%i", index);
+            printf("{ ");
+            displaySequence((Vector*)action->epmem->array[action->index - i]);
+            printf(" }");
         }
 
     }//for
-
-    //Print the arrow 
-    if(action->isIndeterminate)
-    {
-        printf(" -%2i-> ", action->freq * 100 / *(action->overallFreq));
-    }
-    else
-    {
-        printf(" ----> ");
-    }
-
-    //Print the RHS
-    if (action->level == 0)
-    {
-        Vector* episodeList = (Vector*)g_epMem->array[0];
-        displayEpisodeShort((Episode*)episodeList->array[action->outcome]);
-    }
-    else
-    {
-        //Get the episode at the next level down that corresponds to the
-        //LHS of this action
-        Vector *epSeq = (Vector *)action->epmem->array[action->outcome];
-                
-        //Lookup the index of this sequence in the global list of all
-        //sequences 
-        Vector *seqList = (Vector *)g_sequences->array[action->level - 1];
-        int index = findEntry(seqList, epSeq);
-
-        //print the index
-        printf("%i", index);
-    }
-
-    //Indicate if this is a goal action
-    if (action->containsGoal) printf("g");
-
 
 }//displayAction
 
@@ -1214,11 +1062,6 @@ int chooseCommand_SemiRandom()
 {
     int i;                      // iterator
     
-#if DEBUGGING
-    printf("Choosing a random action: ");
-    fflush(stdout);
-#endif
-
     //Make an array of boolean values (one per command) and init them all to
     //TRUE. This array will eventually indicates whether the given command would
     //create a unique episode (TRUE) or not (FALSE).
@@ -1260,19 +1103,11 @@ int chooseCommand_SemiRandom()
         int index = (start + i) % numCmds; 
         if (valid[index])
         {
-#if DEBUGGING
-            printf("%d\n", index + CMD_NO_OP);
-            fflush(stdout);
-#endif
             return index + CMD_NO_OP;
         }
     }
 
     //if no valid command is found, then just use the randomly selected default
-#if DEBUGGING
-    printf("%d\n", start + CMD_NO_OP);
-    fflush(stdout);
-#endif
     return start + CMD_NO_OP;
 
 }//chooseCommand_SemiRandom
@@ -1283,15 +1118,27 @@ int chooseCommand_SemiRandom()
  * Checks the current state versus the Route and determines
  * if the previous command's outcome matches with the expected
  * outcome of the Route.
- *
  */
 int nextStepIsValid()
 {
     //If there is no plan then there is no next step
     if (g_plan == NULL) return FALSE;
     
+    //If the current plan needs recalc then the next step is
+    //automatically invalid
+    int i;
+    for(i = 0; i < g_plan->size; i++)
+    {
+        Route *r = (Route *)g_plan->array[i];
+        
+        if(r->needsRecalc)
+        {
+            return FALSE;
+        }
+    }//for
+
     //Get the current action that we should have just executed if we followed
-    //the plan.  Note that "index-1" is used since the plan has already been updated.
+    //the plan
     Route* level0Route = (Route *)g_plan->array[0];
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
     Action* currAction = currSequence->array[level0Route->currActIndex];
@@ -1301,22 +1148,7 @@ int nextStepIsValid()
     Episode* currEp     = episodeList->array[episodeList->size - 1];
     
     //compare the current sensing to the expected sensing from the current action
-    Episode* nextStep = currAction->epmem->array[currAction->index];
-#if DEBUGGING
-    fflush(stdout);
-    printf("comparing the current sensing:");
-    displayEpisodeShort(currEp);
-    fflush(stdout);
-    printf(" to the expected sensing: ");
-    displayEpisodeShort(nextStep);
-    printf("\n");
-    fflush(stdout);
-
-    printf("Drawn from route: ");
-    displayRoute(level0Route, FALSE);
-    printf("\n");
-#endif
-    
+    Episode* nextStep = currAction->epmem->array[currAction->index+1];
     return compareEpisodes(currEp, nextStep, FALSE);
     
 }//isNextStepValid
@@ -1329,105 +1161,25 @@ int nextStepIsValid()
  * plan so that it's ready to continue with the next level 0 sequence.
  *
  * @arg level   the current level being updated
- *
- * @return SUCCESS or an error code
  */
-int updatePlan(int level)
+void updatePlan(int level)
 {
-    
-#if DEBUGGING
-    printf("-----===== begin updatePlan =====-----\n");
-    fflush(stdout);
-#endif
-    
-    //If there is no route at this level, report this
-    if (level+1 >=  MAX_LEVEL_DEPTH)
-    {
-        return LEVEL_NOT_POPULATED;
-    }
+    //Should never have to update the highest level in the plan.  Because doing
+    //so should take us to the goal which means we'd be replanning right now.
+    assert(level+1 <  MAX_LEVEL_DEPTH);
 
     //Get the route at this level and increment the action index
     Route* route = (Route *)g_plan->array[level];
-#if DEBUGGING
-    printf("Updating Level %d Route:\n", level);
-    displayRoute(route, FALSE);
-    printf("\n");
-    fflush(stdout);
-#endif
-
-    //Make sure the route at this level is valid
-    if ( (route == NULL)
-         || (route->sequences == NULL)
-         || (route->sequences->size == 0) )
-    {
-        route->needsRecalc = TRUE;
-        return LEVEL_NOT_POPULATED;
-    }
-
-    //The most important step! 
     (route->currActIndex)++;
 
     //If we did not just walk off the end of the current sequence, we're done
     Vector *currSequence = (Vector *)route->sequences->array[route->currSeqIndex];
-    if (route->currActIndex < currSequence->size)
-    {
-#if DEBUGGING
-        printf("Updated level %d route successfully.\n", level);
-        fflush(stdout);
-#endif
-        return SUCCESS;
-    }
+    if (route->currActIndex < currSequence->size) return;
 
-#if DEBUGGING
-    printf("Current plan sequence at level %d has run out\n", level);
-    fflush(stdout);
-#endif
-    
-    //Uh-oh.  The current sequence has run out.
-    //First, see if there is a next sequence at this level
-    if (route->currSeqIndex + 1 < route->sequences->size)
-    {
-        //Just move to the next sequence at this level
-        (route->currSeqIndex++);
+    //Uh-oh.  To complete this update, we need to update the parent too
+    updatePlan(level+1);
 
-        //Since sequences overlap by 1, we need to start at 2nd entry in the
-        //sequence (index = 1)
-        route->currActIndex = 1;
-
-#if DEBUGGING
-        //Make sure this next sequence is valid
-        currSequence = (Vector *)route->sequences->array[route->currSeqIndex];
-        assert(currSequence->size > 0);
-
-        printf("Moved to sequence #%d of %d at level %d.\n",
-               route->currSeqIndex + 1, route->sequences->size, level);
-        fflush(stdout);
-#endif
-        
-        return SUCCESS;
-    }//if
-        
-
-    //Since there is no next sequences, recursively call update plan if there is
-    //a parent plan that can provide us with a next sequence
-    int retVal = updatePlan(level+1);
-
-    //If the update failed (probably because the current action is the last one
-    //of the plan) then mark this route as needing recalc.  No further update
-    //can be performed.
-    if (retVal != SUCCESS)
-    {
-#if DEBUGGING
-        printf("Failed to retrieve new sequence from parent at level %d.\n",
-               level + 1);
-        fflush(stdout);
-#endif
-        
-        route->needsRecalc = TRUE;
-        return retVal;
-    }
-
-    //Extract the current action from the newly updated parent route
+    //Extact the current action from the newly updated parent route
     Route *parentRoute = (Route *)g_plan->array[level + 1];
     Vector *parentSeq = (Vector *)parentRoute->sequences->array[parentRoute->currSeqIndex];
     Action *parentAct = (Action *)parentSeq->array[parentRoute->currActIndex];
@@ -1443,22 +1195,11 @@ int updatePlan(int level)
     route = (Route*)malloc(sizeof(Route));
     route->sequences = newVector();
     initRouteFromSequence(route, seq);
-    route->currActIndex = 1;    // skip overlapping first action
     g_plan->array[level] = route;
 
     //TODO: This is where confidence values on active replacement rules for
     //would be updated
     
-#if DEBUGGING
-    printf("Updated level %d route with help from parent at level %d\n",
-           level, level + 1);
-    printf("Updated route: ");
-    displayRoute(route, FALSE);
-    fflush(stdout);
-#endif
-
-    return SUCCESS;
-
 }//updatePlan
 
 /**
@@ -1474,24 +1215,25 @@ int chooseCommand_WithPlan()
     int i;                      // iterator
 
 #if DEBUGGING
-    printf("Choosing command from plan:\n");
-    fflush(stdout);
-    displayPlan();
+    printf("-----===== foo =====-----\n");
     fflush(stdout);
 #endif
     
-    //Get the level 0 route from from the plan
+    //This method will move the "current action" pointer to the next action.
+    updatePlan(0);
+        
+    //Get the current sequence from the plan
     Route* level0Route = (Route *)g_plan->array[0];
-
-    //Extract the current action
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
+
+    //Extract the the new current action
     Action* currAction = currSequence->array[level0Route->currActIndex];
     Episode* nextStep = currAction->epmem->array[currAction->index];
 
-    //move the "current action" pointer to the next action as a result
-    //of taking this action
-    updatePlan(0);
-
+#if DEBUGGING
+    printf("-----===== bar =====-----\n");
+    fflush(stdout);
+#endif
     //return the command prescribed by the current action
     return nextStep->cmd;
 
@@ -1514,19 +1256,11 @@ int chooseCommand_WithPlan()
  */
 int chooseCommand()
 {
-    //If the current plan is null, try to build a new one
+    //If there is no plan, try to create one
     if (g_plan == NULL)
     {
         g_plan = initPlan();
-#if DEBUGGING
-        if (g_plan != NULL)
-        {
-            printf("New plan:\n");
-            fflush(stdout);
-            displayPlan();
-            fflush(stdout);
-        }
-#endif
+        
     }//if
 
     //If there still is no plan at this point then that means the agent doesn't
@@ -1534,26 +1268,16 @@ int chooseCommand()
     //create a new action.  
     if (g_plan == NULL)
     {
-
-#if DEBUGGING
-        printf("No valid plan available.  Taking a random action.\n");
-        fflush(stdout);
-#endif
         return chooseCommand_SemiRandom();
     }//if
 
-
-    //The plan exists but if isn't working anymore then, we need to replan.
-    if ( ( planNeedsRecalc(g_plan) || (! nextStepIsValid()) ) )
+    //If the current sensing violates the expectaitons of the plan, we need to
+    //replan.
+    if (nextStepIsValid())
     {
         //TODO:  We need to replan here.  Current initPlan method does not
-        //support this so, for now, just act randomly.
+        //support this
 
-#if DEBUGGING
-        printf("<Insert Replan Here>\n");
-        fflush(stdout);
-#endif
-        
         //%%%temporarily do this:
         return chooseCommand_SemiRandom();
     }
@@ -1580,13 +1304,6 @@ void displayRoute(Route *route, int recurse)
 {
     Vector* sequences = route->sequences;
 
-    //handle the empty case
-    if (sequences->size == 0)
-    {
-        printf("\t<empty route>\n");
-        return;
-    }
-
     int i,j;
     for(i = 0; i < sequences->size; i++)
     {
@@ -1600,11 +1317,11 @@ void displayRoute(Route *route, int recurse)
             if (route->level == 0)
             {
                 Episode *ep = (Episode*)action->epmem->array[action->index];
-                displayEpisodeShort(ep);
+                printf("%i%s", interpretSensorsShort(ep->sensors), interpretCommandShort(ep->cmd));
 
-                //If the command we just printed is the most recent
-                //command then append an asterisk to indicate that
-                if((i == route->currSeqIndex) && (j == route->currActIndex))
+                //If the commend we just printed is the most recent command
+                //then go back and append an asterisk to indicate that
+                if(j == route->currActIndex)
                 {
                     printf("*");
                 }
@@ -1633,15 +1350,7 @@ void displayRoute(Route *route, int recurse)
                 //print the index
                 //indent based on level to make a vertical tree
                 int indent = 2*(MAX_LEVEL_DEPTH - route->level);
-                printf("%*sSequence #%d on level %d", indent, "", index, route->level - 1);
-
-                //If the command we just printed is the most recent
-                //command then append an asterisk to indicate that
-                if((i == route->currSeqIndex) && (j == route->currActIndex))
-                {
-                    printf("*");
-                }
-                if (recurse) printf(": ");
+                printf("%*sSequence #%d on level %d: ", indent, "", index, route->level - 1);
 
                 //for level 2+ we want a newline now to get the tree format to
                 //look right
@@ -1698,14 +1407,11 @@ void displayPlan()
     for(i = MAX_LEVEL_DEPTH; i >= 0; i--)
     {
         r = g_plan->array[i];
-        if (r == NULL) continue;
-        assert(r->sequences != NULL);
-        if (r->sequences->size > 0)
+        if ((r != NULL) && (r->sequences->size > 0))
         {
             break;
         }
-            
-    }//for
+    }
 
     //Make sure this plan has at least one route
     if (r == NULL)
@@ -1714,6 +1420,7 @@ void displayPlan()
         return;
     }
     
+    printf("Current Plan: \n");
     displayRoute(r, TRUE);
 
     
@@ -1868,7 +1575,6 @@ int sequenceLength(Vector *seq, int level)
 
     return result;
 }//sequenceLength
-
 /**
  * routeLength
  *
@@ -1948,10 +1654,7 @@ int initRoute(int level, Route* newRoute)
     if (candRoutes->size == 0) return NO_GOAL_IN_LEVEL;
 
     /*--------------------------------------------------------------------------
-     * Sort the candidate routes from shortest to longest (selection
-     * sort)
-     * NOTE:  Since the next section keeps adding more candidates and
-     * sorts them dynamically, this pre-sorting may be a waste of time?
+     * Sort the candidate routes from shortest to longest (selection sort)
      */
     for(i = 0; i < candRoutes->size-1; i++)
     {
@@ -1973,8 +1676,6 @@ int initRoute(int level, Route* newRoute)
         candRoutes->array[indexOfSmallest] = temp;
     }//for
 
-#if DEBUGGING
-    //Print all the candidate routes
     for(i = 0; i < candRoutes->size; i++)
     {
         Route *r = ((Route*)candRoutes->array[i]);
@@ -1982,7 +1683,6 @@ int initRoute(int level, Route* newRoute)
                i, (long)candRoutes->array[i], routeLength(r));
         displayRoute(r, TRUE);
     }
-#endif
     
     /*--------------------------------------------------------------------------
      * Iterate over the candidate routes expanding them until the shortest
@@ -1990,7 +1690,6 @@ int initRoute(int level, Route* newRoute)
      */
     //Iterate over all candidate routes
     //(Note: the size of the candRoutes vector will grow as the search continues)
-    int bSuccess = FALSE;
     for(i = 0; i < candRoutes->size; i++)
     {
         //Find the shortest route that hasn't been examined yet
@@ -2040,7 +1739,6 @@ int initRoute(int level, Route* newRoute)
             newRoute->currActIndex = 0;
             newRoute->needsRecalc = FALSE;
 
-            bSuccess = TRUE;
             break;
         }//if
 
@@ -2083,10 +1781,8 @@ int initRoute(int level, Route* newRoute)
         free(route);
     }
     freeVector(candRoutes);
-
-    if (bSuccess) return SUCCESS;
-
-    return PLAN_NOT_FOUND;
+    
+    return SUCCESS;
 }//initRoute
 
 /**
@@ -2160,7 +1856,6 @@ Vector* initPlan()
         initRouteFromSequence(currRoute, seq);
     }//for
 
-
     return resultPlan;
 }// initPlan
 
@@ -2199,8 +1894,7 @@ Vector *newPlan()
  *  - the vector that the plan is made of
  *  - the Route structs at each level of the plan
  *  - the vectors in the Route structs that contain pointers
- *
- * @arg plan   the plan to free
+ * 
  */
 void freePlan(Vector *plan)
 {
@@ -2218,37 +1912,6 @@ void freePlan(Vector *plan)
     freeVector(plan);
 
 }//freePlan
-
-
-/**
- * planNeedsRecalc()
- *
- * This determines whether the current plan is valid
- *
- * @arg plan   the plan to
- *
- * @return TRUE if the plan needs to be recalcualted, false otherwise
- */
-int planNeedsRecalc(Vector *plan)
-{
-    //If the plan doesn't exist is certainly isn't valid
-    if (plan == NULL) return TRUE;
-
-    //See if any of the constituent routes are invalid
-    int i;
-    for(i = 0; i < g_plan->size; i++)
-    {
-        Route *r = (Route *)g_plan->array[i];
-        
-        if(r->needsRecalc)
-        {
-            return TRUE;
-        }
-    }//for
-
-    return FALSE;
-
-}//planNeedsRecalc
 
 
 /**
@@ -2483,10 +2146,12 @@ int episodeContainsGoal(void *entry, int level)
     }
     else //sequence
     {
-        //For a sequence, a goal is indicated by the "containsGoal" field being
-        //TRUE on the last action in the sequence
         Vector *sequence = (Vector *)entry;
+        printf("sequence->size=%d\n", (int)(sequence->size));
+        displaySequence(sequence);
         Action *action = (Action *)sequence->array[sequence->size - 1];
+        
+        //For a sequence, a goal is indicated by "containsGoal"
         return action->containsGoal;
     }
 }//episodeContainsGoal
@@ -2747,170 +2412,28 @@ int interpretSensorsShort(int *sensors)
 /**
  * findReplacements
  *
- * Find replacements in g_replacements that could be applied to g_route at its
- * current point of execution. Replacements aren't applied, only enumerated.
+ * Find all replacements
  *
- * CAVEAT: This function does not find replacements across adjacent sequences in
- *         g_plans.  This might be something to consider in the future.
- *
- * @return Vector* of possible replacements; NULL is returned if no replacements
- *                 were found.
+ * @return Vector* of replacements
  */
 Vector* findReplacements()
 {
-    // instance variables
-    Vector* replacements;        // holds replacements found
-    int     i, j;                // loop iterators
-    Route*  route;               // used in the loop to store the considered route
-    Action  *action1, *action2;  // points to two adjacent actions in a sequence
-                                 // to test their replacibility
-    Vector* original;            // a holder for original actions below to save
-                                 // ourselves from pointer-dereferencing Hell
-    int size;                    // holder for if statement below
-    
-    // initialize instance variables
-    replacements = newVector();
-
-    // iterate through each level of replacements and routes, adding found
-    // replacements to replacements as we go
-    for(i = 0; i < MAX_LEVEL_DEPTH; i++)
-    {
-        // check that a plan exists at this level
-        if (g_plan->array[i] != NULL)
-        {
-	  // a plan exists at this level, so consider where we are currently
-	  // in this plan, and look for a valid replacement
-	  route   = (Route*)(g_plan->array[i]);
-
-	  // check to make sure that there are two actions left to test
-	  size = ((Vector*)((Vector*)(route->sequences)->array[route->currSeqIndex]))->size;
-	  if ( size > (route->currActIndex + 1) )
-	  {
-	      action1 = (Action*)((Vector*)((Vector*)(route->sequences)->array[route->currSeqIndex])->array[route->currActIndex]);
-	      action2 = (Action*)((Vector*)((Vector*)(route->sequences)->array[route->currSeqIndex])->array[route->currActIndex + 1]);
-
-	      // look for existing replacements that match the next two actions
-	      // iterate through the vector of replacements at this level
-	      for (j = 0; j < ((Vector*)(g_replacements->array[i]))->size; j++)
-	        {
-	          original = ((Replacement*)(((Vector*)(g_replacements->array[i]))->array[j]))->original;
-	          if (((Action*)original->array[0]) == action1
-		      && ((Action*)original->array[1]) == action2 )
-		    // then this sequence matches the replacement
-		    {
-		      addEntry(replacements, (Replacement*)(((Vector*)(g_replacements->array[i]))->array[j]));
-		    }
-	        }
-	  }
-	}
-    }
-
-    // if we didn't find any replacements, then we should free the vector
-    // allocated earlier
-    if (replacements->size == 0)
-    {
-        freeVector(replacements);
-        replacements = NULL;
-    }
-    
-    return replacements;
+    //%%%TBD
+    return NULL;
 }
-
 
 /**
  * doReplacement
  *
- * Take the specified replacement and apply it to the specified
+ * Take the specified replacement "rule" and apply it to the specified
  * sequence.
- *
- * CAVEAT: This function depends on a Replacement replacing exactly 2 Actions.
  *
  * @arg    sequence    a sequence of actions over which to apply a replacement
  * @arg    replacement the Replacement to apply
- * @return Vector*     copy of original sequence with the replacement applied
+ * @return Vector* that is the original sequence with the replacement applied
  */
 Vector* doReplacement(Vector* sequence, Replacement* replacement)
 {
-    // instance variables
-    Vector* withReplacement;  // will hold our sequence with the replacement
-                              // applied
-    int i;                    // loop iterator
-
-
-    // check to make sure the level of each of our replacement and sequence
-    // match and that sequence has at least two actions
-    assert(sequence->array != NULL);
-    assert(sequence->size > 1);
-    assert(((Action*)sequence->array[0])->level == replacement->level);
-    
-    // initialize instance variables;
-    withReplacement = newVector();
-
-    // iterate through original vector, adding elements to
-    // withReplacement not applicable to replacement and substituting
-    // replacements where appropriate
-    for(i = 0; i < sequence->size; i++)
-    {
-        // if the next two actions in sequence match the original
-        // actions in replacement, then substitute the replacement
-        if (i+1 < sequence->size // check to make sure we don't run off the end
-            && sequence->array[i] == replacement->original->array[i]
-            && sequence->array[i+1] == replacement->original->array[i+1])
-        {
-            addActionToSequence(withReplacement, replacement->replacement);
-            i++;  // increment an extra space so we skip over these two when the
-                  // loop repeats
-        }
-        else
-        {   // just add the next action in sequence to withReplacement
-            addActionToSequence(withReplacement, (Action*)sequence->array[i]);
-        }
-    }
-    
-    return withReplacement;
+    //%%%TBD
+    return NULL;
 }
-
-/**
- * newReplacement
- *
- * Allocates the necessary memory and initializes the fields of a
- * Replacement
- *
- * CAVEAT: This function requires (albeit only for the assertion
- * contained) that a Replacement replace exactly two Actions.
- *
- * SPACE NOTE: If we stick with a replacement replacing exactly 2 Actions,
- * the originalActions parameter could be changed to a pointer to two
- * sequential actions (assuming the two actions are always adjacent)
- * and remove the requirement of allocated a new Vector to hold the
- * original Actions to be replaced.
- *
- * @arg level             the level at which this replacement is being constructed
- * @arg originalActions   vector of 2 actions to be placed by replacement
- * @arg replacementAciton the action to be substituted
- * @arg confidenceLevel   our initial confidence in this replacement
- * @return a pointer to the new replacemet
- */
-Replacement* newReplacement(int replLevel, Vector* originalActions,
-                            Action* replacementAction, double confidenceLevel)
-{
-    // instance variables
-    Replacement* replacement;
-
-    // check the input values (for now) to be sure they make sense
-    assert(replLevel <= MAX_LEVEL_DEPTH);
-    assert(confidenceLevel < MAX_CONFIDENCE
-           && confidenceLevel > MIN_CONFIDENCE);
-    assert(originalActions->size == 2);
-
-    // initialize instance variables
-    replacement = malloc(sizeof(Replacement));
-
-    // initialize Replacement fields
-    replacement->level       = replLevel;
-    replacement->original    = originalActions;
-    replacement->replacement = replacementAction;
-    replacement->confidence  = confidenceLevel;
-    
-    return replacement;
-}//newReplacement

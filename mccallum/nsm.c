@@ -104,7 +104,8 @@ Episode* updateHistory(char* sensorData)
     else
     {
         // Assign a pointer to the final episode in our history
-        ep = g_epMem->array[g_epMem->size - 1];
+        //ep = g_epMem->array[g_epMem->size - 1];
+		ep = (Episode*)getEntryFM(g_epMem, g_epMem->size - 1);
     }
 
 	int retVal;     
@@ -207,9 +208,11 @@ int parseSensors(Episode * parsedData, char* dataArr)
  * @arg item pointer to episode to be added
  * @return int status code (0 == success)
  */
-int addEpisode(Vector* episodes, Episode* item)
+int addEpisode(ForgetfulMem* episodes, Episode* item)
 {
-    return addEntry(episodes, item);
+	Episode* temp = (Episode*)addEntryFM(episodes, item);
+	if(temp != NULL) free(temp);
+    return 0;
 }//addEpisode
 
 /**
@@ -294,10 +297,10 @@ void updateAllLittleQ(Episode* ep)
 //------------- Or This
 	for(i = 0; i < g_epMem->size; i++)
 	{
-		if(((Episode*)g_epMem->array[i])->action == 
-		   ((Episode*)g_epMem->array[g_epMem->size - 1])->action)
+		if(((Episode*)getEntryFM(g_epMem,i))->action == 
+		   ((Episode*)getEntryFM(g_epMem, g_epMem->size - 1))->action)
 		{
-			setNewLittleQ(g_epMem->array[i], utility);
+			setNewLittleQ((Episode*)getEntryFM(g_epMem,i), utility);
 		}
 	}
 
@@ -374,7 +377,7 @@ Neighborhood* locateKNearestNeighbors(int action)
     Neighborhood* nbHd = initNeighborhood(action, K_NEAREST);
     // Set current episode action temporarily to the current testing action
     if(!g_statsMode) printf("Setting neighborhood action\n");
-    ((Episode*)g_epMem->array[g_epMem->size - 1])->action = action;
+    ((Episode*)getEntryFM(g_epMem,g_epMem->size - 1))->action = action;
 
     int i,n;
     // Iterate from oldest to newest episode and process results for neighborhood metric
@@ -384,7 +387,7 @@ Neighborhood* locateKNearestNeighbors(int action)
     {
         // send Neighborhood*, Episode*, and Episode Neighborhood Metric to be processed
         // for a potential addition to the neighborhood
-        if((n = calculateNValue(i)) >= 0) addNeighbor(nbHd, g_epMem->array[i], n);
+        if((n = calculateNValue(i)) >= 0) addNeighbor(nbHd, (Episode*)getEntryFM(g_epMem,i), n);
     }//for
 
     if(!g_statsMode) printf("Returning full neighborhood\n");
@@ -408,22 +411,32 @@ Neighborhood* locateKNearestNeighbors(int action)
 */
 int calculateNValue(int currState)
 {
+
     int i = 0; // i stores the neighborhood metric
 
     // Determine if the action matches the one that we are testing for. 
     // If not, then the n value is zero and we can return
     if(currState < g_epMem->size - 1 && 
-        ((Episode*)g_epMem->array[currState])->action == ((Episode*)g_epMem->array[g_epMem->size - 1])->action)
+        ((Episode*)getEntryFM(g_epMem,currState))->action == ((Episode*)getEntryFM(g_epMem,g_epMem->size - 1))->action)
     {
+
+#if DO_NSM == 1
+
         // Make sure the array indices are within bounds and
         // compare the respective episodes to see if we need to increment the neighborhood metric
         while(  currState - 1 - i >= 0 && 
                 g_epMem->size - 2 - i >= 0 &&
-                equalEpisodes(g_epMem->array[currState - 1 - i], 
-                              g_epMem->array[g_epMem->size - 2 - i]))
+                equalEpisodes((Episode*)getEntryFM(g_epMem,currState - 1 - i), 
+                              (Episode*)getEntryFM(g_epMem,g_epMem->size - 2 - i)))
         {
             i++;
         }
+
+#else
+
+		i = 1;
+
+#endif
     }
     else
     {
@@ -431,6 +444,7 @@ int calculateNValue(int currState)
     }
     
     return i;
+
 }//calculateNValue
 
 /**
@@ -532,77 +546,92 @@ void cleanNeighborhood(Neighborhood* nbHd)
 */
 int addNeighbor(Neighborhood* nbHd, Episode* ep, int n)
 {
+/*
     // If the new neighbor has a smaller n value than the last
     // neighbor in our current neighborhood and our neighborhood 
     // is full, then we don't need it.
     if(nbHd->numNeighbors > 0 &&
         n < nbHd->nValues[nbHd->numNeighbors - 1] &&
         nbHd->numNeighbors < nbHd->kValue) return 0;
-
+*/
     // Default offset = 1 (Assume the neighborhood is full)
     int offset = 1;
-    // If not full update counter and correct offset
-    if(nbHd->numNeighbors < nbHd->kValue)
-    {
-        offset = 0;
-        nbHd->numNeighbors++;
-    }
 
-    // Save the episode and the neighborhood metric
-    nbHd->episodes[nbHd->numNeighbors - offset] = ep;
-    nbHd->nValues[nbHd->numNeighbors - offset] = n;
-    
-    // Maintain the order of the episodes for sanity's sake
-    sortNeighborhood(nbHd);
+	// If not full, correct offset
+	if(nbHd->numNeighbors < nbHd->kValue) offset = 0;
 
-    return 1;
+	// If the neighborhood is not empty, then determine if the new
+	// neighbor needs to be added
+	if(nbHd->numNeighbors > 0)
+	{
+		if(n >= nbHd->nValues[nbHd->numNeighbors - 1])
+		{
+			// Save the episode and the neighborhood metric
+			nbHd->episodes[nbHd->numNeighbors - offset] = ep;
+			nbHd->nValues[nbHd->numNeighbors - offset] = n;
+
+			if(nbHd->numNeighbors < nbHd->kValue) nbHd->numNeighbors++;
+
+			// Maintain the order of the episodes for sanity's sake
+			sortNeighborhood(nbHd);
+		}
+	}
+	else	// otherwise add the first neighbor
+	{
+		nbHd->episodes[0] = ep;
+		nbHd->nValues[0] = n;
+
+		nbHd->numNeighbors++;
+	}
+
+	return 1;
 }//addNeighbor
 
 /**
-* sortNeighborhood
-*
-* This function will sort a neighborhood from greatest n value
-* to least n value. A more recent addition is considered a greater
-* value when compared to an old neighbor with an equivalent n value.
-*
-* @arg nbHd A pointer to a neighborhood that needs to be sorted
-*/
+ * sortNeighborhood
+ *
+ * This function will sort a neighborhood from greatest n value
+ * to least n value. A more recent addition is considered a greater
+ * value when compared to an old neighbor with an equivalent n value.
+ *
+ * @arg nbHd A pointer to a neighborhood that needs to be sorted
+ */
 void sortNeighborhood(Neighborhood* nbHd)
 {
-    // No need to sort a single item
-    if(nbHd->numNeighbors <= 1) return;
+	// No need to sort a single item
+	if(nbHd->numNeighbors <= 1) return;
 
-    int i, tempN;
-    Episode* tempEp;
-    //iterate from back to front
-    for(i = nbHd->numNeighbors - 1; i > 0; i--)
-    {
-        // Want to move up if equal to or greater
-        // this helps to account for always choosing the closest neighbor
-        // to the current time when dealing with equivalent matches
-        if(nbHd->nValues[i] >= nbHd->nValues[i - 1])
-        {
-            // Store the moving values in temp value holders
-            tempEp = nbHd->episodes[i];
-            tempN = nbHd->nValues[i];
+	int i, tempN;
+	Episode* tempEp;
+	//iterate from back to front
+	for(i = nbHd->numNeighbors - 1; i > 0; i--)
+	{
+		// Want to move up if equal to or greater
+		// this helps to account for always choosing the closest neighbor
+		// to the current time when dealing with equivalent matches
+		if(nbHd->nValues[i] >= nbHd->nValues[i - 1])
+		{
+			// Store the moving values in temp value holders
+			tempEp = nbHd->episodes[i];
+			tempN = nbHd->nValues[i];
 
-            // push back the smaller match
-            nbHd->episodes[i] = nbHd->episodes[i - 1];
-            nbHd->nValues[i] = nbHd->nValues[i - 1];
+			// push back the smaller match
+			nbHd->episodes[i] = nbHd->episodes[i - 1];
+			nbHd->nValues[i] = nbHd->nValues[i - 1];
 
-            // resave the new addition
-            nbHd->episodes[i - 1] = tempEp;
-            nbHd->nValues[i - 1] = tempN;
-        }
-        else
-        {
-            // Must break because the new addition is not always the highest
-            // rated neighborhood metric. When that is the case, if we continue
-            // to traverse through the neighborhood then we can accidentally swap
-            // the desired order or previously determined neighbors
-            break;
-        }//else
-    }//for
+			// resave the new addition
+			nbHd->episodes[i - 1] = tempEp;
+			nbHd->nValues[i - 1] = tempN;
+		}
+		else
+		{
+			// Must break because the new addition is not always the highest
+			// rated neighborhood metric. When that is the case, if we continue
+			// to traverse through the neighborhood then we can accidentally swap
+			// the desired order or previously determined neighbors
+			break;
+		}//else
+	}//for
 }//sortNeighborhood
 
 /**
@@ -615,11 +644,11 @@ void sortNeighborhood(Neighborhood* nbHd)
  */
 Episode* getNeighbor(Neighborhood* nbHd, int i)
 {
-    // Catch any out-of-bounds errors and neighbor unavailable
-    if(i < 0 || i >= nbHd->kValue) return NULL;
-    if(i >= nbHd->numNeighbors) return NULL;
+	// Catch any out-of-bounds errors and neighbor unavailable
+	if(i < 0 || i >= nbHd->kValue) return NULL;
+	if(i >= nbHd->numNeighbors) return NULL;
 
-    return (nbHd->episodes[i]);
+	return (nbHd->episodes[i]);
 }//getNeighbor
 
 /**
@@ -631,56 +660,56 @@ Episode* getNeighbor(Neighborhood* nbHd, int i)
  */
 void displayNeighborhood(Neighborhood* nbHd)
 {
-    int i;
-    // introduce the neighborhood
-    if(!g_statsMode) printf("========== The Neighborhood for Action: %s ==========\n\n", interpretCommand(nbHd->action));
+	int i;
+	// introduce the neighborhood
+	if(!g_statsMode) printf("========== The Neighborhood for Action: %s ==========\n\n", interpretCommand(nbHd->action));
 
-    // Check if there were any neighbors found
-    if(nbHd->numNeighbors == 0)
-    {
-        if(!g_statsMode) printf("There were no neighbors found for this neighborhood\n");
-        return;
-    }
+	// Check if there were any neighbors found
+	if(nbHd->numNeighbors == 0)
+	{
+		if(!g_statsMode) printf("There were no neighbors found for this neighborhood\n");
+		return;
+	}
 
-    // Print the current state sequence. The length will match the highest neighborhood metric + 1
-    if(!g_statsMode) printf("The current sequence being matched: ");
-    displayNeighborSequence(g_epMem->array[g_epMem->size - 2], nbHd->nValues[0], TRUE);
-    if(!g_statsMode) printf(" =>>> {%s,NA,NA}\n\n", interpretCommandShort(nbHd->action));
+	// Print the current state sequence. The length will match the highest neighborhood metric + 1
+	if(!g_statsMode) printf("The current sequence being matched: ");
+	displayNeighborSequence((Episode*)getEntryFM(g_epMem,g_epMem->size - 2), nbHd->nValues[0], TRUE);
+	if(!g_statsMode) printf(" =>>> {%s,NA,NA}\n\n", interpretCommandShort(nbHd->action));
 
-    
-    // Display all the neighbors that were found
-    for(i = 0; i < nbHd->numNeighbors; i++)
-    {
-        // introduce the current episode
-        if(!g_statsMode) printf("=====>> The following episode has a Neighborhood Metric of: %i\n", nbHd->nValues[i]);
-        displayEpisode(nbHd->episodes[i]);
-        if(!g_statsMode) printf("Sequence leading to episode: ");
-        displayNeighborSequence(nbHd->episodes[i], nbHd->nValues[i], FALSE);
-        if(!g_statsMode) printf("\n\n");
-    }//for
+
+	// Display all the neighbors that were found
+	for(i = 0; i < nbHd->numNeighbors; i++)
+	{
+		// introduce the current episode
+		if(!g_statsMode) printf("=====>> The following episode has a Neighborhood Metric of: %i\n", nbHd->nValues[i]);
+		displayEpisode(nbHd->episodes[i]);
+		if(!g_statsMode) printf("Sequence leading to episode: ");
+		displayNeighborSequence(nbHd->episodes[i], nbHd->nValues[i], FALSE);
+		if(!g_statsMode) printf("\n\n");
+	}//for
 }//displayNeighborhood
 
 /**
-  * displayNeighborSequence
-  *
-  * This function takes a neighbor and its neighborhood metric and prints it to stdout
-  * as a sequence for easy viewing
-  *
-  * @arg ep A pointer to the episode that is the neighbor
-  * @arg n An integer that is the neighborhod metric for this neighbor
-  * @arg isCurr A boolean indicating if this is the current state sequence
-  */
+ * displayNeighborSequence
+ *
+ * This function takes a neighbor and its neighborhood metric and prints it to stdout
+ * as a sequence for easy viewing
+ *
+ * @arg ep A pointer to the episode that is the neighbor
+ * @arg n An integer that is the neighborhod metric for this neighbor
+ * @arg isCurr A boolean indicating if this is the current state sequence
+ */
 void displayNeighborSequence(Episode* ep, int n, int isCurr)
 {
-    int i;
-    for(i = n; i >= 0; i--)
-    {
-        // Really convoluted checks to make sure the arrows are printed correctly
-        if(i != n && i >= 1) if(!g_statsMode) printf(" ==> ");
-        if(isCurr && i == 0 && n > 0) if(!g_statsMode) printf(" ==> ");
-        if(!isCurr && i == 0) if(!g_statsMode) printf(" =>>> ");
-        displayEpisodeShort(g_epMem->array[ep->now - i]);
-    }
+	int i;
+	for(i = n; i >= 0; i--)
+	{
+		// Really convoluted checks to make sure the arrows are printed correctly
+		if(i != n && i >= 1) if(!g_statsMode) printf(" ==> ");
+		if(isCurr && i == 0 && n > 0) if(!g_statsMode) printf(" ==> ");
+		if(!isCurr && i == 0) if(!g_statsMode) printf(" =>>> ");
+		displayEpisodeShort((Episode*)getEntryFM(g_epMem,ep->now - i));
+	}
 }//displayNeighborSequence
 
 //--------------------------------------------------------------------------------
@@ -697,35 +726,35 @@ void displayNeighborSequence(Episode* ep, int n, int isCurr)
  */
 int chooseCommand(Episode* ep)
 {
-    int i, j;       // indices for loops
+	int i, j;       // indices for loops
 
-    // seed rand if first time called
-    static int needSeed = TRUE;
-    if(needSeed == TRUE)
-    {
-        needSeed = FALSE;
-        srand(time(NULL));
-    }
+	// seed rand if first time called
+	static int needSeed = TRUE;
+	if(needSeed == TRUE)
+	{
+		needSeed = FALSE;
+		srand(time(NULL));
+	}
 
-    // Once we have found the first goal we want to start creating neighborhoods
-    //if(g_goalCount > 0) populateNeighborhoods();
-    if(g_epMem->size > MIN_HISTORY_LEN) populateNeighborhoods();
+	// Once we have found the first goal we want to start creating neighborhoods
+	//if(g_goalCount > 0) populateNeighborhoods();
+	if(g_epMem->size > MIN_HISTORY_LEN) populateNeighborhoods();
 
-    // Determine the next command, possibility of random command
-    if((rand() % 100) < g_randChance ) //|| 	// Probability of choosing random
-//        g_epMem->size <= MIN_HISTORY_LEN)   // Make sure 'nough hist. for good nbhoods
-//		g_goalCount <= 0)					// Only do no random after first goal
-    {
-        ep->action = (rand() % (LAST_MOBILE_CMD)) + CMD_NO_OP;
-    }
+	// Determine the next command, possibility of random command
+	if((rand() % 100) < g_randChance ) //|| 	// Probability of choosing random
+		//        g_epMem->size <= MIN_HISTORY_LEN)   // Make sure 'nough hist. for good nbhoods
+		//		g_goalCount <= 0)					// Only do no random after first goal
+	{
+		ep->action = (rand() % (LAST_MOBILE_CMD)) + CMD_NO_OP;
+	}
 	else
-    {
-        // loop on setCommand until a route is chosen 
-        // that will lead to a successful action
-        while(setCommand(ep)) if(!g_statsMode) printf("Failed to set a command\n");
-    }
+	{
+		// loop on setCommand until a route is chosen 
+		// that will lead to a successful action
+		while(setCommand(ep)) if(!g_statsMode) printf("Failed to set a command\n");
+	}
 
-    return ep->action;
+	return ep->action;
 }//chooseCommand
 
 /**
@@ -739,20 +768,20 @@ int chooseCommand(Episode* ep)
  */
 int setCommand(Episode* ep)
 {       
-    int i, holder = 0;
-    double tempQ, topQ = -100;
-    for(i = 0; i < LAST_MOBILE_CMD; i++)
-    {
-        if((tempQ = calculateQValue(g_neighborhoods->array[i])) > topQ)
-        {
-            topQ = tempQ;
-            holder = i;
-        }
-    }
+	int i, holder = 0;
+	double tempQ, topQ = -100;
+	for(i = 0; i < LAST_MOBILE_CMD; i++)
+	{
+		if((tempQ = calculateQValue(g_neighborhoods->array[i])) > topQ)
+		{
+			topQ = tempQ;
+			holder = i;
+		}
+	}
 
-    // do action offset
-    ep->action = holder + CMD_NO_OP;
-    return 0;
+	// do action offset
+	ep->action = holder + CMD_NO_OP;
+	return 0;
 }//setCommand
 
 /*
@@ -771,21 +800,21 @@ int setCommand(Episode* ep)
  */
 int equalEpisodes(Episode* ep1, Episode* ep2)
 {
-    int i;
-    // Ensure the sensor data match between episodes and return
-    // false if not
-    for(i = 0; i < NUM_SENSORS; i++)
-    {
-        if(ep1->sensors[i] != ep2->sensors[i]) return FALSE;
-    }
+	int i;
+	// Ensure the sensor data match between episodes and return
+	// false if not
+	for(i = 0; i < NUM_SENSORS; i++)
+	{
+		if(ep1->sensors[i] != ep2->sensors[i]) return FALSE;
+	}
 
-    // Ensure episodes have same command, return false if not
-    if(ep1->action != ep2->action) return FALSE;
+	// Ensure episodes have same command, return false if not
+	if(ep1->action != ep2->action) return FALSE;
 
-    // Ensure episodes received same reward
-    if(ep1->reward != ep2->reward) return FALSE;
+	// Ensure episodes received same reward
+	if(ep1->reward != ep2->reward) return FALSE;
 
-    return TRUE;
+	return TRUE;
 }//equalEpisodes
 
 /**
@@ -795,17 +824,17 @@ int equalEpisodes(Episode* ep1, Episode* ep2)
  */
 void initNSM()
 {
-    g_epMem         = newVector();
-    g_neighborhoods = newVector();
+	g_epMem         = newFMem(FORGETTING_THRESHOLD);
+	g_neighborhoods = newVector();
 
-    int i;
-    for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
-    {
-        addEntry(g_neighborhoods, initNeighborhood(i, K_NEAREST));
-    }
+	int i;
+	for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
+	{
+		addEntry(g_neighborhoods, initNeighborhood(i, K_NEAREST));
+	}
 
-    g_connectToRoomba       = 0;
-    g_statsMode             = 0;
+	g_connectToRoomba       = 0;
+	g_statsMode             = 0;
 }//initNSM
 
 /**
@@ -815,16 +844,17 @@ void initNSM()
  */
 void endNSM() 
 {
-    freeVector(g_epMem);
+	//    freeVector(g_epMem);
+	freeFMem(g_epMem);
 
-    int i;
-    // Free each neighborhood in the vector
-    for(i = 0; i < LAST_MOBILE_CMD; i++)
-    {
-        destroyNeighborhood(g_neighborhoods->array[i]);
-    }
-    // Free the vector
-    freeVector(g_neighborhoods);
+	int i;
+	// Free each neighborhood in the vector
+	for(i = 0; i < LAST_MOBILE_CMD; i++)
+	{
+		destroyNeighborhood(g_neighborhoods->array[i]);
+	}
+	// Free the vector
+	freeVector(g_neighborhoods);
 }//endNSM
 
 /**
@@ -838,36 +868,36 @@ void endNSM()
  */
 char* interpretCommand(int action)
 {
-    switch(action)
-    {
-        case CMD_NO_OP:
-            return g_no_op;
-            break;
-        case CMD_FORWARD:
-            return g_forward;
-            break;
-        case CMD_LEFT:
-            return g_left;
-            break;
-        case CMD_RIGHT:
-            return g_right;
-            break;
-        case CMD_BLINK:
-            return g_blink;
-            break;
-        case CMD_ADJUST_LEFT:
-            return g_adjustL;
-            break;
-        case CMD_ADJUST_RIGHT:
-            return g_adjustR;
-            break;
-        case CMD_SONG:
-            return g_song;
-            break;
-        default:
-            return g_unknown;
-            break;
-    }
+	switch(action)
+	{
+		case CMD_NO_OP:
+			return g_no_op;
+			break;
+		case CMD_FORWARD:
+			return g_forward;
+			break;
+		case CMD_LEFT:
+			return g_left;
+			break;
+		case CMD_RIGHT:
+			return g_right;
+			break;
+		case CMD_BLINK:
+			return g_blink;
+			break;
+		case CMD_ADJUST_LEFT:
+			return g_adjustL;
+			break;
+		case CMD_ADJUST_RIGHT:
+			return g_adjustR;
+			break;
+		case CMD_SONG:
+			return g_song;
+			break;
+		default:
+			return g_unknown;
+			break;
+	}
 }// interpretCommand
 
 /**
@@ -881,36 +911,36 @@ char* interpretCommand(int action)
  */
 char* interpretCommandShort(int action)
 {
-    switch(action)
-    {
-        case CMD_NO_OP:
-            return g_no_opS;
-            break;
-        case CMD_FORWARD:
-            return g_forwardS;
-            break;
-        case CMD_LEFT:
-            return g_leftS;
-            break;
-        case CMD_RIGHT:
-            return g_rightS;
-            break;
-        case CMD_BLINK:
-            return g_blinkS;
-            break;
-        case CMD_ADJUST_LEFT:
-            return g_adjustLS;
-            break;
-        case CMD_ADJUST_RIGHT:
-            return g_adjustRS;
-            break;
-        case CMD_SONG:
-            return g_songS;
-            break;
-        default:
-            return g_unknownS;
-            break;
-    }
+	switch(action)
+	{
+		case CMD_NO_OP:
+			return g_no_opS;
+			break;
+		case CMD_FORWARD:
+			return g_forwardS;
+			break;
+		case CMD_LEFT:
+			return g_leftS;
+			break;
+		case CMD_RIGHT:
+			return g_rightS;
+			break;
+		case CMD_BLINK:
+			return g_blinkS;
+			break;
+		case CMD_ADJUST_LEFT:
+			return g_adjustLS;
+			break;
+		case CMD_ADJUST_RIGHT:
+			return g_adjustRS;
+			break;
+		case CMD_SONG:
+			return g_songS;
+			break;
+		default:
+			return g_unknownS;
+			break;
+	}
 }// interpretCommandShort
 
 /**
@@ -926,18 +956,18 @@ char* interpretCommandShort(int action)
  */
 int interpretSensorsShort(int *sensors)
 {
-    int i, result = 0;
-    int sumval = 1;  //This is always = to 2^i
-    for(i = NUM_SENSORS-1; i >= 0; i--)
-    {
-        if (sensors[i])
-        {
-            result += sumval;
-        }
+	int i, result = 0;
+	int sumval = 1;  //This is always = to 2^i
+	for(i = NUM_SENSORS-1; i >= 0; i--)
+	{
+		if (sensors[i])
+		{
+			result += sumval;
+		}
 
-        sumval *= 2;
-    }
+		sumval *= 2;
+	}
 
-    return result;
+	return result;
 }// interpretSensorsShort
 
