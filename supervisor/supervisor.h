@@ -29,15 +29,18 @@
 // Function return codes
 #define SUCCESS             0
 #define NO_GOAL_IN_LEVEL    1    // used by initRoute
-#define LEVEL_NOT_POPULATED 2    // used by initRoute
+#define LEVEL_NOT_POPULATED 2    // used by initRoute, updatePlan
+#define PLAN_NOT_FOUND      3    // used by initRoute
 
 // Matching defines
-#define NUM_TO_MATCH		15
-#define NUM_GOALS_TO_FIND	50
-#define DISCOUNT            1.0
-#define MAX_LEN_LHS	        1
-#define MAX_LEVEL_DEPTH		4
-#define MAX_ROUTE_LEN		15
+#define NUM_TO_MATCH        (15)
+#define NUM_GOALS_TO_FIND   (50)
+#define DISCOUNT            (1.0)
+#define MAX_LEN_LHS         (1)
+#define MAX_LEVEL_DEPTH     (4)
+#define MAX_ROUTE_LEN       (15)
+#define MAX_CONFIDENCE      (1.0)
+#define MIN_CONFIDENCE      (0.0)
 
 // Collecting data for stats
 #define STATS_MODE		0
@@ -114,41 +117,48 @@ extern char* interpretCommand(int cmd);
 extern void  simpleTest();
 extern int   tick(char* sensorInput);
 
-Action*  actionMatch(int action);
-int      addAction(Vector* actions, Action* item, int checkRedundant);
-void     addActionToRoute(int actionIdx);
-int      addActionToSequence(Vector* sequence,  Action* action);
-int      addEpisode(Vector* episodes, Episode* item);
-int      chooseCommand();
-int      compareEpisodes(Episode* ep1, Episode* ep2, int compCmd);
-Vector*  containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf);
-Episode* createEpisode(char* sensorData);
-void     displayAction(Action* action);
-void     displayActions(Vector* actionList, Vector* episodeList);
-void     displayEpisode(Episode* ep);
-void     displayPlan();
-void     displayRoute(Route *, int recurse);
-void     displaySequence(Vector* sequence);
-void     displaySequences(Vector* sequences);
-Vector*  doReplacement(Vector* seq, Replacement* r);
-void     endSupervisor();
-Vector*  findReplacements();
-int      findTopMatch(double* scoreTable, double* indvScore, int command);
-void     freePlan(Vector *plan);
-void     freeRoute(Route *r);
-int      generateScoreTable(Vector* vector, double* score);
-Vector*  initPlan();
-void     initRouteFromSequence(Route *route, Vector *seq);
-void     initSupervisor();
-char*    interpretCommandShort(int cmd);
-int      interpretSensorsShort(int *sensors);
-Vector*  newPlan();
-int      nextStepIsValid();
-int      parseEpisode(Episode* parsedData, char* dataArr);
-int      planRoute(Episode* currEp);
-int      setCommand(Episode* ep);
-int      setCommand2(Episode* ep);
-int      takeNextStep(Episode* currEp);
-int      updateAll();
+Action*      actionMatch(int action);
+int          addAction(Vector* actions, Action* item, int checkRedundant);
+void         addActionToRoute(int actionIdx);
+int          addActionToSequence(Vector* sequence,  Action* action);
+int          addEpisode(Vector* episodes, Episode* item);
+int          addSequenceAsEpisode(Vector* sequence);
+int          chooseCommand();
+int          compareEpisodes(Episode* ep1, Episode* ep2, int compCmd);
+Vector*      containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf);
+Episode*     createEpisode(char* sensorData);
+void         displayAction(Action* action);
+void         displayActions(Vector* actionList);
+void         displayEpisode(Episode* ep);
+void         displayEpisodeShort(Episode* ep);
+void         displayEpisodes(Vector* epList, int level);
+void         displayPlan();
+void         displayRoute(Route *, int recurse);
+void         displaySequence(Vector* sequence);
+void         displaySequenceShort(Vector* sequence);
+void         displaySequences(Vector* sequences);
+Vector*      doReplacement(Vector* seq, Replacement* r);
+void         endSupervisor();
+Vector*      findReplacements();
+int          findTopMatch(double* scoreTable, double* indvScore, int command);
+void         freePlan(Vector *plan);
+void         freeRoute(Route *r);
+int          generateScoreTable(Vector* vector, double* score);
+Vector*      initPlan();
+void         initRouteFromSequence(Route *route, Vector *seq);
+void         initSupervisor();
+char*        interpretCommandShort(int cmd);
+int          interpretSensorsShort(int *sensors);
+Vector*      newPlan();
+Replacement* newReplacement(int level, Vector* originalActions, 
+                            Action* replacementAction, double confidenceLevel);
+int          nextStepIsValid();
+int          parseEpisode(Episode* parsedData, char* dataArr);
+int          planNeedsRecalc(Vector *plan);
+int          planRoute(Episode* currEp);
+int          setCommand(Episode* ep);
+int          setCommand2(Episode* ep);
+int          takeNextStep(Episode* currEp);
+int          updateAll();
 
 #endif //_SUPERVISOR_H_
