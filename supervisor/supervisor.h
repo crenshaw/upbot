@@ -30,6 +30,7 @@
 #define SUCCESS             0
 #define NO_GOAL_IN_LEVEL    1    // used by initRoute
 #define LEVEL_NOT_POPULATED 2    // used by initRoute, updatePlan
+#define PLAN_NOT_FOUND      3    // used by initRoute
 
 // Matching defines
 #define NUM_TO_MATCH        (15)

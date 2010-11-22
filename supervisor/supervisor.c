@@ -1698,11 +1698,14 @@ void displayPlan()
     for(i = MAX_LEVEL_DEPTH; i >= 0; i--)
     {
         r = g_plan->array[i];
-        if ((r != NULL) && (r->sequences->size > 0))
+        if (r == NULL) continue;
+        assert(r->sequences != NULL);
+        if (r->sequences->size > 0)
         {
             break;
         }
-    }
+            
+    }//for
 
     //Make sure this plan has at least one route
     if (r == NULL)
@@ -1987,6 +1990,7 @@ int initRoute(int level, Route* newRoute)
      */
     //Iterate over all candidate routes
     //(Note: the size of the candRoutes vector will grow as the search continues)
+    int bSuccess = FALSE;
     for(i = 0; i < candRoutes->size; i++)
     {
         //Find the shortest route that hasn't been examined yet
@@ -2036,6 +2040,7 @@ int initRoute(int level, Route* newRoute)
             newRoute->currActIndex = 0;
             newRoute->needsRecalc = FALSE;
 
+            bSuccess = TRUE;
             break;
         }//if
 
@@ -2078,8 +2083,10 @@ int initRoute(int level, Route* newRoute)
         free(route);
     }
     freeVector(candRoutes);
-    
-    return SUCCESS;
+
+    if (bSuccess) return SUCCESS;
+
+    return PLAN_NOT_FOUND;
 }//initRoute
 
 /**
