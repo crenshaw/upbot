@@ -814,9 +814,9 @@ int updateAll(int level)
             	addEntry(sequenceList, currSequence);
 			}
             
-            //typically the next sequence starts with the action that
-            //ended the last sequence.  (Exception:  last action
-            //contains a goal)
+            // typically the next sequence starts with the action that
+            // ended the last sequence.  (Exception:  last action
+            // contains a goal)
             if (!updateExistingAction->containsGoal)
             {
                 addActionToSequence(currSequence, updateExistingAction);
@@ -881,7 +881,7 @@ int addSequenceAsEpisode(Vector* sequence)
     int level = action->level;
 
     //Make sure the level isn't too high
-    if (level + 1 >= MAX_LEVEL_DEPTH)
+    if (level + 1 > MAX_LEVEL_DEPTH)
     {
         return LEVEL_NOT_POPULATED;
     }
@@ -2532,6 +2532,12 @@ void initSupervisor()
         addEntry(g_sequences->array[i], newVector());
     }
 
+    // add our "Ghost Level" to the episodic memory
+    // this will be used for storing episodic memory views
+    // of MAX_LEVEL_DEPTH sequences
+    temp = newVector();
+    addEntry(g_epMem, temp);
+
     // seed rand (sow some wild oats)
     srand(time(NULL));
     
@@ -2554,7 +2560,7 @@ void endSupervisor()
     // actions and episodes is the same, level-wise
     for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
     {
-        // Create pointers to the two associated vectors we'll be working with
+        // Create pointers to the vectors we'll be working with
         actionList      =  g_actions->array     [i];
         episodeList     =  g_epMem->array       [i];
         sequenceList    =  g_sequences->array   [i];
@@ -2620,6 +2626,11 @@ void endSupervisor()
         
     }//for
 
+
+    // before we free the global lists, free our "Ghost Level" in the
+    // episodic memory
+    freeVector((Vector*)g_epMem->array[MAX_LEVEL_DEPTH]);
+    
     //free the global list
     freeVector(g_epMem);
     freeVector(g_actions);
