@@ -412,6 +412,7 @@ int updateAll(int level)
                     {
 #if DEBUGGING
                         printf("comparing cousins: \n");
+                        fflush(stdout);
 #endif
                         int k;
                         //Iterate over cousins and find one with same outcome as candidate action
@@ -447,6 +448,7 @@ int updateAll(int level)
                         {
 #if DEBUGGING
                             printf("new cousin is unique.  Adding...\n");
+                            fflush(stdout);
 #endif
                             newAction->isIndeterminate = TRUE;
                             newAction->overallFreq = curr->overallFreq;
@@ -721,9 +723,12 @@ int updateAll(int level)
     //action (otherwise NULL)
     if(updateExistingAction != NULL)
     {
-printf("Adding Action: ");
-displayAction(updateExistingAction);
-printf(" to current sequence\n");
+#ifdef DEBUGGING
+        printf("Adding Action: ");
+        displayAction(updateExistingAction);
+        printf(" to current sequence\n");
+        fflush(stdout);
+#endif
 
         // add most recently seen action to current sequence
         Vector* currSequence = sequenceList->array[sequenceList->size - 1];
@@ -1149,6 +1154,55 @@ int nextStepIsValid()
 }//isNextStepValid
 
 /**
+ * updatePlan                              *RECURSIVE*
+ *
+ * This method is called whenever the agent completes a sequence in the level 0
+ * route of a plan.  It adjusts replacement rule confidences and adjusts the
+ * plan so that it's ready to continue with the next level 0 sequence.
+ *
+ * @arg level   the current level being updated
+ */
+void updatePlan(int level)
+{
+    //Should never have to update the highest level in the plan.  Because doing
+    //so should take us to the goal which means we'd be replanning right now.
+    assert(level+1 <  MAX_LEVEL_DEPTH);
+
+    //Get the route at this level and increment the action index
+    Route* route = (Route *)g_plan->array[level];
+    (route->currActIndex)++;
+
+    //If we did not just walk off the end of the current sequence, we're done
+    Vector *currSequence = (Vector *)route->sequences->array[route->currSeqIndex];
+    if (route->currActIndex < currSequence->size) return;
+
+    //Uh-oh.  To complete this update, we need to update the parent too
+    updatePlan(level+1);
+
+    //Extact the current action from the newly updated parent route
+    Route *parentRoute = (Route *)g_plan->array[level + 1];
+    Vector *parentSeq = (Vector *)parentRoute->sequences->array[parentRoute->currSeqIndex];
+    Action *parentAct = (Action *)parentSeq->array[parentRoute->currActIndex];
+
+    //Get the first episode from that action.  Since the parent action is at
+    //least a level 1 action, this episode will always be a sequence (Vector*)
+    //whose level is the current level.
+    Vector *seq = (Vector *)parentAct->epmem->array[parentAct->index];
+        
+    //Ditch the old route at this level and create a new one based on the
+    //extracted sequence
+    freeRoute(route);
+    route = (Route*)malloc(sizeof(Route));
+    route->sequences = newVector();
+    initRouteFromSequence(route, seq);
+    g_plan->array[level] = route;
+
+    //TODO: This is where confidence values on active replacement rules for
+    //would be updated
+    
+}//updatePlan
+
+/**
  * chooseCommand_WithPlan
  *
  * This function increments to the next action in the current plan and extracts
@@ -1160,28 +1214,27 @@ int chooseCommand_WithPlan()
 {
     int i;                      // iterator
 
+#if DEBUGGING
+    printf("-----===== foo =====-----\n");
+    fflush(stdout);
+#endif
+    
+    //This method will move the "current action" pointer to the next action.
+    updatePlan(0);
+        
     //Get the current sequence from the plan
     Route* level0Route = (Route *)g_plan->array[0];
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
 
-    //If the current action is the last action in the sequence then we need to
-    //go to the next sequence
-    if (level0Route->currActIndex == currSequence->size - 1)
-    {
-        (level0Route->currSeqIndex)++;
-        currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
-        level0Route->currActIndex = 1; // not 0, since sequence overlap by 1 action
-    }
-
-    //Otherwise just go to the next action in the current sequence
-    else
-    {
-        (level0Route->currActIndex)++;
-    }
-
-    //Extract the the new current action and the command on its LHS
+    //Extract the the new current action
     Action* currAction = currSequence->array[level0Route->currActIndex];
-    Episode* nextStep = currAction->epmem->array[currAction->index+1];
+    Episode* nextStep = currAction->epmem->array[currAction->index];
+
+#if DEBUGGING
+    printf("-----===== bar =====-----\n");
+    fflush(stdout);
+#endif
+    //return the command prescribed by the current action
     return nextStep->cmd;
 
 }//chooseCommand_WithPlan
@@ -1228,7 +1281,7 @@ int chooseCommand()
         //%%%temporarily do this:
         return chooseCommand_SemiRandom();
     }
-    
+
     //If we've reached this point then there is a plan.  At this point, the
     //agent should select the next step in the plan.  
     return chooseCommand_WithPlan();
@@ -1301,7 +1354,7 @@ void displayRoute(Route *route, int recurse)
 
                 //for level 2+ we want a newline now to get the tree format to
                 //look right
-                if (level >= 2) printf("\n");
+                if (route->level >= 2) printf("\n");
                     
                 //If the user has requested a recursive print, then we need to
                 //construct a temporary Route that represents the next level
@@ -1322,7 +1375,7 @@ void displayRoute(Route *route, int recurse)
 
                 //for level 1 we want a newline now to get the tree format to
                 //look right
-                if (level == 1) printf("\n");
+                if (route->level == 1) printf("\n");
                     
             }//else
 
@@ -1468,6 +1521,21 @@ void initRouteFromSequence(Route *route, Vector *seq)
     addEntry(route->sequences, seq);
 
 }//initRouteFromSequence
+
+/**
+ * freeRoute()
+ *
+ * This method frees the memory used by a route.
+ * 
+ */
+void freeRoute(Route *r)
+{
+    if (r == NULL) return;
+    if (r->sequences != NULL) freeVector(r->sequences);
+    free(r);
+
+}//freeRoute
+
 
 /**
  * sequenceLength                    *RECURSIVE*
@@ -1761,7 +1829,7 @@ Vector* initPlan()
     }
 
 #if DEBUGGING
-        printf("Success: found route to goal:\n");
+        printf("Success: found route to goal at level: %d.\n", level);
         fflush(stdout);
         displayRoute((Route *)resultPlan->array[level], TRUE);
         fflush(stdout);
@@ -1838,11 +1906,7 @@ void freePlan(Vector *plan)
     {
         //get a pointer to the route
         Route *r = (Route *)plan->array[i];
-        if (r == NULL) continue;
-
-        //free both the route and its internal vector
-        if (r->sequences != NULL) freeVector(r->sequences);
-        free(r);
+        freeRoute(r);
     }//for
 
     freeVector(plan);
