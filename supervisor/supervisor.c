@@ -1400,7 +1400,7 @@ int updatePlan(int level)
         assert(currSequence->size > 0);
 
         printf("Moved to sequence #%d of %d at level %d.\n",
-               route->currSeqIndex + 1, route->sequences->size, level);
+               route->currSeqIndex + 1, (int)route->sequences->size, level);
         fflush(stdout);
 #endif
         
@@ -1695,7 +1695,7 @@ void displayPlan()
     //Find the highest level route in the plan that's not empty
     int i;
     Route* r = NULL;
-    for(i = MAX_LEVEL_DEPTH; i >= 0; i--)
+    for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
     {
         r = g_plan->array[i];
         if (r == NULL) continue;
