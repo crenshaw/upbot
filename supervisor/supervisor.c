@@ -799,7 +799,7 @@ int updateAll(int level)
                 // - the required level doesn't exist
                 // - the sequence only contains one entry (i.e., its
                 //   sole action contains a path from start to goal)
-                if ((level + 1 < MAX_LEVEL_DEPTH) || (currSequence->size != 1))
+                if ((level + 1 < MAX_LEVEL_DEPTH) && (currSequence->size != 1))
                 {
 #if DEBUGGING
                     printf("Creating a new level %i episode with sequence: ", level + 1);
@@ -1524,6 +1524,7 @@ int chooseCommand()
             printf("New plan:\n");
             fflush(stdout);
             displayPlan();
+            fflush(stdout);
         }
 #endif
     }//if
