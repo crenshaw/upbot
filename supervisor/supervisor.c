@@ -143,7 +143,7 @@ void simpleTest()
 int tick(char* sensorInput)
 {
     int goalCount = 0;
-    
+    int i;
     // Create new Episode
 #if DEBUGGING
     printf("Creating and adding episode...");
@@ -184,6 +184,16 @@ int tick(char* sensorInput)
     if(g_statsMode == 0)
     {
         displayEpisode(ep);
+    }
+
+    // print each level of our episodic memory to ensure that we're
+    // getting our MAX DEPTH + 1 level (right now, 5th level)
+    printf("Now printing all of our episodic memory\n");
+    for(i = 0; i <= MAX_LEVEL_DEPTH; i++)
+    {
+        printf("Now printing level %i\n", i);
+        displayEpisodes(g_epMem->array[i], i);
+        printf("\n");
     }
 #endif
 
@@ -340,22 +350,22 @@ int updateAll(int level)
     Vector* episodeList = g_epMem->array[level];
     Vector* sequenceList = g_sequences->array[level];
 
-    //You need a minimum of two episodes to make a rule
+    // You need a minimum of two episodes to make an action
     if(episodeList->size <= 1)
     {
         return -1;
     }
 
-    //If the most recent complete episode was a goal then return.  We
-    //don't want any goals on the LHS of any rule.
+    // If the most recent complete episode was a goal then return.  We
+    // don't want any goals on the LHS of any rule.
     if (episodeContainsGoal(episodeList->array[episodeList->size - 2], level))
     {
         return -2;
     }
 
-    //Create a candidate rule that we would create from this current
-    //episode.  We won't add it to the rule list if an identical rule
-    //already exists.
+    // Create a candidate rule that we would create from this current
+    // episode.  We won't add it to the rule list if an identical rule
+    // already exists.
     Action* newAction          = (Action*) malloc(sizeof(Action));
     newAction->level           = level;
     newAction->epmem           = episodeList;
@@ -368,9 +378,9 @@ int updateAll(int level)
     newAction->isIndeterminate = FALSE;
     newAction->containsGoal    = episodeContainsGoal(episodeList->array[episodeList->size - 1], level);
 
-    //We need to properly initialize containsStart
-    //containsStart is TRUE if this will be the very first action at
-    //this level
+    // We need to properly initialize containsStart
+    // containsStart is TRUE if this will be the very first action at
+    // this level
     if (actionList->size == 0)
     {
         newAction->containsStart = TRUE;
@@ -786,7 +796,7 @@ int updateAll(int level)
 				currSequence->size = 0;
                 // this duplicate sequence becomes the next episode in the
                 // next level's episodic memory
-                if (level + 1 < MAX_LEVEL_DEPTH)
+                if (level + 1 <= MAX_LEVEL_DEPTH)
                 {
                     episodeList = g_epMem->array[level + 1];
                     addEntry(episodeList, duplicate);
@@ -799,7 +809,7 @@ int updateAll(int level)
                 // - the required level doesn't exist
                 // - the sequence only contains one entry (i.e., its
                 //   sole action contains a path from start to goal)
-                if ((level + 1 < MAX_LEVEL_DEPTH) && (currSequence->size != 1))
+                if ((level + 1 <= MAX_LEVEL_DEPTH)/* && (currSequence->size != 1)*/)
                 {
 #if DEBUGGING
                     printf("Creating a new level %i episode with sequence: ", level + 1);
