@@ -809,6 +809,12 @@ int updateAll(int level)
                 // - the required level doesn't exist
                 // - the sequence only contains one entry (i.e., its
                 //   sole action contains a path from start to goal)
+                // We've removed this test because at this point we
+                //
+                // think it's reasonable to include an episode that is a
+                // sequence from start to goal in the next level's epMem.
+                // This is becuase, even though it is a complete path, it was
+                // still an even in our past as thus in our episodic memeory
                 if ((level + 1 <= MAX_LEVEL_DEPTH)/* && (currSequence->size != 1)*/)
                 {
 #if DEBUGGING
@@ -2935,3 +2941,64 @@ Replacement* newReplacement(int replLevel, Vector* originalActions,
     
     return replacement;
 }//newReplacement
+
+/**
+ * findInterimStart
+ *
+ * This method locates a past sequence that is a best match for the agent's
+ * current "location". This is a sequence that contains the most subsequences
+ * that match what the agent has recently done.  This is highly analagous to
+ * McCallum's NSM match.  It then returns the sequence that occurred immediately
+ * after this matching sequence so that it can be used as the "start" sequence
+ * is used for replanning.
+ *
+ * @return the "start" sequence that was found
+ *         or NULL if the most recently completed sequence is unique in every
+ *         level.
+ */
+Vector* findInterimStart()
+{
+    int i, j;               // loop iterators
+    Vector* currLevelEpMem; // a pointer to our current level's episodic memory
+
+    // ----------------------------------------------------------------
+    // find the highest level where the newly finished sequence is not unique
+    // so that we can find matches against it.
+    
+    for(j = MAX_LEVEL_DEPTH; j >= 0; j--)
+    {
+        currLevelEpMem = g_epMem->array[j];
+        for (i = currLevelEpMem->size - 2; i >= 0; i--)
+        {
+            if (currLevelEpMem->array[i] == currLevelEpMem->array[currLevelEpMem->size - 1])
+            {
+                // then we've found a non-unique episode
+                break;
+            } //if
+            else if (j == 0 && i == 0)
+            {
+                currLevelEpMem = NULL;
+            }
+        }//for
+    }//for
+
+    // currLevelEpMem points to the epMem at the level we need to search for NSM
+    // or points to NULL if no appropriate level was found.
+    if (currLevelEpMem == NULL)
+    {
+        return NULL;
+    }//if
+
+    // ----------------------------------------------------------------    
+    // search the episodic memory where this sequence exists as an episode.
+    // this might be our "ghost" level of episodic memeory if the sequence was
+    // in the highest-level sequence list.
+
+    // use McCallum's NSM approach to determine the greatest matching past state
+    // to current.
+
+    // return a pointer to the sequence that is subsequent to the greatest
+    // matching neighbor in the episodic memory that we searched.
+
+    return NULL;
+}

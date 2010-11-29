@@ -139,6 +139,7 @@ void         displaySequenceShort(Vector* sequence);
 void         displaySequences(Vector* sequences);
 Vector*      doReplacement(Vector* seq, Replacement* r);
 void         endSupervisor();
+Vector*      findInterimStart();
 Vector*      findReplacements();
 int          findTopMatch(double* scoreTable, double* indvScore, int command);
 void         freePlan(Vector *plan);
