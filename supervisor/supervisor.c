@@ -1625,8 +1625,8 @@ void displayRoute(Route *route, int recurse)
                     printf("*");
                 }
 
-                //if this is not the last action, then print a comma separator
-                if (j != seq->size - 1)
+                //comma separator (if not the last entry)
+                if (j < seq->size - 1)
                 {
                     printf(", ");
                 }
@@ -1683,10 +1683,66 @@ void displayRoute(Route *route, int recurse)
                 //for level 1 we want a newline now to get the tree format to
                 //look right
                 if (route->level == 1) printf("\n");
-                    
+
             }//else
 
+
         }// for each action
+
+        
+        //Also print the final outcome episode of the last action in the
+        //sequence
+        Action *lastAction = seq->array[seq->size - 1];
+        if (route->level == 0)
+        {
+            //just print the sensors
+            Episode *ep = (Episode*)lastAction->epmem->array[lastAction->outcome];
+            printf("-->%i", interpretSensorsShort(ep->sensors));
+        }
+        else // level 1+
+        {
+            //Get the episode at the next level down that corresponds to the
+            //RHS of this action
+            Vector *epSeq = (Vector *)lastAction->epmem->array[lastAction->outcome];
+                
+            //Lookup the index of this sequence in the global list of all
+            //sequences 
+            Vector *seqList = (Vector *)g_sequences->array[route->level - 1];
+            int index = findEntry(seqList, epSeq);
+
+            //print the index
+            //indent based on level to make a vertical tree
+            int indent = 2*(MAX_LEVEL_DEPTH - route->level);
+            printf("%*sSequence #%d on level %d", indent, "", index, route->level - 1);
+
+            //for level 2+ we want a newline now to get the tree format to look
+            //right
+            if (route->level >= 2) printf("\n");
+                    
+            //If the user has requested a recursive print, then we need to
+            //construct a temporary Route that represents the next level down
+            if (recurse)
+            {
+                Route *tmpRoute = (Route*)malloc(sizeof(Route));
+                tmpRoute->sequences = newVector();
+                initRouteFromSequence(tmpRoute, epSeq);
+
+                //Recursive call
+                displayRoute(tmpRoute, recurse);
+
+                //Free the route
+                freeVector(tmpRoute->sequences);
+                free(tmpRoute);
+            }
+
+            //for level 1 we want a newline now to get the tree format to
+            //look right
+            if (route->level == 1) printf("\n");
+            
+        }//else (print outcome episode at level 1+)
+
+            
+
     }//for each sequence 
     
 }//displayRoute
@@ -1997,6 +2053,7 @@ int initRoute(int level, Route* newRoute)
         printf("cand route %d at %ld of size %d\n",
                i, (long)candRoutes->array[i], routeLength(r));
         displayRoute(r, TRUE);
+        fflush(stdout);
     }
 #endif
     
