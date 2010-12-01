@@ -157,9 +157,6 @@ int tick(char* sensorInput)
 #if DEBUGGING
     printf("updateAll complete\n");
 #endif
-
-    printf("Sequence ALPHA BETA:::\n");
-    displaySequence(findInterimStart());
     
     // If we found a goal, send a song to inform the world of success
     // and if not then send ep to determine a valid command
