@@ -28,13 +28,13 @@ G	-	Goal
 
 Roomba Elements:
 ^	-	Facing North
-/	-	Facing North-East
+7	-	Facing North-East
 >	-	Facing East
-\	-	Facing South_East
+J	-	Facing South_East
 v	-	Facing South
 L	-	Facing South-West
 <	-	Facing West
-*	-	Facing North-West
+F	-	Facing North-West
 
 The one condition that needs to be fulfilled in terms of the
 actual map design is that currently the unit test does not
@@ -54,10 +54,10 @@ W      GW
 WWWWWWWWW
 
 # Simple Mazes for quick shot testing
-2 5 3
-WWWWW
-W^ GW
-WWWWW
+2 4 3
+WWWW
+W^GW
+WWWW
 
 3 5 4
 WWWWW
@@ -67,7 +67,7 @@ WWWWW
 
 4 10 5
 WWWWWWWWWW
-W*       W
+WF       W
 W WWWWWW W
 W       GW
 WWWWWWWWWW

@@ -107,7 +107,7 @@ void simpleTest()
             ep->cmd = CMD_SONG;
             if (g_plan != NULL)
             {
-                Route *r = g_plan->array[MAX_LEVEL_DEPTH - 1];
+                Route *r = g_plan->array[0];
                 r->needsRecalc = TRUE;
             }
         }
@@ -1380,8 +1380,10 @@ int updatePlan(int level)
 
     //Make sure the route at this level is valid
     if ( (route == NULL)
+         || (route->needsRecalc)
          || (route->sequences == NULL)
-         || (route->sequences->size == 0) )
+         || (route->sequences->size == 0)
+         || (route->sequences->size < route->currSeqIndex) )
     {
         route->needsRecalc = TRUE;
         return LEVEL_NOT_POPULATED;
@@ -1391,7 +1393,7 @@ int updatePlan(int level)
     (route->currActIndex)++;
 
     //If we did not just walk off the end of the current sequence, we're done
-    Vector *currSequence = (Vector *)route->sequences->array[route->currSeqIndex];
+    Vector *currSequence =  (Vector *)route->sequences->array[route->currSeqIndex];
     if (route->currActIndex < currSequence->size)
     {
 #if DEBUGGING
@@ -1411,7 +1413,7 @@ int updatePlan(int level)
     if (route->currSeqIndex + 1 < route->sequences->size)
     {
         //Just move to the next sequence at this level
-        (route->currSeqIndex++);
+        (route->currSeqIndex)++;
 
         //Since sequences overlap by 1, we need to start at 2nd entry in the
         //sequence (index = 1)
@@ -1435,30 +1437,57 @@ int updatePlan(int level)
     //a parent plan that can provide us with a next sequence
     int retVal = updatePlan(level+1);
 
-    //If the update failed (probably because the current action is the last one
-    //of the plan) then mark this route as needing recalc.  No further update
-    //can be performed.
-    if (retVal != SUCCESS)
+    //If the update failed because there is no parent plan, then we must report
+    //that this level is done.  The lower level should still perform the
+    //outcome sequence associated with the last action at this level
+    if (retVal == LEVEL_NOT_POPULATED)
     {
 #if DEBUGGING
-        printf("Failed to retrieve new sequence from parent at level %d.\n",
-               level + 1);
+        printf("Failed to retrieve new sequence from parent at level %d (error code: %d).\n",
+               level + 1, retVal);
         fflush(stdout);
 #endif
+
+        //De-increment the current action index so it refers to the last action
+        //in the current sequence
+        (route->currActIndex)--;
         
+        
+        route->needsRecalc = TRUE;
+        return PLAN_ON_OUTCOME;
+    }
+
+    //If the update failed due to an error then mark this route as needing
+    //recalc.  No further update can be performed.
+    if ((retVal != SUCCESS) && (retVal != PLAN_ON_OUTCOME))
+    {
+#if DEBUGGING
+        printf("Route at level %d has been exhausted.\n", level);
+        fflush(stdout);
+#endif
+
         route->needsRecalc = TRUE;
         return retVal;
     }
 
-    //Extract the current action from the newly updated parent route
+    //Extract the current action from the newly updated parent route.  
     Route *parentRoute = (Route *)g_plan->array[level + 1];
     Vector *parentSeq = (Vector *)parentRoute->sequences->array[parentRoute->currSeqIndex];
     Action *parentAct = (Action *)parentSeq->array[parentRoute->currActIndex];
 
-    //Get the first episode from that action.  Since the parent action is at
-    //least a level 1 action, this episode will always be a sequence (Vector*)
-    //whose level is the current level.
-    Vector *seq = (Vector *)parentAct->epmem->array[parentAct->index];
+    //Get the correct episode from that action.  Depending upon the return value
+    //of the recursive call, this will either be the LHS or RHS of the action.
+    //In either case, it will always be a sequence since the parent action is at
+    //least a level 1 action
+    Vector *seq = NULL;
+    if (retVal == SUCCESS)
+    {
+        seq = (Vector *)parentAct->epmem->array[parentAct->index];
+    }
+    else // retVal == PLAN_ON_OUTCOME
+    {
+        seq = (Vector *)parentAct->epmem->array[parentAct->outcome];
+    }
         
     //Ditch the old route at this level and create a new one based on the
     //extracted sequence
@@ -1632,8 +1661,8 @@ void displayRoute(Route *route, int recurse)
                     printf("*");
                 }
 
-                //if this is not the last action, then print a comma separator
-                if (j != seq->size - 1)
+                //comma separator (if not the last entry)
+                if (j < seq->size - 1)
                 {
                     printf(", ");
                 }
@@ -1690,10 +1719,66 @@ void displayRoute(Route *route, int recurse)
                 //for level 1 we want a newline now to get the tree format to
                 //look right
                 if (route->level == 1) printf("\n");
-                    
+
             }//else
 
+
         }// for each action
+
+        
+        //Also print the final outcome episode of the last action in the
+        //sequence
+        Action *lastAction = seq->array[seq->size - 1];
+        if (route->level == 0)
+        {
+            //just print the sensors
+            Episode *ep = (Episode*)lastAction->epmem->array[lastAction->outcome];
+            printf("-->%i", interpretSensorsShort(ep->sensors));
+        }
+        else // level 1+
+        {
+            //Get the episode at the next level down that corresponds to the
+            //RHS of this action
+            Vector *epSeq = (Vector *)lastAction->epmem->array[lastAction->outcome];
+                
+            //Lookup the index of this sequence in the global list of all
+            //sequences 
+            Vector *seqList = (Vector *)g_sequences->array[route->level - 1];
+            int index = findEntry(seqList, epSeq);
+
+            //print the index
+            //indent based on level to make a vertical tree
+            int indent = 2*(MAX_LEVEL_DEPTH - route->level);
+            printf("%*sSequence #%d on level %d", indent, "", index, route->level - 1);
+
+            //for level 2+ we want a newline now to get the tree format to look
+            //right
+            if (route->level >= 2) printf("\n");
+                    
+            //If the user has requested a recursive print, then we need to
+            //construct a temporary Route that represents the next level down
+            if (recurse)
+            {
+                Route *tmpRoute = (Route*)malloc(sizeof(Route));
+                tmpRoute->sequences = newVector();
+                initRouteFromSequence(tmpRoute, epSeq);
+
+                //Recursive call
+                displayRoute(tmpRoute, recurse);
+
+                //Free the route
+                freeVector(tmpRoute->sequences);
+                free(tmpRoute);
+            }
+
+            //for level 1 we want a newline now to get the tree format to
+            //look right
+            if (route->level == 1) printf("\n");
+            
+        }//else (print outcome episode at level 1+)
+
+            
+
     }//for each sequence 
     
 }//displayRoute
@@ -2004,6 +2089,7 @@ int initRoute(int level, Route* newRoute)
         printf("cand route %d at %ld of size %d\n",
                i, (long)candRoutes->array[i], routeLength(r));
         displayRoute(r, TRUE);
+        fflush(stdout);
     }
 #endif
     
@@ -2257,19 +2343,9 @@ int planNeedsRecalc(Vector *plan)
     //If the plan doesn't exist is certainly isn't valid
     if (plan == NULL) return TRUE;
 
-    //See if any of the constituent routes are invalid
-    int i;
-    for(i = 0; i < g_plan->size; i++)
-    {
-        Route *r = (Route *)g_plan->array[i];
-        
-        if(r->needsRecalc)
-        {
-            return TRUE;
-        }
-    }//for
-
-    return FALSE;
+    //If the lowest route of the plan needs a recalc then the whole plan does
+    Route *r = (Route *)g_plan->array[0];
+    return r->needsRecalc;
 
 }//planNeedsRecalc
 

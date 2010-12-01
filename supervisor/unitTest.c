@@ -120,7 +120,7 @@ void loadMap(int mapNum)
 	fclose(maps);
 
 	// Do not want stats mode most of the time
-	g_statsMode = 1;
+	g_statsMode = 0;
 	
 	// Set up the world vars according to what we read in
 	resetWorld();
@@ -206,13 +206,13 @@ void displayWorld()
 							if(!g_statsMode) printf("^");
 							break;
 						case HDG_NE:
-							if(!g_statsMode) printf("/");
+							if(!g_statsMode) printf("7");
 							break;
 						case HDG_E:
 							if(!g_statsMode) printf(">");
 							break;
 						case HDG_SE:
-							if(!g_statsMode) printf("\\");
+							if(!g_statsMode) printf("J");
 							break;
 						case HDG_S:
 							if(!g_statsMode) printf("v");
@@ -224,7 +224,7 @@ void displayWorld()
 							if(!g_statsMode) printf("<");
 							break;
 						case HDG_NW:
-							if(!g_statsMode) printf("*");
+							if(!g_statsMode) printf("F");
 							break;
 					}//switch
 					break;
