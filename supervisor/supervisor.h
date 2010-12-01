@@ -31,6 +31,7 @@
 #define NO_GOAL_IN_LEVEL    1    // used by initRoute
 #define LEVEL_NOT_POPULATED 2    // used by initRoute, updatePlan
 #define PLAN_NOT_FOUND      3    // used by initRoute
+#define PLAN_ON_OUTCOME     4    // used by updatePlan
 
 // Matching defines
 #define NUM_TO_MATCH        (15)
@@ -88,8 +89,6 @@ typedef struct RouteStruct
                               // that indicates what action is currently being
                               // executed
     int needsRecalc;          // Indicates that this route is no longer valid
-                              // (probably because environmental input is no
-                              // longer matching)
 } Route;
 
 typedef struct ReplacementStruct
