@@ -6,7 +6,7 @@
  * this file as well as those for determining new commands
  *
  * Authors:      Zachary Paul Faltersack, Brian Burns, Andrew Nuxoll
- * Last updated: November 11, 2010
+ * Last updated: December 1, 2010
  */
 
 /*
@@ -158,6 +158,9 @@ int tick(char* sensorInput)
     printf("updateAll complete\n");
 #endif
 
+    printf("Sequence ALPHA BETA:::\n");
+    displaySequence(findInterimStart());
+    
     // If we found a goal, send a song to inform the world of success
     // and if not then send ep to determine a valid command
     if(episodeContainsGoal(ep, FALSE))
@@ -1055,6 +1058,13 @@ void displayActions(Vector *actionList)
 void displaySequence(Vector* sequence)
 {
     int i; // counting variable
+
+    // check that NULL wasn't passed
+    if (sequence == NULL)
+    {
+        printf("Null pointer passed to displaySequence\n");
+        return;
+    }
     
     // handle empty sequences here
     if (sequence -> size < 1)
@@ -2960,26 +2970,38 @@ Vector* findInterimStart()
 {
     int i, j;               // loop iterators
     Vector* currLevelEpMem; // a pointer to our current level's episodic memory
+    int n;                  // neighborhood metric
+    int index;              // best matching sequence based on neighborhood
+                            // metric
+    int foundMatch;
 
     // ----------------------------------------------------------------
     // find the highest level where the newly finished sequence is not unique
     // so that we can find matches against it.
-    
+
+    printf("Finding Level\n");
+    currLevelEpMem = NULL;
+    foundMatch = -1;
     for(j = MAX_LEVEL_DEPTH; j >= 0; j--)
     {
-        currLevelEpMem = g_epMem->array[j];
+        currLevelEpMem = (Vector*)g_epMem->array[j];
+        
         for (i = currLevelEpMem->size - 2; i >= 0; i--)
         {
-            if (currLevelEpMem->array[i] == currLevelEpMem->array[currLevelEpMem->size - 1])
+            if (currLevelEpMem->array[i]
+                == currLevelEpMem->array[currLevelEpMem->size - 1])
             {
                 // then we've found a non-unique episode
+                foundMatch = j;
                 break;
-            } //if
-            else if (j == 0 && i == 0)
-            {
-                currLevelEpMem = NULL;
-            }
+            }//if
         }//for
+
+        if (foundMatch != -1)
+        {
+            break;
+        }
+        
     }//for
 
     // currLevelEpMem points to the epMem at the level we need to search for NSM
@@ -2988,17 +3010,64 @@ Vector* findInterimStart()
     {
         return NULL;
     }//if
-
-    // ----------------------------------------------------------------    
+    // ----------------------------------------------------------------
+    
     // search the episodic memory where this sequence exists as an episode.
     // this might be our "ghost" level of episodic memeory if the sequence was
     // in the highest-level sequence list.
+    n = 0;
+    index = -1;
+    j = 0;
 
-    // use McCallum's NSM approach to determine the greatest matching past state
-    // to current.
+    printf("Searching Level\n");
+    // Begin matching at the penultimate episode to compare to the
+    // most recent episode
+    for (i = currLevelEpMem->size - 2; i >= 0; i--)
+    {
+        printf("Forring %d\n", i);
+        // if there's a match, then it's worth calculating the neighborhood
+        // metric
+        if(currLevelEpMem->array[i]
+           == currLevelEpMem->array[currLevelEpMem->size - 1])
+        {
+            // catch edge case
+            if (n == 0)
+            {
+                j++;
+            }
+            else
+            {
+                j = n;
+            }
+            
+            // search for a closer neighbor, beginning at the greatest distance
+            // from the root episode that we have matched to.
+            // this is intendent to save time as the episodic memory grows
+            // to be very large in size
+            while(currLevelEpMem->array[i - j]
+                  == currLevelEpMem->array[currLevelEpMem->size - j - 1])
+            {
+                j++;
+            }//while
 
-    // return a pointer to the sequence that is subsequent to the greatest
-    // matching neighbor in the episodic memory that we searched.
+            // if the neighborhood metric for this match is greater than that of
+            // the previous match, then store the new metric and index of the
+            // new closest neighbor.
+            if(j > n)
+            {
+                n = j;
+                index = i;
+            }//if
+        }//if
+    }//for
 
-    return NULL;
+    printf("Ending Search\n");
+
+    // return null if we didn't find a match
+    if (index == -1)
+    {
+        return NULL;
+    }
+    
+    return currLevelEpMem->array[index + 1];
 }
