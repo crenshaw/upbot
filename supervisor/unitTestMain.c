@@ -5,7 +5,7 @@
 int main(void)
 {
     initSupervisor();
-    replanTest();
+    planTest();
     endSupervisor();
 	return 0;
 }
