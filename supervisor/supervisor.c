@@ -157,6 +157,9 @@ int tick(char* sensorInput)
 #if DEBUGGING
     printf("updateAll complete\n");
 #endif
+
+    
+    displaySequence(findInterimStart());
     
     // If we found a goal, send a song to inform the world of success
     // and if not then send ep to determine a valid command
@@ -3079,7 +3082,7 @@ Vector* findInterimStart()
 
     // currLevelEpMem points to the epMem at the level we need to search for NSM
     // or points to NULL if no appropriate level was found.
-    if (currLevelEpMem == NULL)
+    if (foundMatch == -1)
     {
         return NULL;
     }//if
@@ -3092,7 +3095,7 @@ Vector* findInterimStart()
     index = -1;
     j = 0;
 
-    printf("Searching Level\n");
+    printf("Searching Level %d\n", foundMatch);
     // Begin matching at the penultimate episode to compare to the
     // most recent episode
     for (i = currLevelEpMem->size - 2; i >= 0; i--)
