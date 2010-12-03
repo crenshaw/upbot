@@ -428,7 +428,7 @@ int updateAll(int level)
 
     printf("Level %d Episodes >>>>>>>>>>>>>>>>>>>>>>>>>>>\n", level);
     displayEpisodes(g_epMem->array[level], level);
-    printf("\n", level);
+    printf("\n");
     fflush(stdout);
 
     printf("Level %d Actions >>>>>>>>>>>>>>>>>>>>>>>>>>>\n", level);
@@ -1684,6 +1684,7 @@ int chooseCommand()
             printf("New plan:\n");
             fflush(stdout);
             displayPlan();
+            printf("\n");
             fflush(stdout);
         }
 #endif
@@ -1826,7 +1827,7 @@ void displayRoute(Route *route, int recurse)
         {
             //just print the sensors
             Episode *ep = (Episode*)lastAction->epmem->array[lastAction->outcome];
-            printf("-->%i", interpretSensorsShort(ep->sensors));
+            printf("-->%i; ", interpretSensorsShort(ep->sensors));
         }
         else // level 1+
         {
@@ -2229,34 +2230,46 @@ int initRoute(Route* newRoute, Vector *startSeq)
         //1.  the last action in the sequence matches the first action of the first
         //    sequence in the current candidate route.  (In other words, a
         //    sequence that can extend that candidate route.)
-        //    BUGBUG:  We probably should be using the actions at level+1 to
-        //    determine whether a given route can succeed another.
         //2.  the sequence is not already in the candidate route
+
+        //    BUGBUG: Regarding criterion 1 (above): We probably should be using
+        //    the actions at level+1 to determine whether a given sequence can
+        //    succeed another.  I'm leaving it as is because of the potential to
+        //    find shorter routes. The dangers are:
+        //     - infinite loop routes <-- may not be an issue since we'll replan
+        //       when it doesn't reach a goal
+        //     - too many possible plans.  Sticking with pairs of sequences that
+        //       are known to be sequential via past action will restrict the
+        //       search space to things that have worked in the past.  It's not
+        //       necessarily fastest but it is reliable
+        
         Action *firstAction = (Action *)firstSeq->array[0];
-        for (i = 0; i < sequences->size; i++)
+        for (j = 0; j < sequences->size; j++)
         {
-            Vector *currSeq = (Vector*)sequences->array[i];
+            Vector *currSeq = (Vector*)sequences->array[j];
             if (currSeq->size == 0) continue;
 
             //If this sequence can't extend the candidate route then skip ite
             Action *lastAction = (Action *)currSeq->array[currSeq->size-1];
-// #ifdef DEBUGGING%%%
-//             printf("trying %d:\n", i);
-//             if (lastAction != firstAction)
-//             {
-//                 printf("no match between: ");
-//                 displayAction(firstAction);
-//                 printf(" and ");
-//                 displayAction(lastAction);
-//                 printf("\n");
-//                 fflush(stdout);
-//             }
-// #endif
+#ifdef DEBUGGING //%%%DELETE THIS
+            if (lastAction == firstAction)
+            {
+                printf("trying %d:\n", j);
+                fflush(stdout);
+            }
+#endif
             if (lastAction != firstAction) continue;
             
+#ifdef DEBUGGING //%%%DELETE THIS
+            if (findEntry(route->sequences, currSeq) != -1)
+            {
+                printf("sequence already in plan.\n");
+                fflush(stdout);
+            }
+#endif
             //Verify this sequence hasn't been used already (equivalent of "node
             //already visited" in Dijkstra's formal algorithm)
-            if (findEntry(route->sequences, currSeq)) continue;
+            if (findEntry(route->sequences, currSeq) != -1) continue;
 
             //If we've reached this point, then we can create a new candidate
             //route that is an extension of the first one
@@ -2265,18 +2278,18 @@ int initRoute(Route* newRoute, Vector *startSeq)
             initRouteFromSequence(newCand, currSeq);
             addVector(newCand->sequences, route->sequences);
 
-#ifdef DEBUGGING
+#ifdef DEBUGGING //%%%DELETE THIS
             printf("Creating new candidate route (level %d):", level);
-            for(j = 0; j < newCand->sequences->size; j++)
+            int k;
+            for(k = 0; k < newCand->sequences->size; k++)
             {
-                Vector *seq = (Vector *)newCand->sequences->array[j];
+                Vector *seq = (Vector *)newCand->sequences->array[k];
                 int index = findEntry(sequences, seq);
                 printf("%d>", index);
                 fflush(stdout);
             }
             printf("\n");
             fflush(stdout);
-                
 #endif
             
             //Add this new candidate route to the candRoutes array
@@ -2339,6 +2352,7 @@ Vector* initPlan()
         printf("Success: found route to goal at level: %d.\n", level);
         fflush(stdout);
         displayRoute((Route *)resultPlan->array[level], TRUE);
+        printf("\n");
         fflush(stdout);
 #endif
 
@@ -3488,7 +3502,7 @@ Vector* findInterimStart()
             
             // search for a closer neighbor, beginning at the greatest distance
             // from the root episode that we have matched to.
-            // this is intendent to save time as the episodic memory grows
+            // this is intended to save time as the episodic memory grows
             // to be very large in size
             while(currLevelEpMem->array[i - j]
                   == currLevelEpMem->array[currLevelEpMem->size - j - 1])
@@ -3517,9 +3531,12 @@ Vector* findInterimStart()
     }
     
 #ifdef DEBUGGING
-        printf("Search Result:  ");
+        printf("Search Result of length %d at index %d in level %d:  ",
+               j, index+1, foundMatch);
         displaySequenceShort(currLevelEpMem->array[index + 1]);
         printf("\n");
+        fflush(stdout);
 #endif
+        
     return currLevelEpMem->array[index + 1];
 }//findInterimStart
