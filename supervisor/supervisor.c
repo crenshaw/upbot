@@ -32,7 +32,7 @@
 #define DEBUGGING 1
 
 
-// The chance of choosing a random move
+// The percent chance of choosing a random move
 int g_randChance = 100;
 
 // global strings for printing to console
@@ -71,22 +71,22 @@ int g_goalIdx[NUM_GOALS_TO_FIND];
  */
 void memTest()
 {
-    char* noHit    = "0000000000                 ";  // no hit is zero
-    char* rightHit = "0000000010                 ";  // right hit is 2
-    char* leftHit  = "0000000001                 ";  // left hit is 1
-    char* bothHit  = "0000000011                 ";  // both hit is 3
-    char* goal     = "1000000000                 ";  // goal is 512
+    char* noHit     = "0000000000                 ";  // no hit is zero
+    char* rightHit  = "0000000010                 ";  // right hit is 2
+    char* leftHit   = "0000000001                 ";  // left hit is 1
+    char* bothHit   = "0000000011                 ";  // both hit is 3
+    char* goal      = "1000000000                 ";  // goal is 512
 
     char* sensors[] = {noHit, noHit, bothHit, noHit, bothHit, noHit,
-                      noHit, noHit, noHit, noHit, bothHit, noHit,
-                      noHit, noHit, goal};
+                       noHit, noHit, noHit, noHit, bothHit, noHit,
+                       noHit, noHit, goal};
     
-    int cmds[] = {CMD_LEFT, CMD_FORWARD, CMD_RIGHT, CMD_FORWARD,
-                 CMD_RIGHT, CMD_FORWARD, CMD_LEFT, CMD_LEFT,
-                 CMD_LEFT, CMD_FORWARD, CMD_LEFT, CMD_FORWARD,
-                 CMD_RIGHT, CMD_FORWARD};
+    int   cmds[]    = {CMD_LEFT, CMD_FORWARD, CMD_RIGHT, CMD_FORWARD,
+                       CMD_RIGHT, CMD_FORWARD, CMD_LEFT, CMD_LEFT,
+                       CMD_LEFT, CMD_FORWARD, CMD_LEFT, CMD_FORWARD,
+                       CMD_RIGHT, CMD_FORWARD};
 
-    int i;
+    int   i;
 
     for (i = 0; i < 15; i++)
     {
@@ -134,20 +134,20 @@ void memTest()
  */
 void planTest()
 {
-    char* noHit    = "0000000000                 ";  // no hit is zero
-    char* rightHit = "0000000010                 ";  // right hit is 2
-    char* leftHit  = "0000000001                 ";  // left hit is 1
-    char* bothHit  = "0000000011                 ";  // both hit is 3
-    char* goal     = "1000000000                 ";  // goal is 512
+    char* noHit     = "0000000000                 ";  // no hit is zero
+    char* rightHit  = "0000000010                 ";  // right hit is 2
+    char* leftHit   = "0000000001                 ";  // left hit is 1
+    char* bothHit   = "0000000011                 ";  // both hit is 3
+    char* goal      = "1000000000                 ";  // goal is 512
 
     char* sensors[] = {noHit, noHit, bothHit, noHit, bothHit, noHit,
-                      noHit, noHit, noHit, noHit, bothHit, noHit,
-                      noHit, noHit, goal};
+                       noHit, noHit, noHit, noHit, bothHit, noHit,
+                       noHit, noHit, goal};
     
-    int cmds[] = {CMD_LEFT, CMD_FORWARD, CMD_RIGHT, CMD_FORWARD,
-                 CMD_RIGHT, CMD_FORWARD, CMD_LEFT, CMD_LEFT,
-                 CMD_LEFT, CMD_FORWARD, CMD_LEFT, CMD_FORWARD,
-                 CMD_RIGHT, CMD_FORWARD};
+    int cmds[]      = {CMD_LEFT, CMD_FORWARD, CMD_RIGHT, CMD_FORWARD,
+                       CMD_RIGHT, CMD_FORWARD, CMD_LEFT, CMD_LEFT,
+                       CMD_LEFT, CMD_FORWARD, CMD_LEFT, CMD_FORWARD,
+                       CMD_RIGHT, CMD_FORWARD};
 
     int i;
 
@@ -201,25 +201,25 @@ void planTest()
  */
 void replanTest()
 {
-    char* noHit    = "0000000000                 ";  // no hit is zero
-    char* rightHit = "0000000010                 ";  // right hit is 2
-    char* leftHit  = "0000000001                 ";  // left hit is 1
-    char* bothHit  = "0000000011                 ";  // both hit is 3
-    char* goal     = "1000000000                 ";  // goal is 512
+    char* noHit     = "0000000000                 ";  // no hit is zero
+    char* rightHit  = "0000000010                 ";  // right hit is 2
+    char* leftHit   = "0000000001                 ";  // left hit is 1
+    char* bothHit   = "0000000011                 ";  // both hit is 3
+    char* goal      = "1000000000                 ";  // goal is 512
 
     char* sensors[] = {noHit, noHit, bothHit, noHit, bothHit, noHit,
-                      noHit, noHit, noHit, noHit, bothHit, noHit,
-                      noHit, noHit, goal};
+                       noHit, noHit, noHit, noHit, bothHit, noHit,
+                       noHit, noHit, goal};
     
-    int cmds[] = {CMD_LEFT, CMD_FORWARD, CMD_RIGHT, CMD_FORWARD,
-                 CMD_RIGHT, CMD_FORWARD, CMD_LEFT, CMD_LEFT,
-                 CMD_LEFT, CMD_FORWARD, CMD_LEFT, CMD_FORWARD,
-                 CMD_RIGHT, CMD_FORWARD};
+    int cmds[]      = {CMD_LEFT, CMD_FORWARD, CMD_RIGHT, CMD_FORWARD,
+                       CMD_RIGHT, CMD_FORWARD, CMD_LEFT, CMD_LEFT,
+                       CMD_LEFT, CMD_FORWARD, CMD_LEFT, CMD_FORWARD,
+                       CMD_RIGHT, CMD_FORWARD};
 
     int i;
 
     //First call memTest to give it a memory
-    memTest();
+    planTest();
 
     for (i = 0; i < 15; i++)
     {
