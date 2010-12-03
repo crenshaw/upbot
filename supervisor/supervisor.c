@@ -62,15 +62,14 @@ int g_goalIdx[NUM_GOALS_TO_FIND];
 
 
 /**
- * simpleTest
+ * memTest
  *
- * This function is called at regular intervals and processes
- * the recent sensor data to determine the next action to take.
+ * This function tests whether the supervisor can build a simple episodic memory 
  *
  * @param sensorInput a char string wth sensor data
  * @return int a command for the Roomba (negative is error)
  */
-void simpleTest()
+void memTest()
 {
     char* noHit    = "0000000000                 ";  // no hit is zero
     char* rightHit = "0000000010                 ";  // right hit is 2
@@ -117,19 +116,158 @@ void simpleTest()
             ep->cmd = cmds[i];
         }
 
-#if DEBUGGING
-        //Make a plan if I can
-        g_plan = initPlan();
-        displayPlan();
-#endif
-        
         // Print out the parsed episode if not in statsMode
         if(g_statsMode == 0)
         {
             displayEpisode(ep);
         }
     }
-}//simpleTest
+}//memTest
+
+/**
+ * planTest
+ *
+ * This function tests whether the supervisor constructs a correct plan
+ *
+ * @param sensorInput a char string wth sensor data
+ * @return int a command for the Roomba (negative is error)
+ */
+void planTest()
+{
+    char* noHit    = "0000000000                 ";  // no hit is zero
+    char* rightHit = "0000000010                 ";  // right hit is 2
+    char* leftHit  = "0000000001                 ";  // left hit is 1
+    char* bothHit  = "0000000011                 ";  // both hit is 3
+    char* goal     = "1000000000                 ";  // goal is 512
+
+    char* sensors[] = {noHit, noHit, bothHit, noHit, bothHit, noHit,
+                      noHit, noHit, noHit, noHit, bothHit, noHit,
+                      noHit, noHit, goal};
+    
+    int cmds[] = {CMD_LEFT, CMD_FORWARD, CMD_RIGHT, CMD_FORWARD,
+                 CMD_RIGHT, CMD_FORWARD, CMD_LEFT, CMD_LEFT,
+                 CMD_LEFT, CMD_FORWARD, CMD_LEFT, CMD_FORWARD,
+                 CMD_RIGHT, CMD_FORWARD};
+
+    int i;
+
+    //First call memTest to give it a memory
+    memTest();
+
+    for (i = 0; i < 15; i++)
+    {
+        // Create new Episode
+        printf("Creating and adding episode...\n");
+        Episode* ep = createEpisode(sensors[i]);
+        // Add new episode to the history
+        addEpisode(g_epMem->array[0], ep);
+        printf("Episode created\n");
+
+        updateAll(0);
+
+        // If we found a goal, send a song to inform the world of success
+        // and if not then send ep to determine a valid command
+        if(episodeContainsGoal(ep, FALSE))
+        {
+            ep->cmd = CMD_SONG;
+            if (g_plan != NULL)
+            {
+                Route *r = g_plan->array[0];
+                r->needsRecalc = TRUE;
+            }
+        }
+        else
+        {
+            //issue the next command from the cmds array
+            ep->cmd = chooseCommand();
+
+            if (ep->cmd != cmds[i])
+            {
+                printf("ERROR:  plan failed at step %d\n", i);
+                exit(-1);
+            }
+        }
+
+    }//for
+}//planTest
+
+/**
+ * replanTest
+ *
+ * This function tests whether the supervisor constructs a correct plan
+ *
+ * @param sensorInput a char string wth sensor data
+ * @return int a command for the Roomba (negative is error)
+ */
+void replanTest()
+{
+    char* noHit    = "0000000000                 ";  // no hit is zero
+    char* rightHit = "0000000010                 ";  // right hit is 2
+    char* leftHit  = "0000000001                 ";  // left hit is 1
+    char* bothHit  = "0000000011                 ";  // both hit is 3
+    char* goal     = "1000000000                 ";  // goal is 512
+
+    char* sensors[] = {noHit, noHit, bothHit, noHit, bothHit, noHit,
+                      noHit, noHit, noHit, noHit, bothHit, noHit,
+                      noHit, noHit, goal};
+    
+    int cmds[] = {CMD_LEFT, CMD_FORWARD, CMD_RIGHT, CMD_FORWARD,
+                 CMD_RIGHT, CMD_FORWARD, CMD_LEFT, CMD_LEFT,
+                 CMD_LEFT, CMD_FORWARD, CMD_LEFT, CMD_FORWARD,
+                 CMD_RIGHT, CMD_FORWARD};
+
+    int i;
+
+    //First call memTest to give it a memory
+    memTest();
+
+    for (i = 0; i < 15; i++)
+    {
+        // Create new Episode
+        printf("Creating and adding episode...\n");
+        Episode* ep = NULL;
+        if (i != 10)
+        {
+            //create the episode as normal
+            ep = createEpisode(sensors[i]);
+        }
+        else
+        {
+            //create an erroneous episode so that the agent gets "lost"
+            ep = createEpisode(bothHit);
+            
+        }
+        // Add new episode to the history
+        addEpisode(g_epMem->array[0], ep);
+        printf("Episode created\n");
+
+        updateAll(0);
+
+        // If we found a goal, send a song to inform the world of success
+        // and if not then send ep to determine a valid command
+        if(episodeContainsGoal(ep, FALSE))
+        {
+            ep->cmd = CMD_SONG;
+            if (g_plan != NULL)
+            {
+                Route *r = g_plan->array[0];
+                r->needsRecalc = TRUE;
+            }
+        }
+        else
+        {
+            //issue the next command from the cmds array
+            ep->cmd = chooseCommand();
+
+            if (ep->cmd != cmds[i])
+            {
+                printf("ERROR:  plan failed at step %d\n", i);
+                exit(-1);
+            }
+        }
+
+    }//for
+}//replanTest
 
 /**
  * tick
