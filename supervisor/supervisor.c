@@ -150,6 +150,8 @@ void memTest()
 
     int   i;
 
+    printf("\t\t\t\t\t\t\tBEGIN MEMTEST\n");
+    
     for (i = 0; i < 214; i++)
     {
         // Create new Episode
@@ -184,6 +186,10 @@ void memTest()
             displayEpisode(ep);
         }
     }
+
+    printf("\t\t\t\t\t\t\tEND MEMTEST: SUCCESS!\n");
+    
+    
 }//memTest
 
 /**
@@ -279,6 +285,8 @@ void planTest()
     memTest();
     memTest();
 
+    printf("\t\t\t\t\t\t\tBEGIN PLANTEST\n");
+
     for (i = 0; i < 214; i++)
     {
         // Create new Episode
@@ -314,6 +322,9 @@ void planTest()
         }
 
     }//for
+
+    printf("\t\t\t\t\t\t\tEND PLANTEST: SUCCESS!\n");
+
 }//planTest
 
 /**
@@ -408,6 +419,8 @@ void replanTest()
     //First call planTest to give it a solid plan
     planTest();
 
+    printf("\t\t\t\t\t\t\tBEGIN REPLANTEST\n");
+
     for (i = 0; i < 205; i++)
     {
         // Create new Episode
@@ -444,6 +457,9 @@ void replanTest()
         }
 
     }//for
+    
+    printf("\t\t\t\t\t\t\tEND REPLANTEST: SUCCESS!\n");
+
 }//replanTest
 
 /**
@@ -2330,6 +2346,7 @@ int initRoute(Route* newRoute, Vector *startSeq)
     //start sequence.
     Action *act = (Action *)startSeq->array[0];
     int level = act->level;
+    assert(level+1 < MAX_LEVEL_DEPTH);
     
     // Iterate over each sequence at the given level looking for goal sequences
     // (Note: iteration is descending so as to give preference to the most
@@ -2430,56 +2447,40 @@ int initRoute(Route* newRoute, Vector *startSeq)
             break;
         }//if
 
-        //Search all the sequences to find any that meet these criteria:
-        //1.  the last action in the sequence matches the first action of the first
-        //    sequence in the current candidate route.  (In other words, a
-        //    sequence that can extend that candidate route.)
-        //2.  the sequence is not already in the candidate route
+        /*----------------------------------------------------------------------
+         * Search for sequences to find any that meet these criteria:
+         * 1.  The sequence is the left-hand-side of an action at
+         *     level+1 such that the right-hand-side sequence is the
+         *     one most recently added to the candidate route
+         * 2.  the sequence is not already in the candidate route
+         *
+         * Then build new candidate routes by adding all sequences to the
+         * current candidate route that meet these criteria .
+         */
 
-        //    BUGBUG: Regarding criterion 1 (above): We probably should be using
-        //    the actions at level+1 to determine whether a given sequence can
-        //    succeed another.  I'm leaving it as is because of the potential to
-        //    find shorter routes. The dangers are:
-        //     - infinite loop routes <-- may not be an issue since we'll replan
-        //       when it doesn't reach a goal
-        //     - too many possible plans.  Sticking with pairs of sequences that
-        //       are known to be sequential via past action will restrict the
-        //       search space to things that have worked in the past.  It's not
-        //       necessarily fastest but it is reliable
-        
-        Action *firstAction = (Action *)firstSeq->array[0];
-        for (j = 0; j < sequences->size; j++)
+        //Iterate over all actions at level+1
+        Vector *parentActions = (Vector *)g_actions->array[level + 1];
+        for(j = 0; j < parentActions->size; j++)
         {
-            Vector *currSeq = (Vector*)sequences->array[j];
-            if (currSeq->size == 0) continue;
+            Action *act = (Action *)parentActions->array[j];
 
-            //If this sequence can't extend the candidate route then skip ite
-            Action *lastAction = (Action *)currSeq->array[currSeq->size-1];
-#ifdef DEBUGGING //%%%DELETE THIS
-            if (lastAction == firstAction)
-            {
-                printf("trying %d:\n", j);
-                fflush(stdout);
-            }
-#endif
-            if (lastAction != firstAction) continue;
-            
-#ifdef DEBUGGING //%%%DELETE THIS
-            if (findEntry(route->sequences, currSeq) != -1)
-            {
-                printf("sequence already in plan.\n");
-                fflush(stdout);
-            }
-#endif
-            //Verify this sequence hasn't been used already (equivalent of "node
-            //already visited" in Dijkstra's formal algorithm)
-            if (findEntry(route->sequences, currSeq) != -1) continue;
+            //If the right-hand-side of this action doesn't match the
+            //first sequence in the current candidate route then skip.
+            Vector* rhsSeq = (Vector *)act->epmem->array[act->outcome];
+            if (rhsSeq != firstSeq) continue;
+
+            //If we make it here then the LHS sequence is a "fit" for the
+            //current candidate route.  Verify this sequence hasn't been used
+            //already (equivalent of "node already visited" in Dijkstra's formal
+            //algorithm)
+            Vector *lhsSeq = (Vector *)act->epmem->array[act->index];
+            if (findEntry(route->sequences, lhsSeq) != -1) continue;
 
             //If we've reached this point, then we can create a new candidate
-            //route that is an extension of the first one
+            //route that is an extension of the current one
             Route *newCand = (Route*)malloc(sizeof(Route));
             newCand->sequences = newVector();
-            initRouteFromSequence(newCand, currSeq);
+            initRouteFromSequence(newCand, lhsSeq);
             addVector(newCand->sequences, route->sequences);
 
 #ifdef DEBUGGING //%%%DELETE THIS
@@ -3241,6 +3242,10 @@ void endSupervisor()
     // temporaries for loop below
     Vector *actionList, *episodeList, *sequenceList, *replacementList;
 
+    //%%%TODO:  Added for now to avoid crashing.  Remove this when this method
+    //%%%       is fixed
+    if (g_epMem != NULL) return;
+    
     // assume that the number of sequences,
     // actions and episodes is the same, level-wise
     for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
@@ -3644,7 +3649,7 @@ Vector* findInterimStart()
     
     currLevelEpMem = NULL;
     foundMatch = -1;
-    for(j = MAX_LEVEL_DEPTH; j >= 0; j--)
+    for(j = MAX_LEVEL_DEPTH - 1; j >= 0; j--)
     {
         currLevelEpMem = (Vector*)g_epMem->array[j];
         
