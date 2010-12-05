@@ -3471,7 +3471,6 @@ Replacement* findBestReplacement()
     Replacement *result = NULL;  // this will hold the return value
     int     i, j, k;             // loop iterators
 
-
     assert(g_plan != NULL);
 
     // iterate through each level of replacements and routes, adding found
@@ -3537,7 +3536,8 @@ Replacement* findBestReplacement()
  * doReplacement
  *
  * Take the specified replacement and apply it to the specified
- * sequence.
+ * sequence to produce a new sequence.  The original, given, sequence is not
+ * modified. 
  *
  * CAVEAT: This function depends on a Replacement replacing exactly 2 Actions.
  *
@@ -3584,7 +3584,7 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
     }
     
     return withReplacement;
-}
+}//doReplacement
 
 /**
  * newReplacement
