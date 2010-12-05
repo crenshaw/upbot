@@ -6,7 +6,7 @@
  * this file as well as those for determining new commands
  *
  * Authors:      Zachary Paul Faltersack, Brian Burns, Andrew Nuxoll
- * Last updated: December 1, 2010
+ * Last updated: December 5, 2010
  */
 
 /*
@@ -22,10 +22,8 @@
 /*
  * Long Term Wish List
  *
- * 1.  Right now the code depends upon the agent knowing what states
- *     are start states and which are goal states.  I'd like to remove
- *     at least the former requirement if not both.  I think it could
- *     be done.
+ * 1.  profile the code for places where are spending the most time and then try
+ *     to improve the algorithm there.
  */
 
 //Setting this turns on verbose output to aid debugging
@@ -1669,6 +1667,42 @@ int nextStepIsValid()
 }//isNextStepValid
 
 /**
+ * rewardReplacements
+ *
+ * reviews all replacements that have been applied to a route and increases
+ * their confidence so that its distance from 1.0 is half of what it was.
+ * Overall confidence is also increased. The base formula is the same but the
+ * overall increase in confidence is halved once for each level we are below the
+ * highest level.
+ *
+ * NOTE:  If these calculations end up being expensive, we could switch to an
+ * integer based confidence and use bit shift operations for division.
+ * 
+ * @arg level  the current level being updated
+ */
+void rewardReplacements(Route *r)
+{
+    int i;
+
+    //Adjust replacement rule confidences
+    for(i = 0; i < r->replsApplied->size; i++)
+    {
+        Replacement *repl = (Replacement *)r->replsApplied->array[i];
+        repl->confidence += (1.0 - repl->confidence) / 2.0;
+        
+    }//for
+
+    //Adjust overall confidence
+    double adjAmt = (1.0 - g_selfConfidence) / 2.0;
+    for(i = MAX_LEVEL_DEPTH - 1; i > r->level; i--)
+    {
+        adjAmt /= 2.0;
+    }
+    g_selfConfidence += adjAmt;
+    
+}//rewardReplacements
+
+/**
  * updatePlan                              *RECURSIVE*
  *
  * This method is called whenever the agent completes a sequence in the level 0
@@ -1718,6 +1752,11 @@ int updatePlan(int level)
 
     //If we did not just walk off the end of the current sequence, we're done
     Vector *currSequence =  (Vector *)route->sequences->array[route->currSeqIndex];
+    if (route->replSeq != NULL) 
+    {
+        //We're using a replacement for the current sequence
+        currSequence = route->replSeq;
+    }
     if (route->currActIndex < currSequence->size)
     {
 #if DEBUGGING
@@ -1732,7 +1771,16 @@ int updatePlan(int level)
     fflush(stdout);
 #endif
     
-    //Uh-oh.  The current sequence has run out.
+    //If we reach this point, then the current sequence has run out.
+
+    //Before we adjust the plan, reward any replacements that may be in place at
+    //this level
+    if (route->replSeq != NULL)
+    {
+        rewardReplacements(route);
+    }
+
+    
     //First, see if there is a next sequence at this level
     if (route->currSeqIndex + 1 < route->sequences->size)
     {
@@ -1822,9 +1870,6 @@ int updatePlan(int level)
     route->currActIndex = 1;    // skip overlapping first action
     g_plan->array[level] = route;
 
-    //TODO: This is where confidence values on active replacement rules for
-    //would be updated
-    
 #if DEBUGGING
     printf("Updated level %d route with help from parent at level %d\n",
            level, level + 1);
@@ -2229,6 +2274,8 @@ int getGoalAction(Vector *seq)
 void initRouteFromSequence(Route *route, Vector *seq)
 {
     //Do the easy ones first
+    route->replSeq      = NULL;
+    route->replsApplied = newVector();
     route->currActIndex = 0;
     route->currSeqIndex = 0;
     route->needsRecalc  = FALSE;
@@ -2252,6 +2299,7 @@ void freeRoute(Route *r)
 {
     if (r == NULL) return;
     if (r->sequences != NULL) freeVector(r->sequences);
+    if (r->replsApplied != NULL) freeVector(r->replsApplied);
     free(r);
 
 }//freeRoute
@@ -2880,8 +2928,10 @@ Vector *newPlan()
     {
         Route *r = (Route*)malloc(sizeof(Route));
 
-        r->level = i;
-        r->sequences = newVector();
+        r->level        = i;
+        r->sequences    = newVector();
+        r->replSeq      = NULL;
+        r->replsApplied = newVector();
         r->currSeqIndex = 0;
         r->currActIndex = 0;
         r->needsRecalc  = FALSE;	

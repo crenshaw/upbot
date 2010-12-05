@@ -90,6 +90,8 @@ typedef struct RouteStruct
                               // current sequence this contains the result
                               // (otherwise it is NULL) and currActIndex refers
                               // to this intead.
+    Vector* replsApplied;     // This is a vector of Replacements that have been
+                              // applied to the current sequence
     int currSeqIndex;         // The current sequence in this plan that is being executed
     int currActIndex;         // An index into the current sequence in this plan
                               // that indicates what action is currently being
