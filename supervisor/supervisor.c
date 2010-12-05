@@ -1870,6 +1870,11 @@ int chooseCommand_WithPlan()
     //of taking this action
     updatePlan(0);
 
+    //Before executing the next command in the plan, see if there is an existing
+    //replacement rule that the agent is confident enough to apply
+    
+    
+
     //return the command prescribed by the current action
     return nextStep->cmd;
 
@@ -2346,7 +2351,7 @@ int initRoute(Route* newRoute, Vector *startSeq)
     //start sequence.
     Action *act = (Action *)startSeq->array[0];
     int level = act->level;
-    assert(level+1 < MAX_LEVEL_DEPTH);
+    assert(level+1 < MAX_LEVEL_DEPTH); // can't build plan without level+1 actions
     
     // Iterate over each sequence at the given level looking for goal sequences
     // (Note: iteration is descending so as to give preference to the most
@@ -3199,6 +3204,7 @@ void initSupervisor()
     g_plan            = NULL;        // no plan can be made at this point
     g_connectToRoomba = 0;
     g_statsMode       = 0;           // no output optimization
+    g_selfConfidence  = INIT_SELF_CONFIDENCE;
 
     for(i = 0; i < MAX_LEVEL_DEPTH; i++)
     {
@@ -3446,76 +3452,85 @@ int interpretSensorsShort(int *sensors)
 }//interpretSensorsShort
 
 /**
- * findReplacements
+ * findBestReplacement
  *
- * Find replacements in g_replacements that could be applied to g_route at its
- * current point of execution. Replacements aren't applied, only enumerated.
+ * Find a replacements in g_replacements that could be applied to g_plan at its
+ * current point of execution. If there are multiple such replacements, the one
+ * wiht the highest confidence is returned.  The replacement isn't applied, only
+ * enumerated.
  *
  * CAVEAT: This function does not find replacements across adjacent sequences in
- *         g_plans.  This might be something to consider in the future.
+ *         g_plan.  This might be something to consider in the future.
  *
  * @return Vector* of possible replacements; NULL is returned if no replacements
  *                 were found.
  */
-Vector* findReplacements()
+Replacement* findBestReplacement()
 {
     // instance variables
-    Vector* replacements;        // holds replacements found
-    int     i, j;                // loop iterators
-    Route*  route;               // used in the loop to store the considered route
-    Action  *action1, *action2;  // points to two adjacent actions in a sequence
-                                 // to test their replacibility
-    Vector* original;            // a holder for original actions below to save
-                                 // ourselves from pointer-dereferencing Hell
-    int size;                    // holder for if statement below
-    
-    // initialize instance variables
-    replacements = newVector();
+    Replacement *result = NULL;  // this will hold the return value
+    int     i, j, k;             // loop iterators
+
+
+    assert(g_plan != NULL);
 
     // iterate through each level of replacements and routes, adding found
     // replacements to replacements as we go
-    for(i = 0; i < MAX_LEVEL_DEPTH; i++)
+    for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
     {
         // check that a plan exists at this level
-        if (g_plan->array[i] != NULL)
+        if (g_plan->array[i] == NULL) continue;
+
+        //If I'm currently applying some other replacement then I can't do
+        //another one right now.  (TODO: We could potentially allow this, just
+        //set currSeq = route->replSeq and plow onward.)
+        Route*  route   = (Route*)(g_plan->array[i]);
+        if (route->replSeq != NULL) return NULL;
+
+        // check to make sure that there are at least two actions left in the
+        // currently executing sequence in the route (otherwise there's not
+        // enough left to replace)
+        Vector *currSeq = ((Vector*)route->sequences->array[route->currSeqIndex]);
+        int size = currSeq->size;
+        if ( route->currActIndex + 1 >= size ) continue;
+
+        //Iterate over the replacement rules for this level in search of a match
+        Vector *replacements = (Vector*)g_replacements->array[i];
+        Replacement *match = NULL;
+        for (j = 0; j < replacements->size; j++)
         {
-	  // a plan exists at this level, so consider where we are currently
-	  // in this plan, and look for a valid replacement
-	  route   = (Route*)(g_plan->array[i]);
+            //Extract this Replacement to prep for the loop below
+            match = (Replacement*)replacements->array[j];
 
-	  // check to make sure that there are two actions left to test
-	  size = ((Vector*)((Vector*)(route->sequences)->array[route->currSeqIndex]))->size;
-	  if ( size > (route->currActIndex + 1) )
-	  {
-	      action1 = (Action*)((Vector*)((Vector*)(route->sequences)->array[route->currSeqIndex])->array[route->currActIndex]);
-	      action2 = (Action*)((Vector*)((Vector*)(route->sequences)->array[route->currSeqIndex])->array[route->currActIndex + 1]);
+            //Compare each action in the replacement rule to the corresponding
+            //action in the replacement rule.  Interrupt/abort on mismatch.
+            for(k = 0; k < match->original->size; k++)
+            {
+                Action *planAct = (Action*)currSeq->array[route->currActIndex + k];
+                Action *replAct = match->original->array[k];
+                if (planAct != replAct)
+                {
+                    match = NULL;
+                    break;
+                }
+            }
 
-	      // look for existing replacements that match the next two actions
-	      // iterate through the vector of replacements at this level
-	      for (j = 0; j < ((Vector*)(g_replacements->array[i]))->size; j++)
-	        {
-	          original = ((Replacement*)(((Vector*)(g_replacements->array[i]))->array[j]))->original;
-	          if (((Action*)original->array[0]) == action1
-		      && ((Action*)original->array[1]) == action2 )
-		    // then this sequence matches the replacement
-		    {
-		      addEntry(replacements, (Replacement*)(((Vector*)(g_replacements->array[i]))->array[j]));
-		    }
-	        }
-	  }
-	}
-    }
+            //If we found a match, then log it if it's the best match so far
+            if ( (match != NULL) && (match->confidence >= result->confidence) )
+            {
+                result = match;
+            }
+                                      
+        }//for
 
-    // if we didn't find any replacements, then we should free the vector
-    // allocated earlier
-    if (replacements->size == 0)
-    {
-        freeVector(replacements);
-        replacements = NULL;
-    }
-    
-    return replacements;
-}
+        //If a match has been found at this level then we're done
+        if (result != NULL) break;
+        
+    }//for (each level)
+
+    //If a match was never found, then result will still be NULL at this point
+    return result;
+}//findBestReplacement
 
 
 /**

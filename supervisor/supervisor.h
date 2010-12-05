@@ -34,14 +34,16 @@
 #define PLAN_ON_OUTCOME     4    // used by updatePlan
 
 // Matching defines
-#define NUM_TO_MATCH        (15)
-#define NUM_GOALS_TO_FIND   (50)
-#define DISCOUNT            (1.0)
-#define MAX_LEN_LHS         (1)
-#define MAX_LEVEL_DEPTH     (3)
-#define MAX_ROUTE_LEN       (15)
-#define MAX_CONFIDENCE      (1.0)
-#define MIN_CONFIDENCE      (0.0)
+#define NUM_TO_MATCH         (15)
+#define NUM_GOALS_TO_FIND    (50)
+#define DISCOUNT             (1.0)
+#define MAX_LEN_LHS          (1)
+#define MAX_LEVEL_DEPTH      (3)
+#define MAX_ROUTE_LEN        (15)
+#define MAX_CONFIDENCE       (1.0)
+#define MIN_CONFIDENCE       (0.0)
+#define INIT_SELF_CONFIDENCE (0.5)
+#define INIT_REPL_CONFIDENCE (0.05)
 
 // Collecting data for stats
 #define STATS_MODE		0
@@ -83,7 +85,11 @@ typedef struct RouteStruct
 {
     int level;                // The level of this route
     Vector* sequences;        // An ordered list of sequences that make up
-                              // this route  
+                              // this route
+    Vector* replSeq;          // If a replacement has been applied to the
+                              // current sequence this contains the result
+                              // (otherwise it is NULL) and currActIndex refers
+                              // to this intead.
     int currSeqIndex;         // The current sequence in this plan that is being executed
     int currActIndex;         // An index into the current sequence in this plan
                               // that indicates what action is currently being
@@ -104,12 +110,17 @@ typedef struct ReplacementStruct
 int g_connectToRoomba;
 int g_statsMode;
 
-// This vector will contain all episodes received from Roomba
+// These vectors contain the entire episodic memory
 Vector* g_epMem;
 Vector* g_actions;
 Vector* g_sequences;
-Vector* g_plan;         // a plan is a vector of N routes, 1 per level
-Vector* g_replacements; // list of all of our replacement "rules"
+
+
+//These variables have to do with creating and following plans
+Vector* g_plan;           // a plan is a vector of N routes, 1 per level
+Vector* g_replacements;   // list of all of our replacement "rules"
+double  g_selfConfidence; // how confident the agent is in its current plan
+
 
 // Function Prototypes
 extern char* interpretCommand(int cmd);
@@ -139,7 +150,7 @@ void         displaySequences(Vector* sequences);
 Vector*      doReplacement(Vector* seq, Replacement* r);
 void         endSupervisor();
 Vector*      findInterimStart();
-Vector*      findReplacements();
+Replacement* findBestReplacement();
 int          findTopMatch(double* scoreTable, double* indvScore, int command);
 void         freePlan(Vector *plan);
 void         freeRoute(Route *r);
