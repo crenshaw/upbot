@@ -2002,7 +2002,7 @@ int chooseCommand()
 
     //If the agent has taken a wrong step, then it loses confidence in itself
     //and in the recently applied replacements
-    if (! nextStepIsValid())
+    if ( (g_plan != NULL) && (! nextStepIsValid()) )
     {
         for(i = 0; i < MAX_LEVEL_DEPTH; i++)
         {
@@ -2012,7 +2012,21 @@ int chooseCommand()
                 penalizeReplacements(route);
             }
         }
-    }
+
+        //Since the plan has failed, create a new one
+        g_plan = initPlan();
+        
+#if DEBUGGING
+        if (g_plan != NULL)
+        {
+            printf("Replan:\n");
+            fflush(stdout);
+            displayPlan();
+            printf("\n");
+            fflush(stdout);
+        }
+#endif
+    }//if
 
     //If there still is no plan at this point then that means the agent doesn't
     //have enough experience yet.  Select a semi-random command that would
@@ -2403,6 +2417,10 @@ int sequenceLength(Vector *seq, int level)
  *
  * calculates the length of a route (counted as the number of level 0 actions in
  * all the sequences that make up the route.
+ *
+ * NOTE:  It's not only faster but maybe beneficial to just count the number of
+ * high level sequences to determine route length.  Simpler routes may be longer
+ * at first but more likely to distill into shorter plans in the long run?
  *
  * @arg r the route to calculate the length of
  *
@@ -3605,7 +3623,7 @@ Replacement* findBestReplacement()
                     match = NULL;
                     break;
                 }
-            }
+            }//for
 
             //If we found a match, then log it if it's the best match so far
             if ( (match != NULL) && (match->confidence >= result->confidence) )
@@ -3616,6 +3634,10 @@ Replacement* findBestReplacement()
         }//for
 
         //If a match has been found at this level then we're done
+        //(NOTE:  If we ever want to remove the preference for higher level
+        //replacement rules over lower ones, we can simply remove this
+        //if-statement and the routine will return the replacement with the
+        //highest confidence at any level.)
         if (result != NULL) break;
         
     }//for (each level)
