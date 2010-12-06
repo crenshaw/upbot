@@ -1916,6 +1916,64 @@ int updatePlan(int level)
 }//updatePlan
 
 /**
+ * makeNewReplacement
+ *
+ * this method examines the current plan and creates a new replacement rule at
+ * the lowest available level such that a) the rule would apply to the current
+ * position in the plan and b) the rule is not a duplicate of any existing one
+ * in g_replacements.
+ *
+ */
+Replacement *makeNewReplacement()
+{
+    //%%%TBD
+    return NULL;
+}//makeNewReplacement
+
+/**
+ * considerReplacement
+ * 
+ * See if there is a replacement rule that the agent is confident enough to
+ * apply to the current plan and apply it.
+ *
+ */
+void considerReplacement()
+{
+    /*----------------------------------------------------------------------
+     * Find a replacement that can be applied
+     *----------------------------------------------------------------------
+     */
+    //Retrieve the best matching replacement and see if its confidence is high
+    //enough that it can be applied
+    Replacement *repl = findBestReplacement();
+    if ( (repl == NULL)
+        || (g_selfConfidence < (1.0 - repl->confidence)) )
+    {
+        //No existing replacement will work, so see if my self confidence is
+        //high enough to try a new replacement
+        if ( g_selfConfidence >= (1.0 - INIT_REPL_CONFIDENCE))
+        {
+            repl = makeNewReplacement();
+            if (repl == NULL) return;
+            addEntry(g_replacements, repl); // add this new one to the list
+        }
+        else
+        {
+            //Agent can't do a replacement
+            return;
+        }
+    }//if
+
+    /*----------------------------------------------------------------------
+     * Apply the replacement (repl) to g_plan
+     *----------------------------------------------------------------------
+     */
+    //%%%
+    
+}//considerReplacement
+
+
+/**
  * chooseCommand_WithPlan
  *
  * This function increments to the next action in the current plan and extracts
@@ -1939,17 +1997,10 @@ int chooseCommand_WithPlan()
     //Get the level 0 route from from the plan
     Route* level0Route = (Route *)g_plan->array[0];
 
-    //Before executing the next command in the plan, see if there is an existing
-    //replacement rule that the agent is confident enough to apply
-
-    //%%%TBD
-    //%%%NOTE: This is somewhat tricky because if we apply a replacement at
-    //level 1 or higher then lower level plans will need to be updated.  The
-    //code to do that is currently buried in update plan and needs to be moved
-    //to a helper routine.  I'm also wondering if doReplacement() should be
-    //responsible for calling that helper routine.  Instead of applying a given
-    //replacement to a given sequence it instead applies a given replacement to
-    //a given plan.
+    //Before executing the next command in the plan, see if there is a
+    //replacement rule that the agent is confident enough to apply to the
+    //current plan and apply it.
+    considerReplacement();
 
     //Extract the current action
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
