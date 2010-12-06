@@ -1118,7 +1118,7 @@ int updateAll(int level)
 				currSequence->size = 0;
                 // this duplicate sequence becomes the next episode in the
                 // next level's episodic memory
-                if (level + 1 <= MAX_LEVEL_DEPTH)
+                if (level + 1 < MAX_LEVEL_DEPTH)
                 {
                     episodeList = g_epMem->array[level + 1];
                     addEntry(episodeList, duplicate);
@@ -1137,7 +1137,7 @@ int updateAll(int level)
                 // sequence from start to goal in the next level's epMem.
                 // This is becuase, even though it is a complete path, it was
                 // still an even in our past as thus in our episodic memeory
-                if ((level + 1 <= MAX_LEVEL_DEPTH)/* && (currSequence->size != 1)*/)
+                if ((level + 1 < MAX_LEVEL_DEPTH)/* && (currSequence->size != 1)*/)
                 {
 #if DEBUGGING
                     printf("Creating a new level %i episode with sequence: ", level + 1);
@@ -3328,12 +3328,6 @@ void initSupervisor()
         addEntry(g_sequences->array[i], newVector());
     }
 
-    // add our "Ghost Level" to the episodic memory
-    // this will be used for storing episodic memory views
-    // of MAX_LEVEL_DEPTH sequences
-    temp = newVector();
-    addEntry(g_epMem, temp);
-
     // seed rand (sow some wild oats)
     srand(time(NULL));
     
@@ -3426,11 +3420,6 @@ void endSupervisor()
         
     }//for
 
-
-    // before we free the global lists, free our "Ghost Level" in the
-    // episodic memory
-    freeVector((Vector*)g_epMem->array[MAX_LEVEL_DEPTH]);
-    
     //free the global list
     freeVector(g_epMem);
     freeVector(g_actions);
@@ -3768,7 +3757,12 @@ Vector* findInterimStart()
     
     currLevelEpMem = NULL;
     foundMatch = -1;
-    for(j = MAX_LEVEL_DEPTH - 1; j >= 0; j--)
+
+    // NOTE: We increased the decrement of MAX_LEVEL_DEPTH here to 2
+    // from 1 because we need the nth + 1 level's actions (where n is
+    // the level of our interim starting point) in order to
+    // find a start at a level where we can successfully make a plan
+    for(j = MAX_LEVEL_DEPTH - 2; j >= 0; j--)
     {
         currLevelEpMem = (Vector*)g_epMem->array[j];
         
@@ -3799,8 +3793,6 @@ Vector* findInterimStart()
     // ----------------------------------------------------------------
     
     // search the episodic memory where this sequence exists as an episode.
-    // this might be our "ghost" level of episodic memeory if the sequence was
-    // in the highest-level sequence list.
     n = 0;
     index = -1;
     j = 0;
