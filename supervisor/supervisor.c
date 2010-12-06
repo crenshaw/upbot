@@ -1671,36 +1671,69 @@ int nextStepIsValid()
  *
  * reviews all replacements that have been applied to a route and increases
  * their confidence so that its distance from 1.0 is half of what it was.
- * Overall confidence is also increased. The base formula is the same but the
- * overall increase in confidence is halved once for each level we are below the
- * highest level.
+ * Overall confidence is also increased. The base formula is the same as for
+ * replacement rules but the overall increase in confidence is halved once for
+ * each level we are below the highest level.
  *
  * NOTE:  If these calculations end up being expensive, we could switch to an
  * integer based confidence and use bit shift operations for division.
  * 
- * @arg level  the current level being updated
+ * @arg route  the route whose replacements are being updated
  */
-void rewardReplacements(Route *r)
+void rewardReplacements(Route *route)
 {
     int i;
 
     //Adjust replacement rule confidences
-    for(i = 0; i < r->replsApplied->size; i++)
+    for(i = 0; i < route->replsApplied->size; i++)
     {
-        Replacement *repl = (Replacement *)r->replsApplied->array[i];
+        Replacement *repl = (Replacement *)route->replsApplied->array[i];
         repl->confidence += (1.0 - repl->confidence) / 2.0;
         
     }//for
 
     //Adjust overall confidence
     double adjAmt = (1.0 - g_selfConfidence) / 2.0;
-    for(i = MAX_LEVEL_DEPTH - 1; i > r->level; i--)
+    for(i = MAX_LEVEL_DEPTH - 1; i > route->level; i--)
     {
         adjAmt /= 2.0;
     }
     g_selfConfidence += adjAmt;
     
 }//rewardReplacements
+
+/**
+ * penalizeReplacements
+ *
+ * reviews all replacements that have been applied to a route and halves their
+ * confidence.  Overall confidence is also increased. The base formula is to
+ * halve it also but only at the topmost level.  For each level below the top,
+ * the amount of decrease is half what it would be at the top level.  In other
+ * words, penalizeReplacments() has the exact opposite as rewardReplacements().
+ *
+ * @arg route  the route whose replacements are being updated
+ */
+void penalizeReplacements(Route *route)
+{
+    int i;
+
+    //Adjust replacement rule confidences
+    for(i = 0; i < route->replsApplied->size; i++)
+    {
+        Replacement *repl = (Replacement *)route->replsApplied->array[i];
+        repl->confidence = repl->confidence / 2.0;
+        
+    }//for
+
+    //Adjust overall confidence
+    double adjAmt = g_selfConfidence / 2.0;
+    for(i = MAX_LEVEL_DEPTH - 1; i > route->level; i--)
+    {
+        adjAmt /= 2.0;
+    }
+    g_selfConfidence -= adjAmt;
+    
+}//penalizeReplacements
 
 /**
  * updatePlan                              *RECURSIVE*
@@ -1820,7 +1853,7 @@ int updatePlan(int level)
         fflush(stdout);
 #endif
 
-        //De-increment the current action index so it refers to the last action
+        //Decrement the current action index so it refers to the last action
         //in the current sequence
         (route->currActIndex)--;
         
@@ -1906,6 +1939,18 @@ int chooseCommand_WithPlan()
     //Get the level 0 route from from the plan
     Route* level0Route = (Route *)g_plan->array[0];
 
+    //Before executing the next command in the plan, see if there is an existing
+    //replacement rule that the agent is confident enough to apply
+
+    //%%%TBD
+    //%%%NOTE: This is somewhat tricky because if we apply a replacement at
+    //level 1 or higher then lower level plans will need to be updated.  The
+    //code to do that is currently buried in update plan and needs to be moved
+    //to a helper routine.  I'm also wondering if doReplacement() should be
+    //responsible for calling that helper routine.  Instead of applying a given
+    //replacement to a given sequence it instead applies a given replacement to
+    //a given plan.
+
     //Extract the current action
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
     Action* currAction = currSequence->array[level0Route->currActIndex];
@@ -1915,9 +1960,6 @@ int chooseCommand_WithPlan()
     //of taking this action
     updatePlan(0);
 
-    //Before executing the next command in the plan, see if there is an existing
-    //replacement rule that the agent is confident enough to apply
-    
     
 
     //return the command prescribed by the current action
@@ -1934,18 +1976,15 @@ int chooseCommand_WithPlan()
  * plan as part of the command selection process.  If no plan exists, a random
  * command is selected.
  *
- * TODO: This code needs to be modified in the future to support a possibility
- *        of modifying the current plan with a replacement action before selecitn
- *        the next command in the plan.
- *
  * @return int the command that was chosen
  */
 int chooseCommand()
 {
+    int i;                      // iterator
+    
     //If the current plan is invalid then we first need to make a new plan
     if ( (g_plan == NULL)
-         || planNeedsRecalc(g_plan)
-         || (! nextStepIsValid()) )
+         || planNeedsRecalc(g_plan) )
     {
         g_plan = initPlan();
 #if DEBUGGING
@@ -1959,6 +1998,21 @@ int chooseCommand()
         }
 #endif
     }//if
+
+
+    //If the agent has taken a wrong step, then it loses confidence in itself
+    //and in the recently applied replacements
+    if (! nextStepIsValid())
+    {
+        for(i = 0; i < MAX_LEVEL_DEPTH; i++)
+        {
+            Route *route = (Route *)g_plan->array[i];
+            if ((route != NULL) && (route->replSeq != NULL))
+            {
+                penalizeReplacements(route);
+            }
+        }
+    }
 
     //If there still is no plan at this point then that means the agent doesn't
     //have enough experience yet.  Select a semi-random command that would
@@ -3531,7 +3585,7 @@ Replacement* findBestReplacement()
         if (g_plan->array[i] == NULL) continue;
 
         //If I'm currently applying some other replacement then I can't do
-        //another one right now.  (TODO: We could potentially allow this, just
+        //another one right now.  (NOTE: We could potentially allow this, just
         //set currSeq = route->replSeq and plow onward.)
         Route*  route   = (Route*)(g_plan->array[i]);
         if (route->replSeq != NULL) return NULL;
