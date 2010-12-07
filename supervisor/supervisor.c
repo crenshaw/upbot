@@ -1736,6 +1736,70 @@ void penalizeReplacements(Route *route)
 }//penalizeReplacements
 
 /**
+ * initRouteFromParent
+ *
+ * examines the parent route of a given level and based upon its current action
+ * creates a route the the given level containing the appropriate sequence.  The
+ * existing route at the given level is deallocated.
+ *
+ * CAVEAT:  Caller is responsible for guaranteeing that the parent route exists!
+ *
+ * CAVEAT:  This method assumes that the sequence at this level is not the very
+ * first sequence and, therefore, the first action in that sequence should be
+ * skipped since it was already performed as the last action of the previous
+ * sequence. 
+ *
+ * @arg level  the level that needs to be updated.
+ * @arg LHS    specifies whether the sequence should be extracted from the
+ *             left-hand-side (TRUE) or right-hand-side (FALSE) of the parent
+ *             action.  Usually you will want to set this to TRUE.
+ */
+void initRouteFromParent(int level, int LHS)
+{
+    assert(level + 1 < MAX_LEVEL_DEPTH);
+    
+    //Extract the current action from the parent route.  
+    Route *parentRoute = (Route *)g_plan->array[level + 1];
+    Vector *parentSeq = (Vector *)parentRoute->sequences->array[parentRoute->currSeqIndex];
+    Action *parentAct = (Action *)parentSeq->array[parentRoute->currActIndex];
+
+    //Get the correct episode from that action based on the LHS parameter.  In
+    //either case, it will always be a sequence since the parent action is at
+    //least a level 1 action
+    Vector *seq = NULL;
+    if (LHS)
+    {
+        seq = (Vector *)parentAct->epmem->array[parentAct->index];
+    }
+    else // retVal == PLAN_ON_OUTCOME
+    {
+        seq = (Vector *)parentAct->epmem->array[parentAct->outcome];
+    }
+        
+    //Ditch the old route at this level and create a new one based on the
+    //extracted sequence
+    Route *route = (Route *)g_plan->array[level];
+    if (route != NULL)
+    {
+        freeRoute(route);
+    }
+    route = (Route*)malloc(sizeof(Route));
+    route->sequences = newVector();
+    initRouteFromSequence(route, seq);
+    route->currActIndex = 1;    // skip overlapping first action (see CAVEAT above)
+    g_plan->array[level] = route;
+
+#if DEBUGGING
+    printf("Updated level %d route with help from parent at level %d\n",
+           level, level + 1);
+    printf("Updated route: ");
+    displayRoute(route, FALSE);
+    fflush(stdout);
+#endif
+    
+}//initRouteFromParent
+
+/**
  * updatePlan                              *RECURSIVE*
  *
  * This method is called whenever the agent completes a sequence in the level 0
@@ -1875,41 +1939,8 @@ int updatePlan(int level)
         return retVal;
     }
 
-    //Extract the current action from the newly updated parent route.  
-    Route *parentRoute = (Route *)g_plan->array[level + 1];
-    Vector *parentSeq = (Vector *)parentRoute->sequences->array[parentRoute->currSeqIndex];
-    Action *parentAct = (Action *)parentSeq->array[parentRoute->currActIndex];
-
-    //Get the correct episode from that action.  Depending upon the return value
-    //of the recursive call, this will either be the LHS or RHS of the action.
-    //In either case, it will always be a sequence since the parent action is at
-    //least a level 1 action
-    Vector *seq = NULL;
-    if (retVal == SUCCESS)
-    {
-        seq = (Vector *)parentAct->epmem->array[parentAct->index];
-    }
-    else // retVal == PLAN_ON_OUTCOME
-    {
-        seq = (Vector *)parentAct->epmem->array[parentAct->outcome];
-    }
-        
-    //Ditch the old route at this level and create a new one based on the
-    //extracted sequence
-    freeRoute(route);
-    route = (Route*)malloc(sizeof(Route));
-    route->sequences = newVector();
-    initRouteFromSequence(route, seq);
-    route->currActIndex = 1;    // skip overlapping first action
-    g_plan->array[level] = route;
-
-#if DEBUGGING
-    printf("Updated level %d route with help from parent at level %d\n",
-           level, level + 1);
-    printf("Updated route: ");
-    displayRoute(route, FALSE);
-    fflush(stdout);
-#endif
+    //Create a new route at this level based upon the newply updated parent rout
+    initRouteFromParent(level, retVal == SUCCESS);
 
     return SUCCESS;
 
@@ -1939,6 +1970,8 @@ Replacement *makeNewReplacement()
  */
 void considerReplacement()
 {
+    int i;                      // iterator
+    
     /*----------------------------------------------------------------------
      * Find a replacement that can be applied
      *----------------------------------------------------------------------
@@ -1959,7 +1992,7 @@ void considerReplacement()
         }
         else
         {
-            //Agent can't do a replacement
+            //Agent is not confident enough to do a replacement
             return;
         }
     }//if
@@ -1968,7 +2001,28 @@ void considerReplacement()
      * Apply the replacement (repl) to g_plan
      *----------------------------------------------------------------------
      */
-    //%%%
+    //Retrieve the route and sequence that will have the replacement applied to
+    //it.
+    Route* replRoute = (Route *)g_plan->array[repl->level];
+    Vector *currSequence = NULL;
+    if (replRoute->replSeq == NULL)
+    {
+        currSequence = (Vector *)replRoute->sequences->array[replRoute->currSeqIndex];
+    }
+    else
+    {
+        currSequence = replRoute->replSeq;
+    }
+
+    //Make the top level replacement
+    replRoute->replSeq = doReplacement(currSequence, repl);
+
+    //Now each lower level plan will need to be updated to reflect the
+    //replacement that has been made here
+    for(i = repl->level - 1; i >= 0; i--)
+    {
+        initRouteFromParent(i, TRUE);
+    }
     
 }//considerReplacement
 
@@ -2002,6 +2056,7 @@ int chooseCommand_WithPlan()
     //current plan and apply it.
     considerReplacement();
 
+
     //Extract the current action
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
     Action* currAction = currSequence->array[level0Route->currActIndex];
@@ -2010,8 +2065,6 @@ int chooseCommand_WithPlan()
     //move the "current action" pointer to the next action as a result
     //of taking this action
     updatePlan(0);
-
-    
 
     //return the command prescribed by the current action
     return nextStep->cmd;
@@ -3639,19 +3692,32 @@ Replacement* findBestReplacement()
     // replacements to replacements as we go
     for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
     {
-        // check that a plan exists at this level
-        if (g_plan->array[i] == NULL) continue;
+#if DEBUGGING
+    printf("for i = %d\n", i);
+    fflush(stdout);
+#endif
 
+        // check that a usable route exists at this level
+        if (g_plan->array[i] == NULL) continue;
+        Route*  route   = (Route*)(g_plan->array[i]);
+        if ((route == NULL)
+            || (route->needsRecalc)
+            || (route->sequences == NULL)
+            || (route->sequences->size == 0))
+        {
+            continue;
+        }
+        Vector *currSeq = ((Vector*)route->sequences->array[route->currSeqIndex]);
+        if (currSeq == NULL) continue;
+        
         //If I'm currently applying some other replacement then I can't do
         //another one right now.  (NOTE: We could potentially allow this, just
         //set currSeq = route->replSeq and plow onward.)
-        Route*  route   = (Route*)(g_plan->array[i]);
         if (route->replSeq != NULL) return NULL;
 
         // check to make sure that there are at least two actions left in the
         // currently executing sequence in the route (otherwise there's not
         // enough left to replace)
-        Vector *currSeq = ((Vector*)route->sequences->array[route->currSeqIndex]);
         int size = currSeq->size;
         if ( route->currActIndex + 1 >= size ) continue;
 
