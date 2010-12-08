@@ -1656,7 +1656,7 @@ int nextStepIsValid()
     if (g_plan == NULL) return FALSE;
     
     //Get the current action that we should have just executed if we followed
-    //the plan.  Note that "index-1" is used since the plan has already been updated.
+    //the plan.
     Route* level0Route = (Route *)g_plan->array[0];
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
     Action* currAction = currSequence->array[level0Route->currActIndex];
@@ -1665,8 +1665,9 @@ int nextStepIsValid()
     Vector *episodeList = g_epMem->array[0];
     Episode* currEp     = episodeList->array[episodeList->size - 1];
     
-    //compare the current sensing to the expected sensing from the current action
-    Episode* nextStep = currAction->epmem->array[currAction->index];
+    // compare the current sensing to the expected sensing from the
+    // completed action
+    Episode* nextStep = currAction->epmem->array[currAction->outcome];
 #if DEBUGGING
     fflush(stdout);
     printf("comparing the current sensing:");
@@ -2260,7 +2261,7 @@ int chooseCommand_WithPlan()
     //Before executing the next command in the plan, see if there is a
     //replacement rule that the agent is confident enough to apply to the
     //current plan and apply it.
-    considerReplacement();
+//    considerReplacement();
 
 
     //Extract the current action
