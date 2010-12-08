@@ -675,17 +675,32 @@ int updateAll(int level)
         return -3;
     }
 
+#if DEBUGGING
+    printf("foo0");
+    fflush(stdout);
+#endif
+    
     // Create pointers to the two associated vectors we'll be working with
     Vector* actionList = g_actions->array[level];
     Vector* episodeList = g_epMem->array[level];
     Vector* sequenceList = g_sequences->array[level];
 
+#if DEBUGGING
+    printf("foo1");
+    fflush(stdout);
+#endif
+    
     // You need a minimum of two episodes to make an action
     if(episodeList->size <= 1)
     {
         return -1;
     }
 
+#if DEBUGGING
+    printf("foo2");
+    fflush(stdout);
+#endif
+    
     // If the most recent complete episode was a goal then return.  We
     // don't want any goals on the LHS of any rule.
     if (episodeContainsGoal(episodeList->array[episodeList->size - 2], level))
@@ -693,6 +708,11 @@ int updateAll(int level)
         return -2;
     }
 
+#if DEBUGGING
+    printf("foo3");
+    fflush(stdout);
+#endif
+    
     // Create a candidate action from this current episode.  We won't add it to
     // the rule list if we later discover that an identical action already exists.
     Action* newAction          = (Action*) malloc(sizeof(Action));
@@ -1550,7 +1570,12 @@ void displayAction(Action* action)
     if (action->level == 0)
     {
         Vector* episodeList = (Vector*)g_epMem->array[0];
-        displayEpisodeShort((Episode*)episodeList->array[action->outcome]);
+        Episode *outcomeEp = (Episode*)episodeList->array[action->outcome];
+
+        printf("%i", interpretSensorsShort(outcomeEp->sensors));
+
+        //Remove this (used to be used but is confusing)
+        //displayEpisodeShort(outcomeEp);
     }
     else
     {
@@ -1664,8 +1689,7 @@ int nextStepIsValid()
     //If there is no plan then there is no next step
     if (g_plan == NULL) return FALSE;
     
-    //Get the current action that we should have just executed if we followed
-    //the plan.
+    //Get the current action that we are about to execute
     Route* level0Route = (Route *)g_plan->array[0];
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
     if (level0Route->replSeq != NULL)
@@ -1679,9 +1703,10 @@ int nextStepIsValid()
     Vector *episodeList = g_epMem->array[0];
     Episode* currEp     = episodeList->array[episodeList->size - 1];
     
-    // compare the current sensing to the expected sensing from the
-    // completed action
-    Episode* nextStep = currAction->epmem->array[currAction->outcome];
+    // compare the current sensing to the sensing on the LHS of the
+    // to-be-executed action
+    Episode* nextStep = currAction->epmem->array[currAction->index];
+    
 #if DEBUGGING
     fflush(stdout);
     printf("comparing the current sensing:");
@@ -1700,6 +1725,32 @@ int nextStepIsValid()
     return compareEpisodes(currEp, nextStep, FALSE);
     
 }//isNextStepValid
+
+/**
+ * resetReplacements
+ *
+ * this method removes any replacements currently in place on a particular route
+ *
+ * @arg route  the route to reset
+ */
+void resetReplacements(Route *route)
+{
+    if (route == NULL) return;
+
+    if (route->replSeq != NULL)
+    {
+        free(route->replSeq);
+        route->replSeq = NULL;
+        
+    }
+
+    if (route->replsApplied->size > 0)
+    {
+        freeVector(route->replsApplied);
+        route->replsApplied = newVector();
+    }
+
+}//resetReplacements
 
 /**
  * rewardReplacements
@@ -1935,6 +1986,7 @@ int updatePlan(int level)
     //Before we adjust the plan, reward any replacements that may be in place at
     //this level and adjust agent confidence
     rewardReplacements(route);
+    resetReplacements(route);
 
     
     //First, see if there is a next sequence at this level
@@ -2251,16 +2303,12 @@ void considerReplacement()
         displayReplacement(repl);
         fflush(stdout);
         printf("\n");
-        printf("Adjusted plan:\n");
-        fflush(stdout);
-        displayPlan();
-        printf("\n");
-        fflush(stdout);
 #endif
     
 
     //Make the top level replacement
     replRoute->replSeq = doReplacement(currSequence, repl);
+    addEntry(replRoute->replsApplied, repl);
 
     //Now each lower level plan will need to be updated to reflect the
     //replacement that has been made here
@@ -2268,6 +2316,14 @@ void considerReplacement()
     {
         initRouteFromParent(i, TRUE);
     }
+    
+#if DEBUGGING
+        printf("Adjusted plan:\n");
+        fflush(stdout);
+        displayPlan();
+        printf("\n");
+        fflush(stdout);
+#endif
     
 }//considerReplacement
 
@@ -2296,7 +2352,7 @@ int chooseCommand_WithPlan()
     //Before executing the next command in the plan, see if there is a
     //replacement rule that the agent is confident enough to apply to the
     //current plan and apply it.
-//    considerReplacement();
+    considerReplacement();
 
     //Get the level 0 route from from the plan
     Route* level0Route = (Route *)g_plan->array[0];
@@ -2357,16 +2413,22 @@ int chooseCommand()
     //and in the recently applied replacements
     if ( (g_plan != NULL) && (! nextStepIsValid()) )
     {
+#if DEBUGGING
+        printf("Current plan invalid.  Replanning...:\n");
+        fflush(stdout);
+#endif
         for(i = 0; i < MAX_LEVEL_DEPTH; i++)
         {
             Route *route = (Route *)g_plan->array[i];
             if (route != NULL)
             {
                 penalizeReplacements(route);
+                resetReplacements(route);
             }
         }
 
         //Since the plan has failed, create a new one
+        freePlan(g_plan);
         g_plan = initPlan();
         
 #if DEBUGGING
@@ -2430,7 +2492,7 @@ void displayRoute(Route *route, int recurse)
         Vector *seq = (Vector *)sequences->array[i];
 
         //Check for a replacement sequence
-        if ((route->currActIndex == i) && (route->replSeq != NULL))
+        if ((route->currSeqIndex == i) && (route->replSeq != NULL))
         {
             seq = route->replSeq;
         }
@@ -3061,280 +3123,6 @@ Vector* initPlan()
 
     return resultPlan;
 }// initPlan
-
-/**
- *OLD_initRoute
- *
- * This method uses Dijkstra's algorithm to find a shortest path from the
- * start state to the goal state at a given level.
- *
- * @arg level     is the level at which this route should exist
- * @arg newRoute  is the Route struct to populate with this new route.
- * 
- * @return a success/error code
- */
-int OLD_initRoute(int level, Route* newRoute)
-{
-    // instance variables
-    Vector* route;      // the ordered list of sequences stored as
-                        // int indices into actionList
-    int i,j;            // counting variable
-    Vector* sequences;  // pointer to sequences in level
-    Vector* candRoutes = newVector();  //candidate Route structs to return to caller
-
-    // check that the requested level exists
-    if (g_sequences->size < level) return LEVEL_NOT_POPULATED;
-
-    /*--------------------------------------------------------------------------
-     * Find all the sequences at the given level that contain a goal.  Create an
-     * incomplete route with each one that ends with this sequence
-     */
-    
-    // Iterate over each sequence at the given level
-    // (Note:  iteration is descending so as to give preference to the most
-    // recently added sequences)
-    sequences = g_sequences->array[level];
-    for (i = sequences->size-1; i >= 0; i--)
-    {
-        Vector *currSeq = (Vector*)sequences->array[i];
-
-        //If the sequence contains a goal, then create a partial route from it
-        //and add it to the candidates list
-        int actionIdx = getGoalAction(currSeq);
-        if (actionIdx >= 0)
-        {
-                //Create the route
-                Route *route = (Route*)malloc(sizeof(Route));
-                route->sequences = newVector();
-                initRouteFromSequence(route, currSeq);
-
-                //add to the candidates list
-                addEntry(candRoutes, route);
-
-        }//if
-    }//for
-
-    //Make sure that at least one candidate route was found
-    if (candRoutes->size == 0) return NO_GOAL_IN_LEVEL;
-
-    /*--------------------------------------------------------------------------
-     * Sort the candidate routes from shortest to longest (selection
-     * sort)
-     * NOTE:  Since the next section keeps adding more candidates and
-     * sorts them dynamically, this pre-sorting may be a waste of time?
-     */
-    for(i = 0; i < candRoutes->size-1; i++)
-    {
-        int indexOfSmallest = i;
-        int smallestLen = routeLength(((Route *)candRoutes->array[i]));
-        for(j = i+1; j < candRoutes->size; j++)
-        {
-            int len = routeLength(((Route*)candRoutes->array[j]));
-            if (len < smallestLen)
-            {
-                indexOfSmallest = j;
-                smallestLen = len;
-            }
-        }
-
-        //swap
-        void *temp = candRoutes->array[i];
-        candRoutes->array[i] = candRoutes->array[indexOfSmallest];
-        candRoutes->array[indexOfSmallest] = temp;
-    }//for
-
-#if DEBUGGING
-    //Print all the candidate routes
-    for(i = 0; i < candRoutes->size; i++)
-    {
-        Route *r = ((Route*)candRoutes->array[i]);
-        printf("cand route %d at %ld of size %d\n",
-               i, (long)candRoutes->array[i], routeLength(r));
-        displayRoute(r, TRUE);
-        fflush(stdout);
-    }
-#endif
-    
-    /*--------------------------------------------------------------------------
-     * Iterate over the candidate routes expanding them until the shortest
-     * route to the goal is found (Dijkstra's algorithm)
-     */
-    //Iterate over all candidate routes
-    //(Note: the size of the candRoutes vector will grow as the search continues)
-    int bSuccess = FALSE;
-    for(i = 0; i < candRoutes->size; i++)
-    {
-        //Find the shortest route that hasn't been examined yet
-        Route *route = (Route *)candRoutes->array[i];
-        int routeLen = routeLength(route);
-        int routePos = i;
-        for(j = i+1; j < candRoutes->size; j++)
-        {
-            Route *possiblyShorter = (Route *)candRoutes->array[j];
-            int psLen = routeLength(possiblyShorter);
-
-            //If a shorter one is found, update route, routeLen and routePos
-            if (psLen < routeLen)
-            {
-                route = possiblyShorter;
-                routeLen = psLen;
-                routePos = j;
-            }
-        }
-
-        //Move this shortest unexamined route to the current position in the
-        //candRoutes vector via a swap
-        if (routePos != i)
-        {
-            void *tmp = candRoutes->array[i];
-            candRoutes->array[i] = candRoutes->array[routePos];
-            candRoutes->array[routePos] = tmp;
-        }
-                
-#if DEBUGGING
-        printf("Examining candidate route %d:\n", i);
-        fflush(stdout);
-        displayRoute(route, FALSE);
-        fflush(stdout);
-#endif
-
-        //If the first sequence in this route contains a start state, we're
-        //done.  Copy the details of this route to the newRoute struct we were
-        //given and exit the loop.
-        Vector *firstSeq = (Vector *)route->sequences->array[0];
-        int actionIdx = getStartAction(firstSeq);
-        if (actionIdx >= 0)
-        {
-            newRoute->level = route->level;
-            newRoute->sequences = cloneVector(route->sequences);
-            newRoute->currSeqIndex = 0;
-            newRoute->currActIndex = 0;
-            newRoute->needsRecalc = FALSE;
-
-            bSuccess = TRUE;
-            break;
-        }//if
-
-        //Search all the sequences to find any that meet these criteria:
-        //1.  the last action in the sequence matches the first action of the first
-        //    sequence in the current candidate route.  (In other words, a
-        //    sequence that can extend that candidate route.)
-        //2.  the sequence is not already in the candidate route
-        Action *firstAction = (Action *)firstSeq->array[0];
-        for (i = 0; i < sequences->size; i++)
-        {
-            Vector *currSeq = (Vector*)sequences->array[i];
-
-            //If this sequence can't extend the candidate route then skip ite
-            Action *lastAction = (Action *)currSeq->array[currSeq->size-1];
-            if (lastAction != firstAction) continue;
-            
-            //Verify this sequence hasn't been used already (equivalent of "node
-            //already visited" in Dijkstra's formal algorithm)
-            if (findEntry(route->sequences, currSeq)) continue;
-
-            //If we've reached this point, then we can create a new candidate
-            //route that is an extension of the first one
-            Route *newCand = (Route*)malloc(sizeof(Route));
-            newCand->sequences = newVector();
-            initRouteFromSequence(newCand, currSeq);
-            addVector(newCand->sequences, route->sequences);
-            
-            //Add this new candidate route to the candRoutes array
-            addEntry(candRoutes, newCand);
-        }//for
-        
-    }//for
-
-    //Clean up the RAM in the candRoutes list
-    for(i = 0; i < candRoutes->size; i++)
-    {
-        Route *route = (Route *)candRoutes->array[i];
-        freeVector(route->sequences);
-        free(route);
-    }
-    freeVector(candRoutes);
-
-    if (bSuccess) return SUCCESS;
-
-    return PLAN_NOT_FOUND;
-}//OLD_initRoute
-
-/**
- * OLD_initPlan
- *
- * this method creates a plan for reaching the goal state from the starting
- * state.  A plan is a vector of routes (one per level)
- * 
- * @return a pointer to the plan or NULL if no plan was found
- */
-Vector* OLD_initPlan()
-{
-    int i;                      // iterator
-
-    //find out what the highest level is that has any sequences
-    int level = 0;
-    for(i = MAX_LEVEL_DEPTH-1; i > 0; i--)
-    {
-        Vector *seqList = (Vector *)g_sequences->array[i];
-        if (seqList->size > 1)
-        {
-            level = i;
-            break;
-        }
-    }//for
-
-
-    //If there are no sequences above level 0, we can't make a plan
-    if (level == 0)
-    {
-        return NULL;
-    }
-
-    //Initialize an empty plan.  This will eventually be our return value.
-    Vector *resultPlan = newPlan();
-
-    //Try to initialize the route at the current level
-    int retVal = OLD_initRoute(level, (Route *)resultPlan->array[level]);
-    if (retVal != SUCCESS)
-    {
-        //Give up if no route can be found
-        freePlan(resultPlan);
-        return NULL;
-    }
-
-#if DEBUGGING
-        printf("Success: found route to goal at level: %d.\n", level);
-        fflush(stdout);
-        displayRoute((Route *)resultPlan->array[level], TRUE);
-        printf("\n");
-        fflush(stdout);
-#endif
-
-    //Initialize the route at subsequent levels.  Each route is based on the
-    //current sequence in the route at the previous level
-    for(i = level - 1; i >= 0; i--)
-    {
-        //Get the first sequence in the previous level's route
-        Route *parentRoute = (Route *)resultPlan->array[i+1];
-        Vector *parentSeq = (Vector *)parentRoute->sequences->array[0];
-
-        //Get the first action from that sequence
-        Action *parentAct = (Action *)parentSeq->array[0];
-
-        //Get the first episode from that action.  Since the parent action is at
-        //least a level 1 action, this episode will always be a sequence
-        //(Vector*) whose level is the current level.
-        Vector *seq = (Vector *)parentAct->epmem->array[parentAct->index];
-        
-        //initialize this route with the extracted sequence
-        Route *currRoute = (Route *)resultPlan->array[i];
-        initRouteFromSequence(currRoute, seq);
-    }//for
-
-
-    return resultPlan;
-}// OLD_initPlan
 
 /**
  * newPlan()
@@ -4073,13 +3861,12 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
     // iterate through original vector, adding elements to
     // withReplacement not applicable to replacement and substituting
     // replacements where appropriate
-    for(i = 0; i < sequence->size; i++)
+    for(i = 0; i < sequence->size - 1; i++)
     {
         // if the next two actions in sequence match the original
         // actions in replacement, then substitute the replacement
-        if (i+1 < sequence->size // check to make sure we don't run off the end
-            && sequence->array[i] == replacement->original->array[i]
-            && sequence->array[i+1] == replacement->original->array[i+1])
+        if (sequence->array[i] == replacement->original->array[0]
+            && sequence->array[i+1] == replacement->original->array[1])
         {
             addActionToSequence(withReplacement, replacement->replacement);
             i++;  // increment an extra space so we skip over these two when the
@@ -4090,7 +3877,7 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
             addActionToSequence(withReplacement, (Action*)sequence->array[i]);
         }
     }
-    
+
     return withReplacement;
 }//doReplacement
 
