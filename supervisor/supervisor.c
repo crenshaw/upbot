@@ -1468,6 +1468,27 @@ void displaySequences(Vector* sequences)
 }//displaySequences
 
 /**
+ * displayReplacement
+ *
+ * prints a human-readable version of a Replacement to stdout
+ *
+ * @arg repl  replacement to display
+ */
+void displayReplacement(Replacement *repl)
+{
+    if (repl == NULL)
+    {
+        printf("{ <null replacement> }");
+        return;
+    }
+
+    displaySequenceShort(repl->original);
+    printf("==>");
+    displayAction(repl->replacement);
+    
+}//displayReplacement
+
+/**
  * displayAction                        *RECURSIVE*
  *
  * prints a human-readable version of an action.  If the action is a
@@ -1689,6 +1710,17 @@ void rewardReplacements(Route *route)
         Replacement *repl = (Replacement *)route->replsApplied->array[i];
         repl->confidence += (1.0 - repl->confidence) / 2.0;
         
+#if DEBUGGING
+        printf("Replacement succeeded:  ");
+        displayReplacement(repl);
+        fflush(stdout);
+        Vector *seq = (Vector *)route->sequences->array[route->currSeqIndex];
+        printf("\n    on sequence: ");
+        displaySequenceShort(seq);
+        printf("\n");
+        fflush(stdout);
+#endif
+
     }//for
 
     //Adjust overall confidence
@@ -1722,6 +1754,17 @@ void penalizeReplacements(Route *route)
         Replacement *repl = (Replacement *)route->replsApplied->array[i];
         repl->confidence = repl->confidence / 2.0;
         
+#if DEBUGGING
+        printf("Replacement failed:  ");
+        displayReplacement(repl);
+        fflush(stdout);
+        Vector *seq = (Vector *)route->sequences->array[route->currSeqIndex];
+        printf("\n    on sequence: ");
+        displaySequenceShort(seq);
+        printf("\n");
+        fflush(stdout);
+#endif
+
     }//for
 
     //Adjust overall confidence
