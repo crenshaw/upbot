@@ -685,9 +685,8 @@ int updateAll(int level)
         return -2;
     }
 
-    // Create a candidate rule that we would create from this current
-    // episode.  We won't add it to the rule list if an identical rule
-    // already exists.
+    // Create a candidate action from this current episode.  We won't add it to
+    // the rule list if we later discover that an identical action already exists.
     Action* newAction          = (Action*) malloc(sizeof(Action));
     newAction->level           = level;
     newAction->epmem           = episodeList;
@@ -1947,6 +1946,62 @@ int updatePlan(int level)
 }//updatePlan
 
 /**
+* compareReplacements
+*
+* Compare two distinct replacements and return TRUE if they are equivalent
+*
+* @arg repl1   replacement to compare 
+* @arg repl2   replacement to compare
+*
+* @return TRUE if they are a match
+*/
+int compareReplacements(Replacement* repl1, Replacement* repl2)
+{
+    if (! compareSequences(repl1->original, repl2->original))
+    {
+        return FALSE;
+    }
+
+    return compareActions(repl1->replacement, repl2->replacement);
+    
+}//compareReplacements
+
+/**
+ * replacementExists
+ *
+ * searches g_replacements to see if the equivalent of a given replacement is
+ * already present.
+ *
+ * CAVEAT:  Caller is responsible for providing a valid replacement
+ *
+ * @arg repl  the replacement to search for
+ *
+ * @return TRUE if the equivalent is present and FALSE otherwise
+ */
+int replacementExists(Replacement *repl)
+{
+    int i;
+
+    //get the vector associated with this relpacement's level
+    Vector *replacements = (Vector *)g_replacements->array[repl->level];
+
+    //Iterate through the list looking for matches
+    for(i = 0; i < replacements->size; i++)
+    {
+        Replacement *currRepl = (Replacement *)replacements->array[i];
+
+        if (compareReplacements(currRepl, repl))
+        {
+            return TRUE;
+        }
+        
+    }//for
+
+    return FALSE;
+    
+}//replacementExists
+
+/**
  * makeNewReplacement
  *
  * this method examines the current plan and creates a new replacement rule at
@@ -1954,11 +2009,119 @@ int updatePlan(int level)
  * position in the plan and b) the rule is not a duplicate of any existing one
  * in g_replacements.
  *
+ * CAVEAT:  Caller is responsible for guaranteeing that g_plan is valid
+ * CAVEAT:  Caller is responsible for deallocating the returned value.
+ *
+ * @return a new Replacement struct (or NULL if something goes wrong)
+ *
  */
 Replacement *makeNewReplacement()
 {
-    //%%%TBD
-    return NULL;
+    int i,j;                    // iterators
+
+    //This will eventually be our return value 
+    Replacement *result = malloc(sizeof(Replacement));
+    result->confidence  = INIT_REPL_CONFIDENCE;
+
+    //Search all levels starting at the bottom
+    for(i = 0; i < MAX_LEVEL_DEPTH; i++)
+    {
+        //Make sure it's even worth searching
+        if (! replacementPossible(i)) continue;
+
+        //Extract the current sequence from the route at this level
+        Route*  route   = (Route*)(g_plan->array[i]);
+        Vector *currSeq = ((Vector*)route->sequences->array[route->currSeqIndex]);
+
+        //Extract the next two actions from the current sequence
+        Action *act1 = (Action*)currSeq->array[route->currActIndex];
+        Action *act2 = (Action*)currSeq->array[route->currActIndex + 1];
+
+        //Preinit the return value
+        result->level = i;
+        result->original    = newVector();
+        addEntry(result->original, act1);
+        addEntry(result->original, act2);
+
+        //Pick a random starting position in actions list for this level. NOTE:
+        //We start the search in a random position so that the agent won't
+        //always default to the lowest numbered command.
+        Vector *actList = (Vector *)g_actions->array[i];
+        int start = (rand() % actList->size); // random start
+
+        //Starting at the random start position, try all possible actions until
+        //we find one that creates a new, unique replacement
+        for(j = 0; j < actList->size; j++)
+        {
+            //Retrieve the candidate action
+            int index = (start + j) % actList->size;
+            Action *candAct = actList->array[index];
+
+            //See if the candidate is compatible with these to-be-replaced
+            //actions.  This comparision is done differently at level 0 than
+            //other levels
+            if (i == 0)         // level 0
+            {
+                //The LHS sensors of candidate must match the LHS sensors of
+                //act1
+                Episode *candLHS = (Episode *)candAct->epmem->array[candAct->index];
+                Episode *act1LHS = (Episode *)act1->epmem->array[act1->index];
+                if (! compareEpisodes(candLHS, act1LHS, FALSE))
+                {
+                    continue;   // bad match, try a different candidate
+                }
+
+                //the RHS sensors of the candidate must match the RHS sensors of
+                //act2.
+                Episode *candRHS = (Episode *)candAct->epmem->array[candAct->outcome];
+                Episode *act2RHS = (Episode *)act2->epmem->array[act2->outcome];
+                if (! compareEpisodes(candRHS, act2RHS, FALSE))
+                {
+                    continue;   // bad match, try a different candidate
+                }
+            }//if
+            else                // level 1 or higher
+            {
+                //The first action of the LHS subsequence must match
+                Vector *candLHS = (Vector *)candAct->epmem->array[candAct->index];
+                Vector *act1LHS = (Vector *)act1->epmem->array[act1->index];
+                Action *candLHSSubAct = (Action *)candLHS->array[0];
+                Action *act1LHSSubAct = (Action *)act1LHS->array[0];
+                if (candLHSSubAct != act1LHSSubAct)
+                {
+                    continue;   // bad match, try a different candidate
+                }
+
+                //the last action of the RHS subsequence must match
+                Vector *candRHS = (Vector *)candAct->epmem->array[candAct->outcome];
+                Vector *act2RHS = (Vector *)act2->epmem->array[act2->outcome];
+                Action *candRHSSubAct = (Action *)candRHS->array[candRHS->size - 1];
+                Action *act2RHSSubAct = (Action *)act2RHS->array[act2RHS->size - 1];
+                if (candRHSSubAct != act2RHSSubAct)
+                {
+                    continue;   // bad match, try a different candidate
+                }
+
+            }//else
+
+            //If we reach this point then the candidate is compatible.  Fill in
+            //the replacement with it and see if that yields a duplicate
+            result->replacement = candAct;
+            if (replacementExists(result))
+            {
+                continue;
+            }
+
+            //All checks passed. Success!
+            return result;
+
+        }//for
+            
+    }//for
+
+    // No new replacement possible?!?  This should never be reached.
+    free(result);
+    return NULL;                
 }//makeNewReplacement
 
 /**
@@ -2712,30 +2875,12 @@ int initRoute(Route* newRoute, Vector *startSeq)
             initRouteFromSequence(newCand, lhsSeq);
             addVector(newCand->sequences, route->sequences);
 
-#ifdef DEBUGGING //%%%DELETE THIS
-            printf("Creating new candidate route (level %d):", level);
-            int k;
-            for(k = 0; k < newCand->sequences->size; k++)
-            {
-                Vector *seq = (Vector *)newCand->sequences->array[k];
-                int index = findEntry(sequences, seq);
-                printf("%d>", index);
-                fflush(stdout);
-            }
-            printf("\n");
-            fflush(stdout);
-#endif
-            
             //Add this new candidate route to the candRoutes array
             addEntry(candRoutes, newCand);
         }//for
         
     }//for
     
-#ifdef DEBUGGING
-            printf("\n");
-#endif
-
     //Clean up the RAM in the candRoutes list
     for(i = 0; i < candRoutes->size; i++)
     {
@@ -3667,6 +3812,52 @@ int interpretSensorsShort(int *sensors)
 }//interpretSensorsShort
 
 /**
+ * replacementPossible
+ *
+ * Examines g_plan to determine whether a replacement is possible at this time
+ * at a given level
+ *
+ * @arg level the level to check
+ *
+ * @return TRUE if it's possible and FALSE otherwise
+ */
+int replacementPossible(int level)
+{
+    if (g_plan == NULL) return FALSE;
+    
+    // check that a route exists at this level
+    if (g_plan->array[level] == NULL) return FALSE;
+
+    //Verify the route is valid
+    Route*  route   = (Route*)(g_plan->array[level]);
+    if ((route == NULL)
+        || (route->needsRecalc)
+        || (route->sequences == NULL)
+        || (route->sequences->size == 0))
+    {
+        return FALSE;
+    }
+
+    //Verify that the current sequence exists
+    Vector *currSeq = ((Vector*)route->sequences->array[route->currSeqIndex]);
+    if (currSeq == NULL) return FALSE;
+        
+    //If I'm currently applying some other replacement then I can't do
+    //another one right now.  (NOTE: We could potentially allow this, just
+    //set currSeq = route->replSeq and plow onward.)
+    if (route->replSeq != NULL) return FALSE;
+
+    // check to make sure that there are at least two actions left in the
+    // currently executing sequence in the route (otherwise there's not
+    // enough left to replace)
+    if ( route->currActIndex + 1 >= currSeq->size ) return FALSE;
+
+    //all checks passed
+    return TRUE;
+
+}//replacementPossible
+
+/**
  * findBestReplacement
  *
  * Find a replacements in g_replacements that could be applied to g_plan at its
@@ -3692,34 +3883,12 @@ Replacement* findBestReplacement()
     // replacements to replacements as we go
     for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
     {
-#if DEBUGGING
-    printf("for i = %d\n", i);
-    fflush(stdout);
-#endif
+        //Make sure it's even worth searching
+        if (! replacementPossible(i)) continue;
 
-        // check that a usable route exists at this level
-        if (g_plan->array[i] == NULL) continue;
+        //Extract the current sequence from the route at this level
         Route*  route   = (Route*)(g_plan->array[i]);
-        if ((route == NULL)
-            || (route->needsRecalc)
-            || (route->sequences == NULL)
-            || (route->sequences->size == 0))
-        {
-            continue;
-        }
         Vector *currSeq = ((Vector*)route->sequences->array[route->currSeqIndex]);
-        if (currSeq == NULL) continue;
-        
-        //If I'm currently applying some other replacement then I can't do
-        //another one right now.  (NOTE: We could potentially allow this, just
-        //set currSeq = route->replSeq and plow onward.)
-        if (route->replSeq != NULL) return NULL;
-
-        // check to make sure that there are at least two actions left in the
-        // currently executing sequence in the route (otherwise there's not
-        // enough left to replace)
-        int size = currSeq->size;
-        if ( route->currActIndex + 1 >= size ) continue;
 
         //Iterate over the replacement rules for this level in search of a match
         Vector *replacements = (Vector*)g_replacements->array[i];
@@ -3817,51 +3986,6 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
     
     return withReplacement;
 }//doReplacement
-
-/**
- * newReplacement
- *
- * Allocates the necessary memory and initializes the fields of a
- * Replacement
- *
- * CAVEAT: This function requires (albeit only for the assertion
- * contained) that a Replacement replace exactly two Actions.
- *
- * SPACE NOTE: If we stick with a replacement replacing exactly 2 Actions,
- * the originalActions parameter could be changed to a pointer to two
- * sequential actions (assuming the two actions are always adjacent)
- * and remove the requirement of allocated a new Vector to hold the
- * original Actions to be replaced.
- *
- * @arg level             the level at which this replacement is being constructed
- * @arg originalActions   vector of 2 actions to be placed by replacement
- * @arg replacementAciton the action to be substituted
- * @arg confidenceLevel   our initial confidence in this replacement
- * @return a pointer to the new replacemet
- */
-Replacement* newReplacement(int replLevel, Vector* originalActions,
-                            Action* replacementAction, double confidenceLevel)
-{
-    // instance variables
-    Replacement* replacement;
-
-    // check the input values (for now) to be sure they make sense
-    assert(replLevel <= MAX_LEVEL_DEPTH);
-    assert(confidenceLevel < MAX_CONFIDENCE
-           && confidenceLevel > MIN_CONFIDENCE);
-    assert(originalActions->size == 2);
-
-    // initialize instance variables
-    replacement = malloc(sizeof(Replacement));
-
-    // initialize Replacement fields
-    replacement->level       = replLevel;
-    replacement->original    = originalActions;
-    replacement->replacement = replacementAction;
-    replacement->confidence  = confidenceLevel;
-    
-    return replacement;
-}//newReplacement
 
 /**
  * findInterimStart
