@@ -419,7 +419,7 @@ void replanTest()
 
     printf("\t\t\t\t\t\t\tBEGIN REPLANTEST\n");
 
-    for (i = 0; i < 205; i++)
+    for (i = 0; i < 214; i++)
     {
         // Create new Episode
         printf("Creating and adding episode...\n");
@@ -451,6 +451,7 @@ void replanTest()
             {
                 printf("ERROR:  plan failed at step %d\n", i);
                 exit(-1);
+
             }
         }
 
@@ -1658,8 +1659,19 @@ int nextStepIsValid()
     //Get the current action that we should have just executed if we followed
     //the plan.
     Route* level0Route = (Route *)g_plan->array[0];
+
+    // if this is a brand new route, then the next step is always valid
+    if (level0Route->currActIndex == 0 && level0Route->currSeqIndex == 0)
+    {
+        return TRUE;
+    }//if
+    
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
     Action* currAction = currSequence->array[level0Route->currActIndex];
+    
+    printf("Current Action at index %d of sequence at index %d", level0Route->currActIndex, level0Route->currSeqIndex);
+    displayAction(currAction);
+    printf("\n");
 
     //Get the current sensing from the episode list
     Vector *episodeList = g_epMem->array[0];
@@ -1667,7 +1679,7 @@ int nextStepIsValid()
     
     // compare the current sensing to the expected sensing from the
     // completed action
-    Episode* nextStep = currAction->epmem->array[currAction->outcome];
+    Episode* nextStep = currAction->epmem->array[currAction->index];
 #if DEBUGGING
     fflush(stdout);
     printf("comparing the current sensing:");
