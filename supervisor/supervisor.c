@@ -1515,6 +1515,7 @@ void displayReplacement(Replacement *repl)
     displaySequence(repl->original);
     printf("==>");
     displayAction(repl->replacement);
+    printf(" (conf=%g)", repl->confidence);
     
 }//displayReplacement
 
@@ -1801,6 +1802,11 @@ void rewardReplacements(Route *route)
 
     }//for
 
+#if DEBUGGING
+        printf("Overall confidence increased from %g to ", g_selfConfidence);
+        fflush(stdout);
+#endif
+        
     //Adjust overall confidence
     double adjAmt = (1.0 - g_selfConfidence) / 2.0;
     for(i = MAX_LEVEL_DEPTH - 1; i > route->level; i--)
@@ -1809,6 +1815,11 @@ void rewardReplacements(Route *route)
     }
     g_selfConfidence += adjAmt;
     
+#if DEBUGGING
+        printf("%g\n", g_selfConfidence);
+        fflush(stdout);
+#endif
+
 }//rewardReplacements
 
 /**
@@ -3873,12 +3884,13 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
     // iterate through original vector, adding elements to
     // withReplacement not applicable to replacement and substituting
     // replacements where appropriate
-    for(i = 0; i < sequence->size - 1; i++)
+    for(i = 0; i < sequence->size; i++)
     {
         // if the next two actions in sequence match the original
         // actions in replacement, then substitute the replacement
-        if (sequence->array[i] == replacement->original->array[0]
-            && sequence->array[i+1] == replacement->original->array[1])
+        if ( (i < sequence->size - 1)
+             && (sequence->array[i] == replacement->original->array[0])
+             && (sequence->array[i+1] == replacement->original->array[1]) )
         {
             addActionToSequence(withReplacement, replacement->replacement);
             i++;  // increment an extra space so we skip over these two when the
@@ -3888,7 +3900,18 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
         {   // just add the next action in sequence to withReplacement
             addActionToSequence(withReplacement, (Action*)sequence->array[i]);
         }
-    }
+    }//for
+
+
+#if DEBUGGING
+    printf("performed replacement: ");
+    displayReplacement(replacement);
+    printf("\n\tbefore: ");
+    displaySequence(sequence);
+    printf("\n\tafter: ");
+    displaySequence(withReplacement);
+    printf("\n");
+#endif
 
     return withReplacement;
 }//doReplacement
