@@ -89,13 +89,7 @@ typedef struct RouteStruct
     Vector* replSeq;          // If a replacement has been applied to the
                               // current sequence this contains the result
                               // (otherwise it is NULL) and currActIndex refers
-                              // to this intead.
-    Vector* replsApplied;     // This is a vector of Replacements that have been
-                              // applied to the current sequence
-    Vector* replsOnTrial;     // These are the Replacement structs that were
-                              // used in the previous route at this level.
-                              // Maintained here so they can be
-                              // penalized/rewarded. (Can be a NULL pointer)
+                              // to this instead.
     int currSeqIndex;         // The current sequence in this plan that is being executed
     int currActIndex;         // An index into the current sequence in this plan
                               // that indicates what action is currently being
@@ -126,6 +120,8 @@ Vector* g_sequences;
 Vector* g_plan;           // a plan is a vector of N routes, 1 per level
 Vector* g_replacements;   // list of all of our replacement "rules"
 double  g_selfConfidence; // how confident the agent is in its current plan
+Vector* g_activeRepls;    // these are replacements that have recently been
+                          // applied and are awaiting reward/punishment
 
 
 // Function Prototypes
