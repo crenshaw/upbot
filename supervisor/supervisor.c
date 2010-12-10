@@ -19,7 +19,7 @@
  * 4.  freePlan() is not being called when an existing plan is being replaced
  * 5.  It would be less cumbersome and less error prone if we literally did
  *     replace the appropriate sequence in a route when we do a replacement. 
- *     The replSeq pointer is still needed for cleanup in this case.
+ *     The replSeq pointer would no longer be necessary.
  */
 
 /*
@@ -2257,7 +2257,10 @@ void considerReplacement()
         {
             repl = makeNewReplacement();
             if (repl == NULL) return;
-            addEntry(g_replacements, repl); // add this new one to the list
+
+            // add this new one to the list
+            Vector *replList = (Vector *)g_replacements->array[repl->level];
+            addEntry(replList, repl); 
         }
         else
         {
@@ -3782,6 +3785,11 @@ Replacement* findBestReplacement()
 
     assert(g_plan != NULL);
 
+#ifdef DEBUGGING
+    printf("Searching existing replacements...\n");
+    fflush(stdout);
+#endif
+                
     // iterate through each level of replacements and routes, adding found
     // replacements to replacements as we go
     for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
@@ -3789,6 +3797,11 @@ Replacement* findBestReplacement()
         //Make sure it's even worth searching
         if (! replacementPossible(i)) continue;
 
+#ifdef DEBUGGING
+    printf("\treplacement possible...\n");
+    fflush(stdout);
+#endif
+                
         //Extract the current sequence from the route at this level
         Route*  route   = (Route*)(g_plan->array[i]);
         Vector *currSeq = ((Vector*)route->sequences->array[route->currSeqIndex]);
@@ -3817,11 +3830,25 @@ Replacement* findBestReplacement()
                     match = NULL;
                     break;
                 }
+                
             }//for
 
-            //If we found a match, then log it if it's the best match so far
-            if ( (match != NULL) && (match->confidence >= result->confidence) )
+#ifdef DEBUGGING
+            if (match != NULL)
             {
+                printf("\t\tpromising replacement: ");
+                displayReplacement(match);
+                printf("\n");
+                fflush(stdout);
+            }
+#endif
+    
+            //If we found a match, then log it if it's the best match so far
+            if ( (match != NULL)
+                && ((result == NULL)
+                    || (match->confidence >= result->confidence)) )
+            {
+
                 result = match;
             }
                                       
@@ -3836,6 +3863,13 @@ Replacement* findBestReplacement()
         
     }//for (each level)
 
+#ifdef DEBUGGING
+    printf("\tbest match: ");
+    displayReplacement(result);
+    printf("\n");
+    fflush(stdout);
+#endif
+    
     //If a match was never found, then result will still be NULL at this point
     return result;
 }//findBestReplacement
