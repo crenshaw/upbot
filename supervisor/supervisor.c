@@ -487,6 +487,7 @@ int tick(char* sensorInput)
     // Create new Episode
 #if DEBUGGING
     printf("Creating and adding episode...");
+    fflush(stdout);
 #endif
     Episode* ep = createEpisode(sensorInput);
 
@@ -496,6 +497,7 @@ int tick(char* sensorInput)
 	updateAll(0);
 #if DEBUGGING
     printf("updateAll complete\n");
+    fflush(stdout);
 #endif
 
     
@@ -526,6 +528,7 @@ int tick(char* sensorInput)
     {
         displayEpisode(ep);
     }
+    fflush(stdout);
 #endif
 
     return ep->cmd;
@@ -1740,32 +1743,6 @@ int nextStepIsValid()
 }//nextStepIsValid
 
 /**
- * resetReplacements
- *
- * this method removes any replacements currently in place on a particular route
- *
- * @arg route  the route to reset
- */
-void resetReplacements(Route *route)
-{
-    if (route == NULL) return;
-
-    if (route->replSeq != NULL)
-    {
-        free(route->replSeq);
-        route->replSeq = NULL;
-        
-    }
-
-    if (route->replsApplied->size > 0)
-    {
-        freeVector(route->replsApplied);
-        route->replsApplied = newVector();
-    }
-
-}//resetReplacements
-
-/**
  * rewardReplacements
  *
  * reviews all replacements that have been applied to a route and increases
@@ -1783,31 +1760,39 @@ void rewardReplacements(Route *route)
 {
     int i;
 
-    //Adjust replacement rule confidences
-    for(i = 0; i < route->replsApplied->size; i++)
+    //Adjust replacement rule confidences (if any)
+    if (route->replsOnTrial != NULL)
     {
-        Replacement *repl = (Replacement *)route->replsApplied->array[i];
-        repl->confidence += (1.0 - repl->confidence) / 2.0;
+        for(i = 0; i < route->replsOnTrial->size; i++)
+        {
+            Replacement *repl = (Replacement *)route->replsOnTrial->array[i];
+            repl->confidence += (1.0 - repl->confidence) / 2.0;
         
 #if DEBUGGING
-        printf("Replacement succeeded:  ");
-        displayReplacement(repl);
-        fflush(stdout);
-        Vector *seq = (Vector *)route->sequences->array[route->currSeqIndex];
-        printf("\n    on original sequence: ");
-        displaySequence(seq);
-        printf("\n");
-        fflush(stdout);
+            printf("Replacement succeeded:  ");
+            displayReplacement(repl);
+            fflush(stdout);
+            Vector *seq = (Vector *)route->sequences->array[route->currSeqIndex];
+            printf("\n    on original sequence: ");
+            displaySequence(seq);
+            printf("\n");
+            fflush(stdout);
 #endif
 
-    }//for
+        }//for
 
+        //Discard the on trial replacements list since it's no longer needed
+        free(route->replsOnTrial);
+        route->replsOnTrial = NULL;
+    }
+
+    
 #if DEBUGGING
         printf("Overall confidence increased from %g to ", g_selfConfidence);
         fflush(stdout);
 #endif
         
-    //Adjust overall confidence
+    //Adjust agent's overall confidence
     double adjAmt = (1.0 - g_selfConfidence) / 2.0;
     for(i = MAX_LEVEL_DEPTH - 1; i > route->level; i--)
     {
@@ -1840,33 +1825,40 @@ void penalizeReplacements(Route *route)
 {
     int i;
 
-    //Adjust replacement rule confidences
-    for(i = 0; i < route->replsApplied->size; i++)
+    if(route->replsOnTrial != NULL)
     {
-        Replacement *repl = (Replacement *)route->replsApplied->array[i];
-        repl->confidence = repl->confidence / 2.0;
-        
-#if DEBUGGING
-        printf("Replacement failed:  ");
-        displayReplacement(repl);
-        fflush(stdout);
-        Vector *seq = (Vector *)route->sequences->array[route->currSeqIndex];
-        printf("\n    on original sequence: ");
-        displaySequence(seq);
-        printf("\n");
-        fflush(stdout);
-#endif
 
-    }//for
+        //Adjust replacement rule confidences
+        for(i = 0; i < route->replsOnTrial->size; i++)
+        {
+            Replacement *repl = (Replacement *)route->replsOnTrial->array[i];
+            repl->confidence = repl->confidence / 2.0;
 
+    #if DEBUGGING
+            printf("Replacement failed:  ");
+            displayReplacement(repl);
+            fflush(stdout);
+            Vector *seq = (Vector *)route->sequences->array[route->currSeqIndex];
+            printf("\n    on original sequence: ");
+            displaySequence(seq);
+            printf("\n");
+            fflush(stdout);
+    #endif
+
+        }//for
+    //Discard the on trial replacements list since it's no longer needed
+    free(route->replsOnTrial);
+    route->replsOnTrial = NULL;
+
+    }//if
+
+    //Adjust agent's overall confidence
     if (route->level == 0)
     {
 #if DEBUGGING
         printf("Overall confidence decreased from %g to ", g_selfConfidence);
         fflush(stdout);
 #endif
-        
-        //Adjust overall confidence
         double adjAmt = g_selfConfidence / 2.0;
         for(i = MAX_LEVEL_DEPTH - 1; i > route->level; i--)
         {
@@ -1927,25 +1919,31 @@ void initRouteFromParent(int level, int LHS)
     {
         seq = (Vector *)parentAct->epmem->array[parentAct->outcome];
     }
-        
-    //Ditch the old route at this level and create a new one based on the
-    //extracted sequence
-    Route *route = (Route *)g_plan->array[level];
-    if (route != NULL)
+
+    //create a new one based on the extracted sequence
+    Route *newRoute = (Route*)malloc(sizeof(Route));
+    newRoute->sequences = newVector();
+    initRouteFromSequence(newRoute, seq);
+    newRoute->currActIndex = 1;    // skip overlapping first action (see CAVEAT above)
+
+    
+    //Copy the old route's replacements into the new route and then nuke it
+    Route *oldRoute = (Route *)g_plan->array[level];
+    if (oldRoute != NULL)
     {
-        freeRoute(route);
+        newRoute->replsOnTrial = oldRoute->replsApplied;
+        oldRoute->replsApplied = NULL;
+        freeRoute(oldRoute);
     }
-    route = (Route*)malloc(sizeof(Route));
-    route->sequences = newVector();
-    initRouteFromSequence(route, seq);
-    route->currActIndex = 1;    // skip overlapping first action (see CAVEAT above)
-    g_plan->array[level] = route;
+
+    //Install the new route
+    g_plan->array[level] = newRoute;
 
 #if DEBUGGING
     printf("Updated level %d route with help from parent at level %d\n",
            level, level + 1);
     printf("Updated route: ");
-    displayRoute(route, FALSE);
+    displayRoute(newRoute, FALSE);
     fflush(stdout);
 #endif
     
@@ -1976,7 +1974,7 @@ int updatePlan(int level)
         return LEVEL_NOT_POPULATED;
     }
 
-    //Get the route at this level and increment the action index
+    //Get the route at this level
     Route* route = (Route *)g_plan->array[level];
 #if UPDATEPLAN_DEBUGGING
     printf("Updating Level %d Route:\n", level);
@@ -1996,7 +1994,7 @@ int updatePlan(int level)
         return LEVEL_NOT_POPULATED;
     }
 
-    //The most important step! 
+    // Increment the action index:   The most important step! 
     (route->currActIndex)++;
 
     //If we did not just walk off the end of the current sequence, we're done
@@ -2022,12 +2020,6 @@ int updatePlan(int level)
     
     //If we reach this point, then the current sequence has run out.
 
-    //Before we adjust the plan, reward any replacements that may be in place at
-    //this level and adjust agent confidence
-    rewardReplacements(route);
-    resetReplacements(route);
-
-    
     //First, see if there is a next sequence at this level
     if (route->currSeqIndex + 1 < route->sequences->size)
     {
@@ -2089,7 +2081,7 @@ int updatePlan(int level)
         return retVal;
     }
 
-    //Create a new route at this level based upon the newply updated parent rout
+    //Create a new route at this level based upon the newly updated parent rout
     initRouteFromParent(level, retVal == SUCCESS);
 
     return SUCCESS;
@@ -2429,12 +2421,67 @@ int chooseCommand_WithPlan()
 int chooseCommand()
 {
     int i;                      // iterator
-    
+
+    //If the agent has taken a wrong step, then it loses confidence in itself
+    //and in the recently applied replacements
+    if (g_plan != NULL)
+    {
+
+        if (! nextStepIsValid())
+        {
+#if DEBUGGING
+            printf("Current plan invalid.  Replanning...:\n");
+            fflush(stdout);
+#endif
+            //All replacements from the previous route are now to be penalized
+            //for causing this failure
+            for(i = 0; i < MAX_LEVEL_DEPTH; i++)
+            {
+                Route *route = (Route *)g_plan->array[i];
+                
+                if (route != NULL)
+                {
+                    penalizeReplacements(route);
+                }
+            }
+
+            //Since the plan has failed, create a new one
+            freePlan(g_plan);
+            g_plan = initPlan(TRUE);
+        
+#if DEBUGGING
+            if (g_plan != NULL)
+            {
+                printf("Replan:\n");
+                fflush(stdout);
+                displayPlan();
+                printf("\n");
+                fflush(stdout);
+            }
+#endif
+        }//if
+        else
+        {
+            //The plan is going swimmingly.  See if there are any replacements
+            //on trial that need to be rewarded
+            for(i = 0; i < MAX_LEVEL_DEPTH; i++)
+            {
+                Route *route = (Route *)g_plan->array[i];
+                
+                if (route != NULL)
+                {
+                    rewardReplacements(route);
+                }
+            }
+
+        }//else            
+    }//if
+
     //If the current plan is invalid then we first need to make a new plan
     if ( (g_plan == NULL)
          || planNeedsRecalc(g_plan) )
     {
-        g_plan = initPlan();
+        g_plan = initPlan(FALSE);
 #if DEBUGGING
         if (g_plan != NULL)
         {
@@ -2447,40 +2494,6 @@ int chooseCommand()
 #endif
     }//if
 
-
-    //If the agent has taken a wrong step, then it loses confidence in itself
-    //and in the recently applied replacements
-    if ( (g_plan != NULL) && (! nextStepIsValid()) )
-    {
-#if DEBUGGING
-        printf("Current plan invalid.  Replanning...:\n");
-        fflush(stdout);
-#endif
-        for(i = 0; i < MAX_LEVEL_DEPTH; i++)
-        {
-            Route *route = (Route *)g_plan->array[i];
-            if (route != NULL)
-            {
-                penalizeReplacements(route);
-                resetReplacements(route);
-            }
-        }
-
-        //Since the plan has failed, create a new one
-        freePlan(g_plan);
-        g_plan = initPlan();
-        
-#if DEBUGGING
-        if (g_plan != NULL)
-        {
-            printf("Replan:\n");
-            fflush(stdout);
-            displayPlan();
-            printf("\n");
-            fflush(stdout);
-        }
-#endif
-    }//if
 
     //If there still is no plan at this point then that means the agent doesn't
     //have enough experience yet.  Select a semi-random command that would
@@ -2805,6 +2818,7 @@ void initRouteFromSequence(Route *route, Vector *seq)
     //Do the easy ones first
     route->replSeq      = NULL;
     route->replsApplied = newVector();
+    route->replsOnTrial = NULL;
     route->currActIndex = 0;
     route->currSeqIndex = 0;
     route->needsRecalc  = FALSE;
@@ -2829,6 +2843,7 @@ void freeRoute(Route *r)
     if (r == NULL) return;
     if (r->sequences != NULL) freeVector(r->sequences);
     if (r->replsApplied != NULL) freeVector(r->replsApplied);
+    if (r->replsOnTrial != NULL) freeVector(r->replsOnTrial);
     free(r);
 
 }//freeRoute
@@ -3103,10 +3118,13 @@ int initRoute(Route* newRoute, Vector *startSeq)
  *
  * this method creates a plan for reaching the goal state from the starting
  * state.  A plan is a vector of routes (one per level)
+ *
+ *
+ * @arg  isReplan   Am I creating a new plan due to a previous plan failure (TRUE/FALSE)?
  * 
  * @return a pointer to the plan or NULL if no plan was found
  */
-Vector* initPlan()
+Vector* initPlan(int isReplan)
 {
     int i;                      // iterator
 
@@ -3130,6 +3148,14 @@ Vector* initPlan()
         return NULL;
     }
 
+    //If I'm replannin after a failure that means that the first command in the
+    //new plan has just been executed and so should be skipped.
+    if (isReplan)
+    {
+        Route *route = (Route *)resultPlan->array[level];
+        route->currActIndex = 1; // instead of 0
+    }//if
+
 #if DEBUGGING
         printf("Success: found route to goal at level: %d.\n", level);
         fflush(stdout);
@@ -3137,7 +3163,7 @@ Vector* initPlan()
         printf("\n");
         fflush(stdout);
 #endif
-
+        
     //Initialize the route at subsequent levels.  Each route is based on the
     //current sequence in the route at the previous level
     for(i = level - 1; i >= 0; i--)
@@ -3182,6 +3208,7 @@ Vector *newPlan()
         r->sequences    = newVector();
         r->replSeq      = NULL;
         r->replsApplied = newVector();
+        r->replsOnTrial = NULL;
         r->currSeqIndex = 0;
         r->currActIndex = 0;
         r->needsRecalc  = FALSE;	
@@ -4051,6 +4078,10 @@ Vector* findInterimStart()
         printf("Search Result of length %d at index %d in level %d:  ",
                j, index+1, foundMatch);
         displaySequenceShort(currLevelEpMem->array[index + 1]);
+        printf(" which comes after: ");
+        displaySequenceShort(currLevelEpMem->array[index]);
+        printf(" and which matches: ");
+        displaySequenceShort(currLevelEpMem->array[currLevelEpMem->size - 1]);
         printf("\n");
         fflush(stdout);
 #endif

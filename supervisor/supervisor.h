@@ -92,6 +92,10 @@ typedef struct RouteStruct
                               // to this intead.
     Vector* replsApplied;     // This is a vector of Replacements that have been
                               // applied to the current sequence
+    Vector* replsOnTrial;     // These are the Replacement structs that were
+                              // used in the previous route at this level.
+                              // Maintained here so they can be
+                              // penalized/rewarded. (Can be a NULL pointer)
     int currSeqIndex;         // The current sequence in this plan that is being executed
     int currActIndex;         // An index into the current sequence in this plan
                               // that indicates what action is currently being
