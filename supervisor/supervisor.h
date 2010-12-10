@@ -106,6 +106,15 @@ typedef struct ReplacementStruct
                               // replacment (0.0 ... 1.0)
 } Replacement;
 
+//Used to identify the agent's position as part of finding routes
+typedef struct StartStruct
+{
+    Vector *seq;                // this sequence is a "position" though
+    int level;                  // the level of the sequence
+    int index;                  // the route generated from this start should
+                                // start at the action specified by this index
+} Start;
+
 // Global variables for monitoring and connecting
 int g_connectToRoomba;
 int g_statsMode;

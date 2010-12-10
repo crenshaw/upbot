@@ -42,7 +42,7 @@
 #define UPDATEPLAN_DEBUGGING 1
 
 //Particularly verbose debugging for initPlan()
-//#define DEBUGGING_INITPLAN 1
+#define DEBUGGING_INITPLAN 1
 
 //Particularly verbose debugging for findInterimStart()
 #define DEBUGGING_FINDINTERIMSTART 1
@@ -813,7 +813,7 @@ int updateAll(int level)
                             //If we find one with same outcome, increase
                             //frequency and inform not to add action
                             if (compareActOrEp(episodeList, newAction->outcome,
-                                               cousin->outcome, level))
+                                        cousin->outcome, level))
                             {
                                 
                                 cousin->freq++;
@@ -849,7 +849,7 @@ int updateAll(int level)
                     {
                         //Now see if the RHS of both actions match
                         if (compareActOrEp(episodeList, newAction->outcome,
-                                           curr->outcome, level))
+                                    curr->outcome, level))
                         {
                             //We have a complete match between the
                             //candidate and an existing action, so just
@@ -3100,13 +3100,6 @@ Vector* initPlan(int isReplan)
     Vector *startSeq = findInterimStart();
     if (startSeq == NULL) return NULL;
 
-#if DEBUGGING_INITPLAN
-        printf("found interim start: ");
-        displaySequenceShort(startSeq);
-        printf("\n");
-        fflush(stdout);
-#endif
-        
     //Figure out what level the startSeq is at
     Action *act = (Action *)startSeq->array[0];
     int level = act->level;
@@ -3127,7 +3120,7 @@ Vector* initPlan(int isReplan)
         //Give up if no route can be found
         freePlan(resultPlan);
         return NULL;
-    }
+    }//if
 
     //If I'm replannin after a failure that means that the first command in the
     //new plan has just been executed and so should be skipped.
@@ -3137,7 +3130,7 @@ Vector* initPlan(int isReplan)
         route->currActIndex = 1; // instead of 0
     }//if
 
-#if DEBUGGING_INITPLAN
+#if DEBUGGING
         printf("Success: found route to goal at level: %d.\n", level);
         fflush(stdout);
         displayRoute((Route *)resultPlan->array[level], TRUE);
@@ -4009,7 +4002,7 @@ Vector* findInterimStart()
     int n;                  // neighborhood metric
     int index;              // best matching sequence based on neighborhood
                             // metric
-    int foundMatch;
+    int foundMatch;         // the level in which a match was found
 
     // ----------------------------------------------------------------
     // find the highest level where the newly finished sequence is not unique
@@ -4033,20 +4026,8 @@ Vector* findInterimStart()
         
         for (i = currLevelEpMem->size - 2; i >= 0; i--)
         {
-#ifdef DEBUGGING_FINDINTERIMSTART
-            if (j == 0)
-            {
-                printf("\tcomparing: ");
-                displayEpisodeShort(currLevelEpMem->array[i]);
-                printf(" to ");
-                displayEpisodeShort(currLevelEpMem->array[currLevelEpMem->size - 1]);
-                printf("\n");
-                fflush(stdout);
-            }//if
-#endif
-
-            //Compare the episodes
-            if (compareVecOrEp(currLevelEpMem, i, currLevelEpMem->size - 1, j))
+            if (currLevelEpMem->array[i]
+                == currLevelEpMem->array[currLevelEpMem->size - 1])
             {
                 // then we've found a non-unique episode
                 foundMatch = j;
@@ -4081,6 +4062,7 @@ Vector* findInterimStart()
 
 #ifdef DEBUGGING_FINDINTERIMSTART
     printf("\tSearching Level %d\n", foundMatch);
+    fflush(stdout);
 #endif
     
     // Begin matching at the penultimate episode to compare to the
@@ -4089,7 +4071,8 @@ Vector* findInterimStart()
     {
         // if there's a match, then it's worth calculating the neighborhood
         // metric
-        if(compareVecOrEp(currLevelEpMem, i, currLevelEpMem->size - 1, foundMatch))
+        if(currLevelEpMem->array[i]
+           == currLevelEpMem->array[currLevelEpMem->size - 1])
         {
             // catch edge case
             if (n == 0)
@@ -4105,10 +4088,8 @@ Vector* findInterimStart()
             // from the root episode that we have matched to.
             // this is intended to save time as the episodic memory grows
             // to be very large in size
-            while(compareVecOrEp(currLevelEpMem,
-                                 i-j,
-                                 currLevelEpMem->size - j - 1,
-                                 foundMatch))
+            while(currLevelEpMem->array[i - j]
+                  == currLevelEpMem->array[currLevelEpMem->size - j - 1])
             {
                 j++;
             }//while
@@ -4144,7 +4125,6 @@ Vector* findInterimStart()
     printf("\n");
     fflush(stdout);
 #endif
-
         
     return currLevelEpMem->array[index + 1];
 }//findInterimStart
