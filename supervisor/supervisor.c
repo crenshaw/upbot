@@ -1708,7 +1708,7 @@ int nextStepIsValid()
     }
     Action* currAction = currSequence->array[level0Route->currActIndex];
     
-    printf("Current Action at index %d of sequence at index %d", level0Route->currActIndex, level0Route->currSeqIndex);
+    printf("Current Action at index %d of sequence at index %d: ", level0Route->currActIndex, level0Route->currSeqIndex);
     displayAction(currAction);
     printf("\n");
 
@@ -1737,7 +1737,7 @@ int nextStepIsValid()
     
     return compareEpisodes(currEp, nextStep, FALSE);
     
-}//isNextStepValid
+}//nextStepIsValid
 
 /**
  * resetReplacements
@@ -1826,10 +1826,13 @@ void rewardReplacements(Route *route)
  * penalizeReplacements
  *
  * reviews all replacements that have been applied to a route and halves their
- * confidence.  Overall confidence is also increased. The base formula is to
- * halve it also but only at the topmost level.  For each level below the top,
- * the amount of decrease is half what it would be at the top level.  In other
- * words, penalizeReplacments() has the exact opposite as rewardReplacements().
+ * confidence.  The base formula is to halve it also but only at the topmost
+ * level.  For each level below the top, the amount of decrease is half what it
+ * would be at the top level.  In other words, penalizeReplacments() has the
+ * exact opposite effect on Replacement rules as rewardReplacements().  The
+ * method for decreasing overall confidence is different.  Overall confidence
+ * only decreases for level 0 routes but when it does so it does using the
+ * opposite formula as rewards.
  *
  * @arg route  the route whose replacements are being updated
  */
@@ -1856,14 +1859,27 @@ void penalizeReplacements(Route *route)
 
     }//for
 
-    //Adjust overall confidence
-    double adjAmt = g_selfConfidence / 2.0;
-    for(i = MAX_LEVEL_DEPTH - 1; i > route->level; i--)
+    if (route->level == 0)
     {
-        adjAmt /= 2.0;
-    }
-    g_selfConfidence -= adjAmt;
+#if DEBUGGING
+        printf("Overall confidence decreased from %g to ", g_selfConfidence);
+        fflush(stdout);
+#endif
+        
+        //Adjust overall confidence
+        double adjAmt = g_selfConfidence / 2.0;
+        for(i = MAX_LEVEL_DEPTH - 1; i > route->level; i--)
+        {
+            adjAmt /= 2.0;
+        }
+        g_selfConfidence -= adjAmt;
     
+#if DEBUGGING
+        printf("%g\n", g_selfConfidence);
+        fflush(stdout);
+#endif
+    }//if
+
 }//penalizeReplacements
 
 /**
@@ -3901,17 +3917,6 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
             addActionToSequence(withReplacement, (Action*)sequence->array[i]);
         }
     }//for
-
-
-#if DEBUGGING
-    printf("performed replacement: ");
-    displayReplacement(replacement);
-    printf("\n\tbefore: ");
-    displaySequence(sequence);
-    printf("\n\tafter: ");
-    displaySequence(withReplacement);
-    printf("\n");
-#endif
 
     return withReplacement;
 }//doReplacement
