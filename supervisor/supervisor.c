@@ -10,7 +10,7 @@
  */
 
 /*
- * Bugs Outstanding
+ * Outstanding Bugs and Issues
  *
  * 1.  Occasional seg fault in chooseCommand().   This could be when it call
  *     nextStepIsValid(). 
@@ -45,6 +45,7 @@
  * 2.  Consider removing the "now" field from the Episode struct so we can take
  *     advantage of the fact that many episodes are identical and simply reuse
  *     pointers like we do with the level 1+ episodic memory lists.
+ * 3.  initRoute() is SLOW.  Make it faster?  Impose a max plan length?
  */
 
 //Setting this turns on verbose output to aid debugging
@@ -1715,11 +1716,6 @@ int nextStepIsValid()
     
     //Retrieve the action we are about to execute
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
-    if (level0Route->replSeq != NULL)
-    {
-        //A replacement for the current sequence is in place
-        currSequence = level0Route->replSeq;
-    }
     
 #if DEBUGGING_NSIV
     printf("Current Sequence:\n");
@@ -1917,11 +1913,6 @@ void initRouteFromParent(int level, int LHS)
     //Extract the current action from the parent route.  
     Route *parentRoute = (Route *)g_plan->array[level + 1];
     Vector *parentSeq = (Vector *)parentRoute->sequences->array[parentRoute->currSeqIndex];
-    if (parentRoute->replSeq != NULL)
-    {
-        //A replacement for the current parent sequence is in place
-        parentSeq = parentRoute->replSeq;
-    }
     Action *parentAct = (Action *)parentSeq->array[parentRoute->currActIndex];
 
     //Get the correct episode from that action based on the LHS parameter.  In
@@ -2012,11 +2003,6 @@ int updatePlan(int level)
 
     //If we did not just walk off the end of the current sequence, we're done
     Vector *currSequence =  (Vector *)route->sequences->array[route->currSeqIndex];
-    if (route->replSeq != NULL) 
-    {
-        //We're using a replacement for the current sequence
-        currSequence = route->replSeq;
-    }
     if (route->currActIndex < currSequence->size)
     {
 #if UPDATEPLAN_DEBUGGING
@@ -2188,11 +2174,6 @@ Replacement *makeNewReplacement()
         //Extract the current sequence from the route at this level
         Route*  route   = (Route*)(g_plan->array[i]);
         Vector *currSeq = ((Vector*)route->sequences->array[route->currSeqIndex]);
-        if (route->replSeq != NULL)
-        {
-            //an existing replacement is already there
-            currSeq = route->replSeq;
-        }
 
         //Extract the next two actions from the current sequence
         Action *act1 = (Action*)currSeq->array[route->currActIndex];
@@ -2335,26 +2316,22 @@ void considerReplacement()
     //Retrieve the route and sequence that will have the replacement applied to
     //it.
     Route* replRoute = (Route *)g_plan->array[repl->level];
-    Vector *currSequence = NULL;
-    if (replRoute->replSeq == NULL)
-    {
-        currSequence = (Vector *)replRoute->sequences->array[replRoute->currSeqIndex];
-    }
-    else
-    {
-        currSequence = replRoute->replSeq;
-    }
+    Vector *currSequence = (Vector *)replRoute->sequences->array[replRoute->currSeqIndex];
 
 #if DEBUGGING
-        printf("Replacement selected:  ");
-        displayReplacement(repl);
-        fflush(stdout);
-        printf("\n");
+    printf("Replacement selected:  ");
+    displayReplacement(repl);
+    fflush(stdout);
+    printf("\n");
 #endif
-    
 
-    //Make the top level replacement
+    //Create and install the new top level replacement
+    if (replRoute->replSeq != NULL)
+    {
+        free(replRoute->replSeq);
+    }
     replRoute->replSeq = doReplacement(currSequence, repl);
+    replRoute->sequences->array[replRoute->currSeqIndex] = replRoute->replSeq;
 
     //Log that the replacement is active and reduce agent's confidence since
     //we're trying something new
@@ -2410,11 +2387,6 @@ int chooseCommand_WithPlan()
 
     //Extract the current action
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
-    if (level0Route->replSeq != NULL)
-    {
-        //current sequence has a replacement
-        currSequence = level0Route->replSeq;
-    }
     Action* currAction = currSequence->array[level0Route->currActIndex];
     Episode* nextStep = currAction->epmem->array[currAction->index];
 
@@ -2568,13 +2540,6 @@ void displayRoute(Route *route, int recurse)
     for(i = 0; i < sequences->size; i++)
     {
         Vector *seq = (Vector *)sequences->array[i];
-
-        //Check for a replacement sequence
-        if ((route->currSeqIndex == i) && (route->replSeq != NULL))
-        {
-            seq = route->replSeq;
-        }
-        
         for(j = 0; j < seq->size; j++)
         {
             Action *action = seq->array[j];
@@ -2983,7 +2948,6 @@ int initRoute(Route* newRoute, Vector *startSeq)
     //verify that the startSeq is indeed at this level
     int index = findEntry(sequences, startSeq);
     printf("Index of startSeq: %d\n", index);
-    
 #endif 
     
     for (i = sequences->size-1; i >= 0; i--)
@@ -3031,6 +2995,10 @@ int initRoute(Route* newRoute, Vector *startSeq)
     int bSuccess = FALSE;
     for(i = 0; i < candRoutes->size; i++)
     {
+#ifdef DEBUGGING
+    printf(".");
+#endif 
+
         //Find the shortest route that hasn't been examined yet
         Route *route = (Route *)candRoutes->array[i];
         int routeLen = routeLength(route);
@@ -3125,6 +3093,10 @@ int initRoute(Route* newRoute, Vector *startSeq)
         
     }//for
     
+#ifdef DEBUGGING
+    printf("\n");
+#endif 
+
     //Clean up the RAM in the candRoutes list
     for(i = 0; i < candRoutes->size; i++)
     {
@@ -3920,11 +3892,6 @@ Replacement* findBestReplacement()
         //Extract the current sequence from the route at this level
         Route*  route   = (Route*)(g_plan->array[i]);
         Vector *currSeq = ((Vector*)route->sequences->array[route->currSeqIndex]);
-        if (route->replSeq != NULL)
-        {
-            //A replacement for the current sequence is in place
-            currSeq = route->replSeq;
-        }
 
         //Iterate over the replacement rules for this level in search of a match
         Vector *replacements = (Vector*)g_replacements->array[i];
