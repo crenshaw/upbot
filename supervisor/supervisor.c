@@ -1148,6 +1148,9 @@ int updateAll(int level)
         free(newAction);
     }
 
+    //Log that an update was completed at this level
+    g_lastUpdateLevel = level;
+
     //If we have added a new action, or found an existing action that matches the
     //current situation then updateExistingAction will contain a pointer to that
     //action (otherwise NULL)
@@ -3613,6 +3616,7 @@ void initSupervisor()
     g_connectToRoomba = 0;
     g_statsMode       = 0;           // no output optimization
     g_selfConfidence  = INIT_SELF_CONFIDENCE;
+    g_lastUpdateLevel = -1;
 
     for(i = 0; i < MAX_LEVEL_DEPTH; i++)
     {
@@ -4079,8 +4083,9 @@ Vector* findInterimStart()
     int foundMatch;         // the level in which a match was found
 
     // ----------------------------------------------------------------
-    // find the highest level where the newly finished sequence is not unique
-    // so that we can find matches against it.
+    // find the highest level where a newly finished sequence is not unique
+    // so that we can find matches against it.  g_lastUpdateLevel tells us where
+    // to start the search.
 
 #ifdef DEBUGGING_FINDINTERIMSTART
     printf("Entering findInterimStart()\n");
@@ -4094,8 +4099,13 @@ Vector* findInterimStart()
     // from 1 because we need the nth + 1 level's actions (where n is
     // the level of our interim starting point) in order to
     // find a start at a level where we can successfully make a plan
-    for(j = MAX_LEVEL_DEPTH - 2; j >= 0; j--)
+    for(j = g_lastUpdateLevel; j >= 0; j--)
     {
+#ifdef DEBUGGING_FINDINTERIMSTART
+    printf("\tsearching Level %d\n", j);
+    fflush(stdout);
+#endif
+    
         currLevelEpMem = (Vector*)g_epMem->array[j];
         
         for (i = currLevelEpMem->size - 2; i >= 0; i--)
@@ -4134,11 +4144,6 @@ Vector* findInterimStart()
     index = -1;
     j = 0;
 
-#ifdef DEBUGGING_FINDINTERIMSTART
-    printf("\tSearching Level %d\n", foundMatch);
-    fflush(stdout);
-#endif
-    
     // Begin matching at the penultimate episode to compare to the
     // most recent episode
     for (i = currLevelEpMem->size - 2; i >= 0; i--)

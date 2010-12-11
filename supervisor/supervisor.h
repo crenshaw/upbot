@@ -135,6 +135,8 @@ Vector* g_replacements;   // list of all of our replacement "rules"
 double  g_selfConfidence; // how confident the agent is in its current plan
 Vector* g_activeRepls;    // these are replacements that have recently been
                           // applied and are awaiting reward/punishment
+int     g_lastUpdateLevel;// the highest level that was updated in the last
+                          // updateAll().  Used to aid findInterimStart().
 
 
 // Function Prototypes
