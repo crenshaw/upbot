@@ -4408,6 +4408,8 @@ Vector* findInterimStart_OLD()
 Vector* findInterimStart()
 {
     int level, i, j;              // loop iterators
+    Vector *currLevelEpMem;       // the epmem list for the level being searched
+    int lastIndex;                // the index of the last entry in currLevelEpMem
     int bestMatchIndex = 0;       // position and
     int bestMatchLen = 0;         // length of best match found
     int matchLen = 0;             // length of current match
@@ -4418,27 +4420,35 @@ Vector* findInterimStart()
 #endif
     
     //Iterate over all levels that are not the very top or bottom
-    for(level = g_lastUpdateLevel; level >= 1; level--)
+    for(level = g_lastUpdateLevel; level >= 0; level--)
     {
 #ifdef DEBUGGING_FINDINTERIMSTART
     printf("\tsearching Level %d\n", level);
     fflush(stdout);
 #endif
     
-        //This is the current episode list and its size
-        Vector *currLevelEpMem = g_epMem->array[level];
-        int lastIndex = currLevelEpMem->size - 1;
-        
+        //Set the current episode list and its size for this iteration
+        currLevelEpMem = g_epMem->array[level];
+        lastIndex = currLevelEpMem->size - 1;
+
         //starting with the penultimate level iterate backwards looking for a
         //subsequence that matches the current position
         for(i = lastIndex - 1; i >= 0; i--)
         {
+            printf("\t\ti=%d lastIndex=%d\n",
+                   i, lastIndex);
+            fflush(stdout);
             //Count the length of the match at this point
             matchLen = 0;
-            while(currLevelEpMem->array[i - matchLen]
-                  == currLevelEpMem->array[lastIndex - matchLen])
+            while(compareVecOrEp(currLevelEpMem,
+                                 i - matchLen,
+                                 lastIndex - matchLen,
+                                 level))
             {
                 matchLen++;
+
+                //don't fall off the edge
+                if (i - matchLen < 0) break;
             }
 
             //See if we've found a new best match
@@ -4449,24 +4459,44 @@ Vector* findInterimStart()
             }
         }//for
 
-        //If any match was found at this level, that's what we want to return
-        if (bestMatchLen > 0)
-        {
-#ifdef DEBUGGING_FINDINTERIMSTART
-            printf("\tSearch Result of length %d at index %d in level %d:  ",
-                   bestMatchLen, bestMatchIndex + 1, level);
-            displaySequenceShort(currLevelEpMem->array[bestMatchIndex + 1]);
-            printf(" which comes after: ");
-            displaySequenceShort(currLevelEpMem->array[bestMatchIndex]);
-            printf(" and which matches: ");
-            displaySequenceShort(currLevelEpMem->array[currLevelEpMem->size - 1]);
-            printf("\n");
-            fflush(stdout);
-#endif 
-           return currLevelEpMem->array[bestMatchIndex + 1];
-        }
+        //If any match was found at this level, then stop searching
+        if (bestMatchLen > 0) break;
     }//for
 
+    //Check for no match found
+    if (bestMatchLen == 0)
+    {
+#ifdef DEBUGGING_FINDINTERIMSTART
+        printf("findInterimStart failed: all new sequences are unique\n");
+        fflush(stdout);
+#endif
+        return NULL;
+    }
+
+    //***If we reach this point, we've found a match.
+
+    //If the match is at level 1+ then we can just return it since it's already
+    //a sequence
+    if (level > 0)
+    {
+    
+#ifdef DEBUGGING_FINDINTERIMSTART
+        printf("\tSearch Result of length %d at index %d in level %d:  ",
+               bestMatchLen, bestMatchIndex + 1, level);
+        fflush(stdout);
+        displaySequenceShort(currLevelEpMem->array[bestMatchIndex + 1]);
+        printf(" which comes after: ");
+        displaySequenceShort(currLevelEpMem->array[bestMatchIndex]);
+        printf(" and which matches: ");
+        displaySequenceShort(currLevelEpMem->array[currLevelEpMem->size - 1]);
+        printf("\n");
+        fflush(stdout);
+#endif 
+        return currLevelEpMem->array[bestMatchIndex + 1];
+    }
+
+    
+    
     //No match was found.
     return NULL;
     
