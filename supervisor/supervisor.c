@@ -1763,16 +1763,17 @@ int nextStepIsValid()
     // to-be-executed action
     Episode* nextStep = currAction->epmem->array[currAction->index];
 
-#if DEBUGGING_NSIV
+#if DEBUGGING
     fflush(stdout);
     printf("comparing the current sensing:");
     displayEpisodeShort(currEp);
     fflush(stdout);
     printf(" to the expected sensing: ");
-    displayEpisodeShort(nextStep);
-    printf("\n");
+    printf("%i\n ", interpretSensorsShort(nextStep->sensors));
     fflush(stdout);
+#endif
 
+#if DEBUGGING_NSIV
     printf("Drawn from route: ");
     displayRoute(level0Route, FALSE);
     printf("\n");
@@ -2632,13 +2633,6 @@ void displayRoute(Route *route, int recurse)
                 //indent based on level to make a vertical tree
                 int indent = 2*(MAX_LEVEL_DEPTH - route->level);
                 printf("%*sSequence #%d on level %d", indent, "", index, route->level - 1);
-
-                //If the command we just printed is the most recent
-                //command then append an asterisk to indicate that
-                if((i == route->currSeqIndex) && (j == route->currActIndex))
-                {
-                    printf("*");
-                }
                 if (recurse) printf(": ");
 
                 //for level 2+ we want a newline now to get the tree format to
@@ -3408,14 +3402,6 @@ Vector* initPlan(int isReplan)
         return NULL;
     }//if
 
-    //If I'm replannin after a failure that means that the first command in the
-    //new plan has just been executed and so should be skipped.
-    if (isReplan)
-    {
-        Route *route = (Route *)resultPlan->array[level];
-        route->currActIndex = 1; // instead of 0
-    }//if
-
 #if DEBUGGING_INITROUTE
         printf("Success: found route to goal at level: %d.\n", level);
         fflush(stdout);
@@ -3444,6 +3430,14 @@ Vector* initPlan(int isReplan)
         Route *currRoute = (Route *)resultPlan->array[i];
         initRouteFromSequence(currRoute, seq);
     }//for
+
+    //If I'm replanning after a failure that means that the first command in the
+    //new plan has just been executed and so should be skipped.
+    if (isReplan)
+    {
+        Route *route = (Route *)resultPlan->array[0];
+        route->currActIndex = 1; // instead of 0
+    }//if
 
 
     return resultPlan;
