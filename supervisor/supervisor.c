@@ -10,6 +10,21 @@
  */
 
 /*
+ * Bugs Outstanding
+ *
+ * 1.  Occasional seg fault in chooseCommand().   This could be when it call
+ *     nextStepIsValid(). 
+ *
+ * 2.  Agent gets in a loop sometimes.  <-- this has to do with faulty
+ *     replacements.  I've enacted a temporary fix.  See AMN's journal.
+ *
+ * 3.  Sometimes the agent just can't ever get a plan.  It behaves randomly
+ *     throughout.  Could this be due to findInterimStart() not doing NSM at
+ *     level 0?
+ *
+ */
+
+/*
  * Minor Maintenance To-Do List
  *
  * 1.  Review updateAll() and try to simplify it.  Break it up into parts?
@@ -19,7 +34,7 @@
  * 4.  freePlan() is not being called when an existing plan is being replaced
  * 5.  It would be less cumbersome and less error prone if we literally did
  *     replace the appropriate sequence in a route when we do a replacement. 
- *     The replSeq pointer would no longer be necessary.
+ *     The replSeq pointer would only be used for memory maintenance.
  */
 
 /*
@@ -35,18 +50,13 @@
 //Setting this turns on verbose output to aid debugging
 #define DEBUGGING 1
 
-//Particularly verbose debugging for initRoute()
+//Particularly verbose debugging for specific methods
 //#define INITROUTE_DEBUGGING 1
-
-//Particularly verbose debugging for updatePlan()
-#define UPDATEPLAN_DEBUGGING 1
-
-//Particularly verbose debugging for initPlan()
+//#define UPDATEPLAN_DEBUGGING 1
 #define DEBUGGING_INITPLAN 1
-
-//Particularly verbose debugging for findInterimStart()
 #define DEBUGGING_FINDINTERIMSTART 1
-
+#define DEBUGGING_CHOOSECMD 1
+#define DEBUGGING_NSIV 1        // nextStepIsValid()
 
 // The percent chance of choosing a random move
 int g_randChance = 100;
@@ -516,6 +526,13 @@ int tick(char* sensorInput)
         
         ep->cmd = CMD_SONG;
 
+        //If a a plan is in place, reward the agent and any outstanding replacements
+        if (g_plan != NULL)
+        {
+            rewardReplacements();
+            rewardAgent();
+        }
+        
         //Current, presumably successful, plan no longer needed
         if (g_plan != NULL)
         {
@@ -1689,18 +1706,37 @@ int nextStepIsValid()
     {
         return TRUE;
     }//if
+
+#if DEBUGGING_NSIV
+    printf("Retrieving current action\n");
+    fflush(stdout);
+#endif
+
     
+    //Retrieve the action we are about to execute
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
     if (level0Route->replSeq != NULL)
     {
         //A replacement for the current sequence is in place
         currSequence = level0Route->replSeq;
     }
-    Action* currAction = currSequence->array[level0Route->currActIndex];
     
+#if DEBUGGING_NSIV
+    printf("Current Sequence:\n");
+    fflush(stdout);
+    displaySequenceShort(currSequence);
+    printf("\n");
+    fflush(stdout);
+#endif
+
+    Action* currAction = currSequence->array[level0Route->currActIndex];
+
+#if DEBUGGING
     printf("Current Action at index %d of sequence at index %d: ", level0Route->currActIndex, level0Route->currSeqIndex);
     displayAction(currAction);
     printf("\n");
+    fflush(stdout);
+#endif
 
     //Get the current sensing from the episode list
     Vector *episodeList = g_epMem->array[0];
@@ -1728,6 +1764,47 @@ int nextStepIsValid()
     return compareEpisodes(currEp, nextStep, FALSE);
     
 }//nextStepIsValid
+
+/**
+ * rewardAgent
+ *
+ * This method increases the agent's overall confidence so that its distance
+ * from 1.0 is half of what it was.
+ */
+void rewardAgent()
+{
+#if DEBUGGING
+    printf("Overall confidence increased from %g to ", g_selfConfidence);
+    fflush(stdout);
+#endif
+    
+    g_selfConfidence += (1.0 - g_selfConfidence) / 2.0;
+    
+#if DEBUGGING
+    printf("%g\n", g_selfConfidence);
+    fflush(stdout);
+#endif
+}//rewardAgent    
+
+/**
+ * penalizeAgent
+ *
+ * This method halves the agent's overall confidence.
+ */
+void penalizeAgent()
+{
+#if DEBUGGING
+    printf("Overall confidence decreased from %g to ", g_selfConfidence);
+    fflush(stdout);
+#endif
+    
+    g_selfConfidence /= 2.0;
+    
+#if DEBUGGING
+    printf("%g\n", g_selfConfidence);
+    fflush(stdout);
+#endif
+}//penalizeAgent    
 
 /**
  * rewardReplacements
@@ -1767,21 +1844,6 @@ void rewardReplacements()
     //(no need to deallocate anything since a complete list of
     //replacements is in g_replacements)
     g_activeRepls->size = 0;
-    
-    
-    //Regardless of whether there are any active replacements or not, the agent
-    //gains more confidence at this point.
-#if DEBUGGING
-    printf("Overall confidence increased from %g to ", g_selfConfidence);
-    fflush(stdout);
-#endif
-    
-    g_selfConfidence += (1.0 - g_selfConfidence) / 2.0;
-    
-#if DEBUGGING
-    printf("%g\n", g_selfConfidence);
-    fflush(stdout);
-#endif
     
 }//rewardReplacements
 
@@ -1827,20 +1889,6 @@ void penalizeReplacements()
     //replacements is in g_replacements)
     g_activeRepls->size = 0;
 
-    //Regardless of whether there are any active replacements or not, the agent
-    //loses confidence at this point.
-#if DEBUGGING
-    printf("Overall confidence decreased from %g to ", g_selfConfidence);
-    fflush(stdout);
-#endif
-    
-    g_selfConfidence /= 2.0;
-    
-#if DEBUGGING
-    printf("%g\n", g_selfConfidence);
-    fflush(stdout);
-#endif
-    
 }//penalizeReplacements
 
 /**
@@ -2308,8 +2356,10 @@ void considerReplacement()
     //Make the top level replacement
     replRoute->replSeq = doReplacement(currSequence, repl);
 
-    //Log that the replacement is active
+    //Log that the replacement is active and reduce agent's confidence since
+    //we're trying something new
     addEntry(g_activeRepls, repl);
+    penalizeAgent();
 
     //Now each lower level plan will need to be updated to reflect the
     //replacement that has been made here
@@ -2392,7 +2442,7 @@ int chooseCommand()
 {
     int i;                      // iterator
 
-#if DEBUGGING
+#if DEBUGGING_CHOOSECMD
             printf("Entering chooseCommand\n");
             fflush(stdout);
 #endif
@@ -2401,6 +2451,10 @@ int chooseCommand()
     //and in the recently applied replacements
     if (g_plan != NULL)
     {
+#if DEBUGGING_CHOOSECMD
+            printf("checking to see if plan is still valid\n");
+            fflush(stdout);
+#endif
 
         if (! nextStepIsValid())
         {
@@ -2411,6 +2465,7 @@ int chooseCommand()
             //All active replacements are now to be penalized for causing this
             //failure
             penalizeReplacements();
+            penalizeAgent();
             
             //Since the plan has failed, create a new one
             freePlan(g_plan);
@@ -2429,7 +2484,7 @@ int chooseCommand()
         }//if
         else
         {
-#if DEBUGGING
+#if DEBUGGING_CHOOSECMD
             printf("Plan successful so far.  Reward check.\n");
             fflush(stdout);
 #endif
@@ -2438,10 +2493,14 @@ int chooseCommand()
             Route *currRoute = (Route *)g_plan->array[0];
             if (currRoute->currActIndex <= 1)
             {
-                rewardReplacements();
+        //%%%AMN: I've temporarily commented change this so only the agent is
+        //%%%rewarded.  Rewards come for replacements only come when a goal is
+        //%%%found right now.
+//                rewardReplacements();
+                rewardAgent(); 
             }
-
-        }//else            
+        }//else
+        
     }//if
 
     //If the current plan is invalid then we first need to make a new plan
@@ -2694,6 +2753,10 @@ void displayPlan()
         printf("EMPTY PLAN!\n");
         return;
     }
+
+    //Calculate and print the plan length
+    int length = routeLength(r);
+    printf("(%d steps) ", length);
     
     displayRoute(r, TRUE);
 
