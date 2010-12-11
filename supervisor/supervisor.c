@@ -4167,10 +4167,6 @@ Vector* findInterimStart()
             // from the root episode that we have matched to.
             // this is intended to save time as the episodic memory grows
             // to be very large in size
-#ifdef DEBUGGING_FINDINTERIMSTART //%%%REMOVE
-        printf("\tcomparing %d to %d\n", i-j, currLevelEpMem->size - j - 1);
-        fflush(stdout);
-#endif
             while(compareVecOrEp(currLevelEpMem,
                                  i-j,
                                  currLevelEpMem->size - j - 1,
@@ -4181,10 +4177,6 @@ Vector* findInterimStart()
                 //Make sure we don't fall off the edge
                 if (i - j < 0) break;
                 
-#ifdef DEBUGGING_FINDINTERIMSTART //%%%REMOVE
-        printf("\tcomparing %d to %d\n", i-j, currLevelEpMem->size - j - 1);
-        fflush(stdout);
-#endif
             }//while
 
             // if the neighborhood metric for this match is greater than that of
@@ -4208,7 +4200,7 @@ Vector* findInterimStart()
     
 #ifdef DEBUGGING_FINDINTERIMSTART
         printf("\tSearch Result of length %d at index %d in level %d:  ",
-               j, index+1, foundMatch);
+               n, index+1, foundMatch);
         displaySequenceShort(currLevelEpMem->array[index + 1]);
         printf(" which comes after: ");
         displaySequenceShort(currLevelEpMem->array[index]);
@@ -4222,7 +4214,119 @@ Vector* findInterimStart()
 
     }//if
 
-    //%%%
+    //Since the match is at level 0, we must find the most recently used
+    //sequence that ends with the match in the level 0 episodes.  Then return
+    //its successor,
+
+    //First, confirm that we haven't already searched the level 1 episodes
+    if (g_lastUpdateLevel > 0)
+    {
+#ifdef DEBUGGING_FINDINTERIMSTART
+        printf("findInterimStart failed: level 0 match, but level 1 already searched directly\n");
+        fflush(stdout);
+#endif
+    
+        return NULL;
+    }//if
+
+    //Search the level 1 episodes (except the most recent) for the most recent
+    //sequential set of them that contain the level 0 match.  Then return its
+    //successor. 
+    Vector *level0Eps = (Vector *)g_epMem->array[0];
+    Vector *level1Eps = (Vector *)g_epMem->array[1];
+    for (i = level1Eps->size - 2; i >= 0; i--)
+    {
+        foundMatch = -1;        // index of match found (if found)
+        int currEp1Index = i;   // level 1 episode we're currently examining
+        int currEp0Offset = 0;  // offset from index of level 0 episode we're
+                                // currently examing
+
+        //Starting at episode i, iterate backward looking for a match
+        while(currEp0Offset < n)
+        {
+            //Get the level 0 sequence that comprises this episode
+            Vector *currSeq = (Vector *)level1Eps->array[currEp1Index];
+
+            for(j = currSeq->size - 1; j >= 0; j--)
+            {
+                //compare the level 0 episode to the corresponding one from the
+                //match
+                Episode *ep1 = (Episode *)level0Eps->array[index - currEp0Offset];
+                Episode *ep2 = (Episode *)currSeq->array[j];
+
+                if (! compareEpisodes(ep1, ep2, TRUE))
+                {
+                    //Mismatch.  Move on to the next level 1 episode
+                    currEp0Offset = n;
+                    break;
+                }
+
+                //Increment the level 0 offset and check for a match
+                currEp0Offset++;
+                if (currEp0Offset == n)
+                {
+                    foundMatch = i;
+                    break;
+                }
+                    
+                
+            }//for
+
+            //If more comparison is needed, the move on to the next sequence if
+            //one is available
+            if (currEp0Offset < n)
+            {
+                currEp1Index--;
+                if (currEp1Index < 0)
+                {
+                    break;
+                }
+            }
+        }//while
+
+        //If a match was found, return its successor
+        if (foundMatch != -1)
+        {
+#ifdef DEBUGGING_FINDINTERIMSTART
+        printf("\tSearch Result at index %d in level 1:  ", foundMatch+1);
+        fflush(stdout);
+        displaySequenceShort(level1Eps->array[foundMatch + 1]);
+        printf(" which corresponds to length %d level 0 match at index %d:  ",
+               n, index);
+        fflush(stdout);
+        for(j = n-1; j >= 0; j--)
+        {
+            displayEpisodeShort(level0Eps->array[index - j]);
+            if (j > 0) printf(",");
+        }
+        printf("\n");
+        fflush(stdout);
+#endif
+        
+            return level1Eps->array[foundMatch + 1];
+        }
+            
+        
+    }//for
+    
+
+#ifdef DEBUGGING_FINDINTERIMSTART
+    printf("findInterimStart failed: level 0 match, but no corresponding level 1 match\n");
+    printf("\t Level 0 match was length %d at index %d:  ",
+           n, index);
+    fflush(stdout);
+    for(j = n-1; j >= 0; j--)
+    {
+        displayEpisodeShort(level0Eps->array[index - j]);
+        if (j > 0) printf(",");
+    }
+    printf("\n");
+    fflush(stdout);
+    fflush(stdout);
+    
+#endif
+    
+    
     return NULL;
 }//findInterimStart
 
