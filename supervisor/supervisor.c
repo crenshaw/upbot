@@ -2993,6 +2993,7 @@ int initRoute(Route* newRoute, Vector *startSeq)
     //(Note: the size of the candRoutes vector will grow as the search
     //continues.  Each candidate is a partial route.)
     int bSuccess = FALSE;
+    int routeLen = -1;           // length of shortest route so far
     for(i = 0; i < candRoutes->size; i++)
     {
 #ifdef DEBUGGING
@@ -3001,7 +3002,7 @@ int initRoute(Route* newRoute, Vector *startSeq)
 
         //Find the shortest route that hasn't been examined yet
         Route *route = (Route *)candRoutes->array[i];
-        int routeLen = routeLength(route);
+        routeLen = routeLength(route);
         int routePos = i;
         for(j = i+1; j < candRoutes->size; j++)
         {
@@ -3016,6 +3017,14 @@ int initRoute(Route* newRoute, Vector *startSeq)
                 routePos = j;
             }//if
         }//for
+
+        //If this shortest route is too long then halt the search
+        //TODO:  This is domain specific knowledge!  I've placed it here to
+        //speed up debugging but we should remove it later.
+        if (routeLen > MAX_ROUTE_LEN)
+        {
+            break;
+        }
 
         //Move this shortest unexamined route to the current position in the
         //candRoutes vector via a swap

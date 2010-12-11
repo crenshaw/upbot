@@ -353,7 +353,7 @@ void reportGoalFound(int sockfd, FILE* log)
 	// Only print if not in stats mode
 	if(g_goalsFound > 1)
 	{
-		printf("Goal %i found after %i episodes at timestamp %i\n"
+		printf("Goal %i found after %i steps at timestamp %i\n"
 							, g_goalsFound
 							, g_goalsTimeStamp[g_goalsFound - 1] - g_goalsTimeStamp[g_goalsFound - 2]
 							, g_goalsTimeStamp[g_goalsFound - 1]);

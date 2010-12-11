@@ -39,7 +39,11 @@
 #define DISCOUNT             (1.0)
 #define MAX_LEN_LHS          (1)
 #define MAX_LEVEL_DEPTH      (3)
-#define MAX_ROUTE_LEN        (15)
+
+//Planning defines
+#define MAX_ROUTE_LEN        (75) // maximum length of a route.
+
+//Confidence defines
 #define MAX_CONFIDENCE       (1.0)
 #define MIN_CONFIDENCE       (0.0)
 #define INIT_SELF_CONFIDENCE (0.5)
