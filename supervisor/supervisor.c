@@ -4062,12 +4062,11 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
 /**
  * findInterimStart
  *
- * This method locates a past sequence that is a best match for the agent's
- * current "location". This is a sequence that contains the most subsequences
- * that match what the agent has recently done.  This is highly analagous to
- * McCallum's NSM match.  It then returns the sequence that occurred immediately
- * after this matching sequence so that it can be used as the "start" sequence
- * is used for replanning.
+ * This method locates a past episode that is a best match for the agent's
+ * current "location". This is an episode that follows the longest series of
+ * episodes that match match the ones most recently created by the agent. This
+ * is highly analagous to McCallum's NSM match.  The returned sequence can be
+ * used as the "start" sequence for creating a plan.  (See initPlan().)
  *
  * @return the "start" sequence that was found
  *         or NULL if the most recently completed sequence is unique in every
@@ -4099,7 +4098,7 @@ Vector* findInterimStart()
     // from 1 because we need the nth + 1 level's actions (where n is
     // the level of our interim starting point) in order to
     // find a start at a level where we can successfully make a plan
-    for(j = g_lastUpdateLevel; j >= 0; j--)
+    for(j = g_lastUpdateLevel; j >= 1; j--)
     {
 #ifdef DEBUGGING_FINDINTERIMSTART
     printf("\tsearching Level %d\n", j);
@@ -4110,8 +4109,7 @@ Vector* findInterimStart()
         
         for (i = currLevelEpMem->size - 2; i >= 0; i--)
         {
-            if (currLevelEpMem->array[i]
-                == currLevelEpMem->array[currLevelEpMem->size - 1])
+            if (compareVecOrEp(currLevelEpMem, i, currLevelEpMem->size - 1, j))
             {
                 // then we've found a non-unique episode
                 foundMatch = j;
@@ -4150,8 +4148,7 @@ Vector* findInterimStart()
     {
         // if there's a match, then it's worth calculating the neighborhood
         // metric
-        if(currLevelEpMem->array[i]
-           == currLevelEpMem->array[currLevelEpMem->size - 1])
+        if(compareVecOrEp(currLevelEpMem, i, currLevelEpMem->size - 1, foundMatch))
         {
             // catch edge case
             if (n == 0)
@@ -4167,8 +4164,10 @@ Vector* findInterimStart()
             // from the root episode that we have matched to.
             // this is intended to save time as the episodic memory grows
             // to be very large in size
-            while(currLevelEpMem->array[i - j]
-                  == currLevelEpMem->array[currLevelEpMem->size - j - 1])
+            while(compareVecOrEp(currLevelEpMem,
+                                 i-j,
+                                 currLevelEpMem->size - j - 1,
+                                 foundMatch))
             {
                 j++;
             }//while
