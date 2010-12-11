@@ -22,6 +22,14 @@
  *     throughout.  Could this be due to findInterimStart() not doing NSM at
  *     level 0?
  *
+ * 4.  Occasional seg fault in init plan when a parent level is not populated.
+ *
+ * 5.  Agent continually picks the same plan even though a replacement is being
+ *     successfully applied and, thus, a slightly shorter plan should be
+ *     discoverable.  (Also, there should be a mechanism that makes it explore
+ *     other plans...)
+ *
+ * 6.  Level 0 sequences with only one item in them are occasionally created.
  */
 
 /*
@@ -1165,6 +1173,14 @@ int updateAll(int level)
                     addEntry(episodeList, duplicate);
                 }
 			}
+            //This else-if checks for a special exception where the agent's
+            //first action after finding a goal is indeterminate.  Don't end the
+            //sequence in this case.
+            else if ((updateExistingAction->isIndeterminate)
+                && (currSequence->size == 1))
+            {
+                //do nothing
+            }
 			else
 			{
                 // this newly completed sequence becomes the next
@@ -1915,11 +1931,24 @@ void initRouteFromParent(int level, int LHS)
 {
     assert(level + 1 < MAX_LEVEL_DEPTH);
     
+#if DEBUGGING_UPDATEPLAN
+    printf("Entering initRouteFromParent() at level %d\n", level);
+    fflush(stdout);
+#endif
+    
     //Extract the current action from the parent route.  
     Route *parentRoute = (Route *)g_plan->array[level + 1];
     Vector *parentSeq = (Vector *)parentRoute->sequences->array[parentRoute->currSeqIndex];
     Action *parentAct = (Action *)parentSeq->array[parentRoute->currActIndex];
 
+#if DEBUGGING_UPDATEPLAN
+    printf("\tretrieving route from %s of action:", LHS ? "LHS" : "RHS");
+    fflush(stdout);
+    displayAction(parentAct);
+    printf("\n");
+    fflush(stdout);
+#endif
+    
     //Get the correct episode from that action based on the LHS parameter.  In
     //either case, it will always be a sequence since the parent action is at
     //least a level 1 action
@@ -2085,7 +2114,7 @@ int updatePlan(int level)
         return retVal;
     }
 
-    //Create a new route at this level based upon the newly updated parent rout
+    //Create a new route at this level based upon the newly updated parent route
     initRouteFromParent(level, retVal == SUCCESS);
 
     return SUCCESS;
@@ -2548,7 +2577,18 @@ void displayRoute(Route *route, int recurse)
     int i,j;
     for(i = 0; i < sequences->size; i++)
     {
+        //this is the sequence that will be printed
         Vector *seq = (Vector *)sequences->array[i];
+        
+        //at level 0, print the index number of this sequence
+        if (route->level == 0)
+        {
+            Vector *seqList = (Vector *)g_sequences->array[0];
+            int index = findEntry(seqList, seq);
+            printf("%d:", index);
+        }
+
+        //Print each entry in the sequence
         for(j = 0; j < seq->size; j++)
         {
             Action *action = seq->array[j];
@@ -2605,21 +2645,35 @@ void displayRoute(Route *route, int recurse)
                 //look right
                 if (route->level >= 2) printf("\n");
                     
-                //If the user has requested a recursive print, then we need to
-                //construct a temporary Route that represents the next level
-                //down
+                //If the user has requested a recursive print, do that here
                 if (recurse)
                 {
-                    Route *tmpRoute = (Route*)malloc(sizeof(Route));
-                    tmpRoute->sequences = newVector();
-                    initRouteFromSequence(tmpRoute, epSeq);
-
-                    //Recursive call
-                    displayRoute(tmpRoute, recurse);
-
-                    //Free the route
-                    freeVector(tmpRoute->sequences);
-                    free(tmpRoute);
+                    //if this is not the current sequence in the route, just
+                    //construct a temporary Route that represents the next level
+                    //down
+                    if (i != route->currSeqIndex)
+                    {
+                        Route *tmpRoute = (Route*)malloc(sizeof(Route));
+                        tmpRoute->sequences = newVector();
+                        initRouteFromSequence(tmpRoute, epSeq);
+                        tmpRoute->currActIndex = -1; // prevent asterisk printf
+                        tmpRoute->currSeqIndex = -1;
+                        
+                        //Recursive call
+                        displayRoute(tmpRoute, TRUE);
+                        
+                        //Free the route
+                        freeVector(tmpRoute->sequences);
+                        free(tmpRoute);
+                    }
+                    else
+                    {
+                        //print the actual route at the next level down
+                        Route *toPrint = (Route *)g_plan->array[route->level - 1];
+                        
+                        //Recursive call
+                        displayRoute(toPrint, TRUE);
+                    }
                 }
 
                 //for level 1 we want a newline now to get the tree format to
