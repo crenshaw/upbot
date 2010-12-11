@@ -43,6 +43,8 @@
  * 5.  It would be less cumbersome and less error prone if we literally did
  *     replace the appropriate sequence in a route when we do a replacement. 
  *     The replSeq pointer would only be used for memory maintenance.
+ * 6.  Remove code supporting the concept of a start state.  (Or leave it in to
+ *     aid debugging?)
  */
 
 /*
@@ -712,6 +714,10 @@ int updateAll(int level)
     // Ensure that the level is within the accepted range for the vectors
     if(level < 0 || level >= MAX_LEVEL_DEPTH)
     {
+#if DEBUGGING_UPDATEALL
+        printf("\tExiting updateAll(): level %d out of range\n", level);
+        fflush(stdout);
+#endif
         return -3;
     }
 
@@ -723,6 +729,11 @@ int updateAll(int level)
     // You need a minimum of two episodes to make an action
     if(episodeList->size <= 1)
     {
+#if DEBUGGING_UPDATEALL
+        printf("\tExiting updateAll(): insufficient episodes (%d) at level %d\n",
+               episodeList->size, level);
+        fflush(stdout);
+#endif
         return -1;
     }
 
@@ -730,6 +741,10 @@ int updateAll(int level)
     // don't want any goals on the LHS of any rule.
     if (episodeContainsGoal(episodeList->array[episodeList->size - 2], level))
     {
+#if DEBUGGING_UPDATEALL
+        printf("\tExiting updateAll(): most recent episode is a goal\n", level);
+        fflush(stdout);
+#endif
         return -2;
     }
 
@@ -1142,7 +1157,7 @@ int updateAll(int level)
         Vector* currSequence = sequenceList->array[sequenceList->size - 1];
         
 #if DEBUGGING_UPDATEALL
-        printf("Adding action #%d: ", findEntry(currSequence, sequenceList));
+        printf("Adding action #%d: ", findEntry(actionList, updateExistingAction));
         displayAction(updateExistingAction);
         fflush(stdout);
         printf(" to current sequence:");
@@ -1223,6 +1238,10 @@ int updateAll(int level)
         
     }//if
 
+#if DEBUGGING_UPDATEALL
+        printf("\tExiting updateAll(): completed update on level %d\n", level);
+        fflush(stdout);
+#endif
     return 0;
 }//updateAll
 
@@ -1567,12 +1586,11 @@ void displayAction(Action* action)
         }
         else //sequence
         {
-            //Get the episode at the next level down that corresponds to the
-            //LHS of this action
+            //Get the episode that corresponds to the LHS of this action
             Vector *epSeq = (Vector *)action->epmem->array[action->index - i];
                 
-            //Lookup the index of this sequence in the global list of all
-            //sequences 
+            //Lookup the index of this sequence in the list of all sequences at
+            //the next level down
             Vector *seqList = (Vector *)g_sequences->array[action->level - 1];
             int index = findEntry(seqList, epSeq);
 
