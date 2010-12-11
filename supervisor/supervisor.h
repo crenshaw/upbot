@@ -41,7 +41,7 @@
 #define MAX_LEVEL_DEPTH      (3)
 
 //Planning defines
-#define MAX_ROUTE_LEN        (75) // maximum length of a route.
+#define MAX_ROUTE_LEN        (50) // maximum length of a route.
 
 //Confidence defines
 #define MAX_CONFIDENCE       (1.0)

@@ -52,12 +52,14 @@
 #define DEBUGGING 1
 
 //Particularly verbose debugging for specific methods
-//#define INITROUTE_DEBUGGING 1
-//#define UPDATEPLAN_DEBUGGING 1
+#define DEBUGGING_UPDATEALL 1
+#define DEBUGGING_UPDATEPLAN 1
+#define DEBUGGING_CHOOSECMD 1
+// #define DEBUGGING_INITROUTE 1    //Expensive. Avoid.
 #define DEBUGGING_INITPLAN 1
 #define DEBUGGING_FINDINTERIMSTART 1
-#define DEBUGGING_CHOOSECMD 1
-#define DEBUGGING_NSIV 1        // nextStepIsValid()
+// #define DEBUGGING_NSIV 1        // nextStepIsValid()
+// #define DEBUGGING_FINDBESTREPL 1
 
 // The percent chance of choosing a random move
 int g_randChance = 100;
@@ -503,17 +505,13 @@ int tick(char* sensorInput)
 {
     int i;
     // Create new Episode
-#if DEBUGGING
-    printf("Creating and adding episode...");
-    fflush(stdout);
-#endif
     Episode* ep = createEpisode(sensorInput);
 
     // Add new episode to the history
     addEpisode(g_epMem->array[0], ep);
 
 	updateAll(0);
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
     printf("updateAll complete\n");
     fflush(stdout);
 #endif
@@ -677,7 +675,7 @@ int parseEpisode(Episode * parsedData, char* dataArr)
  */
 int updateAll(int level)
 {
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
     printf("Entering level %i\n", level);
     fflush(stdout);
 
@@ -755,7 +753,7 @@ int updateAll(int level)
         newAction->containsStart = FALSE;
     }
 
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
     printf("candidate action: ");
     fflush(stdout);
     displayAction(newAction);
@@ -784,7 +782,7 @@ int updateAll(int level)
             //Find out if the j-th part of the LHS matches
             if (compareActOrEp(episodeList, newAction->index - j, curr->index - j, level))
             {
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                 printf("found match between %i-th entries of: ", j);
                 displayAction(curr);
                 printf(" and ");
@@ -809,7 +807,7 @@ int updateAll(int level)
                     //out there
                     if(curr->isIndeterminate)
                     {
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                         printf("comparing cousins: \n");
                         fflush(stdout);
 #endif
@@ -819,7 +817,7 @@ int updateAll(int level)
                         {
                             Action* cousin = curr->cousins->array[k];
 
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                             printf("\t");
                             displayAction(cousin);
                             printf(" AND ");
@@ -845,7 +843,7 @@ int updateAll(int level)
                         //as a new cousin
                         if(addNewAction)
                         {
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                             printf("new cousin is unique.  Adding...\n");
                             fflush(stdout);
 #endif
@@ -881,7 +879,7 @@ int updateAll(int level)
                         }
                         else    //RHS does not match
                         {
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                             printf("LHS match but RHS doesn't while comparing to %i...\n", i);
                             fflush(stdout);
 #endif
@@ -902,7 +900,7 @@ int updateAll(int level)
                             if (episodeContainsGoal(episodeList->array[newLHSEntryIndex],
                                              level))
                             {
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                                 printf("NewAction expands into goal at index: %i\n",
                                        newLHSEntryIndex);
                                 fflush(stdout);
@@ -918,7 +916,7 @@ int updateAll(int level)
                             //Check for reason #2: no room to expand
                             else if(curr->index - curr->length < 0)
                             {
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                                 printf("avail space: %i,  curr expands outside goal\n",
                                        curr->index - curr->length);
                                 fflush(stdout);
@@ -947,7 +945,7 @@ int updateAll(int level)
                             {
                                 newAction->length++;
 
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                                 printf("partial match with curr, extending new action to %i\n",
                                        newAction->length);
                                 fflush(stdout);
@@ -962,7 +960,7 @@ int updateAll(int level)
                             //expand both the current and candidate actions
                             else if(curr->length < MAX_LEN_LHS)
                             {
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                                 printf("len of curr action (%i) = %i < %i so increasing to %i\n",
                                        i, curr->length, MAX_LEN_LHS, curr->length+1);
                                 fflush(stdout);
@@ -976,7 +974,7 @@ int updateAll(int level)
                                 newAction->length++;
 
 
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                                 printf("new curr:   ");
                                 displayAction(curr);
                                 printf("\n");
@@ -991,7 +989,7 @@ int updateAll(int level)
                             else  //current action can't be expanded without
                             //exceeding max length (reason #3)
                             {
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                                 printf("cousins\n");
                                 fflush(stdout);
 #endif
@@ -1032,7 +1030,7 @@ int updateAll(int level)
                     {
                         matchComplete = TRUE;
                         addNewAction = FALSE;
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                         printf("newAction matches but is bigger than current action.  Aborting.\n");
                         fflush(stdout);
 #endif
@@ -1050,7 +1048,7 @@ int updateAll(int level)
                         if (episodeContainsGoal(episodeList->array[newLHSEntryIndex],
                                          level))
                         {
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                             printf("2. NewAction expands into goal at index: %i\n",
                                    newLHSEntryIndex);
                             fflush(stdout);
@@ -1067,7 +1065,7 @@ int updateAll(int level)
                         {
                             newAction->length++;
 
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                             printf("expanded new action to len %i\n",
                                    newAction->length);
                             printf("new candidate: ");
@@ -1105,9 +1103,11 @@ int updateAll(int level)
     //Add the new action
     if(addNewAction == TRUE)
     {
+#if DEBUGGING_UPDATEALL
         printf("Adding new action to level %i action list: ", level);
         displayAction(newAction);
         printf("\n");
+#endif
         addAction(actionList, newAction, FALSE);
 
         // set this flag so that we recursively update the next level
@@ -1128,7 +1128,7 @@ int updateAll(int level)
         // add most recently seen action to current sequence
         Vector* currSequence = sequenceList->array[sequenceList->size - 1];
         
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
         printf("Adding action: ");
         displayAction(updateExistingAction);
         fflush(stdout);
@@ -1175,7 +1175,7 @@ int updateAll(int level)
                 // still an even in our past as thus in our episodic memeory
                 if ((level + 1 < MAX_LEVEL_DEPTH)/* && (currSequence->size != 1)*/)
                 {
-#if DEBUGGING
+#if DEBUGGING_UPDATEALL
                     printf("Creating a new level %i episode with sequence: ", level + 1);
                     displaySequence(currSequence);
                     printf("\n");
@@ -1727,7 +1727,7 @@ int nextStepIsValid()
 
     Action* currAction = currSequence->array[level0Route->currActIndex];
 
-#if DEBUGGING
+#if DEBUGGING_NSIV
     printf("Current Action at index %d of sequence at index %d: ", level0Route->currActIndex, level0Route->currSeqIndex);
     displayAction(currAction);
     printf("\n");
@@ -1742,7 +1742,7 @@ int nextStepIsValid()
     // to-be-executed action
     Episode* nextStep = currAction->epmem->array[currAction->index];
 
-#if DEBUGGING
+#if DEBUGGING_NSIV
     fflush(stdout);
     printf("comparing the current sensing:");
     displayEpisodeShort(currEp);
@@ -1943,7 +1943,7 @@ void initRouteFromParent(int level, int LHS)
     }
     g_plan->array[level] = newRoute;
 
-#if DEBUGGING
+#if DEBUGGING_UPDATEPLAN
     printf("Updated level %d route with help from parent at level %d\n",
            level, level + 1);
     printf("Updated route: ");
@@ -1967,7 +1967,7 @@ void initRouteFromParent(int level, int LHS)
 int updatePlan(int level)
 {
     
-#if UPDATEPLAN_DEBUGGING
+#if DEBUGGING_UPDATEPLAN
     printf("-----===== begin updatePlan =====-----\n");
     fflush(stdout);
 #endif
@@ -1980,7 +1980,7 @@ int updatePlan(int level)
 
     //Get the route at this level
     Route* route = (Route *)g_plan->array[level];
-#if UPDATEPLAN_DEBUGGING
+#if DEBUGGING_UPDATEPLAN
     printf("Updating Level %d Route:\n", level);
     displayRoute(route, FALSE);
     printf("\n");
@@ -2005,14 +2005,14 @@ int updatePlan(int level)
     Vector *currSequence =  (Vector *)route->sequences->array[route->currSeqIndex];
     if (route->currActIndex < currSequence->size)
     {
-#if UPDATEPLAN_DEBUGGING
+#if DEBUGGING_UPDATEPLAN
         printf("Updated level %d route successfully.\n", level);
         fflush(stdout);
 #endif
         return SUCCESS;
     }
 
-#if UPDATEPLAN_DEBUGGING
+#if DEBUGGING_UPDATEPLAN
     printf("Current plan sequence at level %d has run out\n", level);
     fflush(stdout);
 #endif
@@ -2029,7 +2029,7 @@ int updatePlan(int level)
         //sequence (index = 1)
         route->currActIndex = 1;
 
-#if UPDATEPLAN_DEBUGGING
+#if DEBUGGING_UPDATEPLAN
         //Make sure this next sequence is valid
         currSequence = (Vector *)route->sequences->array[route->currSeqIndex];
         assert(currSequence->size > 0);
@@ -2052,7 +2052,7 @@ int updatePlan(int level)
     //outcome sequence associated with the last action at this level
     if (retVal == LEVEL_NOT_POPULATED)
     {
-#if UPDATEPLAN_DEBUGGING
+#if DEBUGGING_UPDATEPLAN
         printf("Failed to retrieve new sequence from parent at level %d (error code: %d).\n",
                level + 1, retVal);
         fflush(stdout);
@@ -2071,7 +2071,7 @@ int updatePlan(int level)
     //recalc.  No further update can be performed.
     if ((retVal != SUCCESS) && (retVal != PLAN_ON_OUTCOME))
     {
-#if UPDATEPLAN_DEBUGGING
+#if DEBUGGING_UPDATEPLAN
         printf("Route at level %d has been exhausted.\n", level);
         fflush(stdout);
 #endif
@@ -2368,7 +2368,7 @@ int chooseCommand_WithPlan()
 {
     int i;                      // iterator
 
-#if DEBUGGING
+#if DEBUGGING_CHOOSECMD
     printf("Choosing command from plan:\n");
     fflush(stdout);
     displayPlan();
@@ -2944,7 +2944,7 @@ int initRoute(Route* newRoute, Vector *startSeq)
     // (Note: iteration is descending so as to give preference to the most
     // recently added sequences)
     sequences = g_sequences->array[level];
-#ifdef DEBUGGING
+#ifdef DEBUGGING_INITROUTE
     //verify that the startSeq is indeed at this level
     int index = findEntry(sequences, startSeq);
     printf("Index of startSeq: %d\n", index);
@@ -2973,7 +2973,7 @@ int initRoute(Route* newRoute, Vector *startSeq)
     //Make sure that at least one candidate route was found
     if (candRoutes->size == 0) return NO_GOAL_IN_LEVEL;
 
-#if INITROUTE_DEBUGGING
+#if DEBUGGING_INITROUTE
     //Print all the candidate routes
     for(i = 0; i < candRoutes->size; i++)
     {
@@ -3035,7 +3035,7 @@ int initRoute(Route* newRoute, Vector *startSeq)
             candRoutes->array[routePos] = tmp;
         }
 
-#if INITROUTE_DEBUGGING
+#if DEBUGGING_INITROUTE
         //print the current shortest candidate
         printf("next shortest unexamined candidate %d at %ld of size %d\n",
                i, (long)route, routeLen);
@@ -3174,7 +3174,7 @@ Vector* initPlan(int isReplan)
         route->currActIndex = 1; // instead of 0
     }//if
 
-#if DEBUGGING
+#if DEBUGGING_INITROUTE
         printf("Success: found route to goal at level: %d.\n", level);
         fflush(stdout);
         displayRoute((Route *)resultPlan->array[level], TRUE);
@@ -3881,7 +3881,7 @@ Replacement* findBestReplacement()
 
     assert(g_plan != NULL);
 
-#ifdef DEBUGGING
+#ifdef DEBUGGING_FINDBESTREPL
     printf("Searching existing replacements...\n");
     fflush(stdout);
 #endif
@@ -3893,7 +3893,7 @@ Replacement* findBestReplacement()
         //Make sure it's even worth searching
         if (! replacementPossible(i)) continue;
 
-#ifdef DEBUGGING
+#ifdef DEBUGGING_FINDBESTREPL
     printf("\treplacement possible...\n");
     fflush(stdout);
 #endif
@@ -3924,7 +3924,7 @@ Replacement* findBestReplacement()
                 
             }//for
 
-#ifdef DEBUGGING
+#ifdef DEBUGGING_FINDBESTREPL
             if (match != NULL)
             {
                 printf("\t\tpromising replacement: ");
@@ -3954,7 +3954,7 @@ Replacement* findBestReplacement()
         
     }//for (each level)
 
-#ifdef DEBUGGING
+#ifdef DEBUGGING_FINDBESTREPL
     printf("\tbest match: ");
     displayReplacement(result);
     printf("\n");
