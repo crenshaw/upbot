@@ -45,7 +45,12 @@
  * 2.  Consider removing the "now" field from the Episode struct so we can take
  *     advantage of the fact that many episodes are identical and simply reuse
  *     pointers like we do with the level 1+ episodic memory lists.
- * 3.  initRoute() is SLOW.  Make it faster?  Impose a max plan length?
+ * 3.  findRoute() is SLOW.  Make it faster?  Impose a max plan length?
+ *     - one way to speed it up is to make sequences a struct so that each
+ *       sequence can have a boolean associated that indicates whether it is a
+ *       goal sequence.  You can also have another variable in place used for
+ *       transitive closure when trying to avoid adding the same sequence to a
+ *       route twice.
  */
 
 //Setting this turns on verbose output to aid debugging
@@ -2276,6 +2281,10 @@ Replacement *makeNewReplacement()
 void considerReplacement()
 {
     int i;                      // iterator
+
+    //If there is already a replacement in effect then don't do another
+    //TODO:  This is very conservative and we should soften it
+    if (g_activeRepls->size > 0) return;
     
     /*----------------------------------------------------------------------
      * Find a replacement that can be applied
@@ -2907,9 +2916,9 @@ int routeLength(Route *r)
 }//routeLength
 
 /**
- *initRoute
+ * findRoute
  *
- * This method uses Dijkstra's algorithm to find a shortest path from a given
+ * This method uses a breadth-first search to find a shortest path from a given
  * start state to a goal state at a given level.
  *
  * CAVEAT:  initRoute does not verify that the given sequence and route are
@@ -2920,7 +2929,7 @@ int routeLength(Route *r)
  *
  * @return a success/error code
  */
-int initRoute(Route* newRoute, Vector *startSeq)
+int findRoute(Route* newRoute, Vector *startSeq)
 {
     // instance variables
     Vector* route;      // the ordered list of sequences stored as
@@ -2939,11 +2948,190 @@ int initRoute(Route* newRoute, Vector *startSeq)
     Action *act = (Action *)startSeq->array[0];
     int level = act->level;
     assert(level+1 < MAX_LEVEL_DEPTH); // can't build plan without level+1 actions
+
+    //Create an incomplete candidate route using the given start sequence 
+    Route *initCand = (Route*)malloc(sizeof(Route));
+    initCand->sequences = newVector();
+    initRouteFromSequence(initCand, startSeq);
+
+    //add to the candidates list
+    addEntry(candRoutes, initCand);
+
+    /*--------------------------------------------------------------------------
+     * Iterate over the candidate routes expanding them until the shortest
+     * route to the goal is found (breadth-first search)
+     */
+    //(Note: the size of the candRoutes vector will grow as the search
+    //continues.  Each candidate is a partial route.)
+    int bSuccess = FALSE;
+    int routeLen = -1;           // length of shortest route so far
+    for(i = 0; i < candRoutes->size; i++)
+    {
+#ifdef DEBUGGING
+        printf(".");
+#endif 
+
+        //Find the shortest route that hasn't been examined yet
+        Route *route = (Route *)candRoutes->array[i];
+        routeLen = routeLength(route);
+        int routePos = i;
+        for(j = i+1; j < candRoutes->size; j++)
+        {
+            Route *possiblyShorter = (Route *)candRoutes->array[j];
+            int psLen = routeLength(possiblyShorter);
+
+            //If a shorter one is found, update route, routeLen and routePos
+            if (psLen < routeLen)
+            {
+                route = possiblyShorter;
+                routeLen = psLen;
+                routePos = j;
+            }//if
+        }//for
+
+        //If this shortest route is too long then halt the search
+        //TODO:  This is domain specific knowledge!  I've placed it here to
+        //speed up debugging but we should remove it later.
+        if (routeLen > MAX_ROUTE_LEN)
+        {
+            break;
+        }
+
+        //Move this shortest unexamined route to the current position in the
+        //candRoutes vector via a swap
+        if (routePos != i)
+        {
+            void *tmp = candRoutes->array[i];
+            candRoutes->array[i] = candRoutes->array[routePos];
+            candRoutes->array[routePos] = tmp;
+        }
+
+#if DEBUGGING_INITROUTE
+        //print the current shortest candidate
+        printf("next shortest unexamined candidate %d at %ld of size %d\n",
+               i, (long)route, routeLen);
+        displayRoute(route, TRUE);
+        printf("\n");
+        fflush(stdout);
+#endif
+        
+        //If the last sequence in this route contains the goal state, we're
+        //done.  Copy the details of this route to the newRoute struct we were
+        //given and exit the loop.
+        Vector *lastSeq = (Vector *)route->sequences->array[route->sequences->size - 1];
+        int actionIdx = getGoalAction(lastSeq);
+        if (actionIdx >= 0)
+        {
+            newRoute->level = route->level;
+            newRoute->sequences = cloneVector(route->sequences);
+            newRoute->currSeqIndex = 0;
+            newRoute->currActIndex = 0;
+            newRoute->needsRecalc = FALSE;
+
+            bSuccess = TRUE;
+            break;
+        }//if
+
+        /*----------------------------------------------------------------------
+         * Search for sequences to find any that meet both these criteria:
+         * 1.  The sequence is the right-hand-side of an action at
+         *     level+1 such that the left-hand-side sequence is the
+         *     one most recently added to the candidate route
+         * 2.  the sequence is not already in the candidate route
+         *
+         * Then build new candidate routes by adding all sequences to the
+         * current candidate route that meet these criteria .
+         */
+
+        //Iterate over all actions at level+1
+        Vector *parentActions = (Vector *)g_actions->array[level + 1];
+        for(j = 0; j < parentActions->size; j++)
+        {
+            Action *act = (Action *)parentActions->array[j];
+
+            //If the left-hand-side of this action doesn't match the
+            //last sequence in the current candidate route then skip.
+            Vector *lhsSeq = (Vector *)act->epmem->array[act->index];
+            if (lhsSeq != lastSeq) continue;
+
+            //Verify this sequence isn't already in the route
+            Vector* rhsSeq = (Vector *)act->epmem->array[act->outcome];
+            if (findEntry(route->sequences, rhsSeq) != -1) continue;
+
+            //If we've reached this point, then we can create a new candidate
+            //route that is an extension of the current one
+            Route *newCand = (Route*)malloc(sizeof(Route));
+            newCand->level = route->level;
+            newCand->sequences = cloneVector(route->sequences);
+            addEntry(newCand->sequences, rhsSeq);
+            newCand->replSeq      = NULL;
+            newCand->currSeqIndex = 0;
+            newCand->currActIndex = 0;
+            newCand->needsRecalc  = FALSE;	
+        
+            //Add this new candidate route to the candRoutes array
+            addEntry(candRoutes, newCand);
+        }//for
+        
+    }//for
     
+#ifdef DEBUGGING
+    printf("\n");
+#endif 
+
+    //Clean up the RAM in the candRoutes list
+    for(i = 0; i < candRoutes->size; i++)
+    {
+        Route *route = (Route *)candRoutes->array[i];
+        freeVector(route->sequences);
+        free(route);
+    }
+    freeVector(candRoutes);
+
+    if (bSuccess) return SUCCESS;
+
+    return PLAN_NOT_FOUND;
+}//findRoute
+
+/**
+ * OLD_findRoute
+ *
+ * This method uses a breadth-first search to find a shortest path from a given
+ * start state to a goal state at a given level.
+ *
+ * CAVEAT:  initRoute does not verify that the given sequence and route are
+ *          valid/allocated
+ * 
+ * @arg newRoute  is the Route struct to populate with this new route.
+ * @arg startSeq  must be the first sequence in the route
+ *
+ * @return a success/error code
+ */
+int OLD_findRoute(Route* newRoute, Vector *startSeq)
+{
+    // instance variables
+    Vector* route;      // the ordered list of sequences stored as
+                        // int indices into actionList
+    int i,j;            // counting variable
+    Vector* sequences;  // pointer to sequences in level
+    Vector* candRoutes = newVector();  //candidate Route structs to return to caller
+
+    /*--------------------------------------------------------------------------
+     * Find all the sequences at the given level that contain a goal.  Create an
+     * incomplete route with each one that ends with this sequence
+     */
+
+    //Determine what level the route is at by looking at the first action in the
+    //start sequence.
+    Action *act = (Action *)startSeq->array[0];
+    int level = act->level;
+    assert(level+1 < MAX_LEVEL_DEPTH); // can't build plan without level+1 actions
+
     // Iterate over each sequence at the given level looking for goal sequences
     // (Note: iteration is descending so as to give preference to the most
     // recently added sequences)
     sequences = g_sequences->array[level];
+    
 #ifdef DEBUGGING_INITROUTE
     //verify that the startSeq is indeed at this level
     int index = findEntry(sequences, startSeq);
@@ -3118,7 +3306,7 @@ int initRoute(Route* newRoute, Vector *startSeq)
     if (bSuccess) return SUCCESS;
 
     return PLAN_NOT_FOUND;
-}//initRoute
+}//OLD_findRoute
 
 /**
  * initPlan
@@ -3152,7 +3340,7 @@ Vector* initPlan(int isReplan)
     Vector *resultPlan = newPlan();
 
     //Try to initialize the route at the same level as the start sequence
-    int retVal = initRoute((Route *)resultPlan->array[level], startSeq);
+    int retVal = findRoute((Route *)resultPlan->array[level], startSeq);
     if (retVal != SUCCESS)
     {
 #if DEBUGGING_INITPLAN
@@ -4086,7 +4274,7 @@ Vector* findInterimStart()
     if (foundMatch == -1)
     {
 #ifdef DEBUGGING_FINDINTERIMSTART
-        printf("No match found!\n");
+        printf("findInterimStart failed: all new sequences are unique\n");
         fflush(stdout);
 #endif
     
@@ -4148,7 +4336,7 @@ Vector* findInterimStart()
     if (index == -1)
     {
 #ifdef DEBUGGING_FINDINTERIMSTART
-        printf("\tSearch Result:  FAILURE\n");
+        printf("findInterimStart failed: unknown reason\n");
 #endif
         return NULL;
     }

@@ -38,7 +38,7 @@
 #define NUM_GOALS_TO_FIND    (50)
 #define DISCOUNT             (1.0)
 #define MAX_LEN_LHS          (1)
-#define MAX_LEVEL_DEPTH      (3)
+#define MAX_LEVEL_DEPTH      (4)
 
 //Planning defines
 #define MAX_ROUTE_LEN        (50) // maximum length of a route.
