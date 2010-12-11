@@ -4098,7 +4098,7 @@ Vector* findInterimStart()
     // from 1 because we need the nth + 1 level's actions (where n is
     // the level of our interim starting point) in order to
     // find a start at a level where we can successfully make a plan
-    for(j = g_lastUpdateLevel; j >= 1; j--)
+    for(j = g_lastUpdateLevel; j >= 0; j--)
     {
 #ifdef DEBUGGING_FINDINTERIMSTART
     printf("\tsearching Level %d\n", j);
@@ -4143,7 +4143,7 @@ Vector* findInterimStart()
     j = 0;
 
     // Begin matching at the penultimate episode to compare to the
-    // most recent episode
+    // most recent episode.  
     for (i = currLevelEpMem->size - 2; i >= 0; i--)
     {
         // if there's a match, then it's worth calculating the neighborhood
@@ -4159,17 +4159,32 @@ Vector* findInterimStart()
             {
                 j = n;
             }
+
+            //Make sure we don't fall off the edge
+            if (i - j < 0) continue;
             
             // search for a closer neighbor, beginning at the greatest distance
             // from the root episode that we have matched to.
             // this is intended to save time as the episodic memory grows
             // to be very large in size
+#ifdef DEBUGGING_FINDINTERIMSTART //%%%REMOVE
+        printf("\tcomparing %d to %d\n", i-j, currLevelEpMem->size - j - 1);
+        fflush(stdout);
+#endif
             while(compareVecOrEp(currLevelEpMem,
                                  i-j,
                                  currLevelEpMem->size - j - 1,
                                  foundMatch))
             {
                 j++;
+
+                //Make sure we don't fall off the edge
+                if (i - j < 0) break;
+                
+#ifdef DEBUGGING_FINDINTERIMSTART //%%%REMOVE
+        printf("\tcomparing %d to %d\n", i-j, currLevelEpMem->size - j - 1);
+        fflush(stdout);
+#endif
             }//while
 
             // if the neighborhood metric for this match is greater than that of
@@ -4183,42 +4198,32 @@ Vector* findInterimStart()
         }//if
     }//for
 
-    // return null if we didn't find a match.  This should never happen since
-    // we would have discovered this problem in the initial for-loop 
-    if (index == -1)
+
+    //***If we reach this point, we've found a match.
+
+    //If the match is at level 1+ then we can just return it since it's already
+    //a sequence
+    if (foundMatch > 0)
     {
-#ifdef DEBUGGING_FINDINTERIMSTART
-        printf("findInterimStart failed: unknown reason\n");
-#endif
-        return NULL;
-    }
     
 #ifdef DEBUGGING_FINDINTERIMSTART
-    printf("\tSearch Result of length %d at index %d in level %d:  ",
-           j, index+1, foundMatch);
-    displaySequenceShort(currLevelEpMem->array[index + 1]);
-    printf(" which comes after: ");
-    displaySequenceShort(currLevelEpMem->array[index]);
-    printf(" and which matches: ");
-    displaySequenceShort(currLevelEpMem->array[currLevelEpMem->size - 1]);
-    printf("\n");
-    fflush(stdout);
+        printf("\tSearch Result of length %d at index %d in level %d:  ",
+               j, index+1, foundMatch);
+        displaySequenceShort(currLevelEpMem->array[index + 1]);
+        printf(" which comes after: ");
+        displaySequenceShort(currLevelEpMem->array[index]);
+        printf(" and which matches: ");
+        displaySequenceShort(currLevelEpMem->array[currLevelEpMem->size - 1]);
+        printf("\n");
+        fflush(stdout);
 #endif
         
-    return currLevelEpMem->array[index + 1];
+        return currLevelEpMem->array[index + 1];
+
+    }//if
+
+    //%%%
+    return NULL;
 }//findInterimStart
 
 
-/**
- * initPlanFromStart
- *
- * takes a starting sequence that is an episode at a given leven and begins
- * filling int the rudiments of a plan.
- *
- */
-
- 
-void initPlanFromStart(Vector *sequence, int level)
-{
-
-}//initPlanFromStart
