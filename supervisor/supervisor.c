@@ -75,6 +75,7 @@
 #define DEBUGGING_FINDINTERIMSTART 1
 // #define DEBUGGING_NSIV 1        // nextStepIsValid()
 // #define DEBUGGING_FINDBESTREPL 1
+// #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
 
 // The percent chance of choosing a random move
 int g_randChance = 100;
@@ -4391,6 +4392,134 @@ Vector* findInterimStart_OLD()
     return NULL;
 }//findInterimStart_OLD
 
+/**
+ * convertEpMatchToSequence
+ *
+ * this method takes a given subsequence of the level 0 episodes and finds a
+ * sequential set of level 1 episodes that best matches it.  When it finds this
+ * best match, it returns its immediate successor.
+ *
+ * @arg index is the index of the last entry in the level 0 subsequence
+ * @arg len   is the length of the subsequence
+ */
+Vector *convertEpMatchToSequence(int index, int len)
+{
+    int i,j;                    // iterators
+    Vector *level0Eps = (Vector *)g_epMem->array[0];
+    Vector *level1Eps = (Vector *)g_epMem->array[1];
+    int bestMatchLen = 0;
+    int bestMatchIndex = -1;
+
+#ifdef DEBUGGING_FINDINTERIMSTART
+    printf("Entering convertEpMatchToSequence() index=%d len=%d\n",
+           index, len);
+    fflush(stdout);
+#endif
+    
+    //Examine all but the most recent episode at level 1.  This is done in
+    //reverse order so that ties will be broken by recency.  The most recent
+    //episode is not examined because we want to guarnatee that any match found
+    //will have a successor for this method to return.
+    for (i = level1Eps->size - 2; i >= 0; i--)
+    {
+#ifdef DEBUGGING_CONVERTEPMATCH
+    printf("\tstarting with level 1 episode %d\n", i);
+    fflush(stdout);
+#endif
+        int currEp1Index = i;   // level 1 episode we're currently examining
+        int matchLen = 0;       // length of the current match
+
+        //Starting at episode i, iterate backward looking for a match
+        while(matchLen < len)
+        {
+            //Get the level 0 sequence that comprises this episode
+            Vector *currSeq = (Vector *)level1Eps->array[currEp1Index];
+            
+#ifdef DEBUGGING_CONVERTEPMATCH
+            printf("\t\texamining episode %d:", currEp1Index);
+            displaySequenceShort(currSeq);
+            printf("\n");
+            fflush(stdout);
+#endif
+            
+            //Compare this sequence to the level 0 match
+            for(j = currSeq->size - 1; j >= 0; j--)
+            {
+                Episode *ep1 = (Episode *)level0Eps->array[index - matchLen];
+                Action  *act = (Action *)currSeq->array[j];
+#ifdef DEBUGGING_CONVERTEPMATCH
+            printf("\t\textracting action %d:", act->index);
+            displayAction(act);
+            printf("\n");
+            fflush(stdout);
+#endif
+                Episode *ep2 = (Episode *)act->epmem->array[act->index];
+
+#ifdef DEBUGGING_CONVERTEPMATCH
+    printf("\t\tcomparing level 0 episodes: ");
+    displayEpisodeShort(ep2);
+    printf(" to ");
+    displayEpisodeShort(ep1);
+    printf("\n");
+    fflush(stdout);
+#endif
+                if (! compareEpisodes(ep1, ep2, TRUE))
+                {
+                    //Mismatch.  See if this is the best partial match that
+                    //spans at least one entire level 1 episode
+//%%%                    if ((currEp1Index != i) && (currOffset > bestMatchLen))
+                    if (matchLen > bestMatchLen)
+                    {
+                        bestMatchLen = matchLen;
+                        bestMatchIndex = i;
+                    }
+
+                    //Move on to the next episode at level 1
+                    matchLen = len; // just to get out of the outer for-loop
+                    break;
+                }
+
+                //Increment the level 0 offset
+                matchLen++;
+                if (matchLen >= len)
+                {
+                    break;
+                }
+            }//for
+
+            //Increment the index to continue the match
+            currEp1Index--;
+            if (currEp1Index < 0) break;
+            
+        }//while
+
+    }//for
+    
+
+    //If a match was found, return its successor
+    if (bestMatchIndex != -1)
+    {
+#ifdef DEBUGGING_FINDINTERIMSTART
+        printf("\tConversion yielded episode at index %d in level 1:  ", bestMatchIndex+1);
+        fflush(stdout);
+        displaySequenceShort(level1Eps->array[bestMatchIndex + 1]);
+        printf(" which matches %d of %d episodes in the level 0 match at index %d.\n",
+               bestMatchLen, len, index);
+        fflush(stdout);
+#endif
+        
+        return level1Eps->array[bestMatchIndex + 1];
+    }//if
+            
+        
+#ifdef DEBUGGING_FINDINTERIMSTART
+    printf("convertEpMatchToSequence failed: no corresponding sequence(s)\n");
+    fflush(stdout);
+#endif
+    
+    
+    return NULL;
+}//convertEpMatchToSequence
 
 /**
  * findInterimStart
@@ -4435,9 +4564,6 @@ Vector* findInterimStart()
         //subsequence that matches the current position
         for(i = lastIndex - 1; i >= 0; i--)
         {
-            printf("\t\ti=%d lastIndex=%d\n",
-                   i, lastIndex);
-            fflush(stdout);
             //Count the length of the match at this point
             matchLen = 0;
             while(compareVecOrEp(currLevelEpMem,
@@ -4494,11 +4620,10 @@ Vector* findInterimStart()
 #endif 
         return currLevelEpMem->array[bestMatchIndex + 1];
     }
-
-    
-    
-    //No match was found.
-    return NULL;
+    else
+    {
+        return convertEpMatchToSequence(bestMatchIndex, bestMatchLen);
+    }
     
 }//findInterimStart
 
