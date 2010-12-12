@@ -18,18 +18,16 @@
  * 2.  Agent gets in a loop sometimes.  <-- this has to do with faulty
  *     replacements.  I've enacted a temporary fix.  See AMN's journal.
  *
- * 3.  Sometimes the agent just can't ever get a plan.  It behaves randomly
- *     throughout.  Could this be due to findInterimStart() not doing NSM at
- *     level 0?
+ * 3.  Occasional seg fault in init plan when a parent level is not populated.
  *
- * 4.  Occasional seg fault in init plan when a parent level is not populated.
- *
- * 5.  Agent continually picks the same plan even though a replacement is being
+ * 4.  Agent continually picks the same plan even though a replacement is being
  *     successfully applied and, thus, a slightly shorter plan should be
  *     discoverable.  (Also, there should be a mechanism that makes it explore
  *     other plans...)
  *
- * 6.  Level 0 sequences with only one item in them are occasionally created.
+ * 5.  findRoute() should be using the cousins list!
+ *
+ * 
  */
 
 /*
@@ -45,6 +43,8 @@
  *     The replSeq pointer would only be used for memory maintenance.
  * 6.  Remove code supporting the concept of a start state.  (Or leave it in to
  *     aid debugging?)
+ * 7.  Add check for determinate rule in convertEpMatchToSequence() (see NOTE in
+ *     that method's comment header)
  */
 
 /*
@@ -924,7 +924,7 @@ int updateAll(int level)
 
                             //Check for reason #1:  Expansion creates
                             //goal on LHS
-                            int newLHSEntryIndex = newAction->index - newAction->length;
+                            int newLHSEntryIndex = (newAction->index - newAction->length) - 1;
 
                             if (episodeContainsGoal(episodeList->array[newLHSEntryIndex],
                                              level))
@@ -1072,7 +1072,7 @@ int updateAll(int level)
                     else if(newAction->length < MAX_LEN_LHS)
                     {
                         //-----This is the part that I added
-                        int newLHSEntryIndex = newAction->index - newAction->length;
+                        int newLHSEntryIndex = (newAction->index - newAction->length) - 1;
 
                         if (episodeContainsGoal(episodeList->array[newLHSEntryIndex],
                                          level))
@@ -1784,10 +1784,11 @@ int nextStepIsValid()
 #if DEBUGGING
     fflush(stdout);
     printf("comparing the current sensing:");
-    printf("%i\n ", interpretSensorsShort(currEp->sensors));
+    printf("%i ", interpretSensorsShort(currEp->sensors));
     fflush(stdout);
     printf(" to the expected sensing: ");
     displayEpisodeShort(nextStep);
+    printf("\n");
     fflush(stdout);
 #endif
 
@@ -4398,6 +4399,10 @@ Vector* findInterimStart_OLD()
  * this method takes a given subsequence of the level 0 episodes and finds a
  * sequential set of level 1 episodes that best matches it.  When it finds this
  * best match, it returns its immediate successor.
+ *
+ * NOTE:  If the first entry in the subsequence is not indeterminate, there will
+ * be no match.  A good way to speed this method up is to add an explicit check
+ * for that case.
  *
  * @arg index is the index of the last entry in the level 0 subsequence
  * @arg len   is the length of the subsequence
