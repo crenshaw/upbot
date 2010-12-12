@@ -21,6 +21,8 @@
  *     successfully applied and, thus, a slightly shorter plan should be
  *     discoverable.  (Also, there should be a mechanism that makes it explore
  *     other plans...)
+ *
+ * 4.  displayPlan doesn't recursively print multi-level plans properly
  * 
  */
 
@@ -39,6 +41,8 @@
  *     aid debugging?)
  * 7.  Add check for determinate rule in convertEpMatchToSequence() (see NOTE in
  *     that method's comment header)
+ * 8.  Break this file up into multiple files.  One for unittests, one for
+ *     debugging methods and keep the rest in supervisor.c.
  */
 
 /*
@@ -62,13 +66,13 @@
 #define DEBUGGING 1
 
 //Particularly verbose debugging for specific methods
-#define DEBUGGING_UPDATEALL 1
-#define DEBUGGING_UPDATEPLAN 1
-#define DEBUGGING_CHOOSECMD 1
-// #define DEBUGGING_INITROUTE 1    //Expensive. Avoid.
-#define DEBUGGING_INITPLAN 1
-#define DEBUGGING_FINDINTERIMSTART 1
-// #define DEBUGGING_NSIV 1        // nextStepIsValid()
+ #define DEBUGGING_UPDATEALL 1
+ #define DEBUGGING_UPDATEPLAN 1
+ #define DEBUGGING_CHOOSECMD 1
+// #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
+ #define DEBUGGING_INITPLAN 1
+ #define DEBUGGING_FINDINTERIMSTART 1
+ #define DEBUGGING_NSIV 1        // nextStepIsValid()
 // #define DEBUGGING_FINDBESTREPL 1
 // #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
 
@@ -2315,7 +2319,8 @@ void considerReplacement()
     int i;                      // iterator
 
     //If there is already a replacement in effect then don't do another
-    //TODO:  This is very conservative and we should soften it
+    //TODO: This is very conservative and we should problem experiment with
+    //softening it
     if (g_activeRepls->size > 0) return;
     
     /*----------------------------------------------------------------------
@@ -2409,7 +2414,7 @@ int chooseCommand_WithPlan()
 {
     int i;                      // iterator
 
-#if DEBUGGING_CHOOSECMD
+#if DEBUGGING
     printf("Choosing command from plan:\n");
     fflush(stdout);
     displayPlan();
@@ -4287,7 +4292,7 @@ Vector* findInterimStart()
     }
     else
     {
-        return convertEpMatchToSequence(bestMatchIndex, bestMatchLen);
+        return NULL; //%%%temporaily removed: convertEpMatchToSequence(bestMatchIndex, bestMatchLen);
     }
     
 }//findInterimStart
