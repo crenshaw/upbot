@@ -3161,6 +3161,8 @@ int findRoute(Route* newRoute, Vector *startSeq)
 Vector* initPlan(int isReplan)
 {
     int i;                      // iterator
+    int offset = -1;            // if I plan from a partial match, this will
+                                // be the index of the starting action
 
 #if DEBUGGING_INITPLAN
     printf("entering initPlan for %s\n", isReplan ? "replan" : "plan");
@@ -3169,7 +3171,17 @@ Vector* initPlan(int isReplan)
         
     //Try to figure out where I am.  I can't make plan without this.
     Vector *startSeq = findInterimStart();
-    if (startSeq == NULL) return NULL;
+    if (startSeq == NULL)
+    {
+        //Try a partial match
+        startSeq = findInterimStartPartialMatch(&offset);
+        if (startSeq == NULL)
+        {
+            return NULL;        // I give up
+        }
+    }//if
+
+    
 
     //Figure out what level the startSeq is at
     Action *act = (Action *)startSeq->array[0];
@@ -3222,12 +3234,24 @@ Vector* initPlan(int isReplan)
         initRouteFromSequence(currRoute, seq);
     }//for
 
-    //If I'm replanning after a failure that means that the first command in the
-    //new plan has just been executed and so should be skipped.
+    //If I'm replanning after the failure of a previous plan that means that the
+    //first command in the new plan may not be the very first command in the
+    //first sequence.
     if (isReplan)
     {
         Route *route = (Route *)resultPlan->array[0];
-        route->currActIndex = 1; // instead of 0
+
+        //If the route was based on a partial match at level 0 then the offset
+        //variable was set by findInterimStartPartialMatch
+        if (offset > -1)  
+        {
+            route->currActIndex = offset; 
+        }
+        //At level 1+ just skip the first command
+        else                    
+        {
+            route->currActIndex = 1;
+        }
     }//if
 
 
@@ -4203,6 +4227,9 @@ Vector *convertEpMatchToSequence(int index, int len)
  * is highly analagous to McCallum's NSM match.  The returned sequence can be
  * used as the "start" sequence for creating a plan.  (See initPlan().)
  *
+ * NOTE:  This method does not search level 0 episodes.
+ *        See findInterimStartPartialMatch()
+ *
  * @return the "start" sequence that was found
  *         or NULL if the most recently completed sequence is unique in every
  *         level.
@@ -4222,7 +4249,7 @@ Vector* findInterimStart()
 #endif
     
     //Iterate over all levels that are not the very top or bottom
-    for(level = g_lastUpdateLevel; level >= 0; level--)
+    for(level = g_lastUpdateLevel; level >= 1; level--)
     {
 #ifdef DEBUGGING_FINDINTERIMSTART
     printf("\tsearching Level %d\n", level);
@@ -4239,10 +4266,8 @@ Vector* findInterimStart()
         {
             //Count the length of the match at this point
             matchLen = 0;
-            while(compareVecOrEp(currLevelEpMem,
-                                 i - matchLen,
-                                 lastIndex - matchLen,
-                                 level))
+            while(currLevelEpMem->array[i - matchLen]
+                  == currLevelEpMem->array[lastIndex - matchLen])
             {
                 matchLen++;
 
@@ -4274,11 +4299,6 @@ Vector* findInterimStart()
 
     //***If we reach this point, we've found a match.
 
-    //If the match is at level 1+ then we can just return it since it's already
-    //a sequence
-    if (level > 0)
-    {
-    
 #ifdef DEBUGGING_FINDINTERIMSTART
         printf("\tSearch Result of length %d at index %d in level %d:  ",
                bestMatchLen, bestMatchIndex + 1, level);
@@ -4292,12 +4312,147 @@ Vector* findInterimStart()
         fflush(stdout);
 #endif 
         return currLevelEpMem->array[bestMatchIndex + 1];
-    }
-    else
-    {
-        return NULL; //%%%temporaily removed: convertEpMatchToSequence(bestMatchIndex, bestMatchLen);
-    }
     
 }//findInterimStart
 
+/**
+ * findInterimStartPartialMatch
+ *
+ * Like findInterimStart(), this method searches episodes for the best match to
+ * the present.  However, it only searches level 0 and since the planning
+ * routines need a sequences to build plans, it takes its best match and returns
+ * it as a level 0 sequence and an offset into that sequence.  The plan is built
+ * from the sequence but begins where the match left off
+ *
+ * @arg offset is the index of the action in the returned sequence that a new
+ * plan should start with
+ *
+ * @return the "start" sequence that was found or NULL if there was no partial
+ *         match 
+ */
+Vector *findInterimStartPartialMatch(int *offset)
+{
+    int i,j;                    // iterators
+    Vector *level0Eps = (Vector *)g_epMem->array[0];
+    Vector *level1Eps = (Vector *)g_epMem->array[1];
+    int lastIndex = level0Eps->size-1; // where the match begins
+    int matchLen = 0;             // length of current match
+    int bestMatchLen = 0;         // length of the best match
+    int bestMatchIndex = -1;    // index of level 1 episode that is best match
+    int bestMatchOffset = -1;   // index of first matching action in best match
+    
+#ifdef DEBUGGING_FINDINTERIMSTART
+    printf("Entering findInterimStartPartialMatch()\n");
+    fflush(stdout);
+#endif
+    
+    //Iterate backwards over every action in every sequence in the level *1*
+    //episode list since it's one of these episodes that we'll eventually return
+    //to the caller
+    for(i = level1Eps->size - 1; i >= 0; i--)
+    {
+        Vector *currSeq = (Vector *)level1Eps->array[i];
+        for(j = currSeq->size - 1; j >= 0; j--)
+        {
+            //Starting with each one of these actions, iterate backwards
+            //comparing it to the level 0 episodes
+            currSeq = (Vector *)level1Eps->array[i]; // this is NOT redundant
+                                                     // with above.  do not remove.
+            int currSeqIndex = i;
+            int currActIndex = j;
+            
+            //Count the length of the match at this point
+            matchLen = 0;
+            while(TRUE)
+            {
+                Action  *currAct  = (Action *)currSeq->array[currActIndex];
+                Episode *candEp   = (Episode *)level0Eps->array[currAct->index];
+                Episode *targetEp = (Episode *)level0Eps->array[lastIndex - matchLen];
 
+                //The comparison does not compare the episode's command for the
+                //first comparison since it hasn't been set yet.  Hence the
+                //boolean paramter is "matchLen > 0"
+                if (compareEpisodes(candEp, targetEp, matchLen > 0))
+                {
+                    matchLen++;
+                    currActIndex--;
+                    
+                    //If I fall off the edge of a sequence, just proceed to the
+                    //next sequence
+                    if (currActIndex < 0)
+                    {
+                        //Get next sequence
+                        currSeqIndex--;
+                        if (currSeqIndex < 0) break;
+                        currSeq = (Vector *)level1Eps->array[currSeqIndex];
+
+                        //Get the last act out of that sequence
+                        currActIndex = currSeq->size-1;
+                        Action *lastAct = (Action *)currSeq->array[currActIndex];
+
+                        //If these actions match, then this is the overlap
+                        //between the sequences, so adjust currActIndex
+                        if (lastAct == currAct)
+                        {
+                            currActIndex--;
+                        }
+
+                    }//if
+                }//if
+                else
+                {
+                    break;      // mismatch
+                }
+                
+            }//while
+
+            //See if we've found a new best match
+            if (matchLen > bestMatchLen)
+            {
+                bestMatchLen    = matchLen;
+                bestMatchIndex  = i;
+                bestMatchOffset = j;
+            }
+        }//for
+    }//for
+
+#ifdef DEBUGGING_FINDINTERIMSTART
+    printf("\tsearch complete\n");
+    fflush(stdout);
+#endif
+    
+    //Check for no match found
+    if (bestMatchLen == 0)
+    {
+#ifdef DEBUGGING_FINDINTERIMSTART
+        printf("findInterimStartPartialMatch found no match\n");
+        fflush(stdout);
+#endif
+        return NULL;
+    }
+
+    //Report the result
+    Vector *result = (Vector *)level1Eps->array[bestMatchIndex];
+    *offset = bestMatchOffset;
+
+#ifdef DEBUGGING_FINDINTERIMSTART
+    printf("\tPartial match result of length %d at index %d and offset %d:  ",
+           bestMatchLen, bestMatchIndex, bestMatchOffset);
+    fflush(stdout);
+    for(i = 0; i < result->size; i++)
+    {
+        Action *act = (Action *)result->array[i];
+        Episode *ep = (Episode *)act->epmem->array[act->index];
+        displayEpisodeShort(ep);
+        if (i == bestMatchOffset) printf("*");
+        if (i != result->size - 1) printf(",");
+    }
+    printf("\n");
+    fflush(stdout);
+#endif 
+
+    return result;
+    
+}//findInterimStartPartialMatch
+
+ 
