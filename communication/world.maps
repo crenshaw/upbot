@@ -72,8 +72,18 @@ W WWWWWW W
 W       GW
 WWWWWWWWWW
 
+# Dead-Ends
+5 8 7
+WWWWWWWW
+W>     W
+WW W WWW
+W  W   W
+W WW WWW
+W  W  GW
+WWWWWWWW
+
 # Dead-End Doom
-5 20 10 
+6 20 10 
 WWWWWWWWWWWWWWWWWWWW
 W>        WWWWWW   W
 WW WWWWWW        W W
