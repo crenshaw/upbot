@@ -39,6 +39,7 @@
 #define DISCOUNT             (1.0)
 #define MAX_LEN_LHS          (1)
 #define MAX_LEVEL_DEPTH      (4)
+#define MIN_LEVEL0_MATCH_LEN (2) // do not set this to anything less than 2!
 
 //Planning defines
 #define MAX_ROUTE_LEN        (50) // maximum length of a route.
@@ -139,6 +140,7 @@ int     g_lastUpdateLevel;// the highest level that was updated in the last
                           // updateAll().  Used to aid findInterimStart().
 
 
+
 // Function Prototypes
 extern char* interpretCommand(int cmd);
 extern void  simpleTest();
@@ -148,7 +150,7 @@ Action*      actionMatch(int action);
 int          addAction(Vector* actions, Action* item, int checkRedundant);
 void         addActionToRoute(int actionIdx);
 int          addActionToSequence(Vector* sequence,  Action* action);
-int          addEpisode(Vector* episodes, Episode* item);
+int          addEpisode(Episode* item);
 int          addSequenceAsEpisode(Vector* sequence);
 int          chooseCommand();
 int          compareEpisodes(Episode* ep1, Episode* ep2, int compCmd);

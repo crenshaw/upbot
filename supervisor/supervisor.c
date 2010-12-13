@@ -202,7 +202,7 @@ void memTest()
         printf("Creating and adding episode...\n");
         Episode* ep = createEpisode(sensors[i]);
         // Add new episode to the history
-        addEpisode(g_epMem->array[0], ep);
+        addEpisode(ep);
         printf("Episode created\n");
 
         updateAll(0);
@@ -337,7 +337,7 @@ void planTest()
         printf("Creating and adding episode...\n");
         Episode* ep = createEpisode(sensors[i]);
         // Add new episode to the history
-        addEpisode(g_epMem->array[0], ep);
+        addEpisode(ep);
         printf("Episode created\n");
 
         updateAll(0);
@@ -472,7 +472,7 @@ void replanTest()
         Episode* ep = createEpisode(sensors[i]);
         
         // Add new episode to the history
-        addEpisode(g_epMem->array[0], ep);
+        addEpisode(ep);
         printf("Episode created\n");
 
         updateAll(0);
@@ -523,7 +523,7 @@ int tick(char* sensorInput)
     Episode* ep = createEpisode(sensorInput);
 
     // Add new episode to the history
-    addEpisode(g_epMem->array[0], ep);
+    addEpisode(ep);
 
 	updateAll(0);
 #if DEBUGGING_UPDATEALL
@@ -942,7 +942,8 @@ int updateAll(int level)
                             }
 
                             //Check for reason #2: no room to expand
-                            else if(curr->index - curr->length < 0)
+                            else if ((curr->length < MAX_LEN_LHS)
+                                     && (curr->index - curr->length < 0))
                             {
 #if DEBUGGING_UPDATEALL
                                 printf("avail space: %i,  curr expands outside goal\n",
@@ -1183,6 +1184,7 @@ int updateAll(int level)
 			// This will allow updateAll to reuse the same vector
 			// without needing to free memory
             Vector* duplicate = containsSequence(sequenceList, currSequence, TRUE);
+            Vector *parentEpList = g_epMem->array[level + 1];
 			if(duplicate != NULL)
 			{
 				currSequence->size = 0;
@@ -1190,8 +1192,7 @@ int updateAll(int level)
                 // next level's episodic memory
                 if (level + 1 < MAX_LEVEL_DEPTH)
                 {
-                    episodeList = g_epMem->array[level + 1];
-                    addEntry(episodeList, duplicate);
+                    addEntry(parentEpList, duplicate);
                 }
 			}
 			else
@@ -1207,7 +1208,7 @@ int updateAll(int level)
                 // sequence from start to goal in the next level's epMem.
                 // This is becuase, even though it is a complete path, it was
                 // still an even in our past as thus in our episodic memeory
-                if ((level + 1 < MAX_LEVEL_DEPTH)/* && (currSequence->size != 1)*/)
+                if (level + 1 < MAX_LEVEL_DEPTH)
                 {
 #if DEBUGGING_UPDATEALL
                     printf("Creating a new level %i episode with sequence: ", level + 1);
@@ -1215,14 +1216,14 @@ int updateAll(int level)
                     printf("\n");
                     fflush(stdout);
 #endif
-                    episodeList = g_epMem->array[level + 1];
-                    addEntry(episodeList, currSequence);
+                    addEntry(parentEpList, currSequence);
                 }
             	// create an vector to hold the next sequence 
             	currSequence = newVector();
             	addEntry(sequenceList, currSequence);
-			}
-            
+
+			}//else
+
             // typically the next sequence starts with the action that
             // ended the last sequence.  (Exception:  last action
             // contains a goal)
@@ -1251,14 +1252,16 @@ int updateAll(int level)
 /**
  * addEpisode
  *
- * Add new episode to episode history vector
+ * Add new level 0 episode to episode history vector
  *
  * @arg episodes pointer to vector containing episodes
  * @arg item pointer to episode to be added
  * @return int status code (0 == success)
  */
-int addEpisode(Vector* episodes, Episode* item)
+int addEpisode(Episode* item)
 {
+    //Add the entry 
+    Vector* episodes = (Vector *)g_epMem->array[0];
     return addEntry(episodes, item);
 }// addEpisode
 
@@ -3160,8 +3163,8 @@ Vector* initPlan(int isReplan)
     int i;                      // iterator
 
 #if DEBUGGING_INITPLAN
-        printf("entering initPlan for %s\n", isReplan ? "replan" : "plan");
-        fflush(stdout);
+    printf("entering initPlan for %s\n", isReplan ? "replan" : "plan");
+    fflush(stdout);
 #endif
         
     //Try to figure out where I am.  I can't make plan without this.
