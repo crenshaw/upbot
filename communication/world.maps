@@ -72,8 +72,16 @@ W WWWWWW W
 W       GW
 WWWWWWWWWW
 
-# Dead-Ends
-5 8 7
+# Small Dead-Ends
+5 7 7
+WWWWWWW
+W>  W W
+W W   W
+W WGW W
+WWWWWWW
+
+# Medium Dead-Ends
+6 8 7
 WWWWWWWW
 W>     W
 WW W WWW
@@ -83,7 +91,7 @@ W  W  GW
 WWWWWWWW
 
 # Dead-End Doom
-6 20 10 
+7 20 10 
 WWWWWWWWWWWWWWWWWWWW
 W>        WWWWWW   W
 WW WWWWWW        W W
