@@ -282,13 +282,16 @@ int main(int argc, char* argv[])
 
 	  // Check sensor data first to stop ramming into wall.
 	  sensData = checkSensorData(sensDataFromRobot);
-
+	  printf("%s %d \n", __FILE__, __LINE__);
 	  // Wait until child has sent previous sensor data.
 	  WAIT_CHILD();
 
+	  printf("%s %d \n", __FILE__, __LINE__);
+	  printf("%d \n", sensData);
+
 	  if(sensData)
 	    {
-	     	      
+	      printf("%s %d \n", __FILE__, __LINE__);	     	      
 	      // Drive backwards and then stop.
 	      driveBackwardsUntil(EIGHTH_SECOND, MED);
 	      STOP_MACRO;	      
@@ -370,7 +373,7 @@ int main(int argc, char* argv[])
 	  if(readSensorDataFromSharedMemory(sensDataToSupervisor, sensArea))
 	    {
 	      printf("\nsensDataToSupervisor: %s \n", sensDataToSupervisor);
-	      if(send(clientSock, sensDataToSupervisor, strlen(sensDataToSupervisor), 0) == -1)
+	      if(send(clientSock, sensDataToSupervisor, strlen(sensDataToSupervisor)-1 , 0) == -1)
 		perror("send");
 	    }
 	  
@@ -378,7 +381,6 @@ int main(int argc, char* argv[])
 	  // sensor message to the supervisor-client.
 	  else
 	    {
-	      printf("\nsensDataToSupervisor: nothing happened. \n"); 
 	      itoa(getRawTime(), rawTimeString);
 	      
 	      // Construct an empty sensor data message and send it to
@@ -386,8 +388,8 @@ int main(int argc, char* argv[])
 	      strncat(emptyDataToSupervisor, rawTimeString, MAXDATASIZE-SIZE_OF_EMPTY_DATA);
 	      strncat(emptyDataToSupervisor, " ", 1);
 	      strncat(emptyDataToSupervisor, getTime(), MAXDATASIZE-SIZE_OF_EMPTY_DATA);
-
-	      if(send(clientSock, emptyDataToSupervisor, MAXDATASIZE, 0) == -1)
+	      printf("\nemptySensDataToSupervisor: %s \n", emptyDataToSupervisor);
+	      if(send(clientSock, emptyDataToSupervisor, MAXDATASIZE-1, 0) == -1)
 		perror("send");
 
 	      emptyDataToSupervisor[SIZE_OF_EMPTY_DATA] = '\0';

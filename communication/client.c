@@ -81,10 +81,9 @@ int main(int argc, char *argv[])
 	  {
 	    //clear the sensor buffer
 	    sensorBuf[0] = '\0';
-	    printf("Receiving sensor data.\n");
+	    
 	    numbytes = recv(sockfd, sensorBuf, MAXDATASIZE-1, 0);
-	    printf("client: sensor data: '%s'\n", sensorBuf);	   
-	    printf("numbytes: %d\n", numbytes);
+	    printf("client: %d bytes of sensor data: '%s'\n", numbytes, sensorBuf);	   
 	    fprintf(sensorFile, "%s", sensorBuf);
 	  }
       }

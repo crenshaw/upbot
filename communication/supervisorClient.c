@@ -153,7 +153,7 @@ int recvCommand(int sockfd, char* buf)
 		} 
 		else			/* error was not caused by alarm  */
 		{
-			perror("Error on receive\n");
+		  perror("Error on receive\n");
 		}
 	}// while
 
