@@ -68,11 +68,11 @@
 //Particularly verbose debugging for specific methods
  #define DEBUGGING_UPDATEALL 1
  #define DEBUGGING_UPDATEPLAN 1
- #define DEBUGGING_CHOOSECMD 1
+//  #define DEBUGGING_CHOOSECMD 1
 // #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
- #define DEBUGGING_INITPLAN 1
- #define DEBUGGING_FINDINTERIMSTART 1
- #define DEBUGGING_NSIV 1        // nextStepIsValid()
+//  #define DEBUGGING_INITPLAN 1
+//  #define DEBUGGING_FINDINTERIMSTART 1
+//  #define DEBUGGING_NSIV 1        // nextStepIsValid()
 // #define DEBUGGING_FINDBESTREPL 1
 // #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
 

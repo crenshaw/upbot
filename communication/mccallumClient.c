@@ -91,7 +91,7 @@ int sendCommand(int sockfd, int cmd)
 	// Attempt to send command and catch error code
 	int retVal = send(sockfd, &cmd, 1, 0);
 	// Else send command to Roomba server and exit if unsuccessful
-	if(retVal != -1 && g_statsMode == 0)
+	if(retVal != -1)
 	{
 		// Print command sent to Roomba on stdout
 		printf("The command value sent was: %s (%i)\n", interpretCommand(cmd), cmd);
@@ -359,7 +359,7 @@ void reportGoalFound(int sockfd, FILE* log)
 		fflush(log);
 	}
 
-/*	// Only print if not in stats mode
+	// Only print if not in stats mode
 	if(g_goalsFound > 1)
 	{
 		printf("Goal %i found after %i episodes at timestamp %i\n"
@@ -373,7 +373,8 @@ void reportGoalFound(int sockfd, FILE* log)
 							, g_goalsFound
 							, g_goalsTimeStamp[g_goalsFound - 1]);
 	}
-*/
+    fflush(stdout);
+
 	// Send a success command
 //	int cmd = CMD_SONG;
 //	sendCommand(sockfd, cmd);

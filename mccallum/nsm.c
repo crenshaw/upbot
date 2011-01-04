@@ -57,21 +57,27 @@ int g_goalIdx[NUM_GOALS_TO_FIND];   // Keep track of the episodes with goals
  */
 int tick(char* sensorInput)
 {
+    //%%%Temporarily hard-code stats mode
+    g_statsMode = TRUE;
+    
     // Update the history to add new sensor data to the corresponding episode.
     // This also will populate neighborhoods and update q values for voting
     // states when necessary.
     if(!g_statsMode) printf("Updating history\n");
     Episode* ep = updateHistory(sensorInput);
     if(!g_statsMode) printf("History updated\n\n");
+    fflush(stdout);
 
     if(!g_statsMode) printf("++++++++++++++++++++++++++++++++++++++++++\n");
 	if(!g_statsMode) printf("Number of goals found: %i\n", g_goalCount);
     if(!g_statsMode) printf("++++++++++++++++++++++++++++++++++++++++++\n");
-
+    fflush(stdout);
+    
     // Select the next command to be sent to the roomba
     if(!g_statsMode) printf("Choosing next command\n");
     chooseCommand(ep);
     if(!g_statsMode) printf("Command selected\n");
+    if(!g_statsMode) fflush(stdout);
     
     return ep->action;
 }//tick
@@ -126,6 +132,7 @@ Episode* updateHistory(char* sensorData)
     {
         printf("Most recent completed episode:\n");
         displayEpisode(ep);
+        fflush(stdout);
     }
 
     // Prep and add the next episode in our history. This will be assigned
@@ -160,6 +167,7 @@ int parseSensors(Episode * parsedData, char* dataArr)
     if(dataArr == NULL)
     {
         if(!g_statsMode) printf("data arr in parse is null");
+        fflush(stdout);
         return -1;
     }
 
@@ -171,6 +179,7 @@ int parseSensors(Episode * parsedData, char* dataArr)
         if ((bit < 0) || (bit > 1))
         {
             if(!g_statsMode) printf("%s", dataArr);
+            fflush(stdout);
             return -1;      
         }
 
@@ -271,6 +280,7 @@ void updateAllLittleQ(Episode* ep)
 {
 	if(!g_statsMode) printf("\n=================================================================\n");
     if(!g_statsMode) printf("Updating expected future discounted rewards for voting states in the following neighborhood\n\n");
+    fflush(stdout);
     // Set a pointer to the neighborhood related to the most recently executed action
     // remember to offset for the relative action base
     Neighborhood* nbHd = g_neighborhoods->array[ep->action - CMD_NO_OP];
@@ -280,9 +290,11 @@ void updateAllLittleQ(Episode* ep)
 	if(!g_statsMode) printf("===================================================================\n\n");
 
 	if(!g_statsMode) printf("Calculating utility\n");
+    fflush(stdout);
 	// Recalculate the Q value to be used as the utility for updating expected rewards
 	double utility = calculateQValue(nbHd);
 	if(!g_statsMode) printf("Utility calculated: %f\n", utility);
+    fflush(stdout);
 
     // Update the q values for each of the voting episodes for the most recent action
     int i;
@@ -309,8 +321,10 @@ void updateAllLittleQ(Episode* ep)
     
     // Print out the updated neighborhood
 	if(!g_statsMode) printf("Updated neighborhood\n");
+    fflush(stdout);
 	displayNeighborhood(nbHd);
-	if(!g_statsMode) printf("===================================================================\n\n");
+	if(!g_statsMode) printf("<==================================================================\n\n");
+    fflush(stdout);
 }//updateAllLittleQ
 
 /**
@@ -354,9 +368,11 @@ int populateNeighborhoods()
         destroyNeighborhood(g_neighborhoods->array[i]);
         // must offset i with CMD_NO_OP because that is the relative base to our actions
 		if(!g_statsMode) printf("==========>> Populating neighborhood for action: %s\n",interpretCommand(i + CMD_NO_OP));
+        fflush(stdout);
         g_neighborhoods->array[i] = locateKNearestNeighbors(i + CMD_NO_OP);
     }
-	if(!g_statsMode) printf("\n=====================================================\n\n");
+	if(!g_statsMode) printf("\n==================end of populateNeighborhoods===================================\n\n");
+    fflush(stdout);
     return SUCCESS;
 }//populateNeighborhoods
 
@@ -374,9 +390,11 @@ Neighborhood* locateKNearestNeighbors(int action)
 {
     // Initialize a neighborhood with the action and K
     if(!g_statsMode) printf("initializing neighborhood\n");
+    fflush(stdout);
     Neighborhood* nbHd = initNeighborhood(action, K_NEAREST);
     // Set current episode action temporarily to the current testing action
     if(!g_statsMode) printf("Setting neighborhood action\n");
+    fflush(stdout);
     ((Episode*)getEntryFM(g_epMem,g_epMem->size - 1))->action = action;
 
     int i,n;
@@ -391,6 +409,7 @@ Neighborhood* locateKNearestNeighbors(int action)
     }//for
 
     if(!g_statsMode) printf("Returning full neighborhood\n");
+    fflush(stdout);
     return nbHd;
 }//locateNearestNeighbors
 
@@ -663,6 +682,7 @@ void displayNeighborhood(Neighborhood* nbHd)
 	int i;
 	// introduce the neighborhood
 	if(!g_statsMode) printf("========== The Neighborhood for Action: %s ==========\n\n", interpretCommand(nbHd->action));
+    fflush(stdout);
 
 	// Check if there were any neighbors found
 	if(nbHd->numNeighbors == 0)
@@ -673,8 +693,10 @@ void displayNeighborhood(Neighborhood* nbHd)
 
 	// Print the current state sequence. The length will match the highest neighborhood metric + 1
 	if(!g_statsMode) printf("The current sequence being matched: ");
+    fflush(stdout);
 	displayNeighborSequence((Episode*)getEntryFM(g_epMem,g_epMem->size - 2), nbHd->nValues[0], TRUE);
 	if(!g_statsMode) printf(" =>>> {%s,NA,NA}\n\n", interpretCommandShort(nbHd->action));
+    fflush(stdout);
 
 
 	// Display all the neighbors that were found
@@ -682,10 +704,13 @@ void displayNeighborhood(Neighborhood* nbHd)
 	{
 		// introduce the current episode
 		if(!g_statsMode) printf("=====>> The following episode has a Neighborhood Metric of: %i\n", nbHd->nValues[i]);
+        fflush(stdout);
 		displayEpisode(nbHd->episodes[i]);
 		if(!g_statsMode) printf("Sequence leading to episode: ");
+        fflush(stdout);
 		displayNeighborSequence(nbHd->episodes[i], nbHd->nValues[i], FALSE);
 		if(!g_statsMode) printf("\n\n");
+        fflush(stdout);
 	}//for
 }//displayNeighborhood
 
@@ -709,6 +734,7 @@ void displayNeighborSequence(Episode* ep, int n, int isCurr)
 		if(isCurr && i == 0 && n > 0) if(!g_statsMode) printf(" ==> ");
 		if(!isCurr && i == 0) if(!g_statsMode) printf(" =>>> ");
 		displayEpisodeShort((Episode*)getEntryFM(g_epMem,ep->now - i));
+        fflush(stdout);
 	}
 }//displayNeighborSequence
 
@@ -745,13 +771,18 @@ int chooseCommand(Episode* ep)
 		//        g_epMem->size <= MIN_HISTORY_LEN)   // Make sure 'nough hist. for good nbhoods
 		//		g_goalCount <= 0)					// Only do no random after first goal
 	{
+        if(!g_statsMode) printf(" selecting random command \n");
+        fflush(stdout);
 		ep->action = (rand() % (LAST_MOBILE_CMD)) + CMD_NO_OP;
 	}
 	else
 	{
 		// loop on setCommand until a route is chosen 
 		// that will lead to a successful action
+        if(!g_statsMode) printf(" selecting command from NSM \n");
+        fflush(stdout);
 		while(setCommand(ep)) if(!g_statsMode) printf("Failed to set a command\n");
+        fflush(stdout);
 	}
 
 	return ep->action;
