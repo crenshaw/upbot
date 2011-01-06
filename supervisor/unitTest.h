@@ -53,6 +53,7 @@ void loadWorld();
 void initWorld();
 void freeWorld();
 void resetWorld();
+void performMapMod();
 void displayWorld();
 char* unitTest(int comand, int needCleanup);
 char* doMove(int command);

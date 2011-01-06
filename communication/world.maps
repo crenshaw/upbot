@@ -8,7 +8,7 @@ This line must be written above the map in order for the
 parser to locate the correct map and the dimensions are 
 needed to allocate memory for the world to be read into:
 
-mapNum mapWidth mapHeight
+mapNum mapWidth mapHeight [numGoals vElement ve_X ve_Y]
 
 This is the line that tells the unitTest that a map is about
 to follow. 
@@ -18,6 +18,23 @@ mapWidth 	is the width of the map
 mapHeight	is the height of the map
 			These last two are used to allocate the memory
 			to contain the map.
+
+A further option that is available is to set up the map to 
+change after a certain number of goals are found.
+This is not necessary and if not desired, only the first
+three values are required.
+
+numGoals    is the number of goals after which the mod will occur
+vElement    is the element to be added, using map notation. Currently 
+            this is hard coded as a V_WALL in unitTest.c, however 
+            this option is available should we add holes (for drop 
+            sensors) or any other type of map element.
+ve_X        is the x coordinate of the element to be added
+ve_Y        is the y coordinate of the element to be added
+
+An example line using all options: 1 9 7 10 W 4 3
+If no change is desired, we could use: 1 9 7
+
 
 The options for elements in the virtual world are as follows:
 
@@ -44,7 +61,7 @@ The default map is 1 and can be used as a template.
 #############################################################
 
 # McCallmum's World
-1 9 7
+1 9 7 
 WWWWWWWWW
 W>      W
 W WW WW W

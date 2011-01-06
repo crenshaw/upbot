@@ -38,6 +38,13 @@ int g_hitGoal;
 //keep track of number times goal is found
 int g_goalCount = 0;
 
+// extra vars for seeing how agents react to changes in a map
+int g_goalNumToSwitchOn = -1;
+char g_newEl;
+int g_newEl_X;
+int g_newEl_Y;
+
+
 /**
 * loadMap
 *
@@ -57,7 +64,13 @@ void loadMap(int mapNum)
 	{
 		fgets(buffer, sizeof(buffer), maps);
 		// Pull out the values into the appropriate variables
-		sscanf(buffer, "%d %d %d", &currMap, &g_map_width, &g_map_height);
+		sscanf(buffer, "%d %d %d %d %s %d %d", &currMap, 
+                                               &g_map_width, 
+                                               &g_map_height, 
+                                               &g_goalNumToSwitchOn, 
+                                               &g_newEl, 
+                                               &g_newEl_X, 
+                                               &g_newEl_Y);
 	}
 
 	// allocate space for ptrs to columns
@@ -120,7 +133,7 @@ void loadMap(int mapNum)
 	fclose(maps);
 
 	// Do not want stats mode most of the time
-	g_statsMode = 1;
+	g_statsMode = 0;
 	
 	// Set up the world vars according to what we read in
 	resetWorld();
@@ -172,67 +185,79 @@ void resetWorld()
 }//resetWorld
 
 /**
+ * performMapMod
+ *
+ * This is a function that will add in a wall at a desired location
+ * after a desired number of goals. These values are set in the world.maps
+ * file in: /upbot/communication/world.maps
+ */
+void performMapMod()
+{
+    g_world[g_newEl_X][g_newEl_Y] = V_WALL;
+}//performMapMod
+
+/**
  * displayWorld
  *
  * Print the current view of the world
  */
 void displayWorld()
 {
-	int i,j;
-	// Iterate down columns
-	for(i = 0; i < g_map_height; i++)
-	{
-		// Iterate across rows
-		for(j = 0; j < g_map_width; j++)
-		{
-			// Switch on item under pointer
-			switch(g_world[j][i])
-			{
-				case V_WALL:
-					if(!g_statsMode) printf("W");
-					break;
-				case V_HALLWAY:
-					if(!g_statsMode) printf(" ");
-					break;
-				case V_GOAL:
-					if(!g_statsMode) printf("G");
-					break;
-				case V_ROOMBA:
-					// Have a different symbol depending on the heading of the Roomba
-					// This is simply for visual feedback
-					switch(g_heading)
-					{
-						case HDG_N:
-							if(!g_statsMode) printf("^");
-							break;
-						case HDG_NE:
-							if(!g_statsMode) printf("7");
-							break;
-						case HDG_E:
-							if(!g_statsMode) printf(">");
-							break;
-						case HDG_SE:
-							if(!g_statsMode) printf("J");
-							break;
-						case HDG_S:
-							if(!g_statsMode) printf("v");
-							break;
-						case HDG_SW:
-							if(!g_statsMode) printf("L");
-							break;
-						case HDG_W:
-							if(!g_statsMode) printf("<");
-							break;
-						case HDG_NW:
-							if(!g_statsMode) printf("F");
-							break;
-					}//switch
-					break;
-			}//switch
-		}//for
-		if(!g_statsMode) printf("\n");
-	}//for
-	if(!g_statsMode) printf("\n");
+    int i,j;
+    // Iterate down columns
+    for(i = 0; i < g_map_height; i++)
+    {
+        // Iterate across rows
+        for(j = 0; j < g_map_width; j++)
+        {
+            // Switch on item under pointer
+            switch(g_world[j][i])
+            {
+                case V_WALL:
+                    if(!g_statsMode) printf("W");
+                    break;
+                case V_HALLWAY:
+                    if(!g_statsMode) printf(" ");
+                    break;
+                case V_GOAL:
+                    if(!g_statsMode) printf("G");
+                    break;
+                case V_ROOMBA:
+                    // Have a different symbol depending on the heading of the Roomba
+                    // This is simply for visual feedback
+                    switch(g_heading)
+                    {
+                        case HDG_N:
+                            if(!g_statsMode) printf("^");
+                            break;
+                        case HDG_NE:
+                            if(!g_statsMode) printf("7");
+                            break;
+                        case HDG_E:
+                            if(!g_statsMode) printf(">");
+                            break;
+                        case HDG_SE:
+                            if(!g_statsMode) printf("J");
+                            break;
+                        case HDG_S:
+                            if(!g_statsMode) printf("v");
+                            break;
+                        case HDG_SW:
+                            if(!g_statsMode) printf("L");
+                            break;
+                        case HDG_W:
+                            if(!g_statsMode) printf("<");
+                            break;
+                        case HDG_NW:
+                            if(!g_statsMode) printf("F");
+                            break;
+                    }//switch
+                    break;
+            }//switch
+        }//for
+        if(!g_statsMode) printf("\n");
+    }//for
+    if(!g_statsMode) printf("\n");
 }//displayWorld
 
 /**
@@ -250,17 +275,26 @@ void displayWorld()
  */
 char* unitTest(int command, int needCleanup)
 {
-	// Check if we've completed the unit test and need to clean up
-	if(needCleanup)
-	{
-		freeWorld();
-		return NULL;
-	}
+    // Check if we've completed the unit test and need to clean up
+    if(needCleanup)
+    {
+        freeWorld();
+        return NULL;
+    }
 
-	// If we hit a goal last time reset Roomba and Goal locations
-	if(g_hitGoal) resetWorld();
+    // If we hit a goal last time reset Roomba and Goal locations
+    if(g_hitGoal) 
+    {
+        // Check to see if the map needs to be altered
+        if(g_goalNumToSwitchOn != -1 && g_goalCount == g_goalNumToSwitchOn) 
+        {
+            performMapMod();
+        }
 
- 	return doMove(command);
+        resetWorld();
+    }
+
+    return doMove(command);
 }//unitTest
 
 /**
@@ -274,178 +308,178 @@ char* unitTest(int command, int needCleanup)
  */
 char* doMove(int command)
 {
-	int	lBump, rBump, 	// Sensor vars
-		lCliff, rCliff, 
-		lCliffFront, rCliffFront,
-		lDrop, rDrop,	
-		IR, caster;
-	int sensorReturn;	// Total sensor return
-	int abort;			// Abort bit (deprecated)
+    int	lBump, rBump, 	// Sensor vars
+        lCliff, rCliff, 
+        lCliffFront, rCliffFront,
+        lDrop, rDrop,	
+        IR, caster;
+    int sensorReturn;	// Total sensor return
+    int abort;			// Abort bit (deprecated)
 
-	// init sensor values
-	lBump 		= rBump 		= lCliff 	= rCliff 	= IR 		= SNSR_OFF;
-	lCliffFront = rCliffFront 	= lDrop 	= rDrop 	= caster 	= SNSR_OFF;
-	sensorReturn = NONE_HIT;
-	abort = FALSE;
+    // init sensor values
+    lBump 		= rBump 		= lCliff 	= rCliff 	= IR 		= SNSR_OFF;
+    lCliffFront = rCliffFront 	= lDrop 	= rDrop 	= caster 	= SNSR_OFF;
+    sensorReturn = NONE_HIT;
+    abort = FALSE;
 
-	// Switch on the command that was received to update world appropriatelY
-	switch(command)
-	{
-		// Left and Right just turn the Roomba
-		case CMD_LEFT:
-			if(!g_statsMode) printf("Turn left 45 degrees\n");
-			g_heading = (g_heading > HDG_N ? g_heading - 1 : HDG_NW);
-			break;
-		case CMD_RIGHT:
-			if(!g_statsMode) printf("Turn right 45 degrees\n");
-			g_heading = (g_heading < HDG_NW ? g_heading + 1 : HDG_N);
-			break;
-		// Adjusts currently not implemented in 'perfect' world
-		case CMD_ADJUST_LEFT:
-			if(!g_statsMode) printf("Adjust left\n");
-			break;
-		case CMD_ADJUST_RIGHT:
-			if(!g_statsMode) printf("Adjust right\n");
-			break;
-		// Forward must check for walls and IR in direction of g_heading
-		case CMD_FORWARD:
-			if(!g_statsMode) printf("Move forward one world unit\n");
+    // Switch on the command that was received to update world appropriatelY
+    switch(command)
+    {
+        // Left and Right just turn the Roomba
+        case CMD_LEFT:
+            if(!g_statsMode) printf("Turn left 45 degrees\n");
+            g_heading = (g_heading > HDG_N ? g_heading - 1 : HDG_NW);
+            break;
+        case CMD_RIGHT:
+            if(!g_statsMode) printf("Turn right 45 degrees\n");
+            g_heading = (g_heading < HDG_NW ? g_heading + 1 : HDG_N);
+            break;
+            // Adjusts currently not implemented in 'perfect' world
+        case CMD_ADJUST_LEFT:
+            if(!g_statsMode) printf("Adjust left\n");
+            break;
+        case CMD_ADJUST_RIGHT:
+            if(!g_statsMode) printf("Adjust right\n");
+            break;
+            // Forward must check for walls and IR in direction of g_heading
+        case CMD_FORWARD:
+            if(!g_statsMode) printf("Move forward one world unit\n");
 
-			// First check the diagonal g_headings
-			if(g_heading == HDG_NE)
-			{
-				sensorReturn = bumpSensor(g_world[g_X][g_Y-1], g_world[g_X+1][g_Y]);
-			}
-			else if(g_heading == HDG_SE)
-			{
-				sensorReturn = bumpSensor(g_world[g_X+1][g_Y], g_world[g_X][g_Y+1]);
-			}
-			else if(g_heading == HDG_SW)
-			{
-				sensorReturn = bumpSensor(g_world[g_X][g_Y+1], g_world[g_X-1][g_Y]);
-			}
-			else if(g_heading == HDG_NW)
-			{
-				sensorReturn = bumpSensor(g_world[g_X-1][g_Y], g_world[g_X][g_Y-1]);
-			}
-			// Next check the horizontal and vertical headings
-			// Also begin check for IR in spot we move to
-			else if(g_heading == HDG_N)
-			{
-				if(g_world[g_X][g_Y-1] == V_WALL)
-				{
-					sensorReturn = BOTH_HIT;
-				}
-				else if(g_world[g_X][g_Y-1] == V_GOAL)
-				{
-					IR = SNSR_ON;
-				}
-			}
-			else if(g_heading == HDG_E)
-			{
-				if(g_world[g_X+1][g_Y] == V_WALL)
-				{
-					sensorReturn = BOTH_HIT;
-				}
-				else if(g_world[g_X+1][g_Y] == V_GOAL)
-				{
-					IR = SNSR_ON;
-				}
-			}
-			else if(g_heading == HDG_S)
-			{
-				if(g_world[g_X][g_Y+1] == V_WALL)
-				{
-					sensorReturn = BOTH_HIT;
-				}
-				else if(g_world[g_X][g_Y+1] == V_GOAL)
-				{
-					IR = SNSR_ON;
-				}
-			}
-			else if(g_heading == HDG_W)
-			{
-				if(g_world[g_X-1][g_Y] == V_WALL) 
-				{
-					sensorReturn = BOTH_HIT;
-				}
-				else if(g_world[g_X-1][g_Y] == V_GOAL) 
-				{
-					IR = SNSR_ON;
-				}
-			}
+            // First check the diagonal g_headings
+            if(g_heading == HDG_NE)
+            {
+                sensorReturn = bumpSensor(g_world[g_X][g_Y-1], g_world[g_X+1][g_Y]);
+            }
+            else if(g_heading == HDG_SE)
+            {
+                sensorReturn = bumpSensor(g_world[g_X+1][g_Y], g_world[g_X][g_Y+1]);
+            }
+            else if(g_heading == HDG_SW)
+            {
+                sensorReturn = bumpSensor(g_world[g_X][g_Y+1], g_world[g_X-1][g_Y]);
+            }
+            else if(g_heading == HDG_NW)
+            {
+                sensorReturn = bumpSensor(g_world[g_X-1][g_Y], g_world[g_X][g_Y-1]);
+            }
+            // Next check the horizontal and vertical headings
+            // Also begin check for IR in spot we move to
+            else if(g_heading == HDG_N)
+            {
+                if(g_world[g_X][g_Y-1] == V_WALL)
+                {
+                    sensorReturn = BOTH_HIT;
+                }
+                else if(g_world[g_X][g_Y-1] == V_GOAL)
+                {
+                    IR = SNSR_ON;
+                }
+            }
+            else if(g_heading == HDG_E)
+            {
+                if(g_world[g_X+1][g_Y] == V_WALL)
+                {
+                    sensorReturn = BOTH_HIT;
+                }
+                else if(g_world[g_X+1][g_Y] == V_GOAL)
+                {
+                    IR = SNSR_ON;
+                }
+            }
+            else if(g_heading == HDG_S)
+            {
+                if(g_world[g_X][g_Y+1] == V_WALL)
+                {
+                    sensorReturn = BOTH_HIT;
+                }
+                else if(g_world[g_X][g_Y+1] == V_GOAL)
+                {
+                    IR = SNSR_ON;
+                }
+            }
+            else if(g_heading == HDG_W)
+            {
+                if(g_world[g_X-1][g_Y] == V_WALL) 
+                {
+                    sensorReturn = BOTH_HIT;
+                }
+                else if(g_world[g_X-1][g_Y] == V_GOAL) 
+                {
+                    IR = SNSR_ON;
+                }
+            }
 
-			// Set sensor values according to result from completing 
-			// the command and if none are hit then update roomba location
-			if(sensorReturn == BOTH_HIT)
-			{
-				lBump = rBump = SNSR_ON;
-				abort = TRUE;
-			}
-			else if(sensorReturn == RIGHT_HIT)
-			{
-				rBump = SNSR_ON;
-				abort = TRUE;
-			}
-			else if(sensorReturn == LEFT_HIT)
-			{
-				lBump = SNSR_ON;
-				abort = TRUE;
-			}
-			else if(sensorReturn == NONE_HIT)
-			{
-				if(IR == SNSR_ON)
-				{
-					g_hitGoal = TRUE;
-				}
+            // Set sensor values according to result from completing 
+            // the command and if none are hit then update roomba location
+            if(sensorReturn == BOTH_HIT)
+            {
+                lBump = rBump = SNSR_ON;
+                abort = TRUE;
+            }
+            else if(sensorReturn == RIGHT_HIT)
+            {
+                rBump = SNSR_ON;
+                abort = TRUE;
+            }
+            else if(sensorReturn == LEFT_HIT)
+            {
+                lBump = SNSR_ON;
+                abort = TRUE;
+            }
+            else if(sensorReturn == NONE_HIT)
+            {
+                if(IR == SNSR_ON)
+                {
+                    g_hitGoal = TRUE;
+                }
 
-				// If no sensors were hit then update roomba location accordingly
-				switch(g_heading)
-				{
-					case HDG_N:
-						g_world[g_X][g_Y] = V_HALLWAY;
-						g_Y--;
-						g_world[g_X][g_Y] = V_ROOMBA;
-						break;
-					case HDG_E:
-						g_world[g_X][g_Y] = V_HALLWAY;
-						g_X++;
-						g_world[g_X][g_Y] = V_ROOMBA;
-						break;
-					case HDG_S:
-						g_world[g_X][g_Y] = V_HALLWAY;
-						g_Y++;
-						g_world[g_X][g_Y] = V_ROOMBA;
-						break;
-					case HDG_W:
-						g_world[g_X][g_Y] = V_HALLWAY;
-						g_X--;
-						g_world[g_X][g_Y] = V_ROOMBA;
-						break;
-				}//switch
-			}//if
-			break;
-		case CMD_BLINK:
-			if(!g_statsMode) printf("Blink\n");
-			break;
-		case CMD_NO_OP:
-			if(!g_statsMode) printf("No operation\n");
-			break;
-		case CMD_SONG:
-			if(!g_statsMode) printf("Song\n");
-			break;
-		case CMD_ILLEGAL:
-			if(!g_statsMode) printf("Resetting world\n");
-			resetWorld();
-		default:
-			if(!g_statsMode) printf("Invalid command: %i\n", command);
-			break;
-	}//switch
+                // If no sensors were hit then update roomba location accordingly
+                switch(g_heading)
+                {
+                    case HDG_N:
+                        g_world[g_X][g_Y] = V_HALLWAY;
+                        g_Y--;
+                        g_world[g_X][g_Y] = V_ROOMBA;
+                        break;
+                    case HDG_E:
+                        g_world[g_X][g_Y] = V_HALLWAY;
+                        g_X++;
+                        g_world[g_X][g_Y] = V_ROOMBA;
+                        break;
+                    case HDG_S:
+                        g_world[g_X][g_Y] = V_HALLWAY;
+                        g_Y++;
+                        g_world[g_X][g_Y] = V_ROOMBA;
+                        break;
+                    case HDG_W:
+                        g_world[g_X][g_Y] = V_HALLWAY;
+                        g_X--;
+                        g_world[g_X][g_Y] = V_ROOMBA;
+                        break;
+                }//switch
+            }//if
+            break;
+        case CMD_BLINK:
+            if(!g_statsMode) printf("Blink\n");
+            break;
+        case CMD_NO_OP:
+            if(!g_statsMode) printf("No operation\n");
+            break;
+        case CMD_SONG:
+            if(!g_statsMode) printf("Song\n");
+            break;
+        case CMD_ILLEGAL:
+            if(!g_statsMode) printf("Resetting world\n");
+            resetWorld();
+        default:
+            if(!g_statsMode) printf("Invalid command: %i\n", command);
+            break;
+    }//switch
 
-	if(!g_statsMode) displayWorld();
+    if(!g_statsMode) displayWorld();
 
-	return setSensorString(IR, rCliff, rCliffFront, lCliffFront, lCliff, 
-			caster, lDrop, rDrop, lBump, rBump, abort);
+    return setSensorString(IR, rCliff, rCliffFront, lCliffFront, lCliff, 
+            caster, lDrop, rDrop, lBump, rBump, abort);
 }//doMove
 
 /**
@@ -467,60 +501,60 @@ char* doMove(int command)
  * @return char*	The sensor data to be sent to the Supervisor
  */
 char* setSensorString(int IR, int rCliff, int rCliffFront, int lCliffFront, int lCliff,
-		int caster, int lDrop, int rDrop, int lBump, int rBump, int abort)
+        int caster, int lDrop, int rDrop, int lBump, int rBump, int abort)
 {
-	static int timeStamp = 0;
-	// Memory for data string to return to Supervisor
-	char* str = (char*) malloc(sizeof(char) * 24); 
+    static int timeStamp = 0;
+    // Memory for data string to return to Supervisor
+    char* str = (char*) malloc(sizeof(char) * 24); 
 
-	// Fill out sensor string
-	sprintf(&str[SNSR_IR],				"%i", IR);
-	sprintf(&str[SNSR_CLIFF_RIGHT], 	"%i", rCliff);
-	sprintf(&str[SNSR_CLIFF_F_RIGHT], 	"%i", rCliffFront);
-	sprintf(&str[SNSR_CLIFF_F_LEFT], 	"%i", lCliffFront);
-	sprintf(&str[SNSR_CLIFF_LEFT], 		"%i", lCliff);
-	sprintf(&str[SNSR_CASTER], 			"%i", caster);
-	sprintf(&str[SNSR_DROP_LEFT],		"%i", lDrop);
-	sprintf(&str[SNSR_DROP_RIGHT], 		"%i", rDrop);
-	sprintf(&str[SNSR_BUMP_LEFT], 		"%i", lBump);
-	sprintf(&str[SNSR_BUMP_RIGHT], 		"%i", rBump);
+    // Fill out sensor string
+    sprintf(&str[SNSR_IR],				"%i", IR);
+    sprintf(&str[SNSR_CLIFF_RIGHT], 	"%i", rCliff);
+    sprintf(&str[SNSR_CLIFF_F_RIGHT], 	"%i", rCliffFront);
+    sprintf(&str[SNSR_CLIFF_F_LEFT], 	"%i", lCliffFront);
+    sprintf(&str[SNSR_CLIFF_LEFT], 		"%i", lCliff);
+    sprintf(&str[SNSR_CASTER], 			"%i", caster);
+    sprintf(&str[SNSR_DROP_LEFT],		"%i", lDrop);
+    sprintf(&str[SNSR_DROP_RIGHT], 		"%i", rDrop);
+    sprintf(&str[SNSR_BUMP_LEFT], 		"%i", lBump);
+    sprintf(&str[SNSR_BUMP_RIGHT], 		"%i", rBump);
 
-	// Fill out rest of episode string with timestamp and abort signal
-	int i, temp;
-	for(i = 10; i < 24; i++)
-	{
-		// insert blank space
-		if(i < 15)
-		{
-			str[i] = ' ';
-			// insert timestamp
-		}else if(i < 16)
-		{
-			sprintf(&str[i], "%i", timeStamp);	// print timestamp into str
-			// determine num digits in timeStamp and adjust i accordingly
-			temp = timeStamp;
-			while(temp > 9)
-			{
-				temp = temp / 10;
-				i++;
-			}
-			// more padding
-		}else if(i < 22)
-		{
-			str[i] = ' ';
-			// insert null terminating char
-		}else if(i < 23)
-		{
-			sprintf(&str[i], "%i", abort);
-		}else
-		{
-			str[i] = '\0';
-		}
-	}//for
+    // Fill out rest of episode string with timestamp and abort signal
+    int i, temp;
+    for(i = 10; i < 24; i++)
+    {
+        // insert blank space
+        if(i < 15)
+        {
+            str[i] = ' ';
+            // insert timestamp
+        }else if(i < 16)
+        {
+            sprintf(&str[i], "%i", timeStamp);	// print timestamp into str
+            // determine num digits in timeStamp and adjust i accordingly
+            temp = timeStamp;
+            while(temp > 9)
+            {
+                temp = temp / 10;
+                i++;
+            }
+            // more padding
+        }else if(i < 22)
+        {
+            str[i] = ' ';
+            // insert null terminating char
+        }else if(i < 23)
+        {
+            sprintf(&str[i], "%i", abort);
+        }else
+        {
+            str[i] = '\0';
+        }
+    }//for
 
-	timeStamp++;
+    timeStamp++;
 
-	return str;
+    return str;
 }//setSensorString
 
 /**
@@ -535,18 +569,18 @@ char* setSensorString(int IR, int rCliff, int rCliffFront, int lCliffFront, int 
  */
 int bumpSensor(int north, int east)
 {
-	// return the appropriate value representing which, if any, bumpers are hit
-	// account for value representing goal spot which is also a hallway
-	if((north == V_HALLWAY || north == V_GOAL) && (east == V_HALLWAY || east == V_GOAL))
-		return BOTH_HIT;
-	if((north == V_HALLWAY || north == V_GOAL) && east == V_WALL)
-		return RIGHT_HIT;
-	if(north == V_WALL && (east == V_HALLWAY || east == V_GOAL))
-		return LEFT_HIT;
-	if(north == V_WALL && east == V_WALL)
-		return BOTH_HIT;
+    // return the appropriate value representing which, if any, bumpers are hit
+    // account for value representing goal spot which is also a hallway
+    if((north == V_HALLWAY || north == V_GOAL) && (east == V_HALLWAY || east == V_GOAL))
+        return BOTH_HIT;
+    if((north == V_HALLWAY || north == V_GOAL) && east == V_WALL)
+        return RIGHT_HIT;
+    if(north == V_WALL && (east == V_HALLWAY || east == V_GOAL))
+        return LEFT_HIT;
+    if(north == V_WALL && east == V_WALL)
+        return BOTH_HIT;
 
-	return NONE_HIT;
+    return NONE_HIT;
 }//bumpSensor
 
 
