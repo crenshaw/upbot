@@ -731,7 +731,7 @@ int updateAll(int level)
     {
 #if DEBUGGING_UPDATEALL
         printf("\tExiting updateAll(): insufficient episodes (%d) at level %d\n",
-               episodeList->size, level);
+               (int)episodeList->size, level);
         fflush(stdout);
 #endif
         return -1;

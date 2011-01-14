@@ -32,6 +32,8 @@ vElement    is the element to be added, using map notation. Currently
 ve_X        is the x coordinate of the element to be added
 ve_Y        is the y coordinate of the element to be added
 
+Note:  x,y coordinates are 0 indexed
+
 An example line using all options: 1 9 7 10 W 4 3
 If no change is desired, we could use: 1 9 7
 
@@ -60,7 +62,7 @@ support having hallways thicker than a single space.
 The default map is 1 and can be used as a template.
 #############################################################
 
-# McCallmum's World
+# McCallmum's World (different goal)
 1 9 7 
 WWWWWWWWW
 W>      W
@@ -119,4 +121,15 @@ WWWWWWW WWW  WW  W W
 WW          WWW WW W
 W  WWW WWWWWWG  W  W
 WWWWWWWWWWWWWWWWWWWW
+
+#Changing Maps
+8 9 7 25 W 4 2
+WWWWWWWWW
+W>      W
+W WW WW W
+W WWGWW W
+W WW WW W
+W       W
+WWWWWWWWW
+
 
