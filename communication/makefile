@@ -6,7 +6,7 @@ ifneq ($(DEBUG),none)
 DEBUG_OPT=-g 
 endif
 
-all: client sclient supclient unittest server sserver brainstem
+all: client sclient supclient mccClient unittest server sserver brainstem
 
 server:	server.c communication.h serverUtility.c commandQueue.c 
 	$(CC) $(CFLAGS) -o server.out server.c serverUtility.c commandQueue.c
