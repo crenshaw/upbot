@@ -194,6 +194,7 @@ int parseSensors(Episode * parsedData, char* dataArr)
     if(parsedData->sensors[SNSR_IR] == 1)
     {
         DECREASE_RANDOM(g_randChance);
+        if(!g_statsMode) printf("new g_randChance=%g\n", g_randChance);
         g_goalIdx[g_goalCount] = parsedData->now;
         g_goalCount++;
         // Assign reward for success
@@ -691,27 +692,27 @@ void displayNeighborhood(Neighborhood* nbHd)
 		return;
 	}
 
-	// Print the current state sequence. The length will match the highest neighborhood metric + 1
-	if(!g_statsMode) printf("The current sequence being matched: ");
-    fflush(stdout);
-	displayNeighborSequence((Episode*)getEntryFM(g_epMem,g_epMem->size - 2), nbHd->nValues[0], TRUE);
-	if(!g_statsMode) printf(" =>>> {%s,NA,NA}\n\n", interpretCommandShort(nbHd->action));
-    fflush(stdout);
+	// // Print the current state sequence. The length will match the highest neighborhood metric + 1
+	// if(!g_statsMode) printf("The current sequence being matched: ");
+    // fflush(stdout);
+	// displayNeighborSequence((Episode*)getEntryFM(g_epMem,g_epMem->size - 2), nbHd->nValues[0], TRUE);
+	// if(!g_statsMode) printf(" =>>> {%s,NA,NA}\n\n", interpretCommandShort(nbHd->action));
+    // fflush(stdout);
 
 
-	// Display all the neighbors that were found
-	for(i = 0; i < nbHd->numNeighbors; i++)
-	{
-		// introduce the current episode
-		if(!g_statsMode) printf("=====>> The following episode has a Neighborhood Metric of: %i\n", nbHd->nValues[i]);
-        fflush(stdout);
-		displayEpisode(nbHd->episodes[i]);
-		if(!g_statsMode) printf("Sequence leading to episode: ");
-        fflush(stdout);
-		displayNeighborSequence(nbHd->episodes[i], nbHd->nValues[i], FALSE);
-		if(!g_statsMode) printf("\n\n");
-        fflush(stdout);
-	}//for
+	// // Display all the neighbors that were found
+	// for(i = 0; i < nbHd->numNeighbors; i++)
+	// {
+	// 	// introduce the current episode
+	// 	if(!g_statsMode) printf("=====>> The following episode has a Neighborhood Metric of: %i\n", nbHd->nValues[i]);
+    //     fflush(stdout);
+	// 	displayEpisode(nbHd->episodes[i]);
+	// 	if(!g_statsMode) printf("Sequence leading to episode: ");
+    //     fflush(stdout);
+	// 	displayNeighborSequence(nbHd->episodes[i], nbHd->nValues[i], FALSE);
+	// 	if(!g_statsMode) printf("\n\n");
+    //     fflush(stdout);
+	// }//for
 }//displayNeighborhood
 
 /**
