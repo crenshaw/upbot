@@ -25,18 +25,10 @@ This is not necessary and if not desired, only the first
 three values are required.
 
 numGoals    is the number of goals after which the mod will occur
-vElement    is the element to be added, using map notation. Currently 
-            this is hard coded as a V_WALL in unitTest.c, however 
-            this option is available should we add holes (for drop 
-            sensors) or any other type of map element.
-ve_X        is the x coordinate of the element to be added
-ve_Y        is the y coordinate of the element to be added
+newMap      is the number of the new map to switch to
 
-Note:  x,y coordinates are 0 indexed
-
-An example line using all options: 1 9 7 10 W 4 3
+An example line using all options: 1 9 7 10 2
 If no change is desired, we could use: 1 9 7
-
 
 The options for elements in the virtual world are as follows:
 
@@ -122,8 +114,12 @@ WW          WWW WW W
 W  WWW WWWWWWG  W  W
 WWWWWWWWWWWWWWWWWWWW
 
+#
 #Changing Maps
-8 9 7 25 W 4 2
+#
+
+#McCallum original (switches to map #1 after 25 steps)
+8 9 7 25 1
 WWWWWWWWW
 W>      W
 W WW WW W
@@ -132,4 +128,24 @@ W WW WW W
 W       W
 WWWWWWWWW
 
+
+#Pockets Map 1
+9 7 7 25 10
+WWWWWWW
+W  v  W
+W WWW W
+W WWG W
+W WWW W
+W     W
+WWWWWWW
+
+#Pockets Map 2
+10 7 7
+WWWWWWW
+W  v  W
+W WWW W
+W GWW W
+W WWW W
+W     W
+WWWWWWW
 

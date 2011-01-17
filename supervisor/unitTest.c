@@ -40,9 +40,7 @@ int g_goalCount = 0;
 
 // extra vars for seeing how agents react to changes in a map
 int g_goalNumToSwitchOn = -1;
-char g_newEl;
-int g_newEl_X;
-int g_newEl_Y;
+int g_newMap;
 
 
 /**
@@ -64,13 +62,11 @@ void loadMap(int mapNum)
 	{
 		fgets(buffer, sizeof(buffer), maps);
 		// Pull out the values into the appropriate variables
-		sscanf(buffer, "%d %d %d %d %s %d %d", &currMap, 
-                                               &g_map_width, 
-                                               &g_map_height, 
-                                               &g_goalNumToSwitchOn, 
-                                               &g_newEl, 
-                                               &g_newEl_X, 
-                                               &g_newEl_Y);
+		sscanf(buffer, "%d %d %d %d %d", &currMap, 
+                                         &g_map_width, 
+                                         &g_map_height, 
+                                         &g_goalNumToSwitchOn, 
+                                         &g_newMap);
 	}
 
 	// allocate space for ptrs to columns
@@ -133,7 +129,7 @@ void loadMap(int mapNum)
 	fclose(maps);
 
 	// Do not want stats mode most of the time
-	g_statsMode = 0;
+	g_statsMode = 1;
 	
 	// Set up the world vars according to what we read in
 	resetWorld();
@@ -193,7 +189,19 @@ void resetWorld()
  */
 void performMapMod()
 {
-    g_world[g_newEl_X][g_newEl_Y] = V_WALL;
+	// free memory used by old map
+	int i;
+	for(i = 0; i < g_map_width; i++)
+	{
+		free(g_world[i]);
+	}
+	free(g_world);
+
+    loadMap(g_newMap);
+
+    //loadMap calls reset map which increments the goal count.
+    //We don't want that here so unset it
+    g_goalCount--;
 }//performMapMod
 
 /**
