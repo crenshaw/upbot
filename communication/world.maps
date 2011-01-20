@@ -114,11 +114,7 @@ WW          WWW WW W
 W  WWW WWWWWWG  W  W
 WWWWWWWWWWWWWWWWWWWW
 
-#
-#Changing Maps
-#
-
-#McCallum original (switches to map #1 after 25 steps)
+#McCallum original with switch to map #1 after 25 steps
 8 9 7 25 1
 WWWWWWWWW
 W>      W
@@ -129,7 +125,7 @@ W       W
 WWWWWWWWW
 
 
-#Pockets Map 1
+#Pockets Map 1 (switches to pocket map #2 after 25 steps)
 9 7 7 25 10
 WWWWWWW
 W  v  W
@@ -148,4 +144,14 @@ W GWW W
 W WWW W
 W     W
 WWWWWWW
+
+#McCallum original
+11 9 7
+WWWWWWWWW
+W>      W
+W WW WW W
+W WWGWW W
+W WW WW W
+W       W
+WWWWWWWWW
 
