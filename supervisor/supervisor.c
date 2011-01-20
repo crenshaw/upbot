@@ -12,17 +12,12 @@
 /*
  * Outstanding Bugs and Issues
  *
- * 1.  Occasional seg fault in chooseCommand().   This could be when it call
- *     nextStepIsValid(). 
- *
- * 2.  Occasional seg fault in init plan when a parent level is not populated.
- *
- * 3.  Agent continually picks the same plan even though a replacement is being
+ * 1.  Agent continually picks the same plan even though a replacement is being
  *     successfully applied and, thus, a slightly shorter plan should be
  *     discoverable.  (Also, there should be a mechanism that makes it explore
  *     other plans...)
  *
- * 4.  displayPlan doesn't recursively print multi-level plans properly
+ * 2.  displayPlan doesn't recursively print multi-level plans properly
  * 
  */
 
@@ -62,17 +57,17 @@
  * 4.  findRoute() should be using the cousins list!
  */
 
-//Setting this turns on verbose output to aid debugging
-#define DEBUGGING 1
+// //Setting this turns on verbose output to aid debugging
+// #define DEBUGGING 1
 
-//Particularly verbose debugging for specific methods
- #define DEBUGGING_UPDATEALL 1
- #define DEBUGGING_UPDATEPLAN 1
-//  #define DEBUGGING_CHOOSECMD 1
+// //Particularly verbose debugging for specific methods
+// #define DEBUGGING_UPDATEALL 1
+// #define DEBUGGING_UPDATEPLAN 1
+// #define DEBUGGING_CHOOSECMD 1
 // #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
-//  #define DEBUGGING_INITPLAN 1
-//  #define DEBUGGING_FINDINTERIMSTART 1
-//  #define DEBUGGING_NSIV 1        // nextStepIsValid()
+// #define DEBUGGING_INITPLAN 1
+// #define DEBUGGING_FINDINTERIMSTART 1
+// #define DEBUGGING_NSIV 1        // nextStepIsValid()
 // #define DEBUGGING_FINDBESTREPL 1
 // #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
 
