@@ -28,7 +28,7 @@
 #define SUCCESS             0
 
 // Matching defines
-#define NUM_GOALS_TO_FIND   200
+#define NUM_GOALS_TO_FIND   50
 
 // Defines for Q-Learning algorithm
 #define DISCOUNT            0.8
