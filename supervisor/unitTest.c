@@ -302,10 +302,10 @@ char* unitTest(int command, int needCleanup)
         resetWorld();
     }
 
-    //%%%TEMPORARILY REPLACED!
-    //return doMove(command);
+    return doMove(command);
 
-    return doMoveMcCallum(command);
+    // //Use this method instead of doMove to simulate a McCallum-like environment 
+    // return doMoveMcCallum(command);
 }//unitTest
 
 /**
