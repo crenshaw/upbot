@@ -57,6 +57,7 @@ void performMapMod();
 void displayWorld();
 char* unitTest(int comand, int needCleanup);
 char* doMove(int command);
+char* doMoveMcCallum(int command);
 char* setSensorString(int IR, int rCliff, int rCliffFront, 
 					 int lCliffFront, int lCliff, int caster, 
 					 int lDrop, int rDrop, int lBump, int rBump,

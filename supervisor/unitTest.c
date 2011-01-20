@@ -2,7 +2,7 @@
 * unitTest.c
 *
 * Author: Zachary Paul Faltersack
-* Last Edit: September 17, 2010
+* Created: September 17, 2010
 *
 * This is a set of functions that emulate a maze environment
 * along with a virtual roomba. When unitTest is called,
@@ -129,7 +129,7 @@ void loadMap(int mapNum)
 	fclose(maps);
 
 	// Do not want stats mode most of the time
-	g_statsMode = 1;
+	g_statsMode = 0;
 	
 	// Set up the world vars according to what we read in
 	resetWorld();
@@ -302,7 +302,10 @@ char* unitTest(int command, int needCleanup)
         resetWorld();
     }
 
-    return doMove(command);
+    //%%%TEMPORARILY REPLACED!
+    //return doMove(command);
+
+    return doMoveMcCallum(command);
 }//unitTest
 
 /**
@@ -489,6 +492,149 @@ char* doMove(int command)
     return setSensorString(IR, rCliff, rCliffFront, lCliffFront, lCliff, 
             caster, lDrop, rDrop, lBump, rBump, abort);
 }//doMove
+
+/*======================================================================
+ * Alternative command names (McCallum Environment)
+ *
+ * These #defines supersede the ones normally used.  The numbers are the
+ * same but their semantics are different.
+ */
+
+// Command definitions
+#define CMD_NORTH	0x1    //was CMD_NO_OP 		
+#define CMD_SOUTH	0x2    //was CMD_FORWARD		
+#define CMD_WEST	0x3    //was CMD_LEFT		
+#define CMD_EAST	0x4    //was CMD_RIGHT		
+
+
+/**
+ * doMoveMcCallum
+ *
+ * This is an alternative implementation of doMove that simulates McCallum's
+ * environment.
+ *
+ * @arg command An integer representing the command to complete
+ * @return A pointer to char buffer containing the sensor string to return
+ */
+char* doMoveMcCallum(int command)
+{
+    //Sensor variables.  Set all to off by default
+    int northWall = SNSR_OFF;
+    int southWall = SNSR_OFF;
+    int eastWall = SNSR_OFF;
+    int westWall = SNSR_OFF;
+    int goal = SNSR_OFF;
+
+    // Switch on the command that was received to update world appropriatelY
+    switch(command)
+    {
+        // Left and Right just turn the Roomba
+        case CMD_NORTH:
+            if (g_world[g_X][g_Y-1] == V_GOAL)
+            {
+                goal = SNSR_ON;
+            }
+            else if (g_world[g_X][g_Y-1] == V_HALLWAY)
+            {
+                g_world[g_X][g_Y] = V_HALLWAY;
+                g_Y--;
+                g_world[g_X][g_Y] = V_ROOMBA;
+            }
+            break;
+            
+        case CMD_SOUTH:
+            if (g_world[g_X][g_Y+1] == V_GOAL)
+            {
+                goal = SNSR_ON;
+            }
+            else if (g_world[g_X][g_Y+1] == V_HALLWAY)
+            {
+                g_world[g_X][g_Y] = V_HALLWAY;
+                g_Y++;
+                g_world[g_X][g_Y] = V_ROOMBA;
+            }
+            break;
+            
+        case CMD_EAST:
+            if (g_world[g_X+1][g_Y] == V_GOAL)
+            {
+                goal = SNSR_ON;
+            }
+            else if (g_world[g_X+1][g_Y] == V_HALLWAY)
+            {
+                g_world[g_X][g_Y] = V_HALLWAY;
+                g_X++;
+                g_world[g_X][g_Y] = V_ROOMBA;
+            }
+            break;
+            
+        case CMD_WEST:
+            if (g_world[g_X-1][g_Y] == V_GOAL)
+            {
+                goal = SNSR_ON;
+            }
+            else if (g_world[g_X-1][g_Y] == V_HALLWAY)
+            {
+                g_world[g_X][g_Y] = V_HALLWAY;
+                g_X--;
+                g_world[g_X][g_Y] = V_ROOMBA;
+            }
+            break;
+
+        //All other legal commands are no-ops
+        case CMD_ADJUST_LEFT:
+        case CMD_ADJUST_RIGHT:  
+        case CMD_BLINK:
+        case CMD_SONG:
+            break;
+        case CMD_ILLEGAL:
+            if(!g_statsMode) printf("Resetting world\n");
+            resetWorld();
+        default:
+            if(!g_statsMode) printf("Invalid command: %i\n", command);
+            break;
+    }//switch
+
+    //If goal was not found, init sensor values from current position
+    if (goal == SNSR_OFF)
+    {
+        //North wall
+        if (g_world[g_X][g_Y-1] == V_WALL)
+        {
+            northWall = SNSR_ON;
+        }
+
+        //South wall
+        if (g_world[g_X][g_Y+1] == V_WALL)
+        {
+            southWall = SNSR_ON;
+        }
+
+        //East wall
+        if (g_world[g_X+1][g_Y] == V_WALL)
+        {
+            eastWall = SNSR_ON;
+        }
+
+        //West wall
+        if (g_world[g_X-1][g_Y] == V_WALL)
+        {
+            westWall = SNSR_ON;
+        }
+    }//if
+    else
+    {
+        g_hitGoal = TRUE;
+    }
+                            
+        
+    
+    
+    if(!g_statsMode) displayWorld();
+
+    return setSensorString(goal, SNSR_OFF, SNSR_OFF, SNSR_OFF, SNSR_OFF, 
+            SNSR_OFF, northWall, southWall, westWall, eastWall, FALSE);
+}//doMoveMcCallum
 
 /**
  * setSensorString
