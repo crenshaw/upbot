@@ -34,12 +34,12 @@
 #define DISCOUNT            0.8
 #define LEARNING_RATE       0.85
 #define REWARD_SUCCESS      1.0
-#define REWARD_FAIL         -1.0
+#define REWARD_FAIL         -0.1
 
 // Defines for NSM
 #define K_NEAREST           	8
 #define MIN_HISTORY_LEN			5
-#define FORGETTING_THRESHOLD	2500
+#define FORGETTING_THRESHOLD	250000
 #define DO_NSM					1
 
 // Macros
