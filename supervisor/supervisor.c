@@ -2319,7 +2319,7 @@ void considerReplacement()
     //If there is already a replacement in effect then don't do another
     //TODO: This is very conservative and we should problem experiment with
     //softening it
-    if (g_activeRepls->size > 0) return;
+    if (g_activeRepls->size >= MAX_REPLS) return;
     
     /*----------------------------------------------------------------------
      * Find a replacement that can be applied

@@ -8,6 +8,7 @@ endif
 
 all: client sclient supclient mccClient unittest server sserver brainstem
 
+
 server:	server.c communication.h serverUtility.c commandQueue.c 
 	$(CC) $(CFLAGS) -o server.out server.c serverUtility.c commandQueue.c
 

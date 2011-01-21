@@ -44,11 +44,13 @@
 //Planning defines
 #define MAX_ROUTE_LEN        (50) // maximum length of a route.
 
-//Confidence defines
+//Replacement defines
 #define MAX_CONFIDENCE       (1.0)
 #define MIN_CONFIDENCE       (0.0)
 #define INIT_SELF_CONFIDENCE (0.5)
 #define INIT_REPL_CONFIDENCE (0.05)
+#define MAX_REPLS            (1) // maximum number of replacements per plan
+
 
 // Collecting data for stats
 #define STATS_MODE		0

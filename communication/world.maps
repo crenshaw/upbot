@@ -155,3 +155,33 @@ W WW WW W
 W       W
 WWWWWWWWW
 
+#Map rotates 180 degrees after 25 turns
+12 9 7 25 13
+WWWWWWWWW
+W>      W
+W WW WW W
+W WW WW W
+W WW WW W
+W      GW
+WWWWWWWWW
+
+#upside down figure-8
+13 9 7
+WWWWWWWWW
+WG      W
+W WW WW W
+W WW WW W
+W WW WW W
+W      <W
+WWWWWWWWW
+
+#upside down figure-8 switches to donut
+14 9 7 25 4
+WWWWWWWWW
+W       W
+W WW WW W
+W WWGWW W
+W WW WW W
+W      <W
+WWWWWWWWW
+
