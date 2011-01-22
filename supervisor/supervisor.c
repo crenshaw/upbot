@@ -57,19 +57,19 @@
  * 4.  findRoute() should be using the cousins list!
  */
 
-// //Setting this turns on verbose output to aid debugging
-// #define DEBUGGING 1
+//Setting this turns on verbose output to aid debugging
+#define DEBUGGING 1
 
-// //Particularly verbose debugging for specific methods
-// #define DEBUGGING_UPDATEALL 1
-// #define DEBUGGING_UPDATEPLAN 1
-// #define DEBUGGING_CHOOSECMD 1
-// #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
-// #define DEBUGGING_INITPLAN 1
-// #define DEBUGGING_FINDINTERIMSTART 1
-// #define DEBUGGING_NSIV 1        // nextStepIsValid()
-// #define DEBUGGING_FINDBESTREPL 1
-// #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
+//Particularly verbose debugging for specific methods
+#define DEBUGGING_UPDATEALL 1
+#define DEBUGGING_UPDATEPLAN 1
+#define DEBUGGING_CHOOSECMD 1
+#define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
+#define DEBUGGING_INITPLAN 1
+#define DEBUGGING_FINDINTERIMSTART 1
+#define DEBUGGING_NSIV 1        // nextStepIsValid()
+#define DEBUGGING_FIND_REPL 1
+#define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
 
 // The percent chance of choosing a random move
 int g_randChance = 100;
@@ -2208,7 +2208,14 @@ Replacement *makeNewReplacement()
     for(i = 0; i < MAX_LEVEL_DEPTH; i++)
     {
         //Make sure it's even worth searching
-        if (! replacementPossible(i)) continue;
+        if (! replacementPossible(i))
+        {
+#if DEBUGGING_FIND_REPL
+            printf("Replacement not possible at level %d\n", i);
+            fflush(stdout);
+#endif
+            continue;
+        }
 
         //Extract the current sequence from the route at this level
         Route*  route   = (Route*)(g_plan->array[i]);
@@ -2218,6 +2225,16 @@ Replacement *makeNewReplacement()
         Action *act1 = (Action*)currSeq->array[route->currActIndex];
         Action *act2 = (Action*)currSeq->array[route->currActIndex + 1];
 
+#if DEBUGGING_FIND_REPL
+        printf("Constructing a new replacment for these two actions:");
+        fflush(stdout);
+        displayAction(act1);
+        printf(", ");
+        displayAction(act2);
+        printf("\n");
+        fflush(stdout);
+#endif
+        
         //Preinit the return value
         result->level = i;
         result->original    = newVector();
@@ -2238,6 +2255,14 @@ Replacement *makeNewReplacement()
             int index = (start + j) % actList->size;
             Action *candAct = actList->array[index];
 
+#if DEBUGGING_FIND_REPL
+        printf("\ttrying ");
+        fflush(stdout);
+        displayAction(candAct);
+        printf("...");
+        fflush(stdout);
+#endif
+        
             //See if the candidate is compatible with these to-be-replaced
             //actions.  This comparision is done differently at level 0 than
             //other levels
@@ -2249,6 +2274,11 @@ Replacement *makeNewReplacement()
                 Episode *act1LHS = (Episode *)act1->epmem->array[act1->index];
                 if (! compareEpisodes(candLHS, act1LHS, FALSE))
                 {
+#if DEBUGGING_FIND_REPL
+                    printf("LHS sensors don't match.\n");
+                    fflush(stdout);
+#endif
+        
                     continue;   // bad match, try a different candidate
                 }
 
@@ -2258,6 +2288,10 @@ Replacement *makeNewReplacement()
                 Episode *act2RHS = (Episode *)act2->epmem->array[act2->outcome];
                 if (! compareEpisodes(candRHS, act2RHS, FALSE))
                 {
+#if DEBUGGING_FIND_REPL
+                    printf("RHS sensors don't match.\n");
+                    fflush(stdout);
+#endif
                     continue;   // bad match, try a different candidate
                 }
             }//if
@@ -2270,6 +2304,10 @@ Replacement *makeNewReplacement()
                 Action *act1LHSSubAct = (Action *)act1LHS->array[0];
                 if (candLHSSubAct != act1LHSSubAct)
                 {
+#if DEBUGGING_FIND_REPL
+                    printf("First LHS action doesn't match.\n");
+                    fflush(stdout);
+#endif
                     continue;   // bad match, try a different candidate
                 }
 
@@ -2280,6 +2318,10 @@ Replacement *makeNewReplacement()
                 Action *act2RHSSubAct = (Action *)act2RHS->array[act2RHS->size - 1];
                 if (candRHSSubAct != act2RHSSubAct)
                 {
+#if DEBUGGING_FIND_REPL
+                    printf("Last RHS action doesn't match.\n");
+                    fflush(stdout);
+#endif
                     continue;   // bad match, try a different candidate
                 }
 
@@ -2290,6 +2332,10 @@ Replacement *makeNewReplacement()
             result->replacement = candAct;
             if (replacementExists(result))
             {
+#if DEBUGGING_FIND_REPL
+                    printf("Duplicate (already exists).\n");
+                    fflush(stdout);
+#endif
                 continue;
             }
 
@@ -2300,7 +2346,9 @@ Replacement *makeNewReplacement()
             
     }//for
 
-    // No new replacement possible?!?  This should never be reached.
+    // No new replacement can be made.  This happens when replacmeents are only
+    // possible at some levels and at those levels all valid candidates already
+    // exist with low confidence.
     free(result);
     return NULL;                
 }//makeNewReplacement
@@ -2336,7 +2384,14 @@ void considerReplacement()
         if ( g_selfConfidence >= (1.0 - INIT_REPL_CONFIDENCE))
         {
             repl = makeNewReplacement();
-            if (repl == NULL) return;
+            if (repl == NULL)
+            {
+#if DEBUGGING_FIND_REPL
+                printf("Agent confidence (%g) is high enough for a new replacement but none could be made.\n", g_selfConfidence);
+                fflush(stdout);
+#endif
+                return;
+            }
 
             // add this new one to the list
             Vector *replList = (Vector *)g_replacements->array[repl->level];
@@ -2639,15 +2694,28 @@ void displayRoute(Route *route, int recurse)
                 //for level 2+ we want a newline now to get the tree format to
                 //look right
                 if (route->level >= 2) printf("\n");
+                fflush(stdout);
                     
                 //If the user has requested a recursive print, do that here
                 if (recurse)
                 {
-                    //if this is not the current sequence in the route, just
-                    //construct a temporary Route that represents the next level
-                    //down
-                    if (i != route->currSeqIndex)
+                    //If this is the current sequence in the route and there
+                    //really is an active plan, then the current sequence may
+                    //have had replacements applied to it so we should print
+                    //that so it'll be accurate
+                    if ((i == route->currSeqIndex) && (g_plan != NULL))
                     {
+                        //print the actual route at the next level down
+                        Route *toPrint = (Route *)g_plan->array[route->level - 1];
+                        
+                        //Recursive call
+                        displayRoute(toPrint, TRUE);
+                    }
+                    else
+                    {
+
+                        //construct a temporary Route that represents the next
+                        //level down
                         Route *tmpRoute = (Route*)malloc(sizeof(Route));
                         tmpRoute->sequences = newVector();
                         initRouteFromSequence(tmpRoute, epSeq);
@@ -2660,16 +2728,8 @@ void displayRoute(Route *route, int recurse)
                         //Free the route
                         freeVector(tmpRoute->sequences);
                         free(tmpRoute);
-                    }
-                    else
-                    {
-                        //print the actual route at the next level down
-                        Route *toPrint = (Route *)g_plan->array[route->level - 1];
-                        
-                        //Recursive call
-                        displayRoute(toPrint, TRUE);
-                    }
-                }
+                    }//else
+                }//if (recurse)
 
                 //for level 1 we want a newline now to get the tree format to
                 //look right
@@ -2987,9 +3047,16 @@ int findRoute(Route* newRoute, Vector *startSeq)
     Vector* sequences;  // pointer to sequences in level
     Vector* candRoutes = newVector();  //candidate Route structs to return to caller
 
+#if DEBUGGING_INITROUTE
+        //print the current shortest candidate
+        printf("Entering initRoute with start sequence: ");
+        displaySequenceShort(startSeq);
+        printf("\n");
+        fflush(stdout);
+#endif
     /*--------------------------------------------------------------------------
-     * Find all the sequences at the given level that contain a goal.  Create an
-     * incomplete route with each one that ends with this sequence
+     * Use the starting sequence to create a partial route.  This is the
+     * first candidate
      */
 
     //Determine what level the route is at by looking at the first action in the
@@ -3018,6 +3085,7 @@ int findRoute(Route* newRoute, Vector *startSeq)
     {
 #ifdef DEBUGGING
         printf(".");
+        fflush(stdout);
 #endif 
 
         //Find the shortest route that hasn't been examined yet
@@ -3059,6 +3127,7 @@ int findRoute(Route* newRoute, Vector *startSeq)
         //print the current shortest candidate
         printf("next shortest unexamined candidate %d at %ld of size %d\n",
                i, (long)route, routeLen);
+        fflush(stdout);
         displayRoute(route, TRUE);
         printf("\n");
         fflush(stdout);
@@ -3936,7 +4005,7 @@ Replacement* findBestReplacement()
 
     assert(g_plan != NULL);
 
-#ifdef DEBUGGING_FINDBESTREPL
+#ifdef DEBUGGING_FIND_REPL
     printf("Searching existing replacements...\n");
     fflush(stdout);
 #endif
@@ -3948,7 +4017,7 @@ Replacement* findBestReplacement()
         //Make sure it's even worth searching
         if (! replacementPossible(i)) continue;
 
-#ifdef DEBUGGING_FINDBESTREPL
+#ifdef DEBUGGING_FIND_REPL
     printf("\treplacement possible...\n");
     fflush(stdout);
 #endif
@@ -3979,7 +4048,7 @@ Replacement* findBestReplacement()
                 
             }//for
 
-#ifdef DEBUGGING_FINDBESTREPL
+#ifdef DEBUGGING_FIND_REPL
             if (match != NULL)
             {
                 printf("\t\tpromising replacement: ");
@@ -4009,7 +4078,7 @@ Replacement* findBestReplacement()
         
     }//for (each level)
 
-#ifdef DEBUGGING_FINDBESTREPL
+#ifdef DEBUGGING_FIND_REPL
     printf("\tbest match: ");
     displayReplacement(result);
     printf("\n");
