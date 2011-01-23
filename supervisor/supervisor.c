@@ -732,8 +732,9 @@ int updateAll(int level)
         return -1;
     }
 
-    // If the most recent complete episode was a goal then return.  We
-    // don't want any goals on the LHS of any rule.
+    // We don't want any goals on the LHS of a rule, because the agent
+    // "teleports" to the start state when this happens.  So abort if that's the
+    // situation here.
     if (episodeContainsGoal(episodeList->array[episodeList->size - 2], level))
     {
 #if DEBUGGING_UPDATEALL
@@ -1396,6 +1397,9 @@ void displayEpisodes(Vector *episodeList, int level)
     int i;
     for(i = 0; i < episodeList->size; i++)
     {
+        //Print the index number
+        printf("%d.", i);
+
         if (level == 0)
         {
             Episode *ep = (Episode*)episodeList->array[i];
@@ -1404,10 +1408,12 @@ void displayEpisodes(Vector *episodeList, int level)
         }
         else //episodeList contains sequences
         {
-            printf("%i. ", i);
-            Vector *seq = (Vector *)episodeList->array[i];
-            displaySequenceShort(seq);
-            printf("\n");
+            //Figure out what sequence at level-1 this episode is
+            Vector *epSeq = (Vector *)episodeList->array[i];
+            Vector *seqList = (Vector *)g_sequences->array[level - 1];
+            int index = findEntry(seqList, epSeq);
+            printf("%d", index);
+            if (i + 1 < episodeList->size) printf(", "); // delimiter
         }
     }//for
 
@@ -1864,6 +1870,7 @@ void rewardReplacements()
 #if DEBUGGING
         printf("Replacement succeeded:  ");
         displayReplacement(repl);
+        printf("\n");
         fflush(stdout);
 #endif
     }//for
@@ -1901,6 +1908,7 @@ void penalizeReplacements()
 #if DEBUGGING
         printf("Replacement failed:  ");
         displayReplacement(repl);
+        printf("\n");
         fflush(stdout);
 #endif
         
@@ -2364,9 +2372,12 @@ void considerReplacement()
 {
     int i;                      // iterator
 
-    //If there is already a replacement in effect then don't do another
-    //TODO: This is very conservative and we should problem experiment with
-    //softening it
+#if DEBUGGING_FIND_REPL
+    printf("Entering considerReplacement...\n");
+    fflush(stdout);
+#endif
+    
+    //Avoid making more replacements per plan than allowed
     if (g_activeRepls->size >= MAX_REPLS) return;
     
     /*----------------------------------------------------------------------
@@ -2435,8 +2446,26 @@ void considerReplacement()
     //Log that the replacement is active and reduce agent's confidence since
     //we're trying something new
     addEntry(g_activeRepls, repl);
-    penalizeAgent();
 
+    //Adjust the agent's confidence based upon its confidence in this
+    //replacement
+    //%%%old code: penalizeAgent();
+    if (g_selfConfidence > repl->confidence)
+    {
+#if DEBUGGING
+        printf("Overall confidence reduced from %g to ", g_selfConfidence);
+        fflush(stdout);
+#endif
+        
+        g_selfConfidence -= (g_selfConfidence - repl->confidence) / 2; 
+    
+#if DEBUGGING
+        printf("%g\n", g_selfConfidence);
+        fflush(stdout);
+#endif
+    }
+
+    
     //Now each lower level plan will need to be updated to reflect the
     //replacement that has been made here
     for(i = repl->level - 1; i >= 0; i--)
@@ -2556,13 +2585,13 @@ int chooseCommand()
         else
         {
 #if DEBUGGING_CHOOSECMD
-            printf("Plan successful so far.  Reward check.\n");
+            printf("Plan successful so far.\n");
             fflush(stdout);
 #endif
             //The plan is going swimmingly.  If a sequence has just completed
             //then any active replacements need to be rewarded
             Route *currRoute = (Route *)g_plan->array[0];
-            if (currRoute->currActIndex <= 1)
+            if ((currRoute->currSeqIndex > 0) && (currRoute->currActIndex <= 1))
             {
                 rewardAgent(); 
             }
@@ -2699,19 +2728,28 @@ void displayRoute(Route *route, int recurse)
                 //If the user has requested a recursive print, do that here
                 if (recurse)
                 {
+                    //%%%AMN: Temporarily removed.  This if-statement causes
+                    //displayRoute to print the same intermediate steps for all
+                    //of the members of the plan.  By using only the default
+                    //behavior (else clause) the output won't reflect any
+                    //replacements that have been applied.  I've decided this is
+                    //the lesser of two evils.  - 22 Jan 2011
+                    
                     //If this is the current sequence in the route and there
                     //really is an active plan, then the current sequence may
                     //have had replacements applied to it so we should print
                     //that so it'll be accurate
-                    if ((i == route->currSeqIndex) && (g_plan != NULL))
-                    {
-                        //print the actual route at the next level down
-                        Route *toPrint = (Route *)g_plan->array[route->level - 1];
+                    // if ((i == route->currSeqIndex) && (g_plan != NULL))
+                    // {
+                    //     //print the actual route at the next level down
+                    //     Route *toPrint = (Route *)g_plan->array[route->level - 1];
                         
-                        //Recursive call
-                        displayRoute(toPrint, TRUE);
-                    }
-                    else
+                    //     //Recursive call
+                    //     displayRoute(toPrint, TRUE);
+                    // }
+                    // else
+
+                    
                     {
 
                         //construct a temporary Route that represents the next
@@ -2839,44 +2877,12 @@ void displayPlan()
 
     //Calculate and print the plan length
     int length = routeLength(r);
-    printf("(%d steps) ", length);
+    printf("(level %d; %d steps) \n", i, length);
     
     displayRoute(r, TRUE);
 
     
 }//displayPlan
-
-/**
- * getStartAction
- *
- * Find out if any action in this sequence contains a start state and return the
- * index of that action
- *
- * @arg seq  the sequence to search
- * 
- * @return the index of an action in the sequence that contains a start or -1 if
- *         there is no such action
- */
-int getStartAction(Vector *seq)
-{
-    int j;                      // loop iterator
-    int result = -1;            // default: not found 
-
-    //Iterate over each action in the sequence
-    for(j = 0; j < seq->size; j++)
-    {
-        Action *currAction = (Action *)seq->array[j];
-
-        //If this action contains a start state then record its index and break
-        if (currAction->containsStart)
-        {
-            result = j;
-            break;          // move on to the next sequence
-        }
-    }//for
-
-    return result;
-}//getStartAction
 
 /**
  * getGoalAction
@@ -3125,11 +3131,10 @@ int findRoute(Route* newRoute, Vector *startSeq)
 
 #if DEBUGGING_INITROUTE
         //print the current shortest candidate
-        printf("next shortest unexamined candidate %d at %ld of size %d\n",
+        printf("next shortest unexamined candidate %d at %ld of size %d:\n",
                i, (long)route, routeLen);
         fflush(stdout);
         displayRoute(route, TRUE);
-        printf("\n");
         fflush(stdout);
 #endif
         
@@ -3176,6 +3181,15 @@ int findRoute(Route* newRoute, Vector *startSeq)
             Vector* rhsSeq = (Vector *)act->epmem->array[act->outcome];
             if (findEntry(route->sequences, rhsSeq) != -1) continue;
 
+#if DEBUGGING_INITROUTE
+            //report the new route
+            printf("\textending candidate with action: ");
+            fflush(stdout);
+            displayAction(act);
+            printf("\n");
+            fflush(stdout);
+#endif
+        
             //If we've reached this point, then we can create a new candidate
             //route that is an extension of the current one
             Route *newCand = (Route*)malloc(sizeof(Route));
@@ -3971,7 +3985,13 @@ int replacementPossible(int level)
     //If I'm currently applying some other replacement then I can't do
     //another one right now.  (NOTE: We could potentially allow this, just
     //set currSeq = route->replSeq and plow onward.)
-    if (route->replSeq != NULL) return FALSE;
+    if (route->replSeq != NULL)
+    {
+        //%%%return FALSE;
+
+        //%%%Ok, trying it!
+        currSeq = route->replSeq;
+    }
 
     // check to make sure that there are at least two actions left in the
     // currently executing sequence in the route (otherwise there's not
@@ -4396,7 +4416,7 @@ Vector* findInterimStart()
  */
 Vector *findInterimStartPartialMatch(int *offset)
 {
-    int i,j;                    // iterators
+    int i,j,k;                    // iterators
     Vector *level0Eps = (Vector *)g_epMem->array[0];
     Vector *level1Eps = (Vector *)g_epMem->array[1];
     int lastIndex = level0Eps->size-1; // where the match begins
@@ -4413,10 +4433,12 @@ Vector *findInterimStartPartialMatch(int *offset)
     //Iterate backwards over every action in every sequence in the level *1*
     //episode list since it's one of these episodes that we'll eventually return
     //to the caller
-    for(i = level1Eps->size - 1; i >= 0; i--)
+    for(i = level1Eps->size - 2; i >= 0; i--) // note size -2 to avoid matching
+                                              // just completed seq
+    
     {
         Vector *currSeq = (Vector *)level1Eps->array[i];
-        for(j = currSeq->size - 1; j >= 0; j--)
+        for(j = currSeq->size - 1; j >= 0; j--) 
         {
             //Starting with each one of these actions, iterate backwards
             //comparing it to the level 0 episodes
@@ -4476,6 +4498,32 @@ Vector *findInterimStartPartialMatch(int *offset)
                 bestMatchLen    = matchLen;
                 bestMatchIndex  = i;
                 bestMatchOffset = j;
+
+#ifdef DEBUGGING_FINDINTERIMSTART
+                Vector *vec = (Vector *)level1Eps->array[bestMatchIndex];
+                printf("\tBest partial match so far length %d at index %d and offset %d:  ",
+                       bestMatchLen, bestMatchIndex, bestMatchOffset);
+                fflush(stdout);
+                for(k = 0; k < vec->size; k++)
+                {
+                    if (k - 1 == bestMatchOffset - bestMatchLen) printf("[*");
+                    Action *act = (Action *)vec->array[k];
+                    Episode *ep = (Episode *)act->epmem->array[act->index];
+                    displayEpisodeShort(ep);
+                    if (k == bestMatchOffset) printf("*]");
+                    if (k != vec->size - 1) printf(",");
+                }
+                printf(" which matches: ");
+                for(k = bestMatchLen - 1; k >= 0; k--)
+                {
+                    Episode *ep = (Episode *)level0Eps->array[lastIndex - k];
+                    displayEpisodeShort(ep);
+                    if (k != 0) printf(", ");
+                }
+                
+                printf("\n");
+                fflush(stdout);
+#endif 
             }
         }//for
     }//for
@@ -4505,10 +4553,11 @@ Vector *findInterimStartPartialMatch(int *offset)
     fflush(stdout);
     for(i = 0; i < result->size; i++)
     {
+        if (i - 1 == bestMatchOffset - bestMatchLen) printf("[*");
         Action *act = (Action *)result->array[i];
         Episode *ep = (Episode *)act->epmem->array[act->index];
         displayEpisodeShort(ep);
-        if (i == bestMatchOffset) printf("*");
+        if (i == bestMatchOffset) printf("*]");
         if (i != result->size - 1) printf(",");
     }
     printf("\n");
