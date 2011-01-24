@@ -85,7 +85,8 @@ typedef struct ActionStruct
                               // "cousin" actions including itself.
                               // Non-indeterminate actions have a NULL list.
     int containsGoal;         // Does this action contain a goal on the RHS?
-    int containsStart;        // Does this action contain a starting state on the LHS?
+    int containsStart;        // Does this action contain a starting state on
+                              // the LHS?
 } Action;
 
 typedef struct RouteStruct
@@ -177,6 +178,7 @@ int          findTopMatch(double* scoreTable, double* indvScore, int command);
 void         freePlan(Vector *plan);
 void         freeRoute(Route *r);
 int          generateScoreTable(Vector* vector, double* score);
+Route*       getTopRoute(Vector *plan);
 Vector*      initPlan();
 void         initRouteFromSequence(Route *route, Vector *seq);
 void         initSupervisor();
