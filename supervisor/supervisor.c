@@ -18,6 +18,12 @@
  *     other plans...)
  *
  * 2.  displayPlan doesn't recursively print multi-level plans properly
+ *
+ * 3.  Replacements can't be applied over sequence boundaries.  For example you
+ *     can't apply this replacement:
+ *           {s0RT ----> 0, 0LT ----> 0}==> 0NO ----> 0
+ *     to this pair of sequences:
+ *           26:0FW, 0RT-->0; 27:0LT, 0AL, 0FW-->512; 
  * 
  */
 
@@ -1583,6 +1589,7 @@ void displayAction(Action* action)
 
     //Indicate if this is a start action
     if (action->containsStart) printf("s");
+    else printf(" ");
 
     //Print the LHS
     for(i = 0; i < action->length; i++)
@@ -2064,7 +2071,9 @@ int updatePlan(int level)
     fflush(stdout);
 #endif
     
+    //======================================================================
     //If we reach this point, then the current sequence has run out.
+    //----------------------------------------------------------------------
 
     //First, see if there is a next sequence at this level
     if (route->currSeqIndex + 1 < route->sequences->size)
@@ -2219,7 +2228,7 @@ Replacement *makeNewReplacement()
         if (! replacementPossible(i))
         {
 #if DEBUGGING_FIND_REPL
-            printf("Replacement not possible at level %d\n", i);
+            printf("A replacement can't be applied at level %d\n", i);
             fflush(stdout);
 #endif
             continue;
@@ -2435,14 +2444,19 @@ void considerReplacement()
     printf("\n");
 #endif
 
-    //Create and install the new top level replacement
+    //Create the new top level replacement
+    Vector *newSeq = doReplacement(currSequence, repl);
+
+    // free the old replacement sequence if it exists
     if (replRoute->replSeq != NULL)
     {
-        free(replRoute->replSeq);
+        free(replRoute->replSeq); 
     }
-    replRoute->replSeq = doReplacement(currSequence, repl);
-    replRoute->sequences->array[replRoute->currSeqIndex] = replRoute->replSeq;
 
+    //Install the new route
+    replRoute->replSeq = newSeq;
+    replRoute->sequences->array[replRoute->currSeqIndex] = replRoute->replSeq;
+    
     //Log that the replacement is active and reduce agent's confidence since
     //we're trying something new
     addEntry(g_activeRepls, repl);
@@ -2562,8 +2576,9 @@ int chooseCommand()
             printf("Current plan invalid.  Replanning...:\n");
             fflush(stdout);
 #endif
-            //All active replacements are now to be penalized for causing this
-            //failure
+            //"We now consecrate the bond of obedience."  The agent and all
+            //active replacements are now to be penalized for causing this
+            //failure.
             penalizeReplacements();
             penalizeAgent();
             
@@ -2582,14 +2597,14 @@ int chooseCommand()
             }
 #endif
         }//if
-        else
+        else                    // The plan is going swimmingly!  
         {
 #if DEBUGGING_CHOOSECMD
             printf("Plan successful so far.\n");
             fflush(stdout);
 #endif
-            //The plan is going swimmingly.  If a sequence has just completed
-            //then any active replacements need to be rewarded
+            //If a level 0 sequence has just completed then any active
+            //replacements need to be rewarded
             Route *currRoute = (Route *)g_plan->array[0];
             if ((currRoute->currSeqIndex > 0) && (currRoute->currActIndex <= 1))
             {
@@ -2763,9 +2778,8 @@ void displayRoute(Route *route, int recurse)
                         //Recursive call
                         displayRoute(tmpRoute, TRUE);
                         
-                        //Free the route
-                        freeVector(tmpRoute->sequences);
-                        free(tmpRoute);
+                        //Discard the temporary route once it's been printed
+                        freeRoute(tmpRoute);
                     }//else
                 }//if (recurse)
 
@@ -2775,12 +2789,14 @@ void displayRoute(Route *route, int recurse)
 
             }//else
 
+            fflush(stdout);
 
         }// for each action
 
         
         //Also print the final outcome episode of the last action in the
         //sequence
+        if (seq->size < 1) continue; //  (unless it's empty)
         Action *lastAction = seq->array[seq->size - 1];
         if (route->level == 0)
         {
@@ -2819,9 +2835,8 @@ void displayRoute(Route *route, int recurse)
                 //Recursive call
                 displayRoute(tmpRoute, recurse);
 
-                //Free the route
-                freeVector(tmpRoute->sequences);
-                free(tmpRoute);
+                //Discard the temporary route once it's been printed
+                freeRoute(tmpRoute);
             }
 
             //for level 1 we want a newline now to get the tree format to
@@ -2829,8 +2844,6 @@ void displayRoute(Route *route, int recurse)
             if (route->level == 1) printf("\n");
             
         }//else (print outcome episode at level 1+)
-
-            
 
     }//for each sequence 
     
@@ -2854,19 +2867,7 @@ void displayPlan()
     }
     
     //Find the highest level route in the plan that's not empty
-    int i;
-    Route* r = NULL;
-    for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
-    {
-        r = g_plan->array[i];
-        if (r == NULL) continue;
-        assert(r->sequences != NULL);
-        if (r->sequences->size > 0)
-        {
-            break;
-        }
-            
-    }//for
+    Route* r = getTopRoute(g_plan);
 
     //Make sure this plan has at least one route
     if (r == NULL)
@@ -2877,7 +2878,8 @@ void displayPlan()
 
     //Calculate and print the plan length
     int length = routeLength(r);
-    printf("(level %d; %d steps) \n", i, length);
+    printf("(level %d; %d steps) \n", r->level, length);
+    fflush(stdout);
     
     displayRoute(r, TRUE);
 
@@ -3413,6 +3415,38 @@ int planNeedsRecalc(Vector *plan)
 
 }//planNeedsRecalc
 
+/**
+ * getTopRoute()
+ *
+ * This method retrieves the highest level route in a given plan that's not
+ * empty.
+ *
+ * @param plan  the plan to to find the top-level route in.
+ *
+ * @return returns a pointer to the requested route or NULL on failure
+ */
+Route *getTopRoute(Vector *plan)
+{
+    //Check for bad argument
+    if (plan == NULL) return NULL;
+    
+    //Find the highest level route in the plan that's not empty
+    int i;
+    Route* r = NULL;
+    for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
+    {
+        r = plan->array[i];
+        if (r == NULL) continue;
+        assert(r->sequences != NULL);
+        if (r->sequences->size > 0)
+        {
+            break;
+        }
+            
+    }//for
+
+    return r;
+}//getTopRoute
 
 /**
  * findTopMatch
@@ -3981,17 +4015,15 @@ int replacementPossible(int level)
     //Verify that the current sequence exists
     Vector *currSeq = ((Vector*)route->sequences->array[route->currSeqIndex]);
     if (currSeq == NULL) return FALSE;
-        
-    //If I'm currently applying some other replacement then I can't do
-    //another one right now.  (NOTE: We could potentially allow this, just
-    //set currSeq = route->replSeq and plow onward.)
-    if (route->replSeq != NULL)
-    {
-        //%%%return FALSE;
 
-        //%%%Ok, trying it!
-        currSeq = route->replSeq;
-    }
+    //%%%I think this is unncessary:  23 Jan 2010
+    // //If I'm currently applying some other replacement then I can't do
+    // //another one right now.  (NOTE: We could potentially allow this, just
+    // //set currSeq = route->replSeq and plow onward.)
+    // if (route->replSeq != NULL)
+    // {
+    //     return FALSE;
+    // }
 
     // check to make sure that there are at least two actions left in the
     // currently executing sequence in the route (otherwise there's not
@@ -4533,8 +4565,8 @@ Vector *findInterimStartPartialMatch(int *offset)
     fflush(stdout);
 #endif
     
-    //Check for no match found
-    if (bestMatchLen == 0)
+    //Check for no acceptable match found
+    if (bestMatchLen < MIN_LEVEL0_MATCH_LEN)
     {
 #ifdef DEBUGGING_FINDINTERIMSTART
         printf("findInterimStartPartialMatch found no match\n");
