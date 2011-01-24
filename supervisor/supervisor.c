@@ -19,12 +19,6 @@
  *
  * 2.  displayPlan doesn't recursively print multi-level plans properly
  *
- * 3.  Replacements can't be applied over sequence boundaries.  For example you
- *     can't apply this replacement:
- *           {s0RT ----> 0, 0LT ----> 0}==> 0NO ----> 0
- *     to this pair of sequences:
- *           26:0FW, 0RT-->0; 27:0LT, 0AL, 0FW-->512; 
- * 
  */
 
 /*
@@ -61,6 +55,15 @@
  *       transitive closure when trying to avoid adding the same sequence to a
  *       route twice.
  * 4.  findRoute() should be using the cousins list!
+ * 5.  Replacements can't be applied over sequence boundaries.  For example you
+ *     can't apply this replacement:
+ *           {s0RT ----> 0, 0LT ----> 0}==> 0NO ----> 0
+ *     to this pair of sequences:
+ *           26:0FW, 0RT-->0; 27:0LT, 0AL, 0FW-->512; 
+ *
+ * 6.  Valid replacements should be drawn from all those that can be applied to
+ *     the current sequence and subsequently applied to all sequences in the
+ *     plan (though perhaps just one at a time).
  */
 
 //Setting this turns on verbose output to aid debugging
@@ -2603,13 +2606,14 @@ int chooseCommand()
             printf("Plan successful so far.\n");
             fflush(stdout);
 #endif
-            //If a level 0 sequence has just completed then any active
-            //replacements need to be rewarded
+            //If a level 0 sequence has just completed then the agent's
+            //confidence is increased due to the partial success
             Route *currRoute = (Route *)g_plan->array[0];
             if ((currRoute->currSeqIndex > 0) && (currRoute->currActIndex <= 1))
             {
                 rewardAgent(); 
             }
+
         }//else
         
     }//if
@@ -4016,15 +4020,6 @@ int replacementPossible(int level)
     Vector *currSeq = ((Vector*)route->sequences->array[route->currSeqIndex]);
     if (currSeq == NULL) return FALSE;
 
-    //%%%I think this is unncessary:  23 Jan 2010
-    // //If I'm currently applying some other replacement then I can't do
-    // //another one right now.  (NOTE: We could potentially allow this, just
-    // //set currSeq = route->replSeq and plow onward.)
-    // if (route->replSeq != NULL)
-    // {
-    //     return FALSE;
-    // }
-
     // check to make sure that there are at least two actions left in the
     // currently executing sequence in the route (otherwise there's not
     // enough left to replace)
@@ -4038,9 +4033,9 @@ int replacementPossible(int level)
 /**
  * findBestReplacement
  *
- * Find a replacements in g_replacements that could be applied to g_plan at its
- * current point of execution. If there are multiple such replacements, the one
- * wiht the highest confidence is returned.  The replacement isn't applied, only
+ * Find a replacements in g_replacements that could be applied to the current
+ * sequence in g_plan. If there are multiple such replacements, the one with the
+ * highest confidence is returned.  The replacement isn't applied, only
  * enumerated.
  *
  * CAVEAT: This function does not find replacements across adjacent sequences in
@@ -4053,7 +4048,7 @@ Replacement* findBestReplacement()
 {
     // instance variables
     Replacement *result = NULL;  // this will hold the return value
-    int     i, j, k;             // loop iterators
+    int i, j, k, x;              // four(!) loop iterators
 
     assert(g_plan != NULL);
 
@@ -4070,7 +4065,7 @@ Replacement* findBestReplacement()
         if (! replacementPossible(i)) continue;
 
 #ifdef DEBUGGING_FIND_REPL
-    printf("\treplacement possible...\n");
+    printf("\treplacement possible at level %d...\n", i);
     fflush(stdout);
 #endif
                 
@@ -4084,19 +4079,30 @@ Replacement* findBestReplacement()
         for (j = 0; j < replacements->size; j++)
         {
             //Extract this Replacement to prep for the loop below
-            match = (Replacement*)replacements->array[j];
+            Replacement *candRepl = (Replacement*)replacements->array[j];
 
-            //Compare each action in the replacement rule to the corresponding
-            //action in the replacement rule.  Interrupt/abort on mismatch.
-            for(k = 0; k < match->original->size; k++)
+            //Iterate over all remaining subsequences of the current sequence
+            //that are the same lenght as the LHS of the replacment rule
+            int stopPoint = currSeq->size - candRepl->original->size;
+            for(k = route->currActIndex; k <= stopPoint; k++)
             {
-                Action *planAct = (Action*)currSeq->array[route->currActIndex + k];
-                Action *replAct = match->original->array[k];
-                if (planAct != replAct)
+                //Compare each action in the current subsequence to the
+                //corresponding action in the replacement rule.  Abort on
+                //a mismatch.
+                match = candRepl; // default is success
+                for(x = 0; x < candRepl->original->size; x++)
                 {
-                    match = NULL;
-                    break;
-                }
+                    Action *planAct = (Action*)currSeq->array[k + x];
+                    Action *replAct = candRepl->original->array[x];
+                    if (planAct != replAct)
+                    {
+                        match = NULL;
+                        break;
+                    }
+                }//for
+
+                //If a match was found we can stop searching
+                if (match != NULL) break;
                 
             }//for
 
