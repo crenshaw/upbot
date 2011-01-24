@@ -95,9 +95,8 @@ typedef struct RouteStruct
     Vector* sequences;        // An ordered list of sequences that make up
                               // this route
     Vector* replSeq;          // If a replacement has been applied to the
-                              // current sequence this contains the result
-                              // (otherwise it is NULL) and currActIndex refers
-                              // to this instead.
+                              // current sequence this contains a pointer to the
+                              // modified sequence
     int currSeqIndex;         // The current sequence in this plan that is being executed
     int currActIndex;         // An index into the current sequence in this plan
                               // that indicates what action is currently being
@@ -155,6 +154,8 @@ void         addActionToRoute(int actionIdx);
 int          addActionToSequence(Vector* sequence,  Action* action);
 int          addEpisode(Episode* item);
 int          addSequenceAsEpisode(Vector* sequence);
+void         applyReplacementToPlan(Vector *plan, Replacement *repl);
+Vector*      applyReplacementToSequence(Vector* seq, Replacement* repl);
 int          chooseCommand();
 int          compareEpisodes(Episode* ep1, Episode* ep2, int compCmd);
 Vector*      containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf);
@@ -169,7 +170,6 @@ void         displayRoute(Route *, int recurse);
 void         displaySequence(Vector* sequence);
 void         displaySequenceShort(Vector* sequence);
 void         displaySequences(Vector* sequences);
-Vector*      doReplacement(Vector* seq, Replacement* r);
 void         endSupervisor();
 Vector*      findInterimStart();
 Vector*      findInterimStartPartialMatch(int *offset);

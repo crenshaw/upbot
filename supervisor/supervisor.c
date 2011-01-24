@@ -2435,68 +2435,11 @@ void considerReplacement()
      * Apply the replacement (repl) to g_plan
      *----------------------------------------------------------------------
      */
-    //Retrieve the route and sequence that will have the replacement applied to
-    //it.
-    Route* replRoute = (Route *)g_plan->array[repl->level];
-    Vector *currSequence = (Vector *)replRoute->sequences->array[replRoute->currSeqIndex];
-
-#if DEBUGGING
-    printf("Replacement selected:  ");
-    displayReplacement(repl);
-    fflush(stdout);
-    printf("\n");
-#endif
-
-    //Create the new top level replacement
-    Vector *newSeq = doReplacement(currSequence, repl);
-
-    // free the old replacement sequence if it exists
-    if (replRoute->replSeq != NULL)
-    {
-        free(replRoute->replSeq); 
-    }
-
-    //Install the new route
-    replRoute->replSeq = newSeq;
-    replRoute->sequences->array[replRoute->currSeqIndex] = replRoute->replSeq;
+    //This guy does all the work
+    applyReplacementToPlan(g_plan, repl);
     
-    //Log that the replacement is active and reduce agent's confidence since
-    //we're trying something new
+    //Log that the replacement is active
     addEntry(g_activeRepls, repl);
-
-    //Adjust the agent's confidence based upon its confidence in this
-    //replacement
-    //%%%old code: penalizeAgent();
-    if (g_selfConfidence > repl->confidence)
-    {
-#if DEBUGGING
-        printf("Overall confidence reduced from %g to ", g_selfConfidence);
-        fflush(stdout);
-#endif
-        
-        g_selfConfidence -= (g_selfConfidence - repl->confidence) / 2; 
-    
-#if DEBUGGING
-        printf("%g\n", g_selfConfidence);
-        fflush(stdout);
-#endif
-    }
-
-    
-    //Now each lower level plan will need to be updated to reflect the
-    //replacement that has been made here
-    for(i = repl->level - 1; i >= 0; i--)
-    {
-        initRouteFromParent(i, TRUE);
-    }
-    
-#if DEBUGGING
-        printf("Adjusted plan:\n");
-        fflush(stdout);
-        displayPlan();
-        printf("\n");
-        fflush(stdout);
-#endif
     
 }//considerReplacement
 
@@ -2557,7 +2500,7 @@ int chooseCommand_WithPlan()
  */
 int chooseCommand()
 {
-    int i;                      // iterator
+    int i,j;                    // iterators
 
 #if DEBUGGING_CHOOSECMD
             printf("Entering chooseCommand\n");
@@ -2606,6 +2549,35 @@ int chooseCommand()
             printf("Plan successful so far.\n");
             fflush(stdout);
 #endif
+            //If a sequence has been completed then the active replacements need
+            //to be applied to the new current sequence
+            Route *topRoute = getTopRoute(g_plan);
+            for(i = topRoute->level; i >= 0; i--)
+            {
+                //Has the route at this level just begun a new sequence?
+                Route *currRoute = (Route *)g_plan->array[0];
+                if ((currRoute->currSeqIndex > 0) && (currRoute->currActIndex <= 1))
+                {
+                    //%%%MEMORY LEAK:  If currRoute->replSeq is set, it points
+                    //%%%to memory that needs to be deleted at some point.
+                    //%%%Unfortunately, it can't be deleted now *and* the
+                    //%%%pointer needs to be re-used for the current sequence.
+                    //%%%It's not a hard problem to solve but not trivial
+                    //%%%either. I'm letting it go for the short term. -:AMN:
+                    currRoute->replSeq = NULL; 
+                    
+                    //Reapply all active replacements at this level
+                    for(j = 0; j < g_activeRepls->size; j++)
+                    {
+                        Replacement *currRepl = (Replacement *)g_activeRepls->array[j];
+                        if (currRepl->level == i)
+                        {
+                            applyReplacementToPlan(g_plan, currRepl);
+                        }
+                    }//for
+                }//if
+            }//for
+            
             //If a level 0 sequence has just completed then the agent's
             //confidence is increased due to the partial success
             Route *currRoute = (Route *)g_plan->array[0];
@@ -2965,6 +2937,7 @@ void freeRoute(Route *r)
 {
     if (r == NULL) return;
     if (r->sequences != NULL) freeVector(r->sequences);
+    if (r->replSeq != NULL) free(r->replSeq);
     free(r);
 
 }//freeRoute
@@ -4149,7 +4122,7 @@ Replacement* findBestReplacement()
 
 
 /**
- * doReplacement
+ * applyReplacementToSequence
  *
  * Take the specified replacement and apply it to the specified
  * sequence to produce a new sequence.  The original, given, sequence is not
@@ -4161,7 +4134,7 @@ Replacement* findBestReplacement()
  * @arg    replacement the Replacement to apply
  * @return Vector*     copy of original sequence with the replacement applied
  */
-Vector* doReplacement(Vector* sequence, Replacement* replacement)
+Vector* applyReplacementToSequence(Vector* sequence, Replacement* replacement)
 {
     // instance variables
     Vector* withReplacement;  // will hold our sequence with the replacement
@@ -4181,6 +4154,7 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
     // iterate through original vector, adding elements to
     // withReplacement not applicable to replacement and substituting
     // replacements where appropriate
+    int replCount = 0;
     for(i = 0; i < sequence->size; i++)
     {
         // if the next two actions in sequence match the original
@@ -4192,6 +4166,7 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
             addActionToSequence(withReplacement, replacement->replacement);
             i++;  // increment an extra space so we skip over these two when the
                   // loop repeats
+            replCount++;        // count how many changes were made
         }
         else
         {   // just add the next action in sequence to withReplacement
@@ -4199,8 +4174,89 @@ Vector* doReplacement(Vector* sequence, Replacement* replacement)
         }
     }//for
 
+#if DEBUGGING_FIND_REPL
+    printf("Number of changes made: %d\n", replCount);
+    fflush(stdout);
+#endif
+
+
     return withReplacement;
-}//doReplacement
+}//applyReplacementToSequence
+
+/**
+ * applyReplacementToPlan
+ *
+ * This method does all the bookeeping and maangement assocaited with actually
+ * applying a replacment to a plan.  applyReplacementToSequence is a helper method for this
+ * one.
+ *
+ * @param plan  the plan to apply it to
+ * @param repl  the replacement to apply
+ */
+void applyReplacementToPlan(Vector *plan, Replacement *repl)
+{
+    int i;                      // loop iterator
+    
+#if DEBUGGING
+    printf("Applying this level %d replacement to current plan:  ", repl->level);
+    displayReplacement(repl);
+    fflush(stdout);
+    printf("\n");
+#endif
+
+    //Retrieve the route and sequence that will have the replacement applied to
+    //it.
+    Route* replRoute = (Route *)plan->array[repl->level];
+    Vector *currSequence = (Vector *)replRoute->sequences->array[replRoute->currSeqIndex];
+
+    //Create the new sequence that results from this replacement
+    Vector *newSeq = applyReplacementToSequence(currSequence, repl);
+
+    // free the old replacement sequence if it exists
+    if (replRoute->replSeq != NULL)
+    {
+        free(replRoute->replSeq); 
+    }
+
+    //Install the new route
+    replRoute->replSeq = newSeq;
+    replRoute->sequences->array[replRoute->currSeqIndex] = replRoute->replSeq;
+    
+    //Adjust the agent's confidence based upon its confidence in this
+    //replacement
+    //%%%old code: penalizeAgent();
+    if (g_selfConfidence > repl->confidence)
+    {
+#if DEBUGGING
+        printf("Overall confidence reduced from %g to ", g_selfConfidence);
+        fflush(stdout);
+#endif
+        
+        g_selfConfidence -= (g_selfConfidence - repl->confidence) / 2; 
+    
+#if DEBUGGING
+        printf("%g\n", g_selfConfidence);
+        fflush(stdout);
+#endif
+    }
+
+    
+    //Now each lower level plan will need to be updated to reflect the
+    //replacement that has been made here
+    for(i = repl->level - 1; i >= 0; i--)
+    {
+        initRouteFromParent(i, TRUE);
+    }
+    
+#if DEBUGGING
+        printf("Adjusted plan:\n");
+        fflush(stdout);
+        displayPlan();
+        printf("\n");
+        fflush(stdout);
+#endif
+
+}//applyReplacementToPlan
 
 /**
  * convertEpMatchToSequence
