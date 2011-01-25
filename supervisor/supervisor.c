@@ -4855,9 +4855,15 @@ Vector *findInterimStartPartialMatch(int *offset)
         //If I fall off the edge of a sequence, proceed to the next sequence
         if (currActIndex < 0)
         {
+            //Special case:  best match is the very first action
+            if (currSeqIndex == 0)
+            {
+                currActIndex = 0;
+                break;
+            }
+            
             //Get next sequence
             currSeqIndex--;
-            assert(currSeqIndex >= 0);
             currSeq = (Vector *)level1Eps->array[currSeqIndex];
 
             //Unless this sequence ended in a goal, currActIndex should point
