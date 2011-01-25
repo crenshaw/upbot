@@ -2376,43 +2376,68 @@ void considerReplacement()
     if (g_activeRepls->size >= MAX_REPLS) return;
    
     /*----------------------------------------------------------------------
-     * Find a replacement that can be applied
+     * Find the best replacement that can be applied
      *----------------------------------------------------------------------
      */
-    //Retrieve the best matching replacement and see if its confidence is high
-    //enough that it can be applied
+    //Retrieve the best matching existing replacement 
     Replacement *repl = findBestReplacement();
-    if ( (repl == NULL)
-        || (g_selfConfidence < (1.0 - repl->confidence)) )
-    {
-        //No existing replacement will work, so see if my self confidence is
-        //high enough to try a new replacement
-        if ( g_selfConfidence >= (1.0 - INIT_REPL_CONFIDENCE))
-        {
-            repl = makeNewReplacement();
-            if (repl == NULL)
-            {
-#if DEBUGGING_FIND_REPL
-                printf("Agent confidence (%g) is high enough for a new replacement but none could be made.\n", g_selfConfidence);
-                fflush(stdout);
-#endif
-                return;
-            }
 
-            // add this new one to the list
-            Vector *replList = (Vector *)g_replacements->array[repl->level];
-            addEntry(replList, repl);
+    //Also make a new replacement if the agent is confident enough
+    Replacement *newRepl = NULL;
+    if ( g_selfConfidence >= (1.0 - INIT_REPL_CONFIDENCE))
+    {
+        newRepl = makeNewReplacement();
+        if (newRepl == NULL)
+        {
+#if DEBUGGING_FIND_REPL
+            printf("Agent confidence (%g) is high enough for a new replacement but none could be made.\n", g_selfConfidence);
+            fflush(stdout);
+#endif
+        }
+    }//if
+
+    //Choose between the best existing replacement and the new candidate
+    //replacement
+    if (repl == NULL)
+    {
+        //If both null give up
+        if (newRepl == NULL)
+        {
+#if DEBUGGING
+            printf("No valid replacement found.\n", g_selfConfidence);
+            fflush(stdout);
+#endif
+            return;
         }
         else
+        {                       // If only the newRepl is available, use it
+            repl = newRepl;
+        }
+    }
+    else
+    {
+        //If I'm more confident in something new, try it instead
+        if ((newRepl != NULL) && (newRepl->confidence > repl->confidence))
         {
+            // add this new one to the list
+            Vector *replList = (Vector *)g_replacements->array[repl->level];
+            addEntry(replList, newRepl);
+
+            repl = newRepl;
+        }
+    }//else
+        
+
+    //Make sure the agent is confident enough to use the selected replacement
+    if (g_selfConfidence < (1.0 - repl->confidence))
+    {
 #if DEBUGGING
         printf("No valid replacement found.  Agent confidence (%g) too low for new replacement.\n", g_selfConfidence);
         fflush(stdout);
 #endif
-            //Agent is not confident enough to do a replacement
-            return;
-        }
-    }//if
+        //Agent is not confident enough to do a replacement
+        return;
+    }
 
     /*----------------------------------------------------------------------
      * Apply the replacement (repl) to g_plan
