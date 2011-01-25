@@ -61,9 +61,6 @@
  *     to this pair of sequences:
  *           26:0FW, 0RT-->0; 27:0LT, 0AL, 0FW-->512;
  *
- * 6.  Valid replacements should be drawn from all those that can be applied to
- *     the current sequence and subsequently applied to all sequences in the
- *     plan (though perhaps just one at a time).
  */
 
 //Setting this turns on verbose output to aid debugging
@@ -2058,9 +2055,11 @@ int updatePlan(int level)
     // Increment the action index:   The most important step!
     (route->currActIndex)++;
 
-    //If we did not just walk off the end of the current sequence, we're done
+    //At this point we want to decide whether we should stay in this sequence.
+    //We want to switch when currActIndex points to the last action in the
+    //sequence and there is a next sequence available to switch to.
     Vector *currSequence =  (Vector *)route->sequences->array[route->currSeqIndex];
-    if (route->currActIndex < currSequence->size)
+    if (route->currActIndex < currSequence->size - 1)
     {
 #if DEBUGGING_UPDATEPLAN
         printf("Updated level %d route successfully.\n", level);
@@ -2070,12 +2069,13 @@ int updatePlan(int level)
     }
 
 #if DEBUGGING_UPDATEPLAN
-    printf("Current plan sequence at level %d has run out\n", level);
+    printf("Reached the last action in this sequence at level %d\n", level);
     fflush(stdout);
 #endif
    
     //======================================================================
-    //If we reach this point, then the current sequence has run out.
+    //If we reach this point, then we're ready to move to the next sequence if
+    //possible. 
     //----------------------------------------------------------------------
 
     //First, see if there is a next sequence at this level
@@ -2083,10 +2083,7 @@ int updatePlan(int level)
     {
         //Just move to the next sequence at this level
         (route->currSeqIndex)++;
-
-        //Since sequences overlap by 1, we need to start at 2nd entry in the
-        //sequence (index = 1)
-        route->currActIndex = 1;
+        route->currActIndex = 0;
 
 #if DEBUGGING_UPDATEPLAN
         //Make sure this next sequence is valid
@@ -2100,49 +2097,35 @@ int updatePlan(int level)
        
         return SUCCESS;
     }//if
-       
 
-    //Since there is no next sequences, recursively call update plan if there is
+    //Since there is no next sequence, recursively call update plan if there is
     //a parent plan that can provide us with a next sequence
     int retVal = updatePlan(level+1);
 
-    //If the update failed because there is no parent plan, then we must report
-    //that this level is done.  The lower level should still perform the
-    //outcome sequence associated with the last action at this level
-    if (retVal == LEVEL_NOT_POPULATED)
-    {
-#if DEBUGGING_UPDATEPLAN
-        printf("Failed to retrieve new sequence from parent at level %d (error code: %d).\n",
-               level + 1, retVal);
-        fflush(stdout);
-#endif
-
-        //Decrement the current action index so it refers to the last action
-        //in the current sequence
-        (route->currActIndex)--;
-       
-       
-        route->needsRecalc = TRUE;
-        return PLAN_ON_OUTCOME;
-    }
-
-    //If the update failed due to an error then mark this route as needing
-    //recalc.  No further update can be performed.
-    if ((retVal != SUCCESS) && (retVal != PLAN_ON_OUTCOME))
-    {
-#if DEBUGGING_UPDATEPLAN
-        printf("Route at level %d has been exhausted.\n", level);
-        fflush(stdout);
-#endif
-
-        route->needsRecalc = TRUE;
-        return retVal;
-    }
-
     //Create a new route at this level based upon the newly updated parent route
-    initRouteFromParent(level, retVal == SUCCESS);
+    if (retVal == SUCCESS)
+    {
+        initRouteFromParent(level, retVal == SUCCESS);
+        return SUCCESS;
+    }
 
-    return SUCCESS;
+    //======================================================================
+    //If we reach this point, then the parent route is unavailable and exhausted
+    //----------------------------------------------------------------------
+
+    //If there is one more action left on this last sequence, let it go 
+    if (route->currActIndex == currSequence->size - 1)
+    {
+        return SUCCESS;
+    }
+    
+    //Since there is nothing left to execute, we must report that this level is
+    //done.  The lower level should still perform the outcome sequence
+    //associated with the last action at this level.  
+    (route->currActIndex)--;    // make this a valid value, just for safety
+    route->needsRecalc = TRUE;
+    return PLAN_ON_OUTCOME;
+
 
 }//updatePlan
 
@@ -4143,10 +4126,13 @@ Vector* applyReplacementToSequence(Vector* sequence, Replacement* replacement)
 
 
     // check to make sure the level of each of our replacement and sequence
-    // match and that sequence has at least two actions
+    // match 
     assert(sequence->array != NULL);
-    assert(sequence->size > 1);
     assert(((Action*)sequence->array[0])->level == replacement->level);
+
+    //Don't bother doing replacements on sequences with insufficient actions
+    //(currently hardcoded to two)
+    if (sequence->size < 2) return sequence;
    
     // initialize instance variables;
     withReplacement = newVector();
