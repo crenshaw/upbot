@@ -1937,11 +1937,6 @@ void penalizeReplacements()
  *
  * CAVEAT:  Caller is responsible for guaranteeing that the parent route exists!
  *
- * CAVEAT:  This method assumes that the sequence at this level is not the very
- * first sequence and, therefore, the first action in that sequence should be
- * skipped since it was already performed as the last action of the previous
- * sequence.
- *
  * @arg level  the level that needs to be updated.
  * @arg LHS    specifies whether the sequence should be extracted from the
  *             left-hand-side (TRUE) or right-hand-side (FALSE) of the parent
@@ -1986,8 +1981,6 @@ void initRouteFromParent(int level, int LHS)
     Route *newRoute = (Route*)malloc(sizeof(Route));
     newRoute->sequences = newVector();
     initRouteFromSequence(newRoute, seq);
-    newRoute->currActIndex = 1;    // skip overlapping first action (see CAVEAT above)
-
    
     //replace the old route with the new
     Route *oldRoute = (Route *)g_plan->array[level];
@@ -2022,7 +2015,7 @@ int updatePlan(int level)
 {
    
 #if DEBUGGING_UPDATEPLAN
-    printf("-----===== begin updatePlan =====-----\n");
+    printf("-----===== begin updatePlan at level %d =====-----\n", level);
     fflush(stdout);
 #endif
    
@@ -2411,6 +2404,10 @@ void considerReplacement()
         }
         else
         {                       // If only the newRepl is available, use it
+            // add this new one to the list
+            Vector *replList = (Vector *)g_replacements->array[newRepl->level];
+            addEntry(replList, newRepl);
+
             repl = newRepl;
         }
     }
@@ -2420,7 +2417,7 @@ void considerReplacement()
         if ((newRepl != NULL) && (newRepl->confidence > repl->confidence))
         {
             // add this new one to the list
-            Vector *replList = (Vector *)g_replacements->array[repl->level];
+            Vector *replList = (Vector *)g_replacements->array[newRepl->level];
             addEntry(replList, newRepl);
 
             repl = newRepl;
@@ -2588,8 +2585,10 @@ int chooseCommand()
            
             //If a level 0 sequence has just completed then the agent's
             //confidence is increased due to the partial success
+            //(Note: Index 1 rather than 0 is used due to overlap between
+            //sequences.)
             Route *currRoute = (Route *)g_plan->array[0];
-            if ((currRoute->currSeqIndex > 0) && (currRoute->currActIndex <= 1))
+            if ((currRoute->currSeqIndex > 0) && (currRoute->currActIndex == 1))
             {
                 rewardAgent();
             }
@@ -3099,13 +3098,19 @@ int findRoute(Route* newRoute, Vector *startSeq)
             }//if
         }//for
 
-        //If this shortest route is too long then halt the search
-        //TODO:  This is domain specific knowledge!  I've placed it here to
-        //speed up debugging but we should remove it later.
-        if (routeLen > MAX_ROUTE_LEN)
+        //To avoid long delays, give up on planning after examining N candidate routes
+        if (i > MAX_ROUTE_CANDS)
         {
             break;
         }
+        
+        //%%%I tried this as an alternative to the above.  It seems to be worse!
+        //%%%This needs to be investigated.
+        // //To avoid long delays, give up on planning after examining N candidate routes
+        // if (i > MAX_ROUTE_CANDS)
+        // {
+        //     break;
+        // }
 
         //Move this shortest unexamined route to the current position in the
         //candRoutes vector via a swap
@@ -3118,10 +3123,8 @@ int findRoute(Route* newRoute, Vector *startSeq)
 
 #if DEBUGGING_INITROUTE
         //print the current shortest candidate
-        printf("next shortest unexamined candidate %d at %ld of size %d:\n",
+        printf("examining next shortest unexamined candidate %d at %ld of size %d:\n",
                i, (long)route, routeLen);
-        fflush(stdout);
-        displayRoute(route, TRUE);
         fflush(stdout);
 #endif
        
@@ -3191,6 +3194,14 @@ int findRoute(Route* newRoute, Vector *startSeq)
             //Add this new candidate route to the candRoutes array
             addEntry(candRoutes, newCand);
         }//for
+       
+#if DEBUGGING_INITROUTE
+        //delimit the loop iteration with an update
+        int lastSeqIndex = findEntry(g_sequences->array[route->level], lastSeq);
+        printf("\tdone searching for ways to extend from episode: %d\n",
+               lastSeqIndex);
+        fflush(stdout);
+#endif
        
     }//for
    
@@ -4062,6 +4073,12 @@ Replacement* findBestReplacement()
             //Extract this Replacement to prep for the loop below
             Replacement *candRepl = (Replacement*)replacements->array[j];
 
+            //%%%DEBUGGING
+            printf("\tconsidering ");
+            displayReplacement(candRepl);
+            printf("...");
+            fflush(stdout);
+
             //Iterate over all remaining subsequences of the current sequence
             //that are the same lenght as the LHS of the replacment rule
             int stopPoint = currSeq->size - candRepl->original->size;
@@ -4090,11 +4107,15 @@ Replacement* findBestReplacement()
 #ifdef DEBUGGING_FIND_REPL
             if (match != NULL)
             {
-                printf("\t\tpromising replacement: ");
-                displayReplacement(match);
-                printf("\n");
-                fflush(stdout);
+                printf("match!\n");
             }
+            else
+            {
+                printf("no match.\n");
+            }
+            fflush(stdout);
+                
+                
 #endif
    
             //If we found a match, then log it if it's the best match so far

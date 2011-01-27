@@ -42,7 +42,9 @@
 #define MIN_LEVEL0_MATCH_LEN (2) // do not set this to anything less than 2!
 
 //Planning defines
-#define MAX_ROUTE_LEN        (50) // maximum length of a route.
+#define MAX_ROUTE_LEN        (50)
+#define MAX_ROUTE_CANDS      (20) // maximum number of candidate routes to
+                                   // examine before giving up
 
 //Replacement defines
 #define MAX_CONFIDENCE       (1.0)
