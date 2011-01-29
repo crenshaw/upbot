@@ -542,9 +542,16 @@ int tick(char* sensorInput)
         //replacements
         if (g_plan != NULL)
         {
-            rewardReplacements();
-            rewardRoute();
-            rewardAgent();
+            
+            rewardReplacements(GOAL_REPL_RATIO);
+            rewardRoute(GOAL_ROUTE_RATIO);        
+            rewardAgent(GOAL_AGENT_RATIO);        
+
+            //Reset the active replacements list
+            //(no need to deallocate anything since a complete list of
+            //replacements is in g_replacements)
+            g_activeRepls->size = 0;
+            
         }
        
         //Current, presumably successful, plan no longer needed
@@ -1813,17 +1820,17 @@ int nextStepIsValid()
 /**
  * rewardAgent
  *
- * This method increases the agent's overall confidence so that its distance
- * from 1.0 is half of what it was.
+ * This method decreases the difference between the agent's overall confidence
+ * and 1.0 by a given ratio.
  */
-void rewardAgent()
+void rewardAgent(int ratio)
 {
 #if DEBUGGING
     printf("Overall confidence increased from %g to ", g_selfConfidence);
     fflush(stdout);
 #endif
    
-    g_selfConfidence += (1.0 - g_selfConfidence) / 2.0;
+    g_selfConfidence += (1.0 - g_selfConfidence) * ratio;
    
 #if DEBUGGING
     printf("%g\n", g_selfConfidence);
@@ -1834,16 +1841,16 @@ void rewardAgent()
 /**
  * penalizeAgent
  *
- * This method halves the agent's overall confidence.
+ * This method decreases the agent's overall confidence by a given ratio
  */
-void penalizeAgent()
+void penalizeAgent(int ratio)
 {
 #if DEBUGGING
     printf("Overall confidence decreased from %g to ", g_selfConfidence);
     fflush(stdout);
 #endif
    
-    g_selfConfidence /= 2.0;
+    g_selfConfidence *= ratio;
    
 #if DEBUGGING
     printf("%g\n", g_selfConfidence);
@@ -1854,15 +1861,11 @@ void penalizeAgent()
 /**
  * rewardReplacements
  *
- * increases the confidence of all active replacements so that their
- * distance from 1.0 is half of what it was.  Overall confidence is
- * also increased using the same formula.
- *
- * NOTE:  If these calculations end up being expensive, we could switch to an
- * integer based confidence and use bit shift operations for division.
+ * This method increases the confidence in each active replacement by decreasing
+ * the difference between the replacement's confidence and 1.0 by a given ratio.
  *
  */
-void rewardReplacements()
+void rewardReplacements(int ratio)
 {
     int i;               // iterator
 
@@ -1870,7 +1873,7 @@ void rewardReplacements()
     for(i = 0; i < g_activeRepls->size; i++)
     {
         Replacement *repl = (Replacement *)g_activeRepls->array[i];
-        repl->confidence += (1.0 - repl->confidence) / 2.0;
+        repl->confidence += (1.0 - repl->confidence) * ratio;
        
 #if DEBUGGING
         printf("Replacement succeeded:  ");
@@ -1880,27 +1883,16 @@ void rewardReplacements()
 #endif
     }//for
    
-    //Reset the active replacements list
-    //(no need to deallocate anything since a complete list of
-    //replacements is in g_replacements)
-    g_activeRepls->size = 0;
-   
 }//rewardReplacements
 
 /**
  * penalizeReplacements
  *
- * reviews all replacements that have been applied to a route and halves their
- * confidence.  The base formula is to halve it also but only at the topmost
- * level.  For each level below the top, the amount of decrease is half what it
- * would be at the top level.  In other words, penalizeReplacments() has the
- * exact opposite effect on Replacement rules as rewardReplacements().  The
- * method for decreasing overall confidence is different.  Overall confidence
- * only decreases for level 0 routes but when it does so it does using the
- * opposite formula as rewards.
+ * reviews all replacements that have been applied to a route and reudces their
+ * confidence by a given ratio.  
  *
  */
-void penalizeReplacements()
+void penalizeReplacements(int ratio)
 {
     int i;
 
@@ -1908,7 +1900,7 @@ void penalizeReplacements()
     for(i = 0; i < g_activeRepls->size; i++)
     {
         Replacement *repl = (Replacement *)g_activeRepls->array[i];
-        repl->confidence = repl->confidence / 2.0;
+        repl->confidence = repl->confidence * ratio;
 
 #if DEBUGGING
         printf("Replacement failed:  ");
@@ -1919,20 +1911,16 @@ void penalizeReplacements()
        
     }//for
    
-    //Reset the active replacements list
-    //(no need to deallocate anything since a complete list of
-    //replacements is in g_replacements)
-    g_activeRepls->size = 0;
-
 }//penalizeReplacements
 
 /**
  * rewardRoute
  *
- * This method increases the current route's overall confidence so that its
- * distance from 1.0 is half of what it was.
+ * This method decreases the difference between the current route's confidence
+ * and 1.0 by a given ratio.
+ *
  */
-void rewardRoute()
+void rewardRoute(int ratio)
 {
     if (g_currLogRoute < 0) return; // should not happen
 
@@ -1945,7 +1933,7 @@ void rewardRoute()
     fflush(stdout);
 #endif
    
-    currRoute->confidence += (1.0 - currRoute->confidence) / 2.0;
+    currRoute->confidence += (1.0 - currRoute->confidence) * ratio;
    
 #if DEBUGGING
     printf("%g\n", currRoute->confidence);
@@ -1956,9 +1944,10 @@ void rewardRoute()
 /**
  * penalizeRoute
  *
- * This method halves the agent's overall confidence.
+ * This method decreases the the current route's overall confidence by a given
+ * ratio
  */
-void penalizeRoute()
+void penalizeRoute(int ratio)
 {
     if (g_currLogRoute < 0) return; // should not happen
 
@@ -1971,7 +1960,7 @@ void penalizeRoute()
     fflush(stdout);
 #endif
    
-    currRoute->confidence /= 2.0;
+    currRoute->confidence * ratio;
    
 #if DEBUGGING
     printf("%g\n", currRoute->confidence);
@@ -2418,6 +2407,23 @@ void considerReplacement()
    
     //Avoid making more replacements per plan than allowed
     if (g_activeRepls->size >= MAX_REPLS) return;
+
+    //Avoid being more risky with repls than allowed
+    double risk = 0.0;
+    for(i = 0; i < g_activeRepls->size; i++)
+    {
+        Replacement *repl = g_activeRepls->array[i];
+        risk += (1.0 - repl->confidence);
+    }
+    if (risk > MAX_REPL_RISK)
+    {
+#if DEBUGGING_FIND_REPL
+        printf("\trisk (%g) is too high for new replacement.\n", risk);
+        fflush(stdout);
+#endif
+
+        return;
+    }
    
     /*----------------------------------------------------------------------
      * Find the best replacement that can be applied
@@ -2581,10 +2587,15 @@ int chooseCommand()
             //"We now consecrate the bond of obedience."  The agent, the route
             //and all active replacements are now to be penalized for causing
             //this failure.
-            penalizeReplacements();
-            penalizeRoute();
-            penalizeAgent();
+            penalizeReplacements(FAIL_REPL_RATIO); 
+            penalizeRoute(FAIL_ROUTE_RATIO);
+            penalizeAgent(FAIL_AGENT_RATIO);
            
+            //Reset the active replacements list
+            //(no need to deallocate anything since a complete list of
+            //replacements is in g_replacements)
+            g_activeRepls->size = 0;
+
             //Since the plan has failed, create a new one
             freePlan(g_plan);
             g_plan = initPlan(TRUE);
@@ -2642,7 +2653,9 @@ int chooseCommand()
             Route *currRoute = (Route *)g_plan->array[0];
             if ((currRoute->currSeqIndex > 0) && (currRoute->currActIndex == 1))
             {
-                rewardAgent();
+                rewardAgent(SEQ_AGENT_RATIO);
+                rewardRoute(SEQ_ROUTE_RATIO);
+                rewardReplacements(SEQ_REPL_RATIO);
             }
 
         }//else
@@ -3168,8 +3181,8 @@ int findRoute(Route* newRoute, Vector *startSeq)
             break;
         }
         
-        //%%%I tried this as an alternative to the above.  It seems to be worse!
-        //%%%This needs to be investigated.
+        // //%%%I tried this as an alternative to the above.  It seems to be worse!
+        // //%%%This needs to be investigated.
         // //To avoid long delays, give up on planning after examining N candidate routes
         // if (i > MAX_ROUTE_CANDS)
         // {
@@ -4473,7 +4486,7 @@ void applyReplacementToPlan(Vector *plan, Replacement *repl)
         fflush(stdout);
 #endif
        
-        g_selfConfidence -= (g_selfConfidence - repl->confidence) / 2;
+        g_selfConfidence -= (g_selfConfidence - repl->confidence) * REPL_AGENT_RATIO;
    
 #if DEBUGGING
         printf("%g\n", g_selfConfidence);

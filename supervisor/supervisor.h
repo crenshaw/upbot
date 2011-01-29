@@ -43,15 +43,31 @@
 
 //Planning defines
 #define MAX_ROUTE_LEN        (50) // maximum length of a route.
-#define MAX_ROUTE_CANDS      (20) // maximum number of candidate routes to
-                                   // examine before giving up
+#define MAX_ROUTE_CANDS      (50)  // maximum number of candidate routes to
+                                  // examine before giving up
 
-//Replacement defines
+//Confidence defines
 #define MAX_CONFIDENCE       (1.0)
 #define MIN_CONFIDENCE       (0.0)
 #define INIT_SELF_CONFIDENCE (0.5)
 #define INIT_REPL_CONFIDENCE (0.05)
-#define MAX_REPLS            (1) // maximum number of replacements per plan
+#define GOAL_AGENT_RATIO     (0.5) // agent confidence adj upon reaching goal
+#define GOAL_REPL_RATIO      (0.5) // replacement confidence adj upon reaching goal
+#define GOAL_ROUTE_RATIO     (0.5) // route confidence adj upon reaching goal
+#define FAIL_AGENT_RATIO     (0.5) // agent confidence adj upon plan failure
+#define FAIL_REPL_RATIO      (0.5) // replacement confidence adj upon plan failure
+#define FAIL_ROUTE_RATIO     (0.5) // route confidence adj upon plan failure
+#define SEQ_AGENT_RATIO      (0.5) // agent confidence adj upon sequence completion
+#define SEQ_REPL_RATIO       (0.0) // replacement confidence adj upon sequence completion
+#define SEQ_ROUTE_RATIO      (0.0) // route confidence adj upon sequence completion
+#define REPL_AGENT_RATIO     (0.5) // agent confidence adj upon applying replacement
+
+
+//Replacement defines
+#define MAX_REPLS            (1)    // maximum number of replacements per plan
+#define MAX_REPL_RISK        (0.0)  // a more flexible limitation to repls per
+                                    // plan (min=0.0)
+
 
 
 // Collecting data for stats
