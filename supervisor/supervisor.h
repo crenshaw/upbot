@@ -42,7 +42,7 @@
 #define MIN_LEVEL0_MATCH_LEN (2) // do not set this to anything less than 2!
 
 //Planning defines
-#define MAX_ROUTE_LEN        (50)
+#define MAX_ROUTE_LEN        (50) // maximum length of a route.
 #define MAX_ROUTE_CANDS      (20) // maximum number of candidate routes to
                                    // examine before giving up
 
@@ -104,6 +104,7 @@ typedef struct RouteStruct
                               // that indicates what action is currently being
                               // executed
     int needsRecalc;          // Indicates that this route is no longer valid
+    double confidence;        // How certain am I that this route will work?
 } Route;
 
 typedef struct ReplacementStruct
@@ -142,7 +143,8 @@ Vector* g_activeRepls;    // these are replacements that have recently been
                           // applied and are awaiting reward/punishment
 int     g_lastUpdateLevel;// the highest level that was updated in the last
                           // updateAll().  Used to aid findInterimStart().
-
+Vector *g_pastRoutes;     // a log of all previously used routes
+int     g_currLogRoute;   // Index of the currently executing entry in g_pastRoutes
 
 
 // Function Prototypes
@@ -191,10 +193,12 @@ int          nextStepIsValid();
 int          parseEpisode(Episode* parsedData, char* dataArr);
 void         penalizeAgent();
 void         penalizeReplacements();
+void         penalizeRoute();
 int          planNeedsRecalc(Vector *plan);
 int          planRoute(Episode* currEp);
 void         rewardAgent();
 void         rewardReplacements();
+void         rewardRoute();
 int          setCommand(Episode* ep);
 int          setCommand2(Episode* ep);
 int          takeNextStep(Episode* currEp);

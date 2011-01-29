@@ -77,9 +77,6 @@
 #define DEBUGGING_FIND_REPL 1
 #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
 
-// The percent chance of choosing a random move
-int g_randChance = 100;
-
 // global strings for printing to console
 char* g_forward = "forward";
 char* g_right   = "right";
@@ -541,10 +538,12 @@ int tick(char* sensorInput)
        
         ep->cmd = CMD_SONG;
 
-        //If a a plan is in place, reward the agent and any outstanding replacements
+        //If a a plan is in place, reward the agent, route and any outstanding
+        //replacements
         if (g_plan != NULL)
         {
             rewardReplacements();
+            rewardRoute();
             rewardAgent();
         }
        
@@ -664,10 +663,9 @@ int parseEpisode(Episode * parsedData, char* dataArr)
         parsedData->now = time;
     }
 
-    // Found a goal so decrease chance of random move
+    // Found a goal, update bookkeeping
     if(parsedData->sensors[SNSR_IR] == 1)
     {
-        DECREASE_RANDOM(g_randChance);
         g_goalIdx[g_goalCount] = parsedData->now;
         g_goalCount++;
     }
@@ -1192,10 +1190,10 @@ int updateAll(int level)
                                 currSequence->size = 0;
                 // this duplicate sequence becomes the next episode in the
                 // next level's episodic memory
-                if (level + 1 < MAX_LEVEL_DEPTH)
-                {
-                    addEntry(parentEpList, duplicate);
-                }
+                                if (level + 1 < MAX_LEVEL_DEPTH)
+                                {
+                                    addEntry(parentEpList, duplicate);
+                                }
                         }
                         else
                         {
@@ -1929,6 +1927,59 @@ void penalizeReplacements()
 }//penalizeReplacements
 
 /**
+ * rewardRoute
+ *
+ * This method increases the current route's overall confidence so that its
+ * distance from 1.0 is half of what it was.
+ */
+void rewardRoute()
+{
+    if (g_currLogRoute < 0) return; // should not happen
+
+    //Retrieve the current route
+    Route *currRoute = (Route *)g_pastRoutes->array[g_currLogRoute];
+    
+#if DEBUGGING
+    printf("Confidence in route %d increased from %g to ",
+           g_currLogRoute, currRoute->confidence);
+    fflush(stdout);
+#endif
+   
+    currRoute->confidence += (1.0 - currRoute->confidence) / 2.0;
+   
+#if DEBUGGING
+    printf("%g\n", currRoute->confidence);
+    fflush(stdout);
+#endif
+}//rewardRoute   
+
+/**
+ * penalizeRoute
+ *
+ * This method halves the agent's overall confidence.
+ */
+void penalizeRoute()
+{
+    if (g_currLogRoute < 0) return; // should not happen
+
+    //Retrieve the current route
+    Route *currRoute = (Route *)g_pastRoutes->array[g_currLogRoute];
+    
+#if DEBUGGING
+    printf("Confidence in route %d decreased from %g to ",
+           g_currLogRoute, currRoute->confidence);
+    fflush(stdout);
+#endif
+   
+    currRoute->confidence /= 2.0;
+   
+#if DEBUGGING
+    printf("%g\n", currRoute->confidence);
+    fflush(stdout);
+#endif
+}//penalizeRoute   
+
+/**
  * initRouteFromParent
  *
  * examines the parent route of a given level and based upon its current action
@@ -2527,10 +2578,11 @@ int chooseCommand()
             printf("Current plan invalid.  Replanning...:\n");
             fflush(stdout);
 #endif
-            //"We now consecrate the bond of obedience."  The agent and all
-            //active replacements are now to be penalized for causing this
-            //failure.
+            //"We now consecrate the bond of obedience."  The agent, the route
+            //and all active replacements are now to be penalized for causing
+            //this failure.
             penalizeReplacements();
+            penalizeRoute();
             penalizeAgent();
            
             //Since the plan has failed, create a new one
@@ -2861,7 +2913,7 @@ void displayPlan()
 
     //Calculate and print the plan length
     int length = routeLength(r);
-    printf("(level %d; %d steps) \n", r->level, length);
+    printf("(level %d; %d steps; conf=%g) \n", r->level, length, r->confidence);
     fflush(stdout);
    
     displayRoute(r, TRUE);
@@ -2924,6 +2976,7 @@ void initRouteFromSequence(Route *route, Vector *seq)
     route->currActIndex = 0;
     route->currSeqIndex = 0;
     route->needsRecalc  = FALSE;
+    route->confidence   = 1.0;
 
     //Calculate the level of this route by looking at a action in the sequence
     Action *r = (Action *)seq->array[0];
@@ -3040,12 +3093,15 @@ int findRoute(Route* newRoute, Vector *startSeq)
     Vector* candRoutes = newVector();  //candidate Route structs to return to caller
 
 #if DEBUGGING_INITROUTE
-        //print the current shortest candidate
-        printf("Entering initRoute with start sequence: ");
-        displaySequenceShort(startSeq);
-        printf("\n");
-        fflush(stdout);
+    //print the current shortest candidate
+    printf("Entering initRoute with start sequence: ");
+    displaySequenceShort(startSeq);
+    printf("\n");
+    fflush(stdout);
 #endif
+    //If I'm looking for a new route, then I need to reset the current route index
+    g_currLogRoute = -1;
+        
     /*--------------------------------------------------------------------------
      * Use the starting sequence to create a partial route.  This is the
      * first candidate
@@ -3065,14 +3121,20 @@ int findRoute(Route* newRoute, Vector *startSeq)
     //add to the candidates list
     addEntry(candRoutes, initCand);
 
-    /*--------------------------------------------------------------------------
-     * Iterate over the candidate routes expanding them until the shortest
-     * route to the goal is found (breadth-first search)
+    /*======================================================================
+     * Iterate over the candidate routes expanding them until a route to the
+     * goal is found with confidence=1.0.  If none are found after a fixed
+     * amount of searching, then the route to the goal with highest confidence
+     * is selected.  The algorithm searches by always expanding the shortest
+     * route first.
+     *
+     * (Note: the size of the candRoutes vector starts at 1 but will grow as the
+     * search continues.  Each candidate is a partial route.)
+     * ----------------------------------------------------------------------
      */
-    //(Note: the size of the candRoutes vector will grow as the search
-    //continues.  Each candidate is a partial route.)
-    int bSuccess = FALSE;
     int routeLen = -1;           // length of shortest route so far
+    Route *bestSoFar = NULL;        // the best route found so far
+
     for(i = 0; i < candRoutes->size; i++)
     {
 #ifdef DEBUGGING
@@ -3098,8 +3160,10 @@ int findRoute(Route* newRoute, Vector *startSeq)
             }//if
         }//for
 
-        //To avoid long delays, give up on planning after examining N candidate routes
-        if (i > MAX_ROUTE_CANDS)
+        //If this shortest route is too long then halt the search
+        //TODO:  This is domain specific knowledge!  I've placed it here to
+        //speed up debugging but we should remove it later.
+        if (routeLen > MAX_ROUTE_LEN)
         {
             break;
         }
@@ -3128,21 +3192,46 @@ int findRoute(Route* newRoute, Vector *startSeq)
         fflush(stdout);
 #endif
        
-        //If the last sequence in this route contains the goal state, we're
-        //done.  Copy the details of this route to the newRoute struct we were
-        //given and exit the loop.
+        //If the last sequence in this route contains the goal state we can stop
+        //if the route confidence is high enough.
         Vector *lastSeq = (Vector *)route->sequences->array[route->sequences->size - 1];
         int actionIdx = getGoalAction(lastSeq);
         if (actionIdx >= 0)
         {
-            newRoute->level = route->level;
-            newRoute->sequences = cloneVector(route->sequences);
-            newRoute->currSeqIndex = 0;
-            newRoute->currActIndex = 0;
-            newRoute->needsRecalc = FALSE;
+            //See if this route has been used before. If so, don't select it if
+            //the confidence is too low.
+            int pastIdx = findPastRoute(route);
+            if (pastIdx != -1)
+            {
+                Route *pastEquiv = (Route *)g_pastRoutes->array[pastIdx];
+                if (pastEquiv->confidence + g_selfConfidence < 1.0)
+                {
+                    continue;
+                }
+                else
+                {
+                    //This route inherits its predecessor's confidence
+                    route->confidence = pastEquiv->confidence;
+                }
+            }//if
 
-            bSuccess = TRUE;
-            break;
+            //Otherwise, we check to see if it's the best so far.
+            if ((bestSoFar == NULL)
+                || (route->confidence > bestSoFar->confidence))
+            {
+                bestSoFar = route;
+
+                // we'll need this index later to adjust the confidence of this
+                // route after it succeeds or fails.
+                g_currLogRoute = pastIdx; 
+            }//if
+            
+            
+            //A route with perfect confidence ends the search
+            if (route->confidence == 1.0)
+            {
+                break;
+            }
         }//if
 
         /*----------------------------------------------------------------------
@@ -3190,6 +3279,7 @@ int findRoute(Route* newRoute, Vector *startSeq)
             newCand->currSeqIndex = 0;
             newCand->currActIndex = 0;
             newCand->needsRecalc  = FALSE;     
+            newCand->confidence   = route->confidence;
        
             //Add this new candidate route to the candRoutes array
             addEntry(candRoutes, newCand);
@@ -3209,6 +3299,50 @@ int findRoute(Route* newRoute, Vector *startSeq)
     printf("\n");
 #endif
 
+    //Copy the details of the selected route to the newRoute struct we were
+    //given and exit the loop.
+    if (bestSoFar != NULL)
+    {
+        newRoute->level = bestSoFar->level;
+        newRoute->sequences = cloneVector(bestSoFar->sequences);
+        newRoute->currSeqIndex = 0;
+        newRoute->currActIndex = 0;
+        newRoute->needsRecalc = FALSE;
+        newRoute->confidence  = bestSoFar->confidence;
+
+#ifdef DEBUGGING_INITROUTE
+        if (g_currLogRoute == -1)
+        {
+            printf("\tthis is a new route that will be numbered %d\n",
+                   (int)g_pastRoutes->size);
+        }
+        else
+        {
+            printf("\tthis is an old route with number %d and confidence %g\n",
+                   g_currLogRoute, newRoute->confidence);
+        }
+#endif
+        
+        //Add a copy of this route to the pastRouteLog if it's not there already
+        if (g_currLogRoute == -1)
+        {
+            //Create a copy
+            Route *logRoute = malloc(sizeof(Route));
+            logRoute->level = newRoute->level;
+            logRoute->sequences = cloneVector(newRoute->sequences);
+            logRoute->currSeqIndex = 0;
+            logRoute->currActIndex = 0;
+            logRoute->needsRecalc = FALSE;
+            logRoute->confidence  = newRoute->confidence;
+
+            //Add it to the log
+            g_currLogRoute = g_pastRoutes->size;
+            addEntry(g_pastRoutes, logRoute);
+            
+        }//if
+        
+    }//if
+
     //Clean up the RAM in the candRoutes list
     for(i = 0; i < candRoutes->size; i++)
     {
@@ -3218,7 +3352,12 @@ int findRoute(Route* newRoute, Vector *startSeq)
     }
     freeVector(candRoutes);
 
-    if (bSuccess) return SUCCESS;
+    
+    //Any complete route is a success
+    if (bestSoFar != NULL)
+    {
+        return SUCCESS;
+    }
 
     return PLAN_NOT_FOUND;
 }//findRoute
@@ -3282,9 +3421,11 @@ Vector* initPlan(int isReplan)
     }//if
 
 #if DEBUGGING_INITROUTE
-        printf("Success: found route to goal at level: %d.\n", level);
+        Route *dbgRoute = (Route *)resultPlan->array[level];
+        printf("Success: found route to goal at level: %d with confidence=%g.\n",
+               level, dbgRoute->confidence);
         fflush(stdout);
-        displayRoute((Route *)resultPlan->array[level], TRUE);
+        displayRoute(dbgRoute, TRUE);
         printf("\n");
         fflush(stdout);
 #endif
@@ -3330,7 +3471,6 @@ Vector* initPlan(int isReplan)
         }
     }//if
 
-
     return resultPlan;
 }// initPlan
 
@@ -3354,7 +3494,8 @@ Vector *newPlan()
         r->replSeq      = NULL;
         r->currSeqIndex = 0;
         r->currActIndex = 0;
-        r->needsRecalc  = FALSE;       
+        r->needsRecalc  = FALSE;
+        r->confidence   = 1.0;
        
         addEntry(newPlan, r);
     }//for
@@ -3390,7 +3531,6 @@ void freePlan(Vector *plan)
 
 }//freePlan
 
-
 /**
  * planNeedsRecalc()
  *
@@ -3410,6 +3550,65 @@ int planNeedsRecalc(Vector *plan)
     return r->needsRecalc;
 
 }//planNeedsRecalc
+
+/**
+ * equalRoutes
+ *
+ * @param r1,r2  two routes to compare
+ *
+ * @return TRUE if they are identical routes, FALSE otherwise
+ */
+int equalRoutes(Route *r1, Route *r2)
+{
+    if ((r1 == NULL) || (r2 == NULL)) return FALSE;
+
+    if (r1->level != r2->level) return FALSE;
+
+    if (r1->sequences->size != r2->sequences->size) return FALSE;
+
+    int i;
+    for(i = 0; i < r1->sequences->size; i++)
+    {
+#if DEBUGGING_INITROUTE
+        Vector *seq1 = (Vector *)r1->sequences->array[i];
+        Vector *seq2 = (Vector *)r2->sequences->array[i];
+        printf("\tequalRoutes is comparing ");
+        fflush(stdout);
+        displaySequenceShort(seq1);
+        printf(" to ");
+        displaySequenceShort(seq2);
+        printf("\n");
+        fflush(stdout);
+#endif
+        
+        if (r1->sequences->array[i] != r2->sequences->array[i]) return FALSE;
+    }
+
+    return TRUE;
+}//equalRoutes
+
+/**
+ * findPastRoute
+ *
+ * searches g_pastRoutes for that matches a given route
+ *
+ * @param route  the route to search for
+ *
+ * @return index of the route or -1 if not found
+ */
+int findPastRoute(Route *route)
+{
+    if (route == NULL) return -1;
+    
+    int i;
+    for(i = 0; i < g_pastRoutes->size; i++)
+    {
+        Route *currRoute = g_pastRoutes->array[i];
+        if (equalRoutes(currRoute, route)) return i;
+    }//for
+
+    return -1;
+}//findPastRoute
 
 /**
  * getTopRoute()
@@ -3747,6 +3946,9 @@ void initSupervisor()
     g_selfConfidence  = INIT_SELF_CONFIDENCE;
     g_lastUpdateLevel = -1;
 
+    g_pastRoutes      = newVector();
+    g_currLogRoute    = -1;
+    
     for(i = 0; i < MAX_LEVEL_DEPTH; i++)
     {
         temp = newVector();
@@ -4073,12 +4275,13 @@ Replacement* findBestReplacement()
             //Extract this Replacement to prep for the loop below
             Replacement *candRepl = (Replacement*)replacements->array[j];
 
-            //%%%DEBUGGING
+#ifdef DEBUGGING_FIND_REPL
             printf("\tconsidering ");
             displayReplacement(candRepl);
             printf("...");
             fflush(stdout);
-
+#endif
+            
             //Iterate over all remaining subsequences of the current sequence
             //that are the same lenght as the LHS of the replacment rule
             int stopPoint = currSeq->size - candRepl->original->size;
