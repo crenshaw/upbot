@@ -1960,7 +1960,7 @@ void penalizeRoute(double ratio)
     fflush(stdout);
 #endif
    
-    currRoute->confidence * ratio;
+    currRoute->confidence *= ratio;
    
 #if DEBUGGING
     printf("%g\n", currRoute->confidence);
