@@ -1823,7 +1823,7 @@ int nextStepIsValid()
  * This method decreases the difference between the agent's overall confidence
  * and 1.0 by a given ratio.
  */
-void rewardAgent(int ratio)
+void rewardAgent(double ratio)
 {
 #if DEBUGGING
     printf("Overall confidence increased from %g to ", g_selfConfidence);
@@ -1843,7 +1843,7 @@ void rewardAgent(int ratio)
  *
  * This method decreases the agent's overall confidence by a given ratio
  */
-void penalizeAgent(int ratio)
+void penalizeAgent(double ratio)
 {
 #if DEBUGGING
     printf("Overall confidence decreased from %g to ", g_selfConfidence);
@@ -1865,7 +1865,7 @@ void penalizeAgent(int ratio)
  * the difference between the replacement's confidence and 1.0 by a given ratio.
  *
  */
-void rewardReplacements(int ratio)
+void rewardReplacements(double ratio)
 {
     int i;               // iterator
 
@@ -1892,7 +1892,7 @@ void rewardReplacements(int ratio)
  * confidence by a given ratio.  
  *
  */
-void penalizeReplacements(int ratio)
+void penalizeReplacements(double ratio)
 {
     int i;
 
@@ -1920,7 +1920,7 @@ void penalizeReplacements(int ratio)
  * and 1.0 by a given ratio.
  *
  */
-void rewardRoute(int ratio)
+void rewardRoute(double ratio)
 {
     if (g_currLogRoute < 0) return; // should not happen
 
@@ -1947,7 +1947,7 @@ void rewardRoute(int ratio)
  * This method decreases the the current route's overall confidence by a given
  * ratio
  */
-void penalizeRoute(int ratio)
+void penalizeRoute(double ratio)
 {
     if (g_currLogRoute < 0) return; // should not happen
 
