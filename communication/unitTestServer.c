@@ -101,14 +101,15 @@ int main(int argc, char* argv[])
 			int* cmd = (int*) malloc(sizeof(int));
 			*cmd = CMD_NO_OP;
 
-			// If args exist then pass that as a map num
+            int mapNum = 1;     // default:  map#1
+			// If args exist then try to parse the map number
 			if(argc > 1)
 			{
-				loadMap(*argv[1] - '0');
-			}else// otherwise set first map in file as default
-			{
-				loadMap(1);
+                sscanf(argv[1], "%d", &mapNum);
 			}
+
+            //load the map
+            loadMap(mapNum);
 
 			while(1)
 			{
