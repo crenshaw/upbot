@@ -158,7 +158,7 @@ int recvCommand(int sockfd, char* buf)
 	}// while
 
 	// Insert null terminating character at end of sensor string
-	sprintf(&buf[numbytes], "\0");
+	buf[numbytes] = '\0';
 
 	// Print out the contents of buf
 	if(g_statsMode == 0)
@@ -263,7 +263,7 @@ int handshake(char* ipAddr)
 	{
 		// Receive initial poem from Roomba upon connection
 		numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0);
-		sprintf(&buf[numbytes], "\0");
+		buf[numbytes] = '\0';
 		// Print poem and length of poem
 		printf("Poem: %s", buf);	   
 		printf("numbytes: %d\n", numbytes);

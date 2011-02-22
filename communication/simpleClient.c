@@ -36,7 +36,7 @@ int main(int argc)
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
 	char s[INET6_ADDRSTRLEN];
-	char foo[11];
+	char foo[12];
 	strcpy(foo, "10.11.17.15");
 	char *a = "10.11.17.15";
 

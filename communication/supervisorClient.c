@@ -11,8 +11,14 @@
 * Usage: supervisorClient.out <ip_addr> -c <roomba/test> -m <stats/visual>
 */
 
+
+#define FILTERING
+
 #include "communication.h"
 #include "../supervisor/supervisor.h"
+#ifdef FILTERING
+#include "../supervisor/filter_KNN.h"
+#endif
 
 #define TIMEOUT_SECS	5	// Num seconds in timeout on recv
 #define MAX_TRIES		10	// Num tries to reconnect on lost connection
@@ -158,7 +164,7 @@ int recvCommand(int sockfd, char* buf)
 	}// while
 
 	// Insert null terminating character at end of sensor string
-	sprintf(&buf[numbytes], "\0");
+    buf[numbytes] = '\0';
 
 	// Print out the contents of buf
 	if(g_statsMode == 0)
@@ -263,7 +269,7 @@ int handshake(char* ipAddr)
 	{
 		// Receive initial poem from Roomba upon connection
 		numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0);
-		sprintf(&buf[numbytes], "\0");
+		buf[numbytes] = '\0';
 		// Print poem and length of poem
 		printf("Poem: %s", buf);	   
 		printf("numbytes: %d\n", numbytes);
@@ -369,7 +375,8 @@ void reportGoalFound(int sockfd, FILE* log)
 	int cmd = CMD_SONG;
 	sendCommand(sockfd, cmd);
 
-	// If connected to Roomba pause to allow time to return Roomba to Init
+	// If connected to Roomba 
+    //pause to allow time to return Roomba to Init
 	if(g_connectToRoomba == 1)
 	{
 		printf("Press enter to continue\n");
@@ -390,7 +397,13 @@ void reportGoalFound(int sockfd, FILE* log)
 void processCommand(int* cmd, char* buf, FILE* log)
 {
 	// Call Supervisor tick to process recently added episode
-	*cmd = tick(buf);
+#ifdef FILTERING
+    char * rState = receiveState(buf);
+    int tickAction = tick(rState);
+	*cmd = receiveAction(tickAction);
+#else
+    *cmd = tick(buf);
+#endif
 
 	if(g_statsMode == 0)
 	{

@@ -203,7 +203,7 @@ void memTest()
         addEpisode(ep);
         printf("Episode created\n");
 
-        updateAll(0);
+        updateAll(0);   //*** magic number whats up?
 
         // If we found a goal, send a song to inform the world of success
         // and if not then send ep to determine a valid command
@@ -644,7 +644,7 @@ int parseEpisode(Episode * parsedData, char* dataArr)
         }
 
         // else save sensor bit
-        parsedData->sensors[i] = bit;
+        parsedData->sensors[i] = bit;       //** what is this? ->
     }
 
     if(g_connectToRoomba == 1)

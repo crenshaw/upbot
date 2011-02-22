@@ -848,9 +848,10 @@ int chooseCommand(Episode* ep)
 	if(g_epMem->size > MIN_HISTORY_LEN) populateNeighborhoods();
 
 	// Determine the next command, possibility of random command
-	if((rand() % 100) < g_randChance ) //|| 	// Probability of choosing random
+	//if((rand() % 100) < g_randChance ) //|| 	// Probability of choosing random
 		//        g_epMem->size <= MIN_HISTORY_LEN)   // Make sure 'nough hist. for good nbhoods
 		//		g_goalCount <= 0)					// Only do no random after first goal
+	if(1)	//forces always random choices.
 	{
         if(!g_statsMode) printf(" selecting random command \n");
         fflush(stdout);
