@@ -399,8 +399,8 @@ void processCommand(int* cmd, char* buf, FILE* log)
 {
 	// Call Supervisor tick to process recently added episode
 #ifdef FILTERING
-    char * newBuf = insertConfusion(buf);
-    char * rState = receiveState(newBuf);
+    buf = insertConfusion(buf);
+    char * rState = receiveState(buf);
     int tickAction = tick(rState);
 	*cmd = receiveAction(tickAction);
 #else

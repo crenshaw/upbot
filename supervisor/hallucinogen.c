@@ -66,7 +66,7 @@ char night()
 char * insertConfusion(char * inputSense)
 {
     int i=0;
-    for (i; i<NUM_SENSES2; i++)
+    for (i; i<NUM_SENSES2; i++)               //only go through the information bits
     {
         if(gold[i]!='1')                      //if the bit is not designated to be saved
         {
@@ -101,7 +101,7 @@ char * insertConfusion(char * inputSense)
                 case 9:
                     inputSense[i] = chaos();
                     break;
-                default:
+                default:                        //just in case we get near the time bits, do nothing.
                     break;
             }
         }

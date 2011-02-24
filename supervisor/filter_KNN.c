@@ -108,11 +108,12 @@ int receiveAction(int command)
         analyze(database, 0);
         int n;
 
-
+        printf("\n New confidence levels \n");
         for(n = 0; n < NUM_SENSES; ++n)
         {
-            printf("Sense: %g\n", confidence[n]);
+            printf("%d: %g\n", n, confidence[n]);
         }
+        printf("\n");
     }
 
     //send command to the environment
@@ -129,7 +130,7 @@ int receiveAction(int command)
 char * thin(char * state, double * conf)
 {
     int i;
-    for(i=0;i<strlen(state);i++)                   //go through each sense
+    for(i=0;i<NUM_SENSES;i++)                   //go through each sense
     {
         if(i == GOAL_BIT);                          //case one it's the goal bit, dont' change
 

@@ -18,7 +18,7 @@
 #define TRUE 1
 #define FALSE 0
 #define GOAL_BIT 0
-#define CONFIDENT 0.75                  //what is the threshold for being confident 
+#define CONFIDENT 0.7                   //what is the threshold for being confident 
                                         //about a bit's relevancy
 
 //global variables
