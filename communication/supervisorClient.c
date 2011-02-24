@@ -18,6 +18,7 @@
 #include "../supervisor/supervisor.h"
 #ifdef FILTERING
 #include "../supervisor/filter_KNN.h"
+#include "../supervisor/hallucinogen.h"
 #endif
 
 #define TIMEOUT_SECS	5	// Num seconds in timeout on recv
@@ -398,7 +399,8 @@ void processCommand(int* cmd, char* buf, FILE* log)
 {
 	// Call Supervisor tick to process recently added episode
 #ifdef FILTERING
-    char * rState = receiveState(buf);
+    char * newBuf = insertConfusion(buf);
+    char * rState = receiveState(newBuf);
     int tickAction = tick(rState);
 	*cmd = receiveAction(tickAction);
 #else
