@@ -76,6 +76,7 @@
 #define DEBUGGING_NSIV 1        // nextStepIsValid()
 #define DEBUGGING_FIND_REPL 1
 #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
+#define DEBUGGING_KNN 1
 
 // global strings for printing to console
 char* g_forward = "forward";
@@ -4650,6 +4651,32 @@ Vector *convertEpMatchToSequence(int index, int len)
     return NULL;
 }//convertEpMatchToSequence
 
+/*
+* displayNeighborhood
+*
+* Print each member within the given KN_Neighborhood.
+*
+* @arg nbrHood a KN_Neighborhood* to the neighborhood being displayed
+* @arg bEps    whether this neighborhood contains episodes (TRUE) or vectors (FALSE)
+*/
+void displayNeighborhood(KN_Neighborhood* nbrHood, int bEps)
+{
+    int i;
+    for(i = 0; i < nbrHood->numNeighbors; i++)
+    {
+        printf("[Neighbor %i has NM %i] ", i, nbrHood->nValues[i]);
+
+        if (bEps)
+        {
+            displayEpisodeShort((Episode *)nbrHood->neighbors[i]);
+        }
+        else
+        {
+            displaySequenceShort((Vector *)nbrHood->neighbors[i]);
+        }
+    }//for
+}//displayNeighborhood
+
 /**
  * evaluateNeighborhood
  *
@@ -4706,6 +4733,19 @@ int evaluateNeighborhood(KN_Neighborhood *hood, int bEps)
             highestIndex = i;
         }
     }//for
+
+#ifdef DEBUGGING_KNN
+    printf("Evaluating %s hood: highest freq=%d Metric=%d index=%d of %d\n",
+           bEps ? "episode" : "sequence",
+           freqs[highestIndex],
+           hood->nValues[highestIndex],
+           highestIndex,
+           hood->numNeighbors);
+    displayNeighborhood(hood, bEps);
+    printf("\n");
+    fflush(stdout);
+#endif
+    
     
     //Return the entity with the highest frequency
     return highestIndex;
