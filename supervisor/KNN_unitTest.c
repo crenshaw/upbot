@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
 
     // Ready the troops
     g_epMem = (Episode**)malloc(g_memLen * sizeof(Episode*));
-    srand(time(NULL));
+    srand(8765);                // fixed seed for reliable expected result
 
     // Set up some episodic memory to iterate over
     int i;

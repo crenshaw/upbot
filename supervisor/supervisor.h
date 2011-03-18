@@ -21,6 +21,7 @@
 
 #include "vector.h"
 #include "../communication/communication.h"
+#include "knearest.h"
 
 // Boolean values
 #define TRUE				1
@@ -35,11 +36,13 @@
 
 // Matching defines
 #define NUM_TO_MATCH         (15)
-#define NUM_GOALS_TO_FIND    (10)
+#define NUM_GOALS_TO_FIND    (50)
 #define DISCOUNT             (1.0)
 #define MAX_LEN_LHS          (1)
 #define MAX_LEVEL_DEPTH      (4)
 #define MIN_LEVEL0_MATCH_LEN (2) // do not set this to anything less than 2!
+#define K_NEAREST            (8)
+#define MIN_NEIGHBORS        (1) //minimum number of neighbors required for match
 
 //Planning defines
 #define MAX_ROUTE_LEN        (50) // maximum length of a route.

@@ -59,8 +59,8 @@ typedef struct NeighborhoodStruct
 //-----------------------------------------
 // Functions for creating, maintaining and viewing neighborhoods
 KN_Neighborhood* KN_initNeighborhood(int id, int k);
-void KN_destroyNeighborhood(KN_Neighborhood* nbHd);
 void KN_cleanNeighborhood(KN_Neighborhood* nbHd);
+void KN_destroyNeighborhood(KN_Neighborhood* nbHd);
 int KN_addNeighbor(KN_Neighborhood* nbHd, void* nbr, int n);
 void KN_sortNeighborhood(KN_Neighborhood* nbHd);
 void* KN_getNeighbor(KN_Neighborhood* nbHd, int i);

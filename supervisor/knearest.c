@@ -75,8 +75,17 @@ void KN_destroyNeighborhood(KN_Neighborhood* nbHd)
 */
 void KN_cleanNeighborhood(KN_Neighborhood* nbHd)
 {
+    int i;
+    
+    //Reset all the array values. (for safety)
+	for(i = 0; i < nbHd->kValue; i++)
+	{
+        nbHd->nValues[i] = -1;
+    }
+
     // Reset the counter to 0
     nbHd->numNeighbors = 0;
+
 }//KN_cleanNeighborhood
 
 /**
@@ -102,18 +111,9 @@ int KN_addNeighbor(KN_Neighborhood* nbHd, void* nbr, int n)
 	// neighbor needs to be added
 	if(nbHd->numNeighbors > 0)
 	{
-        /*
-
-            We will likely need to add code to insert the neighbor
-            on the condition that the neighborhood is not full but
-            the new neighborhood metric is not greater than the most
-            recently added neighbor.
-            I had that before, but there was odd and non-optimal
-            behavior occurring that prompted me to remove it. We'll
-            see if it becomes necessary.
-
-        */
-		if(n >= nbHd->nValues[nbHd->numNeighbors - 1])
+        //If the neighborhood is not full, go ahead and add this one
+        //Otherwise only add it if its metric is great than an existing neighbor
+        if ( (offset == 0) || (n > nbHd->nValues[nbHd->numNeighbors - 1]) )
 		{
 			// Save the episode and the neighborhood metric
 			nbHd->neighbors[nbHd->numNeighbors - offset] = nbr;
