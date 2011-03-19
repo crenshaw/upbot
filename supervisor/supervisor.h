@@ -45,32 +45,18 @@
 #define MIN_NEIGHBORS        (1) //minimum number of neighbors required for match
 
 //Planning defines
-#define MAX_ROUTE_LEN        (50) // maximum length of a route.
-#define MAX_ROUTE_CANDS      (50)  // maximum number of candidate routes to
-                                  // examine before giving up
+#define MAX_ROUTE_LEN        (50)
+#define MAX_ROUTE_CANDS      (20) // maximum number of candidate routes to
+                                   // examine before giving up
 
-//Confidence defines
+//Replacement defines
 #define MAX_CONFIDENCE       (1.0)
 #define MIN_CONFIDENCE       (0.0)
 #define INIT_SELF_CONFIDENCE (0.5)
 #define INIT_REPL_CONFIDENCE (0.05)
-#define GOAL_AGENT_RATIO     (0.5) // agent confidence adj upon reaching goal
-#define GOAL_REPL_RATIO      (0.5) // replacement confidence adj upon reaching goal
-#define GOAL_ROUTE_RATIO     (0.5) // route confidence adj upon reaching goal
-#define FAIL_AGENT_RATIO     (0.5) // agent confidence adj upon plan failure
-#define FAIL_REPL_RATIO      (0.5) // replacement confidence adj upon plan failure
-#define FAIL_ROUTE_RATIO     (0.5) // route confidence adj upon plan failure
-#define SEQ_AGENT_RATIO      (0.5) // agent confidence adj upon sequence completion
-#define SEQ_REPL_RATIO       (0.0) // replacement confidence adj upon sequence completion
-#define SEQ_ROUTE_RATIO      (0.0) // route confidence adj upon sequence completion
-#define REPL_AGENT_RATIO     (0.5) // agent confidence adj upon applying replacement
-
-
-//Replacement defines
 #define MAX_REPLS            (1)    // maximum number of replacements per plan
 #define MAX_REPL_RISK        (0.0)  // a more flexible limitation to repls per
                                     // plan (min=0.0)
-
 
 
 // Collecting data for stats
@@ -123,7 +109,6 @@ typedef struct RouteStruct
                               // that indicates what action is currently being
                               // executed
     int needsRecalc;          // Indicates that this route is no longer valid
-    double confidence;        // How certain am I that this route will work?
 } Route;
 
 typedef struct ReplacementStruct
@@ -162,8 +147,7 @@ Vector* g_activeRepls;    // these are replacements that have recently been
                           // applied and are awaiting reward/punishment
 int     g_lastUpdateLevel;// the highest level that was updated in the last
                           // updateAll().  Used to aid findInterimStart().
-Vector *g_pastRoutes;     // a log of all previously used routes
-int     g_currLogRoute;   // Index of the currently executing entry in g_pastRoutes
+
 
 
 // Function Prototypes
@@ -212,12 +196,10 @@ int          nextStepIsValid();
 int          parseEpisode(Episode* parsedData, char* dataArr);
 void         penalizeAgent();
 void         penalizeReplacements();
-void         penalizeRoute();
 int          planNeedsRecalc(Vector *plan);
 int          planRoute(Episode* currEp);
 void         rewardAgent();
 void         rewardReplacements();
-void         rewardRoute();
 int          setCommand(Episode* ep);
 int          setCommand2(Episode* ep);
 int          takeNextStep(Episode* currEp);
