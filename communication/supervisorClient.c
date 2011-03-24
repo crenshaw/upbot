@@ -12,6 +12,7 @@
 */
 
 
+#define RANDOMIZE
 #define FILTERING
 
 #include "communication.h"
@@ -398,11 +399,13 @@ void reportGoalFound(int sockfd, FILE* log)
 void processCommand(int* cmd, char* buf, FILE* log)
 {
 	// Call Supervisor tick to process recently added episode
+#ifdef RANDOMIZE
+    buf = insertConfusion(buf); 
+#endif
 #ifdef FILTERING
-    buf = insertConfusion(buf);
     char * rState = receiveState(buf);
     int tickAction = tick(rState);
-	*cmd = receiveAction(tickAction);
+    *cmd = receiveAction(tickAction);
 #else
     *cmd = tick(buf);
 #endif
