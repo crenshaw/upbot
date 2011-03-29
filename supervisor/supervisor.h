@@ -41,7 +41,7 @@
 #define MAX_LEN_LHS          (1)
 #define MAX_LEVEL_DEPTH      (4)
 #define MIN_LEVEL0_MATCH_LEN (2) // do not set this to anything less than 2!
-#define K_NEAREST            (8)
+#define K_NEAREST            (1)
 #define MIN_NEIGHBORS        (1) //minimum number of neighbors required for match
 
 //Planning defines

@@ -248,13 +248,16 @@ void analyze(Vector * runsToAnalyze, int epDepth)
 	for(m = 0; m < runsOnWhichToRecurse->size; ++m)
 	{
 		Vector * tempVector = getEntry(runsOnWhichToRecurse, m);
+        //%%%
+        printf("vec size = %d\n", (int)tempVector->size);
+            
 		if(tempVector->size > mostActions)
 		{
 			mostActions = tempVector->size;
 			actionIdx = m;
 		}
 	}
-    
+
 	//recurse!!
     Vector * tempRunOfAction;
     if (runsOnWhichToRecurse->size != 0)
@@ -266,9 +269,22 @@ void analyze(Vector * runsToAnalyze, int epDepth)
         if(tempRunOfAction->size > 1)
         {
             weight += tempRunOfAction->size;
+
+            //%%%DEBUGGING
+            printf("size=%d\n", (int)tempRunOfAction->size);
+            Vector *vec = (Vector *)getEntry(tempRunOfAction, 0);
+            episode *ep = (episode *)getEntry(vec, epDepth);
+            printf("recursing on %d runs with sensors %s and shared action: %d\n",
+                   mostActions,
+                   ep->state,
+                   ep->action);
+            fflush(stdout);
+
         }
         
     }
+
+    
     //do it
     analyze(tempRunOfAction, ++epDepth);
     
