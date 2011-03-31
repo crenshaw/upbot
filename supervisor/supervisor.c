@@ -65,8 +65,21 @@
 
 //Setting this turns on verbose output to aid debugging
 #define DEBUGGING 1
-
+/*
 //Particularly verbose debugging for specific methods
+<<<<<<< local
+#define DEBUGGING_UPDATEALL 1
+#define DEBUGGING_UPDATEPLAN 1
+#define DEBUGGING_CHOOSECMD 1
+#define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
+#define DEBUGGING_INITPLAN 1
+#define DEBUGGING_FINDINTERIMSTART 1
+#define DEBUGGING_NSIV 1        // nextStepIsValid()
+#define DEBUGGING_FIND_REPL 1
+#define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
+#define DEBUGGING_KNN 1
+*/
+//=======
 #ifdef DEBUGGING
 // #define DEBUGGING_UPDATEALL 1
 // #define DEBUGGING_UPDATEPLAN 1
@@ -80,6 +93,7 @@
 // #define DEBUGGING_KNN 1
 #endif
 
+//>>>>>>> other
 // global strings for printing to console
 char* g_forward = "forward";
 char* g_right   = "right";
@@ -2647,6 +2661,7 @@ int chooseCommand()
     //%%%TEMPORARY:  For Dustin and Ben
     //  adding a % chance of random action depending upon how long it's been
     //  since we've reached the goal
+    int randDelay = 1000;
     Vector *level0Eps = (Vector *)g_epMem->array[0];
     Episode *latest = (Episode *)level0Eps->array[level0Eps->size - 1];
     int stepsSoFar = latest->now - g_goalIdx[g_goalCount];
@@ -2654,10 +2669,10 @@ int chooseCommand()
     {
         stepsSoFar = latest->now;
     }
-    if (stepsSoFar > 100)
+    if (stepsSoFar > randDelay)
     {
         int rNum = (rand() % 1000); // random number 0..999
-        if (stepsSoFar - 100 > rNum)
+        if (stepsSoFar - randDelay > rNum)
         {
             return chooseCommand_SemiRandom();
         }
@@ -3281,11 +3296,11 @@ Vector* initPlan(int isReplan)
 #endif
        
     //Try to figure out where I am.  I can't make plan without this.
-    Vector *startSeq = findInterimStart();
+    Vector *startSeq = (Vector *)findInterimStart_NO_KNN();
     if (startSeq == NULL)
     {
         //Try a partial match
-        startSeq = findInterimStartPartialMatch(&offset);
+        startSeq = findInterimStartPartialMatch_NO_KNN(&offset);
         if (startSeq == NULL)
         {
             return NULL;        // I give up
@@ -3803,6 +3818,10 @@ void initSupervisor()
     // seed rand (sow some wild oats)
     srand(time(NULL));
 
+//<<<<<<< local
+   
+//=======
+//>>>>>>> other
 }//initSupervisor
 
 /**
@@ -4587,7 +4606,7 @@ int evaluateNeighborhood(KN_Neighborhood *hood, int bEps)
  *         or NULL if the most recently completed sequence is unique in every
  *         level.
  */
-Vector* findInterimStar_KNN()
+Vector* findInterimStart_KNN()
 {
     int level, i, j;              // loop iterators
     Vector *currLevelEpMem;       // the epmem list for the level being searched
@@ -4903,7 +4922,7 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
  *         or NULL if the most recently completed sequence is unique in every
  *         level.
  */
-Vector* findInterimStart()
+Vector* findInterimStart_NO_KNN()
 {
     int level, i, j;              // loop iterators
     Vector *currLevelEpMem;       // the epmem list for the level being searched
@@ -5000,7 +5019,7 @@ Vector* findInterimStart()
  * @return the "start" sequence that was found or NULL if there was no partial
  *         match
  */
-Vector *findInterimStartPartialMatch(int *offset)
+Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
 {
     int i,j,k;                    // iterators
     Vector *level0Eps = (Vector *)g_epMem->array[0];

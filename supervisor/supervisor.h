@@ -41,7 +41,7 @@
 #define MAX_LEN_LHS          (1)
 #define MAX_LEVEL_DEPTH      (4)
 #define MIN_LEVEL0_MATCH_LEN (2) // do not set this to anything less than 2!
-#define K_NEAREST            (1)
+#define K_NEAREST            (8)
 #define MIN_NEIGHBORS        (1) //minimum number of neighbors required for match
 
 //Planning defines
@@ -178,8 +178,10 @@ void         displaySequence(Vector* sequence);
 void         displaySequenceShort(Vector* sequence);
 void         displaySequences(Vector* sequences);
 void         endSupervisor();
-Vector*      findInterimStart();
-Vector*      findInterimStartPartialMatch(int *offset);
+Vector*      findInterimStart_KNN();
+Vector*      findInterimStart_NO_KNN();
+Vector*      findInterimStartPartialMatch_KNN(int *offset);
+Vector*      findInterimStartPartialMatch_NO_KNN(int *offset);
 Replacement* findBestReplacement();
 int          findTopMatch(double* scoreTable, double* indvScore, int command);
 void         freePlan(Vector *plan);
