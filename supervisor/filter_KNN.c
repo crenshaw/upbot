@@ -407,8 +407,9 @@ Vector * storeRun(Vector * runsToAnalyzeNext, Vector * runWithActionToStore, int
 
 
 /**
- * flip() takes an array of probabilities (of getting a 1) and returns
- * an array of relevant bits.
+ * flip() takes a double representing a probability (of getting a 1) and returns
+ * it's probability of relevancy. (probability of consistency)
+ * The range of the output is from 0.5 to 1.
  **/
 double flip(double probability)
 {

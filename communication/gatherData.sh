@@ -8,8 +8,8 @@
 	## that describes the test.
 ## Input: The map number, the number of trials, the name of the trial.
 
-## Author: Dustin Dalen
-## Date modified: 4/5/2011
+## @Author: Dustin Dalen
+## @Date modified: 4/5/2011
 
 NUM_ARGS=4
 
@@ -34,7 +34,9 @@ if [ -d ../$NAME ]; then
         exit
 fi
 
-#necessary file attributes
+make
+
+#Make the output file and description file.
 mkdir ../$NAME
 touch ../$NAME/info.txt
 echo "Sorting algorith is: $ALGORITHM" >> ../$NAME/info.txt
@@ -42,13 +44,14 @@ echo "Map is: $MAP" >> ../$NAME/info.txt
 echo "Number of trials: $NUM_TRIALS" >> ../$NAME/info.txt
 echo "Description of trial $NAME :" >> ../$NAME/info.txt
 
+#change this line to vi or emacs or whatever you prefer
 vi ../$NAME/info.txt
 
-#for j in {1..10}; do
+#the main loop
 for (( j = 0 ; j < $NUM_TRIALS ; j++ )); do
 	#run the program with the right args
 	./unitTestServer.out $MAP &
-	sleep 1
+	sleep 1 #let the program catch up to be safe
 	if [ "$ALGORITHM" == "ziggurat" ]; then
 		./supervisorClient.out localhost > temp
 	elif [ "$ALGORITHM" == "mccallum" ]; then
@@ -59,13 +62,13 @@ for (( j = 0 ; j < $NUM_TRIALS ; j++ )); do
 		exit
 	fi
 
-	#clean up the text
+	#clean up the output text
 	if [ "$ALGORITHM" == "ziggurat" ]; then
 		tail -n51 temp | head -n50 > temp
 		head -n1 temp | cut -d' ' -f7 >> ../$NAME/results.txt
 		tail -n49 temp | cut -d' ' -f11 >> ../$NAME/results.txt
 		echo '*********************************' >> ../$NAME/results.txt
-	else
+	else   #it's mccallum
 		grep "Goal" temp > temp2
 		head -n1 temp2 | cut -d' ' -f6 >> ../$NAME/results.txt
 		tail -n49 temp2 | cut -d' ' -f5 >> ../$NAME/results.txt

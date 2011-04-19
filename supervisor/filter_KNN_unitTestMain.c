@@ -9,6 +9,27 @@
 #include <stdlib.h>
 #include "filter_KNN.h"
 
+/**
+ * File Name: filter_KNN_unitTestMain.c
+ * Description: This program takes input from a file that represents the agent's actions and sesnses.
+ *
+ * Input is in the following format:
+ * (10chars of sense bits) (action bit)
+ * Example:
+ * 0000000000 1
+ * 0000000000 3
+ * (and so on)
+ * 1000000000 7
+ * 
+ * Any input file should end with a song action. Song actions can also be in the middle of the input file.
+ * 
+ * param the input file to be used
+ * Author: Dustin M Dalen
+ * Last Edit: April 19, 2011
+ *
+ */
+
+
 //main
 int main(int argc, char * argv[])
 {
@@ -37,23 +58,21 @@ int main(int argc, char * argv[])
     int tempAction;
     int * action = &tempAction;
 	
-	for(;;)//inf loop to read in files.
+	for(;;)//infinite loop to read in files.
     {
-        if(fscanf(fp, "%s", tempSense)==1)	//successful read
+        if(fscanf(fp, "%s", tempSense)==1)	//successful read of senses
             receiveState(tempSense);        //add to database
         else
             break;                          //otherwise get out of loop
         
-        if(fscanf(fp, "%d", action)==1)     //successful read
+        if(fscanf(fp, "%d", action)==1)     //successful read of action
             receiveAction(tempAction);      //add to database
         else 
             break;                          //otherwise get out of loop
-
     }
 	
-	fclose(fp);							//close input file
+	fclose(fp);                             //close input file
     
-	//what is important
 	return EXIT_SUCCESS;
 	
 }

@@ -6,12 +6,11 @@
 
 
 //prototypes
-extern char * insertConfusion(char * inputSenes);  //main function to do all replacements
-char chaos();                                   //chaos
-char nostalgia(char inputSense);                //past
-char exor(int a, int b, char * senses);         //xor two bits
-char night();
-char day();                                     //always on or off
+extern char * insertConfusion(char * inputSenes);   //main function to do all replacements
+char chaos();                                       //random
+char exor(int a, int b, char * senses);             //xor two bits
+char night();                                       //always 0
+char day();                                         //always 1
 
 //number of senses
 #define NUM_SENSES2 10
