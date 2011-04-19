@@ -17,4 +17,5 @@ KNN_unitTest: KNN_unitTest.c knearest.c
 	$(CC) -o KNN_unitTest.out KNN_unitTest.c knearest.c
 
 clean:
+	rm -r *.dSYM
 	rm *.out *.o

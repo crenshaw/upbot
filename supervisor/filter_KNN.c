@@ -1,14 +1,12 @@
-/* Filename: filter1_1.c
+/* Filename: filter_KNN.c
  * Authors:	Ben Walker, Dustin Dalen
  * Created: 1/27/11
- * Last Modified: 2/8/11 by Dustin Dalen
+ * Last Modified: 4/19/11 by Ben Walker
  *
- /*TODO I need a way to see if this has been called before
- * otherwise I keep making a new database on each call
- /**
- TODO
- Eventually to get more out of each run we should recurse on any action 
- which is repeated.
+ * TODO *
+ * Eventually to get more out of each run we should recurse on any action 
+ * which is repeated.
+ *
  **/
  
 
@@ -56,7 +54,7 @@ char * receiveState(char * input)
     {
         database = newVector();
         Vector * newRun = newVector();                                    //create the new run
-        episode * newEpisode = createFilterEpisode(input, CMD_NO_OP);           //create first episode
+        episode * newEpisode = createFilterEpisode(input, CMD_NO_OP);     //create first episode
         addEntry(newRun, newEpisode);
         addEntry(database,newRun);                                        //add the run to the database
     }
@@ -70,12 +68,13 @@ char * receiveState(char * input)
         if(lastEpisode->action == CMD_SONG)
         {
             Vector * newRun = newVector();                                    //create the new run
-            episode * newEpisode = createFilterEpisode(input, CMD_NO_OP);           //create first episode
+            episode * newEpisode = createFilterEpisode(input, CMD_NO_OP);     //create first episode
             addEntry(newRun, newEpisode);
             addEntry(database,newRun);                                        //add the run to the database
         }
         //continue adding to the run
-        else{
+        else
+        {
             strncpy(lastEpisode->state,input,NUM_SENSES);       //add the senses to the most recent episode
             lastEpisode->state[NUM_SENSES] = '\0';              //making sure null terminated 
         }
@@ -122,9 +121,9 @@ int receiveAction(int command)
 
 /*
  *thin() takes in a fresh state and the current confidence levels of all the bits. The goal bit's data is 
- * preserved. Also any data which coincideds with a confidence level above the constant CONFIDENT are 
+ * preserved. Also any data which coincides with a confidence level above the constant CONFIDENT are 
  * preserved. Anything below that threshold is set to a 0.
- * @param state, char[] of length NUM_SENSES which the robot took in **MODIFIED**
+ * @param state, char[] of length NUM_SENSES which the robot took in
  * @param conf, double[] of length NUM_SENSEs which contains the confidence level for each bit
  */
 char * thin(char * state, double * conf)
@@ -186,7 +185,7 @@ void freeRun(Vector * theRun)
  * analyze() takes a vector of run and analyzes it.
  * analysis consists of:
  *      - sorting runs into a vector based on the action at a given depth
- *      - comparing states of runs with similar actions at a given depth
+ *      - recursively comparing states of runs with similar actions at a given depth
  **/
 void analyze(Vector * runsToAnalyze, int epDepth)
 {
@@ -210,8 +209,9 @@ void analyze(Vector * runsToAnalyze, int epDepth)
 	//array of confidence for a given sense
     double * conf = (double *)malloc(sizeof(double)*NUM_SENSES);                            
 	
-	//base case:
-	if((int)runsToAnalyze->size < 2)
+	//BASE CASE: less than 2 runs with common substrings of episodes 
+    //       OR: we've reached the end of 2+ identical runs.
+	if((int)runsToAnalyze->size < 2 || epDepth >= (int)runsToAnalyze->size)
 	{
 		//update confidence with default values.
 		int i;
@@ -226,8 +226,8 @@ void analyze(Vector * runsToAnalyze, int epDepth)
 	}
     
     //passed the base case: initialize useful variables.
-    Vector * statesToAnalyze = newVector();             //vector of senses
-	Vector * runsOnWhichToRecurse = newVector();        //vector of run
+    Vector * statesToAnalyze = newVector();             //vector of senses, correlating to runsOWTR
+	Vector * runsOnWhichToRecurse = newVector();        //vector of run, sorted by action
     
     
 	//for each run get episode: state and action
@@ -235,21 +235,19 @@ void analyze(Vector * runsToAnalyze, int epDepth)
 	for (run_idx = 0; run_idx < runsToAnalyze->size; ++run_idx)
     {
 		//get run
-        Vector * currentRun = getEntry(runsToAnalyze, run_idx);
+        currentRun = getEntry(runsToAnalyze, run_idx);
         
         //send currentRun off for storing by action
         runsOnWhichToRecurse = storeRun(runsOnWhichToRecurse, currentRun, epDepth);
     }   
     
 	//find most common action on which to recurse
-	int mostActions = 0;
-	int actionIdx;
+	int mostActions = 0;                    //size of vector with the most actions in it
+	int actionIdx;                          //index of the vector with ^^
 	int m;
 	for(m = 0; m < runsOnWhichToRecurse->size; ++m)
 	{
 		Vector * tempVector = getEntry(runsOnWhichToRecurse, m);
-        //%%%
-        printf("vec size = %d\n", (int)tempVector->size);
             
 		if(tempVector->size > mostActions)
 		{
@@ -258,7 +256,7 @@ void analyze(Vector * runsToAnalyze, int epDepth)
 		}
 	}
 
-	//recurse!!
+	//prepare to recurse!!
     Vector * tempRunOfAction;
     if (runsOnWhichToRecurse->size != 0)
     {
@@ -269,38 +267,23 @@ void analyze(Vector * runsToAnalyze, int epDepth)
         if(tempRunOfAction->size > 1)
         {
             weight += tempRunOfAction->size;
-
-            //%%%DEBUGGING
-            printf("size=%d\n", (int)tempRunOfAction->size);
-            Vector *vec = (Vector *)getEntry(tempRunOfAction, 0);
-            episode *ep = (episode *)getEntry(vec, epDepth);
-            printf("recursing on %d runs with sensors %s and shared action: %d\n",
-                   mostActions,
-                   ep->state,
-                   ep->action);
-            fflush(stdout);
-
         }
-        
     }
 
     
-    //do it
-    analyze(tempRunOfAction, ++epDepth);
+    //******************RECURSE HERE******************
+        analyze(tempRunOfAction, ++epDepth);
+    //************************************************
     
     
     //for each run get state so we can analyze them
 	for (run_idx = 0; run_idx < tempRunOfAction->size; ++run_idx)
     {
-		//get run
         Vector * currentRun = getEntry(tempRunOfAction, run_idx);
-        
-        //get correct episode from the run
         if(currentRun->size != 0)
         {           
             currentEp = getEntry(currentRun, epDepth);
         }
-
         
         //extract and store state
 		currentState = currentEp->state;
@@ -308,8 +291,8 @@ void analyze(Vector * runsToAnalyze, int epDepth)
     }
     
 	//reset counter
-	run_idx = 0;                //through runs
-    int p = 0;                  //through senses
+	run_idx = 0;                //iterate through runs
+    int p = 0;                  //iterate through senses
 	int sum = 0;                //our sum
 	
     //if episode is not at base case depth (one too far)
@@ -351,15 +334,17 @@ Vector * storeRun(Vector * runsToAnalyzeNext, Vector * runWithActionToStore, int
 {
 
     //function variables
-    Vector * actionVector = newVector();
+	Vector * actionVector;
     episode * currentEp = (episode *)getEntry(runWithActionToStore, depth);
-    int currentAction = currentEp->action;                              //current action to store
-    int currentActionStored = FALSE;                                    //stored the current action?
+    int currentAction = currentEp->action;                      //current action to store
+    int currentActionStored = FALSE;                            //stored the current action?
 
     
     //store first run regardless of the action taken
     if(runsToAnalyzeNext->size == 0)
     {
+		//make new vector
+		actionVector = newVector();
         //add it to new vector
         addEntry(actionVector, runWithActionToStore);
         //add new vector to analyzeNext
@@ -395,14 +380,12 @@ Vector * storeRun(Vector * runsToAnalyzeNext, Vector * runWithActionToStore, int
     //if the action hasn't been stored, we haven't seen it yet
     if (!currentActionStored)
     {
+		actionVector = newVector();
         addEntry(actionVector, runWithActionToStore);
         addEntry(runsToAnalyzeNext, actionVector);
         currentActionStored = TRUE;
         return runsToAnalyzeNext;
     }
-    
-    //Just in case:
-    return;
 }
 
 

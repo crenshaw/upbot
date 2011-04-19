@@ -1,7 +1,7 @@
 /* Filename: hallucinogen.c
  * Authors:	Ben Walker, Dustin Dalen
  * Created: 2/22/11
- * Last Modified: 2/23/11 by Dustin Dalen
+ * Last Modified: 4/19/11 by Ben Walker
  *
  * Description: This file is used to add in simulated sensory input to the agent. The function 
  * insertConfusion allows each of the bits in the 10 character array to be manipulated
@@ -63,7 +63,7 @@ char night()
  * the agent is actually using. The current sense then has a function applied to each bit that is
  * not currently in use by the agent. The modified current state is returned.
  */
-char * insertConfusion(char * inputSense)
+void insertConfusion(char * inputSense)
 {
     int i=0;
     for (i; i<NUM_SENSES2; i++)               //only go through the information bits
@@ -72,28 +72,28 @@ char * insertConfusion(char * inputSense)
         {
             switch (i) {                        //switch to allow for control over the behavior
                 case 0:                         //of each bit
-                    inputSense[i] = chaos();
+                    inputSense[i] = chaos();    //moot
                     break;
                 case 1:
-                    inputSense[i] = chaos();
+					inputSense[i] = chaos();
                     break;
                 case 2:
-                    inputSense[i] = chaos();
+					inputSense[i] = chaos();
                     break;
                 case 3:
-                    inputSense[i] = chaos();
+					inputSense[i] = chaos();
                     break;
                 case 4:
-                    inputSense[i] = chaos();
+					inputSense[i] = chaos();
                     break;
                 case 5:
-                    inputSense[i] = chaos();
+					inputSense[i] = chaos();
                     break;
                 case 6:
-                    inputSense[i] = chaos();
+					inputSense[i] = chaos();
                     break;
                 case 7:
-                    inputSense[i] = chaos();
+					inputSense[i] = chaos();
                     break;
                 case 8:
                     inputSense[i] = chaos();
@@ -106,6 +106,5 @@ char * insertConfusion(char * inputSense)
             }
         }
     }
-    return inputSense;
 }
 

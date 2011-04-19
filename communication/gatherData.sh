@@ -22,7 +22,7 @@ ALGORITHM=$1
 MAP=$2
 NUM_TRIALS=$3
 NAME=$4
-
+make
 
 if [ $# -ne $NUM_ARGS ]; then
         echo 'USAGE: gatherData <ziggurat/mccallum> <map> <nsim> <nameOfTrial>'
@@ -45,7 +45,7 @@ echo "Number of trials: $NUM_TRIALS" >> ../$NAME/info.txt
 echo "Description of trial $NAME :" >> ../$NAME/info.txt
 
 #change this line to vi or emacs or whatever you prefer
-vi ../$NAME/info.txt
+emacs ../$NAME/info.txt
 
 #the main loop
 for (( j = 0 ; j < $NUM_TRIALS ; j++ )); do

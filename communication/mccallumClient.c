@@ -13,7 +13,10 @@
 
 #include "communication.h"
 #include "../mccallum/nsm.h"
+#include "../supervisor/filter_KNN.h"
 
+#define RANDOMIZE 1
+#define	FILTERING 1
 #define TIMEOUT_SECS	5	// Num seconds in timeout on recv
 #define MAX_TRIES		10	// Num tries to reconnect on lost connection
 
@@ -401,7 +404,16 @@ void reportGoalFound(int sockfd, FILE* log)
 void processCommand(int* cmd, char* buf, FILE* log)
 {
 	// Call Supervisor tick to process recently added episode
-	*cmd = tick(buf);
+#ifdef RANDOMIZE
+    insertConfusion(buf); 
+#endif
+#ifdef FILTERING
+    char * rState = receiveState(buf);
+    int tickAction = tick(rState);
+    *cmd = receiveAction(tickAction);
+#else
+    *cmd = tick(buf);
+#endif
 
 	if(g_statsMode == 0)
 	{

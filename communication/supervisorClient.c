@@ -400,7 +400,7 @@ void processCommand(int* cmd, char* buf, FILE* log)
 {
 	// Call Supervisor tick to process recently added episode
 #ifdef RANDOMIZE
-    buf = insertConfusion(buf); 
+    insertConfusion(buf); 
 #endif
 #ifdef FILTERING
     char * rState = receiveState(buf);

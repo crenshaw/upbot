@@ -30,7 +30,7 @@ supclient:	supervisorClient.c communication.h serverUtility.c ../supervisor/supe
 	gcc $(DEBUG_OPT) -o supervisorClient.out supervisorClient.c serverUtility.c ../supervisor/supervisor.c ../supervisor/vector.c ../supervisor/knearest.c commandQueue.c ../supervisor/filter_KNN.c ../supervisor/hallucinogen.c
 
 mccClient: mccallumClient.c communication.h serverUtility.c ../mccallum/nsm.h ../mccallum/forgetfulmem.h ../mccallum/vector.h commandQueue.c
-	gcc $(DEBUG_OPT) -o mccallumClient.out mccallumClient.c serverUtility.c ../mccallum/nsm.c ../mccallum/forgetfulmem.c ../mccallum/vector.c commandQueue.c
+	gcc $(DEBUG_OPT) -o mccallumClient.out mccallumClient.c serverUtility.c ../mccallum/nsm.c ../mccallum/forgetfulmem.c ../mccallum/vector.c commandQueue.c ../supervisor/filter_KNN.c ../supervisor/hallucinogen.c
 
 unittest: unitTestServer.c serverUtility.c ../supervisor/unitTest.h commandQueue.c
 	gcc $(DEBUG_OPT)-o unitTestServer.out unitTestServer.c serverUtility.c ../supervisor/unitTest.c commandQueue.c
@@ -68,4 +68,6 @@ compass.o:	../devices/compass.c ../devices/compass.h
 	$(CC) $(CFLAGS) -c ../devices/compass.c
 
 clean:
-	rm *.out *.o
+	rm -r *.dSYM
+	rm *.out *.o 
+	
