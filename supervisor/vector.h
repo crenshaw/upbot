@@ -24,5 +24,7 @@ int     findEntry  (Vector* vector, void* entry);
 void    freeVector (Vector* victim);
 void*   getEntry   (Vector* vector, int index);
 Vector* newVector  ();
-
+int     removeEntry(Vector* vector, void* item);
+int     removeEntryByIndex(Vector* vector, int index);
+ 
 #endif // _VECTOR_H_

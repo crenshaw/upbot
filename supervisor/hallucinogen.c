@@ -14,7 +14,9 @@
 #include "hallucinogen.h"
 
 //instance variables
-char gold[] = "1000000011";                 //1's indicate an important bit in the 10 character array of senses
+char gold[] = "1000000011";                 //1's indicate an important bit in
+                                            //the 10 character array of senses
+                                            //should not be modified
 
 /**
  * chaos returns a random bit as a '1' or '0'. 50/50 chance of a '1' or '0'.
@@ -33,19 +35,19 @@ char chaos()
  */
 char day()
 {
-    return '0';
+    return '1';
 }
  
 
 /**
  *exor returns the value when two bits are exclusive or'd
- * @param, the indicies in the sense array to xor
+ * @param, the indices in the sense array to xor
  */
 char exor(int a, int b, char * senses)
 {
     int num1 = '0' - senses[a];                 //convert to ints for xor function
     int num2 = '0' - senses[b];
-    int result = num1 ^ num2;
+    int result = (num1 || num2) && !(num1 && num2);
     return '0'+result;                          //convert back to proper char value
 }
 
@@ -66,7 +68,7 @@ char night()
 void insertConfusion(char * inputSense)
 {
     int i=0;
-    for (i; i<NUM_SENSES2; i++)               //only go through the information bits
+    for (i; i<NUM_SENSES; i++)               //only go through the information bits
     {
         if(gold[i]!='1')                      //if the bit is not designated to be saved
         {

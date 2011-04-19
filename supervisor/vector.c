@@ -4,7 +4,8 @@
  * newVector
  *
  * Allocates and initializes a vector
- * Caller is responsible for calling 'freeVector'
+ *
+ * CAVEAT: Caller is responsible for calling 'freeVector'
  *
  * @return Vector* Pointer to allocated vector
  */
@@ -72,6 +73,79 @@ int addEntry(Vector* vector, void* item)
 
 	return 0;
 }// addEntry
+
+/**
+ * removeEntryByIndex
+ *
+ * Remove an entry from vector at a given index
+ *
+ * @arg vector pointer to vector
+ * @arg index of the item to remove
+ *
+ * @return int status code (0 == success)
+ */
+int removeEntryByIndex(Vector* vector, int index)
+{
+	// Make sure we aren't adding to a null vector
+	assert(vector != NULL);
+
+    //check for invalid index
+    if ((index < 0) || (index >= vector->size))
+    {
+        return -2;
+    }
+
+    //Copy all the subsequent entries down to fill the "hole" left
+    //by the missing one
+    (vector->size)--;
+    int i;
+    for(i = index; i < vector->size; i++)
+    {
+        vector->array[i] = vector->array[i+1];
+    }
+
+    return 0;                   // success
+}//removeEntryByIndex
+
+
+/**
+ * removeEntry
+ *
+ * Remove an entry from vector
+ *
+ * @arg vector pointer to vector
+ * @arg item pointer to item to remove from the array
+ *
+ * @return int status code (0 == success)
+ */
+int removeEntry(Vector* vector, void* item)
+{
+    int i;                      // for-loops!
+    
+	// Make sure we aren't adding to a null vector
+	assert(vector != NULL);
+
+    //Find the entry
+    int entryIndex = -1;
+    for(i = 0; i < vector->size; i++)
+    {
+        if (item == vector->array[i])
+        {
+            entryIndex = i;
+        }
+    }
+
+    //Detect item not found
+    if (entryIndex < 0)
+    {
+        return entryIndex;
+    }
+
+    return removeEntryByIndex(vector, entryIndex);
+
+}// removeEntry
+
+
 
 /**
  * getEntry

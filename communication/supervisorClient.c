@@ -12,7 +12,10 @@
 */
 
 
+//if RANDOMIZE is defined then the hallucinogen filter is applied
 #define RANDOMIZE
+
+//if FILTERING is defined then then KNN filter is applied
 #define FILTERING
 
 #include "communication.h"
@@ -398,7 +401,9 @@ void reportGoalFound(int sockfd, FILE* log)
  */
 void processCommand(int* cmd, char* buf, FILE* log)
 {
-	// Call Supervisor tick to process recently added episode
+	// Call Supervisor tick to process recently added episode.
+    // The incoming sensing may be filtered depending upon
+    // RANDOMIZE and FILTERING
 #ifdef RANDOMIZE
     insertConfusion(buf); 
 #endif

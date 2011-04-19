@@ -65,21 +65,9 @@
 
 //Setting this turns on verbose output to aid debugging
 #define DEBUGGING 1
-/*
+
+
 //Particularly verbose debugging for specific methods
-<<<<<<< local
-#define DEBUGGING_UPDATEALL 1
-#define DEBUGGING_UPDATEPLAN 1
-#define DEBUGGING_CHOOSECMD 1
-#define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
-#define DEBUGGING_INITPLAN 1
-#define DEBUGGING_FINDINTERIMSTART 1
-#define DEBUGGING_NSIV 1        // nextStepIsValid()
-#define DEBUGGING_FIND_REPL 1
-#define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
-#define DEBUGGING_KNN 1
-*/
-//=======
 #ifdef DEBUGGING
 // #define DEBUGGING_UPDATEALL 1
 // #define DEBUGGING_UPDATEPLAN 1
@@ -93,7 +81,6 @@
 // #define DEBUGGING_KNN 1
 #endif
 
-//>>>>>>> other
 // global strings for printing to console
 char* g_forward = "forward";
 char* g_right   = "right";
