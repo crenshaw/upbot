@@ -13,10 +13,10 @@
 
 
 //if RANDOMIZE is defined then the hallucinogen filter is applied
-#define RANDOMIZE
+//#define RANDOMIZE
 
 //if FILTERING is defined then then KNN filter is applied
-#define FILTERING
+//#define FILTERING
 
 #include "communication.h"
 #include "../supervisor/supervisor.h"

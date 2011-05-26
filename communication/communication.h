@@ -94,4 +94,10 @@ int checkArgName(int argc, char* argv[], char addresses[3][13]);
 #define SNSR_BUMP_RIGHT		0x9
 #define NUM_SENSORS		0xA	// Always make sure this is at the end
 
+// WME defines: types
+#define WME_INT 0x0
+#define WME_CHAR 0x1
+#define WME_DOUBLE 0x2
+#define WME_STRING 0x3
+
 #endif

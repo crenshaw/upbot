@@ -510,6 +510,286 @@ void replanTest()
 }//replanTest
 
 /**
+ * tickWME
+ *
+ * This function is called at regular intervals and processes
+ * the recent sensor data to determine the next action to take.
+ * This version is designed to handle a Vector of WMEs rather
+ * than Roomba sensor data.
+ *
+ * Precondition: The Vector of WMEs is alphabetically sorted by
+ *               attribute name.
+ *
+ * @param wmes A Vector* of WMEs representing agent state
+ * @return int a command for the Roomba (negative is error)
+ */
+int tickWME(Vector* wmes)
+{
+    // Create new Episode
+    EpisodeWME* ep = createEpisodeWME(wmes);
+
+    // Add new episode to the history
+    addEpisodeWME(ep);
+
+        updateAll(0);
+#if DEBUGGING_UPDATEALL
+    printf("updateAll complete\n");
+    fflush(stdout);
+#endif
+   
+    // If we found a goal, send a song to inform the world of success
+    // and if not then send ep to determine a valid command
+    if(episodeContainsGoal(ep, FALSE))
+    {
+        printf("GOAL %d FOUND!\n", g_goalCount);
+       
+        ep->cmd = CMD_SONG;
+
+        //If a a plan is in place, reward the agent and any outstanding replacements
+        if (g_plan != NULL)
+        {
+            rewardReplacements();
+            rewardAgent();
+        }
+       
+        //Current, presumably successful, plan no longer needed
+        if (g_plan != NULL)
+        {
+            freePlan(g_plan);
+            g_plan = NULL;
+        }
+    }
+    else
+    {
+        ep->cmd = chooseCommand();
+    }
+
+#if DEBUGGING
+    // Print out the parsed episode if not in statsMode
+    if(g_statsMode == 0)
+    {
+        displayEpisodeWME(ep);
+    }
+    fflush(stdout);
+#endif
+
+    return ep->cmd;
+}//tickWME
+
+/**
+ * addEpisodeWME
+ *
+ * Add new level 0 episode to episode history vector
+ *
+ * @arg episodes pointer to vector containing episodes
+ * @arg item pointer to episode to be added
+ * @return int status code (0 == success)
+ */
+int addEpisodeWME(EpisodeWME* item)
+{
+    //Add the entry
+    Vector* episodes = (Vector *)g_epMem->array[0];
+    return addEntry(episodes, item);
+}//addEpisodeWME
+
+/**
+ * compareEpisodesWME
+ *
+ * Compare the sensor arrays of two episodes and return if they match or not
+ *
+ * @arg ep1 a pointer to an EpisodeWME
+ * @arg ep2 a pointer to another EpisodeWME
+ * @arg compCmd  TRUE indicates the comparison should include the cmd. FALSE
+ *               indicates that only the sensor array should be compared
+ * @return TRUE if the episodes match and FALSE otherwise
+ */
+int compareEpisodesWME(EpisodeWME* ep1, EpisodeWME* ep2, int compCmd)
+{
+    if(ep1->sensors->size != ep2->sensors->size) return FALSE;
+
+    int i;
+    for(i = 0; i < ep1->sensors->size; i++)
+    {
+        if(!compareWME(getEntry(ep1->sensors, i), getEntry(ep2->sensors, i))) return FALSE;
+    }//for
+
+    //Compare the commands if that's required
+    if(compCmd && ep1->cmd != ep2->cmd) return FALSE;
+
+    return TRUE;
+}//compareEpisodesWME
+
+/**
+ * compareWME
+ *
+ * This function takes two WMEs and confirms that they contain
+ * the same information.
+ *
+ * @param wme1 A pointer to a WME
+ * @param wme2 A pointer to a WME
+ * @return int Boolean value
+ */
+int compareWME(WME* wme1, WME* wme2)
+{
+    // This may be more complicated than need be.
+    // I feel like it's likely we don't need to switch on the type
+    // except for that one is a string which requires a function
+    // for copmarison
+    if(strcmp(wme1->attr, wme2->attr) == 0 &&
+       wme1->type == wme2->type)
+    {
+        if(wme1->type == WME_INT && wme1->value.iVal == wme2->value.iVal) return TRUE;
+        if(wme1->type == WME_CHAR && wme1->value.cVal == wme2->value.cVal) return TRUE;
+        if(wme1->type == WME_DOUBLE && wme1->value.dVal == wme2->value.dVal) return TRUE;
+        if(wme1->type == WME_STRING && strcmp(wme1->value.sVal, wme2->value.sVal) == 0) return TRUE;
+    }
+    return FALSE;
+}//compareWME
+
+/**
+ * displayEpisodeWME
+ *
+ * Display the contents of an Episode struct in a verbose human readable format
+ *
+ * @arg ep a pointer to an episode
+ */
+void displayEpisodeWME(EpisodeWME* ep)
+{
+    Vector* sensors = ep->sensors;
+
+    printf("Senses:");
+    int i;
+    for(i = 0; i < sensors->size; i++) displayWME(getEntry(sensors, i));
+
+    printf("\nCommand: %s", interpretCommandShort(ep->cmd));
+    printf("\nTime: %d\n", ep->now);
+}//displayEpisodeWME
+
+/**
+ * displayWME
+ *
+ * Print a WME to console.
+ *
+ * @param wme A pointer to a WME to print
+ */
+void displayWME(WME* wme)
+{
+    printf("[%s:", wme->attr);
+    if(wme->type == WME_INT)    printf("%i]",wme->value.iVal);
+    if(wme->type == WME_CHAR)   printf("%c]",wme->value.cVal);
+    if(wme->type == WME_DOUBLE) printf("%lf]",wme->value.dVal);
+    if(wme->type == WME_STRING) printf("%s]",wme->value.sVal);
+}//displayWME
+
+/**
+ * createEpisodeWME
+ *
+ * Takes a sensor data string and allocates space for episode
+ * then parses the data and populates the episode and adds it
+ * to the global episode list
+ *
+ * @arg sensorData char* filled with sensor information
+ * @return Episode* a pointer to the newly added episode
+ */
+EpisodeWME* createEpisodeWME(Vector* wmes)
+{
+    // Timestamp to mark episodes
+    static int timestamp = 0;
+    
+    if(wmes == NULL)
+    {
+        printf("WME vector in parse is null");
+        return NULL;;
+    }
+
+    // Allocate space for episode and score
+    EpisodeWME* ep = (EpisodeWME*) malloc(sizeof(EpisodeWME));
+    
+    // Set EpisodeWME sensors vector to our WME vector
+    ep->sensors = wmes;
+    ep->now = timestamp++;  // Just set it to our timestamp for now
+    ep->cmd = CMD_ILLEGAL;  // Default command for now
+    
+    /*
+    This code is the old code that determines how to set the timestamp
+    based on connection to roomba versus our virtual environment. We
+    may (likely) need to use this again in the future.
+
+    if(g_connectToRoomba == 1)
+    {
+        // Pull out the timestamp
+        parsedData->now = timeStamp++;
+    }else
+    {
+        // Alg for determining timestamp from string of chars
+        int time = 0;
+        for(i = NUM_SENSORS; dataArr[i] != '\0'; i++)
+        {
+            if(dataArr[i] != ' ')
+            {
+                time = time * 10 + (dataArr[i] - '0');
+            }
+            if(dataArr[i] == ' ' && time != 0)
+            {
+                break;
+            }
+        }
+        // Store the time
+        parsedData->now = time;
+    }
+
+    // Found a goal so decrease chance of random move
+    if(parsedData->sensors[SNSR_IR] == 1)
+    {
+        g_goalIdx[g_goalCount] = parsedData->now;
+        g_goalCount++;
+    }
+*/
+    return ep;
+}//createEpisodeWME
+
+/**
+ * roombaSensorsToWME
+ *
+ * This function takes the sensor string received from a Roomba
+ * and converts it into the WME vector used by Ziggurat (in the
+ * near future).
+ *
+ * @param sensorInput a char string with Roomba sensor data
+ * @return Vector* A vector of WMEs created from the Roomba data
+ *                 NULL if error
+ */
+Vector* roombaSensorsToWME(char* dataArr)
+{
+    int i;
+    Vector* wmeVec = (Vector*)malloc(sizeof(Vector));
+    // set the episodes sensor values to the sensor data
+    for(i = 0; i < NUM_SENSORS; i++)
+    {
+        // convert char to int and return error if not 0/1
+        int bit = (dataArr[i] - '0');
+        if ((bit < 0) || (bit > 1))
+        {
+            printf("%s", dataArr);
+            return NULL;     
+        }
+
+        // Create the WME for the current sensor
+        WME* wme = (WME*)malloc(sizeof(WME));
+        wme->type = WME_INT;
+        wme->value.iVal = bit; 
+        wme->attr = (char*)malloc(sizeof(char) * 2);// Account for null term.
+        sprintf(wme->attr, "%i", i); // Just use the int equiv. of the sensor.
+                                // Shouldn't matter since it'll be the same
+                                // for each sensor string
+
+        // Add the new WME to the vector
+        addEntry(wmeVec, wme);
+    }
+    return wmeVec;
+}//roombaSensorsToWME
+
+/**
  * tick
  *
  * This function is called at regular intervals and processes
@@ -520,7 +800,7 @@ void replanTest()
  */
 int tick(char* sensorInput)
 {
-    int i;
+    int i; // Is this here for a reason?...
     // Create new Episode
     Episode* ep = createEpisode(sensorInput);
 
@@ -3780,7 +4060,7 @@ void initSupervisor()
     g_plan            = NULL;        // no plan can be made at this point
     g_activeRepls     = newVector();
     g_connectToRoomba = 0;
-    g_statsMode       = 0;           // no output optimization
+    g_statsMode       = STATS_MODE;           // no output optimization
     g_selfConfidence  = INIT_SELF_CONFIDENCE;
     g_lastUpdateLevel = -1;
 

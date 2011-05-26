@@ -36,7 +36,7 @@
 
 // Matching defines
 #define NUM_TO_MATCH         (15)
-#define NUM_GOALS_TO_FIND    (50)
+#define NUM_GOALS_TO_FIND    (25)
 #define DISCOUNT             (1.0)
 #define MAX_LEN_LHS          (1)
 #define MAX_LEVEL_DEPTH      (4)
@@ -129,6 +129,26 @@ typedef struct StartStruct
                                 // start at the action specified by this index
 } Start;
 
+//Used for passing arbitrary information as agent's state
+typedef struct WMEStruct {
+    char* attr;                 // name of attribute
+    int type;                   // var type of attribute
+    union {
+        int iVal;
+        char cVal;
+        double dVal;
+        char* sVal;
+    } value;                    // value of attribute
+} WME;
+
+// Episode struct for WMEs. Only difference is Vector WMEs instead of int[] sensors
+typedef struct EpisodeWMEStruct
+{
+	Vector*	sensors;            // A Vector of WMEs
+	int		now;
+	int 	cmd;
+} EpisodeWME;
+
 // Global variables for monitoring and connecting
 int g_connectToRoomba;
 int g_statsMode;
@@ -154,6 +174,22 @@ int     g_lastUpdateLevel;// the highest level that was updated in the last
 extern char* interpretCommand(int cmd);
 extern void  simpleTest();
 extern int   tick(char* sensorInput);
+
+// Functions added to accomodate WMEs ----------
+// Duplicate functions are commented DUPL. This means they are
+// the same functionality and function name as a previously existing
+// one, except modified to handle EpisodeWME instead of Episode
+extern int   tickWME(Vector* wmes); // DUPL
+int          addEpisodeWME(EpisodeWME* item); // DUPL
+int          compareEpisodesWME(EpisodeWME* ep1, EpisodeWME* ep2, int compCmd); // DUPL
+int          compareWME(WME* wme1, WME* wme2);
+void         displayEpisodeWME(EpisodeWME* ep); // DUPL
+void         displayWME(WME* wme);
+EpisodeWME*  createEpisodeWME(Vector* wmes); // DUPL
+Vector*      roombaSensorsToWME(char* sensorInput);
+// Plan: Once everything functions, roomba calls tick(), which converts
+//       to WME vector then calls tickWME()
+//----------------------------------------------
 
 Action*      actionMatch(int action);
 int          addAction(Vector* actions, Action* item, int checkRedundant);
