@@ -186,6 +186,8 @@ int          compareWME(WME* wme1, WME* wme2);
 void         displayEpisodeWME(EpisodeWME* ep); // DUPL
 void         displayWME(WME* wme);
 EpisodeWME*  createEpisodeWME(Vector* wmes); // DUPL
+void         freeEpisodeWME(EpisodeWME* ep);
+void         freeWME(WME* wme);
 Vector*      roombaSensorsToWME(char* sensorInput);
 // Plan: Once everything functions, roomba calls tick(), which converts
 //       to WME vector then calls tickWME()

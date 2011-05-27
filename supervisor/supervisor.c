@@ -675,7 +675,7 @@ void displayEpisodeWME(EpisodeWME* ep)
 void displayWME(WME* wme)
 {
     printf("[%s:", wme->attr);
-    if(wme->type == WME_INT)    printf("%i]",wme->value.iVal);
+    if(wme->type == WME_INT)    printf("%d]",wme->value.iVal);
     if(wme->type == WME_CHAR)   printf("%c]",wme->value.cVal);
     if(wme->type == WME_DOUBLE) printf("%lf]",wme->value.dVal);
     if(wme->type == WME_STRING) printf("%s]",wme->value.sVal);
@@ -749,6 +749,38 @@ EpisodeWME* createEpisodeWME(Vector* wmes)
 }//createEpisodeWME
 
 /**
+ * freeEpisodeWME
+ *
+ * This function frees the memory associated with an EpisodeWME.
+ *
+ * @param ep A pointer to an EpisodeWME
+ */
+void freeEpisodeWME(EpisodeWME* ep)
+{
+    Vector* sensors = ep->sensors;
+    int i;
+    for(i = 0; i < sensors->size; i++)
+    {
+        freeWME(getEntry(sensors, i));
+    }//for
+    freeVector(sensors);
+    free(ep);
+}//freeEpisodeWME
+
+/**
+ * freeWME
+ * 
+ * This function frees the memory associated with a WME.
+ *
+ * @param wme A pointer to a WME.
+ */
+void freeWME(WME* wme)
+{
+    free(wme->attr);
+    free(wme);
+}//freeWME
+
+/**
  * roombaSensorsToWME
  *
  * This function takes the sensor string received from a Roomba
@@ -762,7 +794,7 @@ EpisodeWME* createEpisodeWME(Vector* wmes)
 Vector* roombaSensorsToWME(char* dataArr)
 {
     int i;
-    Vector* wmeVec = (Vector*)malloc(sizeof(Vector));
+    Vector* wmeVec = newVector();
     // set the episodes sensor values to the sensor data
     for(i = 0; i < NUM_SENSORS; i++)
     {

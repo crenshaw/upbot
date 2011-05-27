@@ -16,6 +16,10 @@ filter_KNN: filter_KNN_unitTestMain.c filter_KNN.c supervisor
 KNN_unitTest: KNN_unitTest.c knearest.c
 	$(CC) -o KNN_unitTest.out KNN_unitTest.c knearest.c
 
+WME_unitTest: WME_unitTest.c supervisor
+	$(CC) -g -c WME_unitTest.c
+	$(CC) -o WME_unitTest.out WME_unitTest.o vector.o supervisor.o knearest.o
+
 clean:
 	rm -r *.dSYM
 	rm *.out *.o
