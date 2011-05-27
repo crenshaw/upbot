@@ -23,6 +23,9 @@ Default is 0 (integer)
 
 int main(int argc, char* argv[])
 {
+	// TESTING WME FUNCTIONS NOW WITH ARBITRARY DATA
+	
+	printf("\n================ TESTING BASIC WME FUNCTIONS NOW =================\n\n"); 
 	printf("Started...\n");
 	Vector* wmeVec1 = newVector();
 	Vector* wmeVec2 = newVector();
@@ -171,23 +174,80 @@ int main(int argc, char* argv[])
 	printf("\nComparing EpisodeWMEs 1 and 2: Should be false\n");
 	if(compareEpisodesWME(ep1, ep2, FALSE)) printf("Episodes are equal.\n");
 	else printf("Episodes are not equal\n");
+	
+	printf("\nFreeing memory\n");
+
+	freeEpisodeWME(ep1);
+	freeEpisodeWME(ep2);
+	
+	// BEGIN TEST FOR ROOMBA => WME CONVERSION
+
+	// Test sensor strings taken from virtual world:
+	char sense1[24] = "0000000000     1387   0";
+	char sense2[24] = "0000000011     1392   1";
+
+	printf("\n================ TESTING ROOMBA SENSOR CONVERSION NOW =================\n\n");
+	printf("Sense string 1: \"%s\" \n", sense1);
+	printf("Sense string 2: \"%s\" \n", sense2);
+
+	printf("\nConverting senses to WME vectors\n");
+	Vector* sense1Vec = roombaSensorsToWME(sense1);
+	Vector* sense2Vec = roombaSensorsToWME(sense2);
+	
+	printf("\nPrinting Sense String 1 as WME Vector 1\n");
+
+	// Print from Vector 1
+	for(i = 0; i < 10; i++)
+	{
+		printf("Vector 1 - Displaying wme %d: ", i);
+		displayWME((WME*)getEntry(sense1Vec, i));
+		printf("\n");
+	}//for
+
+	printf("\nPrinting Sense String 2 as WME Vector 2\n");
+
+	// Print from Vector 2
+	for(i = 0; i < 10; i++)
+	{
+		printf("Vector 2 - Displaying wme %d: ", i);
+		displayWME((WME*)getEntry(sense2Vec, i));
+		printf("\n");
+	}//for
+
+	printf("\nCreating Episodes 1 and 2 with converted senses\n");
+	ep1 = createEpisodeWME(sense1Vec);
+	ep2 = createEpisodeWME(sense2Vec);
+
+	printf("\nDisplaying EpisodeWME 1\n");
+	displayEpisodeWME(ep1);
+
+	printf("\nDisplaying EpisodeWME 2\n");
+	displayEpisodeWME(ep2);
+	
+	printf("\nComparing EpisodeWMEs 1 and 2: Should be false\n");
+	if(compareEpisodesWME(ep1, ep2, FALSE)) printf("Episodes are equal.\n");
+	else printf("Episodes are not equal\n");
+
+	printf("\nClearing EpisodeWME 2 and recreating with same sensor string as EpisodeWME 1\n");
+	freeEpisodeWME(ep2);
+	ep2 = createEpisodeWME(roombaSensorsToWME(sense1));
+	
+	printf("\nDisplaying EpisodeWME 1\n");
+	displayEpisodeWME(ep1);
+
+	printf("\nDisplaying EpisodeWME 2\n");
+	displayEpisodeWME(ep2);
+	
+	printf("\nComparing EpisodeWMEs 1 and 2: Should be true\n");
+	if(compareEpisodesWME(ep1, ep2, FALSE)) printf("Episodes are equal.\n");
+	else printf("Episodes are not equal\n");
 
 	printf("\nFreeing memory\n");
 
 	freeEpisodeWME(ep1);
 	freeEpisodeWME(ep2);
 
-	/*
-	// Free all the memory from the unit test
-	for(i = 0; i < 10; i++)
-	{
-	printf("Freeing wme %d from Vectors 1 and 2\n", i);
-	freeWME((WME*)getEntry(wmeVec1, i));
-	freeWME((WME*)getEntry(wmeVec2, i));
-	}//for
+	printf("\nUnit Test Complete.\n");
 
-	printf("Freeing vectors 1 and 2\n");
-	freeVector(wmeVec1);
-	freeVector(wmeVec2);
-	 */
+	return 0;
 }//main
