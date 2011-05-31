@@ -69,11 +69,11 @@
 
 //Particularly verbose debugging for specific methods
 #ifdef DEBUGGING
-// #define DEBUGGING_UPDATEALL 1
-// #define DEBUGGING_UPDATEPLAN 1
+ #define DEBUGGING_UPDATEALL 1
+ #define DEBUGGING_UPDATEPLAN 1
 #define DEBUGGING_CHOOSECMD 1
-// #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
-// #define DEBUGGING_INITPLAN 1
+#define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
+#define DEBUGGING_INITPLAN 1
 // #define DEBUGGING_FINDINTERIMSTART 1
 // #define DEBUGGING_NSIV 1        // nextStepIsValid()
 // #define DEBUGGING_FIND_REPL 1
@@ -373,12 +373,17 @@ void planTest()
         }
         else
         {
+            //Artificially lower confidence to avoid replacements
+            g_selfConfidence = 0.0;
+            
             //issue the next command from the cmds array
             ep->cmd = chooseCommand();
 
             if (ep->cmd != cmds[i])
             {
-                printf("ERROR:  plan failed at step %d\n", i);
+                printf("planTest ERROR:  plan failed at step %d\n", i);
+                printf("                 expected command: %d received command: %d\n",
+                       cmds[i], ep->cmd);
                 exit(-1);
             }
         }
@@ -429,8 +434,13 @@ void replanTest()
               noHit, noHit, noHit, noHit, noHit, noHit, bothHit, noHit, noHit,
               noHit, noHit, noHit, noHit, bothHit, noHit, noHit, rightHit,
               noHit, rightHit, rightHit, rightHit, noHit, noHit, noHit,
-              /*rightHit*/ bothHit , noHit, noHit, noHit, noHit, noHit, noHit,
-              goal};
+              /*rightHit*/ bothHit,  /*replan occurs here, yielding the following*/
+              noHit, noHit, noHit, noHit, noHit, noHit, bothHit, noHit, noHit,
+              rightHit, noHit, rightHit, rightHit, rightHit, noHit, noHit,
+              noHit, rightHit, noHit, noHit, noHit, noHit, noHit, noHit, goal};
+    
+              //          noHit, noHit, noHit, noHit, noHit, noHit,
+              // goal};
    
     int cmds[] = {CMD_ADJUST_LEFT, CMD_ADJUST_LEFT, CMD_FORWARD,
               CMD_LEFT, CMD_NO_OP, CMD_LEFT, CMD_NO_OP, CMD_NO_OP, CMD_LEFT,
@@ -474,8 +484,19 @@ void replanTest()
               CMD_ADJUST_LEFT, CMD_NO_OP, CMD_ADJUST_LEFT, CMD_FORWARD,
               CMD_ADJUST_LEFT, CMD_RIGHT, CMD_FORWARD, CMD_NO_OP, CMD_FORWARD,
               CMD_FORWARD, CMD_FORWARD, CMD_LEFT, CMD_ADJUST_LEFT, CMD_RIGHT,
-              CMD_FORWARD, CMD_RIGHT, CMD_NO_OP, CMD_RIGHT, CMD_NO_OP, CMD_LEFT,
-              CMD_NO_OP, CMD_FORWARD};
+              CMD_FORWARD, /*replan occurs here, yielding the following*/
+
+              CMD_RIGHT, CMD_NO_OP, CMD_ADJUST_LEFT, CMD_ADJUST_LEFT,
+              CMD_NO_OP, CMD_ADJUST_LEFT, CMD_FORWARD, CMD_ADJUST_LEFT,
+              CMD_RIGHT, CMD_FORWARD, CMD_NO_OP, CMD_FORWARD, CMD_FORWARD,
+              CMD_FORWARD, CMD_LEFT, CMD_ADJUST_LEFT, CMD_RIGHT, CMD_FORWARD,
+              CMD_RIGHT, CMD_NO_OP, CMD_RIGHT, CMD_NO_OP, CMD_LEFT, CMD_NO_OP,
+              CMD_FORWARD };
+
+
+                  
+              //     CMD_RIGHT, CMD_NO_OP, CMD_RIGHT, CMD_NO_OP, CMD_LEFT,
+              // CMD_NO_OP, CMD_FORWARD};
     int i;
 
     //First call planTest to give it a solid plan
@@ -483,7 +504,7 @@ void replanTest()
 
     printf("\t\t\t\t\t\t\tBEGIN REPLANTEST\n");
 
-    for (i = 0; i < 214; i++)
+    for (i = 0; i < 232; i++)
     {
         // Create new Episode
         printf("Creating and adding episode...\n");
@@ -504,6 +525,8 @@ void replanTest()
         // and if not then send ep to determine a valid command
         if(episodeContainsGoal(ep, FALSE))
         {
+            printf("reached goal\n");
+            
             ep->cmd = CMD_SONG;
             if (g_plan != NULL)
             {
@@ -513,12 +536,17 @@ void replanTest()
         }
         else
         {
+            //Artificially lower confidence to avoid replacements
+            g_selfConfidence = 0.0;
+            
             //issue the next command from the cmds array
             ep->cmd = chooseCommand();
 
             if (ep->cmd != cmds[i])
             {
-                printf("ERROR:  plan failed at step %d\n", i);
+                printf("replanTest ERROR:  plan failed at step %d\n", i);
+                printf("                   expected command: %d received command: %d\n",
+                       cmds[i], ep->cmd);
                 exit(-1);
 
             }
