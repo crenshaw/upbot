@@ -65,6 +65,7 @@
 
 //Setting this turns on verbose output to aid debugging
 #define DEBUGGING 1
+#define USE_WMES 0
 
 
 //Particularly verbose debugging for specific methods
@@ -202,9 +203,15 @@ void memTest()
     {
         // Create new Episode
         printf("Creating and adding episode...\n");
-        Episode* ep = createEpisode(sensors[i]);
+#if USE_WMES
+        EpisodeWME* ep = createEpisodeWME(roombaSensorsToWME(sensors[i]));
+        // Add new episode to the history
+        addEpisodeWME(ep);
+#else
+		Episode* ep = createEpisode(sensors[i]);
         // Add new episode to the history
         addEpisode(ep);
+#endif
         printf("Episode created\n");
 
         updateAll(0);   //*** magic number whats up?
@@ -229,7 +236,11 @@ void memTest()
         // Print out the parsed episode if not in statsMode
         if(g_statsMode == 0)
         {
-            displayEpisode(ep);
+#if USE_WMES
+            displayEpisodeWME(ep);
+#else
+			displayEpisode(ep);
+#endif
         }
     }
 
@@ -832,6 +843,11 @@ Vector* roombaSensorsToWME(char* dataArr)
  */
 int tick(char* sensorInput)
 {
+
+#if USE_WMES
+	return tickWME(roombaSensorsToWME(sensorInput));
+
+#else
     int i; // Is this here for a reason?...
     // Create new Episode
     Episode* ep = createEpisode(sensorInput);
@@ -884,6 +900,8 @@ int tick(char* sensorInput)
 #endif
 
     return ep->cmd;
+
+#endif
 }//tick
 
 /**
@@ -1720,8 +1738,13 @@ void displayEpisodes(Vector *episodeList, int level)
 
         if (level == 0)
         {
+#if USE_WMES
+            EpisodeWME *ep = (EpisodeWME*)episodeList->array[i];
+            displayEpisodeWME(ep);
+#else
             Episode *ep = (Episode*)episodeList->array[i];
             displayEpisodeShort(ep);
+#endif
             if (i + 1 < episodeList->size) printf(", "); // delimiter
         }
         else //episodeList contains sequences
@@ -1908,7 +1931,11 @@ void displayAction(Action* action)
     {
         if (action->level == 0)
         {
+#if USE_WMES
+            displayEpisodeWME((EpisodeWME*)action->epmem->array[action->index - i]);
+#else
             displayEpisodeShort((Episode*)action->epmem->array[action->index - i]);
+#endif
         }
         else //sequence
         {
@@ -2097,19 +2124,36 @@ int nextStepIsValid()
 
     //Get the current sensing from the episode list
     Vector *episodeList = g_epMem->array[0];
-    Episode* currEp     = episodeList->array[episodeList->size - 1];
+
+#if USE_WMES
+    EpisodeWME* currEp     = episodeList->array[episodeList->size - 1];
+   
+    // compare the current sensing to the sensing on the LHS of the
+    // to-be-executed action
+    EpisodeWME* nextStep = currAction->epmem->array[currAction->index];
+#else
+	Episode* currEp     = episodeList->array[episodeList->size - 1];
    
     // compare the current sensing to the sensing on the LHS of the
     // to-be-executed action
     Episode* nextStep = currAction->epmem->array[currAction->index];
+#endif
 
 #if DEBUGGING
     fflush(stdout);
     printf("comparing the current sensing:");
+#if USE_WMES
+	displayEpisodeWME(currEp);
+#else
     printf("%i ", interpretSensorsShort(currEp->sensors));
+#endif
     fflush(stdout);
     printf(" to the expected sensing: ");
+#if USE_WMES
+    displayEpisodeWME(nextStep);
+#else
     displayEpisodeShort(nextStep);
+#endif
     printf("\n");
     fflush(stdout);
 #endif
@@ -2120,7 +2164,11 @@ int nextStepIsValid()
     printf("\n");
 #endif
    
+#if USE_WMES
+    return compareEpisodesWME(currEp, nextStep, FALSE);
+#else
     return compareEpisodes(currEp, nextStep, FALSE);
+#endif
    
 }//nextStepIsValid
 
@@ -3030,8 +3078,13 @@ void displayRoute(Route *route, int recurse)
             //So just print a short version of the sensor data
             if (route->level == 0)
             {
+#if USE_WMES
+                EpisodeWME* ep = (EpisodeWME*)action->epmem->array[action->index];
+                displayEpisodeWME(ep);
+#else
                 Episode *ep = (Episode*)action->epmem->array[action->index];
                 displayEpisodeShort(ep);
+#endif
 
                 //If the command we just printed is the most recent
                 //command then append an asterisk to indicate that
@@ -3795,7 +3848,6 @@ Route *getTopRoute(Vector *plan)
 
 /**
  * findTopMatch
- */
 int findTopMatch(double* scoreTable, double* indvScore, int command)
 {
     int i, max;
@@ -3816,6 +3868,7 @@ int findTopMatch(double* scoreTable, double* indvScore, int command)
 
     return max;
 }//findTopMatch
+*/
 
 /**
  * compareEpisodes
@@ -4055,10 +4108,28 @@ int episodeContainsGoal(void *entry, int level)
 {
     if (level == 0)
     {
-        Episode* ep = (Episode *)entry;
 
+#if USE_WMES
+        EpisodeWME* ep = (EpisodeWME*)entry;
+		Vector* wmes = ep->sensors;
+		int i;
+		for(i = 0; i < wmes->size; i++)
+		{
+			WME* wme = (WME*)getEntry(wmes, i);
+			if(strcmp("reward", wme->attr) == 0 && wme->value.iVal > 0)
+			{
+				return TRUE;
+			}//if
+			else
+			{
+				return FALSE;
+			}//else
+		}//for
+#else
+        Episode* ep = (Episode *)entry;
         //For base actions, a goal is indicated by the IR sensor on the episode
-        return ep->sensors[SNSR_IR];
+		return ep->sensors[SNSR_IR];
+#endif
     }
     else //sequence
     {
@@ -4718,9 +4789,15 @@ Vector *convertEpMatchToSequence(int index, int len)
 
 #ifdef DEBUGGING_CONVERTEPMATCH
     printf("\t\tcomparing level 0 episodes: ");
+#if USE_WMES
+    displayEpisodeWME(ep2);
+    printf(" to ");
+    displayEpisodeWME(ep1);
+#else
     displayEpisodeShort(ep2);
     printf(" to ");
     displayEpisodeShort(ep1);
+#endif
     printf("\n");
     fflush(stdout);
 #endif
@@ -4804,7 +4881,11 @@ void displayNeighborhood(KN_Neighborhood* nbrHood, int bEps)
 
         if (bEps)
         {
-            displayEpisodeShort((Episode *)nbrHood->neighbors[i]);
+#if USE_WMES
+            displayEpisodeWME((EpisodeWME*)nbrHood->neighbors[i]);
+#else
+			displayEpisodeShort((Episode *)nbrHood->neighbors[i]);
+#endif
         }
         else
         {
@@ -5190,8 +5271,13 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
         int bestMatchLen = hood->nValues[bestMatchIndex];
         if (i == currActIndex - bestMatchLen) printf("[*");
         Action *act = (Action *)currSeq->array[i];
-        Episode *ep = (Episode *)act->epmem->array[act->index];
+#if USE_WMES
+        EpisodeWME *ep = (EpisodeWME*)act->epmem->array[act->index];
+        displayEpisodeWME(ep);
+#else
+		Episode *ep = (Episode *)act->epmem->array[act->index];
         displayEpisodeShort(ep);
+#endif
         if (i == currActIndex) printf("*]");
         if (i != currSeq->size - 1) printf(",");
     }
@@ -5401,8 +5487,13 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
             fflush(stdout);
             for(k = matchLen-1; k >= 0; k--)
             {
-                Episode *ep = level0Eps->array[i - k];
+#if USE_WMES
+				EpisodeWME *ep = level0Eps->array[i - k];
+                displayEpisodeWME(ep);
+#else
+				Episode *ep = level0Eps->array[i - k];
                 displayEpisodeShort(ep);
+#endif
                 if (k != 0) printf(",");
             }
             printf("\n");
@@ -5506,8 +5597,13 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
     {
         if (i == currActIndex - bestMatchLen) printf("[*");
         Action *act = (Action *)currSeq->array[i];
-        Episode *ep = (Episode *)act->epmem->array[act->index];
+#if USE_WMES
+        EpisodeWME *ep = (EpisodeWME*)act->epmem->array[act->index];
+        displayEpisodeWME(ep);
+#else
+		Episode *ep = (Episode *)act->epmem->array[act->index];
         displayEpisodeShort(ep);
+#endif
         if (i == currActIndex) printf("*]");
         if (i != currSeq->size - 1) printf(",");
     }
