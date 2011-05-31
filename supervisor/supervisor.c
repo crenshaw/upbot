@@ -65,7 +65,7 @@
 
 //Setting this turns on verbose output to aid debugging
 #define DEBUGGING 1
-#define USE_WMES 0
+#define USE_WMES 1
 
 
 //Particularly verbose debugging for specific methods
@@ -668,12 +668,12 @@ void displayEpisodeWME(EpisodeWME* ep)
 {
     Vector* sensors = ep->sensors;
 
-    printf("Senses:");
+    printf("\nSenses:");
     int i;
     for(i = 0; i < sensors->size; i++) displayWME(getEntry(sensors, i));
 
     printf("\nCommand: %s", interpretCommandShort(ep->cmd));
-    printf("\nTime: %d\n", ep->now);
+    printf("\nTime: %d\n\n", ep->now);
 }//displayEpisodeWME
 
 /**
@@ -720,7 +720,7 @@ EpisodeWME* createEpisodeWME(Vector* wmes)
     ep->sensors = wmes;
     ep->now = timestamp++;  // Just set it to our timestamp for now
     ep->cmd = CMD_ILLEGAL;  // Default command for now
-    
+
     /*
     This code is the old code that determines how to set the timestamp
     based on connection to roomba versus our virtual environment. We
@@ -748,14 +748,13 @@ EpisodeWME* createEpisodeWME(Vector* wmes)
         // Store the time
         parsedData->now = time;
     }
-
-    // Found a goal so decrease chance of random move
-    if(parsedData->sensors[SNSR_IR] == 1)
-    {
-        g_goalIdx[g_goalCount] = parsedData->now;
-        g_goalCount++;
-    }
 */
+	if(episodeContainsGoal(ep, 0))
+	{
+        g_goalIdx[g_goalCount] = ep->now;
+        g_goalCount++;
+	}//if
+    
     return ep;
 }//createEpisodeWME
 
