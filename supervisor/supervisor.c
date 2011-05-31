@@ -72,7 +72,7 @@
 #ifdef DEBUGGING
 // #define DEBUGGING_UPDATEALL 1
 // #define DEBUGGING_UPDATEPLAN 1
-// #define DEBUGGING_CHOOSECMD 1
+#define DEBUGGING_CHOOSECMD 1
 // #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
 // #define DEBUGGING_INITPLAN 1
 // #define DEBUGGING_FINDINTERIMSTART 1
@@ -348,9 +348,15 @@ void planTest()
     {
         // Create new Episode
         printf("Creating and adding episode...\n");
-        Episode* ep = createEpisode(sensors[i]);
+#if USE_WMES
+        EpisodeWME* ep = createEpisodeWME(roombaSensorsToWME(sensors[i]));
+        // Add new episode to the history
+        addEpisodeWME(ep);
+#else
+		Episode* ep = createEpisode(sensors[i]);
         // Add new episode to the history
         addEpisode(ep);
+#endif
         printf("Episode created\n");
 
         updateAll(0);
@@ -482,10 +488,15 @@ void replanTest()
     {
         // Create new Episode
         printf("Creating and adding episode...\n");
+#if USE_WMES
+        EpisodeWME* ep = createEpisodeWME(roombaSensorsToWME(sensors[i]));
+        // Add new episode to the history
+        addEpisodeWME(ep);
+#else
         Episode* ep = createEpisode(sensors[i]);
-       
         // Add new episode to the history
         addEpisode(ep);
+#endif
         printf("Episode created\n");
 
         updateAll(0);
@@ -820,14 +831,22 @@ Vector* roombaSensorsToWME(char* dataArr)
         WME* wme = (WME*)malloc(sizeof(WME));
         wme->type = WME_INT;
         wme->value.iVal = bit; 
-        wme->attr = (char*)malloc(sizeof(char) * 2);// Account for null term.
-        sprintf(wme->attr, "%i", i); // Just use the int equiv. of the sensor.
-                                // Shouldn't matter since it'll be the same
-                                // for each sensor string
-
+		// Here we will set the IR bit attr name to 'reward' to be consistent
+		// with how we expect to mark S/F from other state definitions.
+		// All other sensor attr names will be named by their index
+		if(i == 0)
+		{
+			wme->attr = (char*)malloc(sizeof(char) * 7); // "reward\0"
+			sprintf(wme->attr, "%s", "reward");
+		}//if
+		else
+		{
+        	wme->attr = (char*)malloc(sizeof(char) * 2);// Account for null term.
+        	sprintf(wme->attr, "%i", i); // Just use the index of the sensor.
+		}//else
         // Add the new WME to the vector
         addEntry(wmeVec, wme);
-    }
+    }//for
     return wmeVec;
 }//roombaSensorsToWME
 
