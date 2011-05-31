@@ -27,6 +27,10 @@
 #define TRUE				1
 #define FALSE				0
 
+//Flags
+#define USE_WMES 1              // use to activate EpisodeWME
+
+
 // Function return codes
 #define SUCCESS             0
 #define NO_GOAL_IN_LEVEL    1    // used by initRoute

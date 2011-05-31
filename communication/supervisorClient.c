@@ -315,7 +315,7 @@ void printStats(FILE* log)
 	if(g_statsMode == 0)
 	{
 		// Print the number of goals found and episodes recieved
-		printf("Roomba has found the Goal %i times.\nSupervisor has received %ui episodes.\n",
+		printf("Roomba has found the Goal %i times.\nSupervisor has received %u episodes.\n",
                NUM_GOALS_TO_FIND, (unsigned int)episodeList->size);
 		int i;
 		// Print the timestamp that each goal was found at
@@ -358,7 +358,13 @@ void reportGoalFound(int sockfd, FILE* log)
 {
 	// Store the new goal timestamp and increment count
 	Vector* episodeList = g_epMem->array[0];
-	g_goalsTimeStamp[g_goalsFound] = ((Episode*)episodeList->array[episodeList->size - 1])->now;
+#if USE_WMES
+    EpisodeWME *ep = ((EpisodeWME*)episodeList->array[episodeList->size - 1]);
+#else
+    Episode *ep = ((Episode*)episodeList->array[episodeList->size - 1]);
+#endif
+        
+	g_goalsTimeStamp[g_goalsFound] = ep->now;
 	g_goalsFound++;
 
 	// Only print if not in stats mode
@@ -479,8 +485,12 @@ int main(int argc, char *argv[])
 		processCommand(&cmd, buf, log);
 
 		// If goal is found increase goal count and store the index it was found at
-//		if(((Episode*)getEntry(episodeList, episodeList->size - 1))->sensors[SNSR_IR] == 1)
-		if(((Episode*)episodeList->array[episodeList->size - 1])->sensors[SNSR_IR] == 1)
+#if USE_WMES
+        EpisodeWME *ep = (EpisodeWME*)getEntry(episodeList, episodeList->size - 1);
+#else
+        Episode *ep = (Episode*)getEntry(episodeList, episodeList->size - 1);
+#endif
+        if (episodeContainsGoal(ep, FALSE))
 		{
 			reportGoalFound(sockfd, log);
 		}

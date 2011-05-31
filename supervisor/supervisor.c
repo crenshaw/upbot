@@ -65,7 +65,6 @@
 
 //Setting this turns on verbose output to aid debugging
 #define DEBUGGING 1
-#define USE_WMES 1
 
 
 //Particularly verbose debugging for specific methods
