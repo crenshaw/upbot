@@ -28,7 +28,7 @@
 #define FALSE				0
 
 //Flags
-//#define USE_WMES 1              // use to activate EpisodeWME
+#define USE_WMES 1              // use to activate EpisodeWME
 
 
 // Function return codes
@@ -49,8 +49,8 @@
 #define MIN_NEIGHBORS        (1) //minimum number of neighbors required for match
 
 //Planning defines
-#define MAX_ROUTE_LEN        (500)
-#define MAX_ROUTE_CANDS      (2000) // maximum number of candidate routes to
+#define MAX_ROUTE_LEN        (50)
+#define MAX_ROUTE_CANDS      (40) // maximum number of candidate routes to
                                    // examine before giving up
 
 //Replacement defines
@@ -188,7 +188,9 @@ int          addEpisodeWME(EpisodeWME* item); // DUPL
 int          compareEpisodesWME(EpisodeWME* ep1, EpisodeWME* ep2, int compCmd); // DUPL
 int          compareWME(WME* wme1, WME* wme2);
 void         displayEpisodeWME(EpisodeWME* ep); // DUPL
+void         displayEpisodeWMEShort(EpisodeWME* ep); // DUPL
 void         displayWME(WME* wme);
+void         displayWMEList(Vector *sensors);  // DUPL (sort of) of interpretSensorsShort
 EpisodeWME*  createEpisodeWME(Vector* wmes); // DUPL
 void         freeEpisodeWME(EpisodeWME* ep);
 void         freeWME(WME* wme);
