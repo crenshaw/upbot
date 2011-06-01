@@ -11,6 +11,9 @@
 * Usage: supervisorClient.out <ip_addr> -c <roomba/test> -m <stats/visual>
 */
 
+// If TRUE then we are expecting to receive a sensory string that defines
+// a series of WMEs like so:	:name1,type1,value1:name2,type2,value2:.etc..:
+#define WME_STRING_SENSES 1
 
 //if RANDOMIZE is defined then the hallucinogen filter is applied
 //#define RANDOMIZE
@@ -410,6 +413,9 @@ void processCommand(int* cmd, char* buf, FILE* log)
 	// Call Supervisor tick to process recently added episode.
     // The incoming sensing may be filtered depending upon
     // RANDOMIZE and FILTERING
+#if WME_STRING_SENSES
+	*cmd = tickWME(stringToWMES(buf));
+#else
 #ifdef RANDOMIZE
     insertConfusion(buf); 
 #endif
@@ -420,7 +426,7 @@ void processCommand(int* cmd, char* buf, FILE* log)
 #else
     *cmd = tick(buf);
 #endif
-
+#endif
 	if(g_statsMode == 0)
 	{
 		// Print sensor data to log file and force write

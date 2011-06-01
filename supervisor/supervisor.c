@@ -828,6 +828,71 @@ void freeWME(WME* wme)
 }//freeWME
 
 /**
+ * stringToWMES
+ *
+ * This function takes a string that contains a series of WMEs
+ * and converts them into actual WMEs contained in a vector.
+ *
+ * @param senses A char* indicating a string defining several WMEs
+ *
+ * A WME is defined by 3 values: Attribute Name, Attribute Type, Attribute Value
+ * These are delineated with a comma. Multiple WMEs are delineated with a semi-colon.
+ * Types are a single char: i (integer), c (char), d (double), s (string {char*}).
+ * {:name,type,value:}
+ *
+ * ex:		:size,i,25:name,s,john:open,i,1:pi,d,3.14159:
+ *
+ * Note: The first WME is preceded by a ':' and the final WME is succeded by a ':'
+ *
+ * @return Vector* A vector of WMEs derived from the sense string.
+ *					NULL if error
+ */
+Vector* stringToWMES(char* senses)
+{
+	Vector* wmes = newVector();
+	char delims[] = ":,";
+	char* result = strtok(senses, delims);
+	int i;
+	WME* wme;
+	while(result != NULL)
+	{
+		wme = (WME*)malloc(sizeof(WME));
+		for(i = 0; i < 3; i++)
+		{
+			switch(i)
+			{
+				case 0:
+					wme->attr = (char*)malloc(sizeof(char) * (strlen(result) + 1));
+					sprintf(wme->attr, "%s", result);
+					break;
+				case 1:
+					if(strcmp(result, "i") == 0) wme->type = WME_INT;
+					else if(strcmp(result, "c") == 0) wme->type = WME_CHAR;
+					else if(strcmp(result, "d") == 0) wme->type = WME_DOUBLE;
+					else if(strcmp(result, "s") == 0) wme->type = WME_STRING;
+					else return NULL;
+					break;
+				case 2:
+					if(wme->type == WME_INT) wme->value.iVal = atoi(result);
+					else if(wme->type == WME_CHAR) wme->value.cVal = (char)result[0];
+					else if(wme->type == WME_DOUBLE) wme->value.dVal = atof(result);
+					else if(wme->type == WME_STRING)
+					{
+						wme->value.sVal = (char*)malloc(sizeof(char) * (strlen(result) + 1));
+						sprintf(wme->value.sVal, "%s", result);
+					}
+					else return NULL;
+					break;
+			}//switch	
+			result = strtok(NULL, delims);
+		}//for
+		addEntry(wmes, wme);
+	}//while
+	
+	return wmes;
+}//stringToWMES
+
+/**
  * roombaSensorsToWME
  *
  * This function takes the sensor string received from a Roomba

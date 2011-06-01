@@ -1,4 +1,7 @@
+#include <string.h>
 #include "eaters.h"
+#include "vector.h"
+#include "supervisor.h"
 
 int main()
 {
@@ -22,3 +25,5 @@ int main()
 
 	return 0;
 }//main
+
+

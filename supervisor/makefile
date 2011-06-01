@@ -20,8 +20,10 @@ WME_unitTest: WME_unitTest.c supervisor
 	$(CC) -g -c WME_unitTest.c
 	$(CC) -o WME_unitTest.out WME_unitTest.o vector.o supervisor.o knearest.o
 
-EATERS_unitTest: EATERS_unitTest.c eaters.c
-	$(CC) -o EATERS_unitTest.out EATERS_unitTest.c eaters.c
+EATERS_unitTest: EATERS_unitTest.c eaters.c vector.c supervisor
+	$(CC) -g -c EATERS_unitTest.c 
+	$(CC) -g -c eaters.c 
+	$(CC) -o EATERS_unitTest.out EATERS_unitTest.o eaters.o vector.o supervisor.o knearest.o
 
 clean:
 	rm -r *.dSYM

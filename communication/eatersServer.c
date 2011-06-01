@@ -104,15 +104,17 @@ int main(int argc, char* argv[])
 			int* cmd = (int*) malloc(sizeof(int));
 			*cmd = CMD_NO_OP;
 
+			initWorld(TRUE);
+
 			while(1)
 			{
 				// send command to unitTester and receive resulting sensor data
-				str = unitTest(*cmd, FALSE);
+				str = unitTest((*cmd % 4), FALSE);
 
 				// Print feedback if not in statsMode
 				if(!g_statsMode)
 				{
-					printf("Sending: [%s] to Supervisor\n", str);
+					printf("Sending: \"%s\" to Supervisor\n", str);
 				}
 
 				// Send the sensor data to Supervisor client

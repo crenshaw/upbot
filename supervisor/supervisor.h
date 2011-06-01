@@ -194,6 +194,7 @@ void         displayWMEList(Vector *sensors);  // DUPL (sort of) of interpretSen
 EpisodeWME*  createEpisodeWME(Vector* wmes); // DUPL
 void         freeEpisodeWME(EpisodeWME* ep);
 void         freeWME(WME* wme);
+Vector*		 stringToWMES(char* senseString);
 Vector*      roombaSensorsToWME(char* sensorInput);
 // Plan: Once everything functions, roomba calls tick(), which converts
 //       to WME vector then calls tickWME()

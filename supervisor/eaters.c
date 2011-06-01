@@ -1,7 +1,7 @@
 /**
-* unitTestEATERS.c
+* eaters.c
 *
-* This unit test runs a virtual environment called Eaters
+* This runs a virtual environment called Eaters
 * where a Supervisor attempts to amass the greatest score
 * possible by 'eating' items in a small world.
 *
@@ -48,6 +48,7 @@ void initWorld(int firstInit)
 	g_Y 			= Y_INIT;
 	g_numMoves 		= 0;
 	g_score 		= 0;
+	g_statsMode 	= FALSE;
 	//----------------------------
 
 	int i,j;
@@ -277,7 +278,7 @@ char* setSenseString()
     char* str = (char*) malloc(sizeof(char) * 100); 
 
     // Fill out sensor string
-    sprintf(str, ":UL,%d:UM,%d:UR,%d:LT,%d:RT,%d:LL,%d:LM,%d:LR,%d:score,%d:moves,%d:color,%s:", 
+    sprintf(str, ":UL,i,%d:UM,i,%d:UR,i,%d:LT,i,%d:RT,i,%d:LL,i,%d:LM,i,%d:LR,i,%d:score,i,%d:moves,i,%d:color,s,%s:", 
 			g_world[g_X - 1][g_Y - 1], g_world[g_X][g_Y - 1], g_world[g_X + 1][g_Y - 1], 
 			g_world[g_X - 1][g_Y], g_world[g_X + 1][g_Y], 
 			g_world[g_X - 1][g_Y + 1], g_world[g_X][g_Y + 1], g_world[g_X + 1][g_Y + 1],
