@@ -20,6 +20,9 @@ WME_unitTest: WME_unitTest.c supervisor
 	$(CC) -g -c WME_unitTest.c
 	$(CC) -o WME_unitTest.out WME_unitTest.o vector.o supervisor.o knearest.o
 
+EATERS_unitTest: EATERS_unitTest.c eaters.c
+	$(CC) -o EATERS_unitTest.out EATERS_unitTest.c eaters.c
+
 clean:
 	rm -r *.dSYM
 	rm *.out *.o
