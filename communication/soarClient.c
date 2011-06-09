@@ -20,7 +20,7 @@
 
 //int g_goalsTimeStamp[NUM_GOALS_TO_FIND];	// Timestamps of found goals
 int g_tries;	// Number of tries to reconnect
-int g_currentScore = 0;
+//int g_currentScore = 0;
 
 /**
  * exitError

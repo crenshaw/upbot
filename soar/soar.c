@@ -54,6 +54,7 @@ int tickWME(char* wmeString)
     
     if(!g_statsMode) printf("++++++++++++++++++++++++++++++++++++++++++\n");
 	if(!g_statsMode) printf("Number of goals found: %i\n", g_goalCount);
+	if(!g_statsMode) printf("Current Score: %i\n", g_currentScore);
     if(!g_statsMode) printf("++++++++++++++++++++++++++++++++++++++++++\n");
     fflush(stdout);
     
@@ -411,7 +412,7 @@ int setCommand(EpisodeWME* ep)
 
         if(tempScore < 0)
         {
-            if (!g_statsMode) printf("%s: no valid reward found", interpretCommandShort(i));
+            if (!g_statsMode) printf("%s: no valid reward found\n", interpretCommandShort(i));
         }
         else
         {
@@ -465,6 +466,7 @@ double findDiscountedCommandScore(int command)
 
                 if(episodeContainsReward(ep))
                 {
+                    printf("Nondiscounted reward: %i\n", (int)getReward(ep));
                     return (getReward(ep) * pow(DISCOUNT, (double)j));
                 }//if
             }//for

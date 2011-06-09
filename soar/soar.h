@@ -61,6 +61,8 @@ Vector* g_epMem;
 int g_connectToRoomba;
 int g_statsMode;
 
+int g_currentScore;
+
 // Functions for WMEs
 extern int   tickWME(char* wmeString); // DUPL
 int          addEpisodeWME(EpisodeWME* item); // DUPL
