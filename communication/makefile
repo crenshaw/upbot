@@ -6,10 +6,10 @@ ifneq ($(DEBUG),none)
 DEBUG_OPT=-g 
 endif
 
-all: client sclient supclient mccClient unittest server sserver brainstem
+all: client sclient supclient mccClient unittest server sserver eaters brainstem
 
 #all non-ARM targets
-virt: client sclient supclient mccClient unittest
+virt: client sclient supclient mccClient unittest eaters
 
 server:	server.c communication.h serverUtility.c commandQueue.c 
 	$(CC) $(CFLAGS) -o server.out server.c serverUtility.c commandQueue.c
@@ -31,6 +31,9 @@ supclient:	supervisorClient.c communication.h serverUtility.c ../supervisor/supe
 
 mccClient: mccallumClient.c communication.h serverUtility.c ../mccallum/nsm.h ../mccallum/forgetfulmem.h ../mccallum/vector.h commandQueue.c
 	gcc $(DEBUG_OPT) -o mccallumClient.out mccallumClient.c serverUtility.c ../mccallum/nsm.c ../mccallum/forgetfulmem.c ../mccallum/vector.c commandQueue.c ../supervisor/filter_KNN.c ../supervisor/hallucinogen.c
+
+soarClient: soarClient.c communication.h serverUtility.c ../soar/soar.h ../soar/vector.h commandQueue.c
+	gcc $(DEBUG_OPT) -o soarClient.out soarClient.c serverUtility.c ../soar/soar.c ../soar/vector.c commandQueue.c -lm
 
 unittest: unitTestServer.c serverUtility.c ../supervisor/unitTest.h commandQueue.c
 	gcc $(DEBUG_OPT)-o unitTestServer.out unitTestServer.c serverUtility.c ../supervisor/unitTest.c commandQueue.c

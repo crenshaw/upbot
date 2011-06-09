@@ -21,10 +21,10 @@
 #define MAP_PERCENT_WALLS 	(15)
 
 // Commands
-#define MOVE_N	(0)
-#define MOVE_S	(1)
-#define MOVE_E	(2)
-#define MOVE_W	(3)
+//#define MOVE_N	(0)
+//#define MOVE_S	(1)
+//#define MOVE_E	(2)
+//#define MOVE_W	(3)
 
 // Booleans
 #define TRUE		1
