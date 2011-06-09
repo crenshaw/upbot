@@ -31,6 +31,8 @@
 // Defines for Q-Learning algorithm
 #define DISCOUNT            0.9
 
+#define BESTMATCHMIN        (0.75)
+
 // Macros
 #define DECREASE_RANDOM(randChance) if((randChance) > 4) { (randChance) *= .6;}
 
@@ -61,8 +63,6 @@ Vector* g_epMem;
 int g_connectToRoomba;
 int g_statsMode;
 
-int g_currentScore;
-
 // Functions for WMEs
 extern int   tickWME(char* wmeString); // DUPL
 int          addEpisodeWME(EpisodeWME* item); // DUPL
@@ -74,7 +74,9 @@ void         displayEpisodeWMEShort(EpisodeWME* ep); // DUPL
 void         displayWME(WME* wme);
 void         displayWMEList(Vector *sensors);  // DUPL (sort of) of interpretSensorsShort
 int 		 episodeContainsReward(EpisodeWME* ep);
-double       getReward(EpisodeWME* ep);
+int          isCloseMatch(EpisodeWME* ep1, EpisodeWME* ep2);
+int          getReward(EpisodeWME* ep);
+int          getScore(EpisodeWME* ep);
 void         freeEpisodeWME(EpisodeWME* ep);
 void         freeWME(WME* wme);
 Vector*		 stringToWMES(char* senseString);

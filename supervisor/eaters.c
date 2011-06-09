@@ -27,6 +27,7 @@ int** g_world;
 //keep track of number times goal is found
 int g_numMoves;
 int g_score;
+int g_reward;
 
 /**
  * initWorld
@@ -48,6 +49,7 @@ void initWorld(int firstInit)
 	g_Y 			= Y_INIT;
 	g_numMoves 		= 0;
 	g_score 		= 0;
+    g_reward        = 0;
 	g_statsMode 	= FALSE;
 	//----------------------------
 
@@ -205,6 +207,16 @@ char* unitTest(int command, int needCleanup)
  */
 char* doMove(int command)
 {
+    /*
+        If the spot is empty, then it will contain a 0, else
+        it will contain one of the two rewards. If a wall is
+        there we won't move into it.
+        So first we check for a wall in our destination.
+        If free, we first gather the reward in the location
+            (0,5,10)
+        Then we add that to the running score, free our current
+        location, and move into the destination square.
+    */
     // Switch on the command that was received to update world appropriatelY
     switch(command)
     {
@@ -213,7 +225,8 @@ char* doMove(int command)
             if(!g_statsMode) printf("Move north...\n");
 			if(g_world[g_X][g_Y - 1] != V_WALL)
 			{
-				g_score += g_world[g_X][g_Y - 1];
+				g_reward = g_world[g_X][g_Y - 1];
+				g_score += g_reward;
 				g_world[g_X][g_Y] = V_EMPTY;
 				g_Y--;
 				g_world[g_X][g_Y] = V_AGENT;
@@ -224,7 +237,8 @@ char* doMove(int command)
             if(!g_statsMode) printf("Move south...\n");
 			if(g_world[g_X][g_Y + 1] != V_WALL)
 			{
-				g_score += g_world[g_X][g_Y + 1];
+				g_reward = g_world[g_X][g_Y + 1];
+				g_score += g_reward;
 				g_world[g_X][g_Y] = V_EMPTY;
 				g_Y++;
 				g_world[g_X][g_Y] = V_AGENT;
@@ -235,7 +249,8 @@ char* doMove(int command)
             if(!g_statsMode) printf("Move east...\n");
 			if(g_world[g_X + 1][g_Y] != V_WALL)
 			{
-				g_score += g_world[g_X + 1][g_Y];
+				g_reward = g_world[g_X + 1][g_Y];
+				g_score += g_reward;
 				g_world[g_X][g_Y] = V_EMPTY;
 				g_X++;
 				g_world[g_X][g_Y] = V_AGENT;
@@ -246,7 +261,8 @@ char* doMove(int command)
             if(!g_statsMode) printf("Move west...\n");
 			if(g_world[g_X - 1][g_Y] != V_WALL)
 			{
-				g_score += g_world[g_X - 1][g_Y];
+				g_reward = g_world[g_X - 1][g_Y];
+				g_score += g_reward;
 				g_world[g_X][g_Y] = V_EMPTY;
 				g_X--;
 				g_world[g_X][g_Y] = V_AGENT;
@@ -275,14 +291,14 @@ char* doMove(int command)
 char* setSenseString()
 {
     // Memory for data string to return to Supervisor
-    char* str = (char*) malloc(sizeof(char) * 100); 
+    char* str = (char*) malloc(sizeof(char) * 150); 
 
     // Fill out sensor string
-    sprintf(str, ":UL,i,%d:UM,i,%d:UR,i,%d:LT,i,%d:RT,i,%d:LL,i,%d:LM,i,%d:LR,i,%d:score,i,%d:moves,i,%d:color,s,%s:", 
+    sprintf(str, ":UL,i,%d:UM,i,%d:UR,i,%d:LT,i,%d:RT,i,%d:LL,i,%d:LM,i,%d:LR,i,%d:score,i,%d:moves,i,%d:color,s,%s:reward,i,%d:", 
 			g_world[g_X - 1][g_Y - 1], g_world[g_X][g_Y - 1], g_world[g_X + 1][g_Y - 1], 
 			g_world[g_X - 1][g_Y], g_world[g_X + 1][g_Y], 
 			g_world[g_X - 1][g_Y + 1], g_world[g_X][g_Y + 1], g_world[g_X + 1][g_Y + 1],
-			g_score, g_numMoves, g_color);
+			g_score, g_numMoves, g_color, g_reward);
 
     return str;
 }//setSenseString

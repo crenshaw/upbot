@@ -18,9 +18,7 @@
 #define TIMEOUT_SECS	5	// Num seconds in timeout on recv
 #define MAX_TRIES		10	// Num tries to reconnect on lost connection
 
-//int g_goalsTimeStamp[NUM_GOALS_TO_FIND];	// Timestamps of found goals
 int g_tries;	// Number of tries to reconnect
-//int g_currentScore = 0;
 
 /**
  * exitError
@@ -345,8 +343,6 @@ void printStats(FILE* log)
  */
 void reportGoalFound(int sockfd, FILE* log)
 {
-	// Store the new goal timestamp and increment count
-//	g_currentScore += (int)getReward((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1)); 
 /*
 	if(g_statsMode != 0)
 	{
@@ -464,37 +460,34 @@ int main(int argc, char *argv[])
 		processCommand(&cmd, buf, log);
 
 		// If goal is found increase goal count and store the index it was found at
-		if(g_epMem->size > 2)
-		if(episodeContainsReward((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1)))
+		if(g_epMem->size > 2 && episodeContainsReward((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1)))
 		{
-			printf("Number of episodes: %i\n", g_epMem->size);
+//			printf("Number of episodes: %i\n", g_epMem->size);
             reportGoalFound(sockfd, log);
-		}
-//		else
-//		{ 
-			if(sendCommand(sockfd, cmd) < 0)
-			{
-				perror("Error sending to socket");
-			}
-//		} 
+        }//if
 
-		// Once we've found all the goals, print out some data about the search
-		if(g_currentScore >= FINAL_SCORE)
-		{
-			//printStats(log);
-			// exit the while loop
-			printf("Final Score Reached: %i. Exiting.\n", FINAL_SCORE);
-			break;
-		}
-	}// while
+        if(sendCommand(sockfd, cmd) < 0)
+        {
+            perror("Error sending to socket");
+        }//if
 
-	// End Soar agent to free memory
-	endSoar();
+        // Once we've found all the goals, print out some data about the search
+        if(getScore((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1)) >= FINAL_SCORE)
+        {
+            //printStats(log);
+            // exit the while loop
+            printf("Final Score Reached: %i. Exiting.\n", FINAL_SCORE);
+            break;
+        }//if
+    }// while
 
-	// close the connection to Roomba server
-	close(sockfd);
-	fclose(log);
+    // End Soar agent to free memory
+    endSoar();
 
-	return 0;
+    // close the connection to Roomba server
+    close(sockfd);
+    fclose(log);
+
+    return 0;
 }//main
 
