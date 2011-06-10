@@ -4,7 +4,7 @@ CC=gcc
 all: soar
 
 soar: soar.c soar.h vector.h vector.c
-	$(CC) -o soar.out soar.c vector.c
+	$(CC) -lm -c soar.c vector.c
 
 clean:
 	rm -r *.dSYM

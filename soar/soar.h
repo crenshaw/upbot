@@ -27,10 +27,7 @@
 
 // Matching defines
 #define FINAL_SCORE         500
-
-// Defines for Q-Learning algorithm
-#define DISCOUNT            0.9
-
+#define DISCOUNT            0.9 // amount to discount based on steps to reward
 #define BESTMATCHMIN        (0.75)
 
 // Macros
@@ -79,10 +76,10 @@ int          getReward(EpisodeWME* ep);
 int          getScore(EpisodeWME* ep);
 void         freeEpisodeWME(EpisodeWME* ep);
 void         freeWME(WME* wme);
+Vector*      roombaSensorsToWME(char* dataArr);
 Vector*		 stringToWMES(char* senseString);
 
-// Old functions
-// Function declarations
+// Functions for Commands
 //-----------------------------------------
 int          chooseCommand(EpisodeWME* ep);
 int          setCommand(EpisodeWME* ep);

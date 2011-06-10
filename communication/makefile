@@ -9,7 +9,7 @@ endif
 all: client sclient supclient mccClient unittest server sserver eaters brainstem
 
 #all non-ARM targets
-virt: client sclient supclient mccClient unittest eaters
+virt: client sclient supclient mccClient unittest eaters soarClient
 
 server:	server.c communication.h serverUtility.c commandQueue.c 
 	$(CC) $(CFLAGS) -o server.out server.c serverUtility.c commandQueue.c
@@ -76,4 +76,3 @@ compass.o:	../devices/compass.c ../devices/compass.h
 clean:
 	rm -r *.dSYM
 	rm *.out *.o 
-	

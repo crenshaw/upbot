@@ -44,10 +44,18 @@ int g_goalCount = 0;                // Number of goals found so far
  */
 int tickWME(char* wmeString)
 {
-    //%%%Temporarily hard-code stats mode
     g_statsMode = FALSE;
 
-    EpisodeWME* ep = createEpisodeWME(stringToWMES(wmeString));
+    EpisodeWME* ep;
+    if (wmeString[0] == ':')
+    {
+        ep = createEpisodeWME(stringToWMES(wmeString));
+    }
+    else
+    {
+        ep = createEpisodeWME(roombaSensorsToWME(wmeString));
+    }
+    
     addEpisodeWME(ep);
     
     if(!g_statsMode) printf("++++++++++++++++++++++++++++++++++++++++++\n");
@@ -327,6 +335,7 @@ Vector* stringToWMES(char* senses)
         wme = (WME*)malloc(sizeof(WME));
         for(i = 0; i < 3; i++)
         {
+            //switch on field index
             switch(i)
             {
                 case 0:
@@ -447,8 +456,13 @@ int chooseCommand(EpisodeWME* ep)
  */
 int setCommand(EpisodeWME* ep)
 {       
-    int i, holder = 0, status = -1;
+    int i;
+    int holder = 0;             // current command
+    int status = -1;            // did we find a matching episode for the
+                                // current command?
     double topScore=0.0, tempScore=0.0;
+
+    //For each possible command
     for(i = 0; i < 4; i++)
     {
         // Here we calculate the score for the current command
@@ -629,3 +643,53 @@ char* interpretCommandShort(int action)
             break;
     }//switch
 }//interpretCommandShort
+
+/**
+ * roombaSensorsToWME
+ *
+ * This function takes the sensor string received from a Roomba
+ * and converts it into the WME vector used by Ziggurat (in the
+ * near future).
+ *
+ * @param sensorInput a char string with Roomba sensor data
+ * @return Vector* A vector of WMEs created from the Roomba data
+ *                 NULL if error
+ */
+Vector* roombaSensorsToWME(char* dataArr)
+{
+    int i;
+    Vector* wmeVec = newVector();
+    // set the episodes sensor values to the sensor data
+    for(i = 0; i < NUM_SENSORS; i++)
+    {
+        // convert char to int and return error if not 0/1
+        int bit = (dataArr[i] - '0');
+        if ((bit < 0) || (bit > 1))
+        {
+            printf("%s", dataArr);
+            return NULL;     
+        }
+
+        // Create the WME for the current sensor
+        WME* wme = (WME*)malloc(sizeof(WME));
+        wme->type = WME_INT;
+        wme->value.iVal = bit; 
+		// Here we will set the IR bit attr name to 'reward' to be consistent
+		// with how we expect to mark S/F from other state definitions.
+		// All other sensor attr names will be named by their index
+		if(i == 0)
+		{
+			wme->attr = (char*)malloc(sizeof(char) * 7); // "reward\0"
+			sprintf(wme->attr, "%s", "reward");
+		}//if
+		else
+		{
+        	wme->attr = (char*)malloc(sizeof(char) * 2);// Account for null term.
+        	sprintf(wme->attr, "%i", i); // Just use the index of the sensor.
+		}//else
+        // Add the new WME to the vector
+        addEntry(wmeVec, wme);
+    }//for
+    return wmeVec;
+}//roombaSensorsToWME
+
