@@ -472,11 +472,11 @@ int main(int argc, char *argv[])
         }//if
 
         // Once we've found all the goals, print out some data about the search
-        if(getScore((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1)) >= FINAL_SCORE)
+        if(getNumSteps((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1)) >= MAX_STEPS)
         {
             //printStats(log);
             // exit the while loop
-            printf("Final Score Reached: %i. Exiting.\n", FINAL_SCORE);
+            printf("Max steps reached: %i. Exiting.\n", MAX_STEPS);
             break;
         }//if
     }// while

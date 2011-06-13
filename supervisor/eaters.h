@@ -11,20 +11,10 @@
 #define V_FOOD1		(5)
 #define V_FOOD2		(10)
 
-// Initial coords
-#define X_INIT		(1)
-#define Y_INIT		(1)
-
 // Map dimensions
 #define MAP_WIDTH			(18)
 #define MAP_HEIGHT			(18)
 #define MAP_PERCENT_WALLS 	(15)
-
-// Commands
-//#define MOVE_N	(0)
-//#define MOVE_S	(1)
-//#define MOVE_E	(2)
-//#define MOVE_W	(3)
 
 // Booleans
 #define TRUE		1
@@ -40,4 +30,4 @@ char* unitTest(int comand, int needCleanup);
 char* doMove(int command);
 char* setSenseString();
 
-#endif
+#endif // _EATERS_H_

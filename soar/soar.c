@@ -12,9 +12,6 @@
 
 #define DEBUGGING 1
 
-// The chance of choosing a random move
-double g_randChance = 70;
-
 // Global strings for printing to console
 // Full commands
 char* g_north    = "north";
@@ -199,6 +196,26 @@ int getScore(EpisodeWME* ep)
 }//getScore
 
 /**
+ * getNumSteps
+ *
+ * Return the score at the Episode's time.
+ *
+ * @param ep An EpisodeWME* indicating the episode
+ * @return int The score at that time
+ */
+int getNumSteps(EpisodeWME* ep)
+{
+    Vector* wmes = ep->sensors;
+    int i;
+    for(i = 0; i < wmes->size; i++)
+    {
+        WME* wme = (WME*)getEntry(wmes, i);
+        if(strcmp("steps", wme->attr) == 0) return wme->value.iVal;
+    }//for
+    return 0;
+}//getNumSteps
+
+/**
  * displayEpisodeWME
  *
  * Display the contents of an Episode struct in a verbose human readable format
@@ -262,11 +279,7 @@ EpisodeWME* createEpisodeWME(Vector* wmes)
     ep->now = timestamp++;  // Just set it to our timestamp for now
     ep->cmd = MOVE_N;       // Default command for now
 
-    if(episodeContainsReward(ep))
-    {
-        DECREASE_RANDOM(g_randChance);
-        g_goalCount++;
-    }//if
+    if(episodeContainsReward(ep)) g_goalCount++;
 
     return ep;
 }//createEpisodeWME
@@ -370,28 +383,43 @@ Vector* stringToWMES(char* senses)
 }//stringToWMES
 
 /**
- * isCloseMatch
+ * getNumMatches
  *
- * This function compares two episodes and determines if
- * they match within the defined percent match.
+ * This function compares two episodes and returns
+ * the number of WMEs in common.
  *
  * @param ep1 A pointer to an episode
  * @param ep2 A pointer to an episode
- * @return int A true/false if it matches within the amount requested
+ * @return int The number of WMEs in common
  */
-int isCloseMatch(EpisodeWME* ep1, EpisodeWME* ep2)
+int getNumMatches(EpisodeWME* ep1, EpisodeWME* ep2)
 {
-    if(ep1->cmd != ep2->cmd) return FALSE;
-    if(ep1->sensors->size != ep2->sensors->size) return FALSE;
+    if(ep1->cmd != ep2->cmd) return -1;
 
-    int i, count = 0;
-    for(i = 0; i < ep1->sensors->size; i++)
+    int i,j, count = 0;
+    if(ep1->sensors->size > ep2->sensors->size)
     {
-        if(compareWME(getEntry(ep1->sensors, i), getEntry(ep2->sensors, i))) count++;
-    }//for
+        for(i = 0; i < ep1->sensors->size; i++)
+        {
+            for(j = 0; j < ep2->sensors->size; j++)
+            {
+                if(compareWME(getEntry(ep1->sensors, i), getEntry(ep2->sensors, j))) count++;
+            }//for
+        }//for
+    }//if
+    else
+    {
+        for(i = 0; i < ep2->sensors->size; i++)
+        {
+            for(j = 0; j < ep1->sensors->size; j++)
+            {
+                if(compareWME(getEntry(ep2->sensors, i), getEntry(ep1->sensors, j))) count++;
+            }//for
+        }//for
+    }//else
 
-    return ((((double)count) / ((double)ep1->sensors->size)) >= BESTMATCHMIN);
-}//isCloseMatch
+    return count;
+}//getNumMatches
 
 
 //--------------------------------------------------------------------------------
@@ -419,7 +447,7 @@ int chooseCommand(EpisodeWME* ep)
     }//if
 
     // Determine the next command, possibility of random command
-    if((rand() % 100) < g_randChance  || g_epMem->size < 5)
+    if(g_epMem->size < 2)
     {
         if(!g_statsMode) printf(" selecting random command \n");
         fflush(stdout);
@@ -462,6 +490,7 @@ int setCommand(EpisodeWME* ep)
                                 // current command?
     double topScore=0.0, tempScore=0.0;
 
+    int tie = 0;
     //For each possible command
     for(i = 0; i < 4; i++)
     {
@@ -471,10 +500,11 @@ int setCommand(EpisodeWME* ep)
         if(tempScore < 0)
         {
             if (!g_statsMode) printf("\t%s: no valid reward found\n", interpretCommandShort(i));
+            tie++;
         }//if
         else
         {
-            if (!g_statsMode) printf("\t%s score= %f\n", interpretCommandShort(i), tempScore);
+            if (!g_statsMode) printf("\t%s score= %lf\n", interpretCommandShort(i), tempScore);
 
             if(tempScore > topScore)
             {
@@ -482,11 +512,13 @@ int setCommand(EpisodeWME* ep)
                 holder = i;
                 status = 1;
             }//if
+            if(tempScore == topScore) tie++;
         }//else
     }//for
 
     // do action offset
     ep->cmd = holder;
+    if(tie == 4) status = -1;
     return status;
 }//setCommand
 
@@ -513,24 +545,36 @@ int setCommand(EpisodeWME* ep)
 double findDiscountedCommandScore(int command)
 {
     int i,j, lastRewardIdx = findLastReward();
+
     if(!g_statsMode) printf("Searching for command: %s\n", interpretCommand(command));
     if(!g_statsMode) printf("\tLast reward at index: %d\n", lastRewardIdx);
+    
     EpisodeWME* curr = (EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1);
     curr->cmd = command;
-    for(i = lastRewardIdx - 1; i > 0; i--)
+    
+    int topMatch = 0, tempMatch = 0, holder = -1;
+    for(i = 0; i < lastRewardIdx; i++)
     {
-        if(isCloseMatch(getEntry(g_epMem, i), curr))
+        tempMatch = getNumMatches(getEntry(g_epMem, i), curr);
+        if(tempMatch >= topMatch)
         {
-            if(!g_statsMode) printf("\tState matched at index: %d\n", i);
-            for(j = 1; j+i <= lastRewardIdx; j++)
-            {
-                EpisodeWME* ep = (EpisodeWME*)getEntry(g_epMem, i+j);
-                if(episodeContainsReward(ep))
-                {
-                    if(!g_statsMode) printf("\tNondiscounted reward: %i\n", getReward(ep));
-                    return (((double)getReward(ep)) * pow(DISCOUNT, j));
-                }//if
-            }//for
+            if(!g_statsMode) printf("\tNew top match score: %d\n", tempMatch);
+            topMatch = tempMatch;
+            holder = i;
+        }//if
+    }//for
+
+    if(holder < 0) return -1.0;
+
+    if(!g_statsMode) printf("\tState best matched at index: %d\n", holder);
+    for(i = 1; i + holder <= lastRewardIdx; i++)
+    {
+        EpisodeWME* ep = (EpisodeWME*)getEntry(g_epMem, i + holder);
+        if(episodeContainsReward(ep))
+        {
+            if(!g_statsMode) printf("\tNondiscounted reward: %i at %i steps from match\n", getReward(ep), i);
+            if(!g_statsMode) printf("\tDiscount: %lf\n", pow(DISCOUNT, i));
+            return (((double)getReward(ep)) * (double)pow(DISCOUNT, i));
         }//if
     }//for
     return -1.0;
@@ -674,19 +718,19 @@ Vector* roombaSensorsToWME(char* dataArr)
         WME* wme = (WME*)malloc(sizeof(WME));
         wme->type = WME_INT;
         wme->value.iVal = bit; 
-		// Here we will set the IR bit attr name to 'reward' to be consistent
-		// with how we expect to mark S/F from other state definitions.
-		// All other sensor attr names will be named by their index
-		if(i == 0)
-		{
-			wme->attr = (char*)malloc(sizeof(char) * 7); // "reward\0"
-			sprintf(wme->attr, "%s", "reward");
-		}//if
-		else
-		{
-        	wme->attr = (char*)malloc(sizeof(char) * 2);// Account for null term.
-        	sprintf(wme->attr, "%i", i); // Just use the index of the sensor.
-		}//else
+        // Here we will set the IR bit attr name to 'reward' to be consistent
+        // with how we expect to mark S/F from other state definitions.
+        // All other sensor attr names will be named by their index
+        if(i == 0)
+        {
+            wme->attr = (char*)malloc(sizeof(char) * 7); // "reward\0"
+            sprintf(wme->attr, "%s", "reward");
+        }//if
+        else
+        {
+            wme->attr = (char*)malloc(sizeof(char) * 2);// Account for null term.
+            sprintf(wme->attr, "%i", i); // Just use the index of the sensor.
+        }//else
         // Add the new WME to the vector
         addEntry(wmeVec, wme);
     }//for

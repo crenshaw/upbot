@@ -19,6 +19,7 @@
 
 #include "vector.h"
 #include "../communication/communication.h"
+#include "../supervisor/knearest.h"
 
 // Boolean values
 #define TRUE                1
@@ -26,12 +27,10 @@
 #define SUCCESS             0
 
 // Matching defines
-#define FINAL_SCORE         500
-#define DISCOUNT            0.9 // amount to discount based on steps to reward
-#define BESTMATCHMIN        (0.75)
+#define MAX_STEPS           2500
 
-// Macros
-#define DECREASE_RANDOM(randChance) if((randChance) > 4) { (randChance) *= .6;}
+// Defines for Q-Learning algorithm
+#define DISCOUNT            (0.9)
 
 //Used for passing arbitrary information as agent's state
 typedef struct WMEStruct {
@@ -71,15 +70,17 @@ void         displayEpisodeWMEShort(EpisodeWME* ep); // DUPL
 void         displayWME(WME* wme);
 void         displayWMEList(Vector *sensors);  // DUPL (sort of) of interpretSensorsShort
 int 		 episodeContainsReward(EpisodeWME* ep);
-int          isCloseMatch(EpisodeWME* ep1, EpisodeWME* ep2);
+int          getNumMatches(EpisodeWME* ep1, EpisodeWME* ep2);
 int          getReward(EpisodeWME* ep);
 int          getScore(EpisodeWME* ep);
+int          getNumSteps(EpisodeWME* ep);
 void         freeEpisodeWME(EpisodeWME* ep);
 void         freeWME(WME* wme);
-Vector*      roombaSensorsToWME(char* dataArr);
 Vector*		 stringToWMES(char* senseString);
+Vector*      roombaSensorsToWME(char* dataArr);
 
-// Functions for Commands
+// Old functions
+// Function declarations
 //-----------------------------------------
 int          chooseCommand(EpisodeWME* ep);
 int          setCommand(EpisodeWME* ep);
