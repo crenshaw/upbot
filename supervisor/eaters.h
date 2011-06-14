@@ -4,13 +4,6 @@
 #include <stdlib.h>
 #include "../communication/communication.h"
 
-// Objects in the virtual world
-#define V_WALL		(1)
-#define V_AGENT		(2)
-#define V_EMPTY		(0)
-#define V_FOOD1		(5)
-#define V_FOOD2		(10)
-
 // Map dimensions
 #define MAP_WIDTH			(18)
 #define MAP_HEIGHT			(18)

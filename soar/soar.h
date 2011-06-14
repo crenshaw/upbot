@@ -27,10 +27,12 @@
 #define SUCCESS             0
 
 // Matching defines
-#define MAX_STEPS           2500
+#define MAX_STEPS           1000
 
 // Defines for Q-Learning algorithm
 #define DISCOUNT            (0.9)
+
+#define LOOK_AHEAD_N        0
 
 //Used for passing arbitrary information as agent's state
 typedef struct WMEStruct {
@@ -74,6 +76,11 @@ int          getNumMatches(EpisodeWME* ep1, EpisodeWME* ep2);
 int          getReward(EpisodeWME* ep);
 int          getScore(EpisodeWME* ep);
 int          getNumSteps(EpisodeWME* ep);
+int          getINTValWME(EpisodeWME* ep, char* attr, int* found);
+char         getCHARValWME(EpisodeWME* ep, char* attr, int* found);
+double       getDOUBLEValWME(EpisodeWME* ep, char* attr, int* found);
+char*        getSTRINGValWME(EpisodeWME* ep, char* attr, int* found);
+int          episodeContainsAttr(EpisodeWME* ep, char* attr);
 void         freeEpisodeWME(EpisodeWME* ep);
 void         freeWME(WME* wme);
 Vector*		 stringToWMES(char* senseString);

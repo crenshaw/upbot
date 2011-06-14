@@ -106,5 +106,11 @@ int checkArgName(int argc, char* argv[], char addresses[3][13]);
 #define MOVE_S 0x1
 #define MOVE_E 0x2
 #define MOVE_W 0x3
+// Virtual objects in Eaters environment
+#define V_WALL		(1)
+#define V_AGENT		(2)
+#define V_EMPTY		(0)
+#define V_FOOD1		(5)
+#define V_FOOD2		(10)
 
 #endif

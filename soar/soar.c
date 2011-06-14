@@ -216,6 +216,136 @@ int getNumSteps(EpisodeWME* ep)
 }//getNumSteps
 
 /**
+ * getINTValWME
+ *
+ * Retrieve the int value from an episode
+ *
+ * @param ep A pointer to an episode.
+ * @param attr A pointer to a string with the desired attribute name
+ *
+ * @return int The desired value. NULL if not found
+ */
+int getINTValWME(EpisodeWME* ep, char* attr, int* found)
+{
+    Vector* wmes = ep->sensors;
+    int i;
+    for(i = 0; i < wmes->size; i++)
+    {
+        WME* wme = (WME*)getEntry(wmes, i);
+        if(strcmp(attr, wme->attr) == 0) 
+        {
+            (*found) = TRUE;
+            return wme->value.iVal;
+        }
+    }//for
+    (*found) = FALSE;
+    return 0;
+}//getINTValWME
+
+/**
+ * getCHARValWME
+ *
+ * Retrieve the char value from an episode
+ *
+ * @param ep A pointer to an episode.
+ * @param attr A pointer to a string with the desired attribute name
+ *
+ * @return char The desired value. NULL if not found
+ */
+char getCHARValWME(EpisodeWME* ep, char* attr, int* found)
+{
+    Vector* wmes = ep->sensors;
+    int i;
+    for(i = 0; i < wmes->size; i++)
+    {
+        WME* wme = (WME*)getEntry(wmes, i);
+        if(strcmp(attr, wme->attr) == 0) 
+        {
+            (*found) = TRUE;
+            return wme->value.cVal;
+        }
+    }//for
+    (*found) = FALSE;
+    return '0';;
+}//getCHARValWME
+
+/**
+ * getDOUBLEValWME
+ *
+ * Retrieve the double value from an episode
+ *
+ * @param ep A pointer to an episode.
+ * @param attr A pointer to a string with the desired attribute name
+ *
+ * @return double The desired value. NULL if not found
+ */
+double getDOUBLEValWME(EpisodeWME* ep, char* attr, int* found)
+{
+    Vector* wmes = ep->sensors;
+    int i;
+    for(i = 0; i < wmes->size; i++)
+    {
+        WME* wme = (WME*)getEntry(wmes, i);
+        if(strcmp(attr, wme->attr) == 0) 
+        {
+            (*found) = TRUE;
+            return wme->value.dVal;
+        }
+    }//for
+    (*found) = FALSE;
+    return 0;
+}//getDOUBLEValWME
+
+/**
+ * getSTRINGValWME
+ *
+ * Retrieve the string value from an episode
+ *
+ * @param ep A pointer to an episode.
+ * @param attr A pointer to a string with the desired attribute name
+ *
+ * @return string The desired value. NULL if not found
+ */
+char* getSTRINGValWME(EpisodeWME* ep, char* attr, int* found)
+{
+    Vector* wmes = ep->sensors;
+    int i;
+    for(i = 0; i < wmes->size; i++)
+    {
+        WME* wme = (WME*)getEntry(wmes, i);
+        if(strcmp(attr, wme->attr) == 0) 
+        {
+            (*found) = TRUE;
+            return wme->value.sVal;
+        }
+    }//for
+    (*found) = FALSE;
+    return NULL;
+}//getSTRINGValWME
+
+/**
+ * episodeContainsAttr
+ *
+ * Searches an episode's WMEs to determine if a WME
+ * exists of the desired attribute.
+ *
+ * @param ep A pointer to an episode
+ * @param attr A pointer to a string containing the attribute name
+ * @return int A boolean indicator of WME existence.
+ */
+int episodeContainsAttr(EpisodeWME* ep, char* attr)
+{
+    Vector* wmes = ep->sensors;
+    int i;
+    for(i = 0; i < wmes->size; i++)
+    {
+        WME* wme = (WME*)getEntry(wmes, i);
+        if(strcmp(attr, wme->attr) == 0) return TRUE;
+    }//for
+    return FALSE;
+}//episodeContainsAttr
+
+/**
  * displayEpisodeWME
  *
  * Display the contents of an Episode struct in a verbose human readable format
@@ -403,7 +533,9 @@ int getNumMatches(EpisodeWME* ep1, EpisodeWME* ep2)
         {
             for(j = 0; j < ep2->sensors->size; j++)
             {
-                if(compareWME(getEntry(ep1->sensors, i), getEntry(ep2->sensors, j))) count++;
+                WME* wme1 = (WME*)getEntry(ep1->sensors, i);
+                WME* wme2 = (WME*)getEntry(ep2->sensors, i);
+                if(compareWME(wme1, wme2)) count++;
             }//for
         }//for
     }//if
@@ -490,17 +622,21 @@ int setCommand(EpisodeWME* ep)
                                 // current command?
     double topScore=0.0, tempScore=0.0;
 
-    int tie = 0;
+    int found;
     //For each possible command
     for(i = 0; i < 4; i++)
     {
+        if((i == MOVE_N && getINTValWME(ep, "UM", &found) == V_WALL) ||
+           (i == MOVE_S && getINTValWME(ep, "LM", &found) == V_WALL) ||
+           (i == MOVE_E && getINTValWME(ep, "RT", &found) == V_WALL) ||
+           (i == MOVE_W && getINTValWME(ep, "LT", &found) == V_WALL))
+            continue;
         // Here we calculate the score for the current command
         tempScore = findDiscountedCommandScore(i);
 
         if(tempScore < 0)
         {
             if (!g_statsMode) printf("\t%s: no valid reward found\n", interpretCommandShort(i));
-            tie++;
         }//if
         else
         {
@@ -512,13 +648,11 @@ int setCommand(EpisodeWME* ep)
                 holder = i;
                 status = 1;
             }//if
-            if(tempScore == topScore) tie++;
         }//else
     }//for
 
     // do action offset
     ep->cmd = holder;
-    if(tie == 4) status = -1;
     return status;
 }//setCommand
 
@@ -544,7 +678,7 @@ int setCommand(EpisodeWME* ep)
  */
 double findDiscountedCommandScore(int command)
 {
-    int i,j, lastRewardIdx = findLastReward();
+    int i,j, lastRewardIdx = g_epMem->size - 1; //findLastReward();
 
     if(!g_statsMode) printf("Searching for command: %s\n", interpretCommand(command));
     if(!g_statsMode) printf("\tLast reward at index: %d\n", lastRewardIdx);
@@ -558,7 +692,6 @@ double findDiscountedCommandScore(int command)
         tempMatch = getNumMatches(getEntry(g_epMem, i), curr);
         if(tempMatch >= topMatch)
         {
-            if(!g_statsMode) printf("\tNew top match score: %d\n", tempMatch);
             topMatch = tempMatch;
             holder = i;
         }//if
@@ -567,9 +700,16 @@ double findDiscountedCommandScore(int command)
     if(holder < 0) return -1.0;
 
     if(!g_statsMode) printf("\tState best matched at index: %d\n", holder);
+#if LOOK_AHEAD_N
+    for(i = 1; i <= LOOK_AHEAD_N && i + holder <= lastRewardIdx; i++)
+#else
     for(i = 1; i + holder <= lastRewardIdx; i++)
+#endif
     {
         EpisodeWME* ep = (EpisodeWME*)getEntry(g_epMem, i + holder);
+
+        if(ep == curr) return 0;
+
         if(episodeContainsReward(ep))
         {
             if(!g_statsMode) printf("\tNondiscounted reward: %i at %i steps from match\n", getReward(ep), i);
