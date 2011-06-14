@@ -49,6 +49,8 @@ char* g_unknownS = "$$";
 int g_goalCount = 0;                // Number of goals found so far
 int g_goalIdx[NUM_GOALS_TO_FIND];   // Keep track of the episodes with goals
 
+int g_CMD_COUNT = 0;
+
 
 /**
  * tick
@@ -938,8 +940,9 @@ int equalEpisodes(Episode* ep1, Episode* ep2)
  *
  * Initialize the NSM vectors
  */
-void initNSM()
+void initNSM(int numCommands)
 {
+    g_CMD_COUNT     = numCommands;
 	g_epMem         = newFMem(FORGETTING_THRESHOLD);
 	g_neighborhoods = newVector();
 

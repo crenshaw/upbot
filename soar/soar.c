@@ -14,6 +14,7 @@
 
 // Global strings for printing to console
 // Full commands
+char* g_no_op    = "no operation";
 char* g_north    = "north";
 char* g_east     = "east";
 char* g_south    = "south";
@@ -21,6 +22,7 @@ char* g_west     = "west";
 char* g_unknown  = "unknown";
 
 // Condensed commands
+char* g_no_opS   = "O";
 char* g_northS   = "N";
 char* g_eastS    = "E";
 char* g_southS   = "S";
@@ -29,6 +31,7 @@ char* g_unknownS = "U";
 
 // Keep track of goals
 int g_goalCount = 0;                // Number of goals found so far
+int g_CMD_COUNT = 0;
 
 /**
  * tickWME
@@ -41,8 +44,6 @@ int g_goalCount = 0;                // Number of goals found so far
  */
 int tickWME(char* wmeString)
 {
-    g_statsMode = FALSE;
-
     EpisodeWME* ep;
     if (wmeString[0] == ':')
     {
@@ -407,7 +408,7 @@ EpisodeWME* createEpisodeWME(Vector* wmes)
     // Set EpisodeWME sensors vector to our WME vector
     ep->sensors = wmes;
     ep->now = timestamp++;  // Just set it to our timestamp for now
-    ep->cmd = MOVE_N;       // Default command for now
+    ep->cmd = CMD_NO_OP;       // Default command for now
 
     if(episodeContainsReward(ep)) g_goalCount++;
 
@@ -534,7 +535,7 @@ int getNumMatches(EpisodeWME* ep1, EpisodeWME* ep2)
             for(j = 0; j < ep2->sensors->size; j++)
             {
                 WME* wme1 = (WME*)getEntry(ep1->sensors, i);
-                WME* wme2 = (WME*)getEntry(ep2->sensors, i);
+                WME* wme2 = (WME*)getEntry(ep2->sensors, j);
                 if(compareWME(wme1, wme2)) count++;
             }//for
         }//for
@@ -545,7 +546,9 @@ int getNumMatches(EpisodeWME* ep1, EpisodeWME* ep2)
         {
             for(j = 0; j < ep1->sensors->size; j++)
             {
-                if(compareWME(getEntry(ep2->sensors, i), getEntry(ep1->sensors, j))) count++;
+                WME* wme1 = (WME*)getEntry(ep2->sensors, i);
+                WME* wme2 = (WME*)getEntry(ep1->sensors, j);
+                if(compareWME(wme1, wme2)) count++;
             }//for
         }//for
     }//else
@@ -583,7 +586,7 @@ int chooseCommand(EpisodeWME* ep)
     {
         if(!g_statsMode) printf(" selecting random command \n");
         fflush(stdout);
-        ep->cmd = (rand() % 4);
+        ep->cmd = ((rand() % g_CMD_COUNT) + CMD_NO_OP);
     }//if
     else
     {
@@ -594,7 +597,7 @@ int chooseCommand(EpisodeWME* ep)
         if(setCommand(ep) < 0)
         {
             if(!g_statsMode) printf("Failed to set a command, choosing random\n");
-            ep->cmd = (rand() % 4);
+            ep->cmd = ((rand() % g_CMD_COUNT) + CMD_NO_OP);
         }//if
         fflush(stdout);
     }//else
@@ -617,19 +620,19 @@ int chooseCommand(EpisodeWME* ep)
 int setCommand(EpisodeWME* ep)
 {       
     int i;
-    int holder = 0;             // current command
+    int holder = CMD_NO_OP;     // current command
     int status = -1;            // did we find a matching episode for the
                                 // current command?
     double topScore=0.0, tempScore=0.0;
 
     int found;
     //For each possible command
-    for(i = 0; i < 4; i++)
+    for(i = CMD_NO_OP; i <= g_CMD_COUNT; i++)
     {
-        if((i == MOVE_N && getINTValWME(ep, "UM", &found) == V_WALL) ||
-           (i == MOVE_S && getINTValWME(ep, "LM", &found) == V_WALL) ||
-           (i == MOVE_E && getINTValWME(ep, "RT", &found) == V_WALL) ||
-           (i == MOVE_W && getINTValWME(ep, "LT", &found) == V_WALL))
+        if((i == CMD_MOVE_N && getINTValWME(ep, "UM", &found) == V_WALL) ||
+           (i == CMD_MOVE_S && getINTValWME(ep, "LM", &found) == V_WALL) ||
+           (i == CMD_MOVE_E && getINTValWME(ep, "RT", &found) == V_WALL) ||
+           (i == CMD_MOVE_W && getINTValWME(ep, "LT", &found) == V_WALL))
             continue;
         // Here we calculate the score for the current command
         tempScore = findDiscountedCommandScore(i);
@@ -708,7 +711,11 @@ double findDiscountedCommandScore(int command)
     {
         EpisodeWME* ep = (EpisodeWME*)getEntry(g_epMem, i + holder);
 
-        if(ep == curr) return 0;
+        if(ep == curr) 
+        {
+            if(!g_statsMode) printf("\tNo subsequent reward found\n");
+            return 0;
+        }
 
         if(episodeContainsReward(ep))
         {
@@ -742,11 +749,14 @@ int findLastReward()
  * initSoar
  *
  * Initialize the episodic memory vector
+ *
+ * @param numCommands An integer indicating the number
+ *      of available commands in the current environment
  */
-void initSoar()
+void initSoar(int numCommands)
 {
-    g_epMem         = newVector();
-
+    g_CMD_COUNT             = numCommands;
+    g_epMem                 = newVector();
     g_connectToRoomba       = 0;
     g_statsMode             = 0;
 }//initSoar
@@ -779,16 +789,19 @@ char* interpretCommand(int action)
 {
     switch(action)
     {
-        case 0:
+        case CMD_NO_OP:
+            return g_no_op;
+            break;
+        case CMD_MOVE_N:
             return g_north;
             break;
-        case 1:
+        case CMD_MOVE_S:
             return g_south;
             break;
-        case 2:
+        case CMD_MOVE_E:
             return g_east;
             break;
-        case 3:
+        case CMD_MOVE_W:
             return g_west;
             break;
         default:
@@ -810,16 +823,19 @@ char* interpretCommandShort(int action)
 {
     switch(action)
     {
-        case 0:
+        case CMD_NO_OP:
+            return g_no_opS;
+            break;
+        case CMD_MOVE_N:
             return g_northS;
             break;
-        case 1:
+        case CMD_MOVE_S:
             return g_southS;
             break;
-        case 2:
+        case CMD_MOVE_E:
             return g_eastS;
             break;
-        case 3:
+        case CMD_MOVE_W:
             return g_westS;
             break;
         default:

@@ -39,7 +39,7 @@ unittest: unitTestServer.c serverUtility.c ../supervisor/unitTest.h commandQueue
 	gcc $(DEBUG_OPT)-o unitTestServer.out unitTestServer.c serverUtility.c ../supervisor/unitTest.c commandQueue.c
 	gcc $(DEBUG_OPT)-o simpleTest.out ../supervisor/unitTestMain.c ../supervisor/supervisor.c ../supervisor/vector.c ../supervisor/knearest.c
 
-eaters: eatersServer.c serverUtility.c ../supervisor/eaters.h commandQueue.c
+eaters: eatersServer.c communication.h serverUtility.c ../supervisor/eaters.h commandQueue.c
 	gcc $(DEBUG_OPT)-o eaters.out eatersServer.c serverUtility.c ../supervisor/eaters.c commandQueue.c
 
 brainstem: brainstem.c communication.h serverUtility.c commandQueue.c tell.c compass.o nerves.o move.o sensors.o led.o song.o utility.o ../roomba/roomba.h

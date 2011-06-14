@@ -13,7 +13,6 @@
 #include <signal.h>
 
 #include "../supervisor/eaters.h"
-#include "communication.h"
 
 /**
 *
@@ -109,7 +108,7 @@ int main(int argc, char* argv[])
 			while(1)
 			{
 				// send command to unitTester and receive resulting sensor data
-				str = unitTest((*cmd % 4), FALSE);
+				str = unitTest(*cmd, FALSE);
 
 				// Print feedback if not in statsMode
 				if(!g_statsMode)

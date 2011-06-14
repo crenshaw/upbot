@@ -93,7 +93,7 @@ int          chooseCommand(EpisodeWME* ep);
 int          setCommand(EpisodeWME* ep);
 double       findDiscountedCommandScore(int command);
 int          findLastReward();
-void         initSoar();
+void         initSoar(int numCommands);
 void         endSoar();
 char*        interpretCommand(int cmd);
 char*        interpretCommandShort(int cmd);

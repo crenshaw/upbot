@@ -12,7 +12,6 @@
 * Usage: soarClient.out <ip_addr> -c <roomba/test> -m <stats/visual>
 */
 
-#include "communication.h"
 #include "../soar/soar.h"
 
 #define TIMEOUT_SECS	5	// Num seconds in timeout on recv
@@ -267,7 +266,7 @@ int handshake(char* ipAddr)
 		printf("Poem: %s", buf);	   
 		printf("numbytes: %d\n", numbytes);
 
-		int cmd = MOVE_N;
+		int cmd = CMD_NO_OP;
 		// Send a first command to finish initializing the send/receive sequence
 		if(send(sockfd, &cmd, 1, 0) == -1)
 		{
@@ -276,7 +275,7 @@ int handshake(char* ipAddr)
 	else if(g_statsMode == 1)
 	{
 		// For the unit test this will toggle its copy of g_statsMode
-		int cmd = CMD_BLINK;
+		int cmd = CMD_NO_OP;
 		if(send(sockfd, &cmd, 1, 0) == -1)
 		{
 		}
@@ -403,14 +402,14 @@ void processCommand(int* cmd, char* buf, FILE* log)
 	}
 
 	// Error in processing, exit with appropriate error code
-	if(*cmd < 0)
+	if(*cmd < CMD_NO_OP)
 	{
 		perror("Tick returned error\n");
 		exit(*cmd);
 	}
 
 	// If tick gave us an invalid command, exit with appropriate error code
-	if(*cmd >= 4)
+	if(*cmd > 5)
 	{
 		printf("Illegal command is: %i\n", *cmd);
 		perror("Illegal command");
@@ -443,12 +442,12 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	initSoar();						// Initialize the Supervisor
+	initSoar(5);					// Initialize the Supervisor
 	parseArguments(argc, argv);		// Parse the arguments and set up global monitoring vars
 
 	// Socket stuff
 	int sockfd = handshake(argv[1]);
-	int cmd = -1;				// This is the reset command, used to ensure init
+	int cmd = CMD_NO_OP;				// This is the reset command, used to ensure init
 										// state of the virtual environment
 
 	// Main send/recv processing loop
@@ -458,8 +457,8 @@ int main(int argc, char *argv[])
 		recvCommand(sockfd, buf);
 		// determine the next command to send
 		processCommand(&cmd, buf, log);
-
-		// If goal is found increase goal count and store the index it was found at
+		
+        // If goal is found increase goal count and store the index it was found at
 		if(g_epMem->size > 2 && episodeContainsReward((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1)))
 		{
 //			printf("Number of episodes: %i\n", g_epMem->size);

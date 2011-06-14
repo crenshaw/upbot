@@ -10,7 +10,6 @@
 *
 */
 
-#include <stdio.h>
 #include "eaters.h"
 
 #define DEBUGGING 0
@@ -222,7 +221,7 @@ char* doMove(int command)
     switch(command)
     {
         // Left and Right just turn the Roomba
-        case MOVE_N:
+        case CMD_MOVE_N:
             if(!g_statsMode) printf("Move north...\n");
             if(g_world[g_X][g_Y - 1] != V_WALL)
             {
@@ -234,7 +233,7 @@ char* doMove(int command)
             }//if
             else if(!g_statsMode) printf("Cannot complete command.\n");
             break;
-        case MOVE_S:
+        case CMD_MOVE_S:
             if(!g_statsMode) printf("Move south...\n");
             if(g_world[g_X][g_Y + 1] != V_WALL)
             {
@@ -246,7 +245,7 @@ char* doMove(int command)
             }//if
             else if(!g_statsMode) printf("Cannot complete command.\n");
             break;
-        case MOVE_E:
+        case CMD_MOVE_E:
             if(!g_statsMode) printf("Move east...\n");
             if(g_world[g_X + 1][g_Y] != V_WALL)
             {
@@ -258,7 +257,7 @@ char* doMove(int command)
             }//if
             else if(!g_statsMode) printf("Cannot complete command.\n");
             break;
-        case MOVE_W:
+        case CMD_MOVE_W:
             if(!g_statsMode) printf("Move west...\n");
             if(g_world[g_X - 1][g_Y] != V_WALL)
             {
@@ -269,6 +268,9 @@ char* doMove(int command)
                 g_world[g_X][g_Y] = V_AGENT;
             }//if
             else if(!g_statsMode) printf("Cannot complete command.\n");
+            break;
+        case CMD_NO_OP:
+            if(!g_statsMode) printf("No operation...\n");
             break;
         default:
             if(!g_statsMode) printf("Invalid command: %i\n", command);

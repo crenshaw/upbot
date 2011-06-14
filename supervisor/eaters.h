@@ -2,6 +2,7 @@
 #define _EATERS_H_
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "../communication/communication.h"
 
 // Map dimensions

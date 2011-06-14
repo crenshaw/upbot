@@ -104,7 +104,7 @@ void displayNeighborSequence(Episode* ep, int n, int isCurr);
 int      chooseCommand(Episode* ep);
 int      setCommand(Episode* ep);
 int      equalEpisodes(Episode* ep1, Episode* ep2);
-void     initNSM();
+void     initNSM(int numCommands);
 void     endNSM();
 extern char* interpretCommand(int cmd);
 char*    interpretCommandShort(int cmd);
