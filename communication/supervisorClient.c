@@ -474,7 +474,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	initSupervisor();				// Initialize the Supervisor
+	initSupervisor(5);				// Initialize the Supervisor
 	parseArguments(argc, argv);		// Parse the arguments and set up global monitoring vars
 
 	// Socket stuff
@@ -509,7 +509,13 @@ int main(int argc, char *argv[])
 		}
 
 		// Once we've found all the goals, print out some data about the search
+#if USE_WMES
+        int found;
+        if(getINTValWME(ep, "steps", &found) > EATERS_MAX_STEPS
+            && found == TRUE)
+#else
 		if(g_goalsFound >= NUM_GOALS_TO_FIND)
+#endif
 		{
 			printStats(log);
 			// exit the while loop

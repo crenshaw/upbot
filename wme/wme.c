@@ -13,21 +13,6 @@
 #define DEBUGGING 1
 
 /**
- * addEpisodeWME
- *
- * Add new episode to episodic memory.
- *
- * @arg episodes pointer to vector containing episodes
- * @arg item pointer to episode to be added
- * @return int status code (0 == success)
- *
-int addEpisodeWME(EpisodeWME* item)
-{
-    return addEntry(g_epMem, item);
-}//addEpisodeWME
-*/
-
-/**
  * compareEpisodesWME
  *
  * Compare the sensor arrays of two episodes and return if they match or not
@@ -109,8 +94,6 @@ EpisodeWME* createEpisodeWME(Vector* wmes)
     ep->sensors = wmes;
     ep->now = timestamp++;  // Just set it to our timestamp for now
     ep->cmd = CMD_NO_OP;       // Default command for now
-
-//    if(episodeContainsReward(ep)) g_goalCount++;
 
     return ep;
 }//createEpisodeWME

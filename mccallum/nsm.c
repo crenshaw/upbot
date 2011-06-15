@@ -856,7 +856,7 @@ int chooseCommand(Episode* ep)
 	{
         if(!g_statsMode) printf(" selecting random command \n");
         fflush(stdout);
-		ep->action = (rand() % (LAST_MOBILE_CMD)) + CMD_NO_OP;
+		ep->action = (rand() % (g_CMD_COUNT)) + CMD_NO_OP;
 	}
 	else
 	{
@@ -884,7 +884,7 @@ int setCommand(Episode* ep)
 {       
 	int i, holder = 0;
 	double tempQ, topQ = -100;
-	for(i = 0; i < LAST_MOBILE_CMD; i++)
+	for(i = 0; i < g_CMD_COUNT; i++)
 	{
         tempQ = calculateQValue(g_neighborhoods->array[i]);
         if (!g_statsMode) printf("%s qValue= %g\n",
@@ -947,7 +947,7 @@ void initNSM(int numCommands)
 	g_neighborhoods = newVector();
 
 	int i;
-	for(i = CMD_NO_OP; i <= LAST_MOBILE_CMD; i++)
+	for(i = CMD_NO_OP; i <= g_CMD_COUNT; i++)
 	{
 		addEntry(g_neighborhoods, initNeighborhood(i, K_NEAREST));
 	}

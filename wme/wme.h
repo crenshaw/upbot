@@ -40,7 +40,6 @@ typedef struct EpisodeWMEStruct
 	int 	cmd;
 } EpisodeWME;
 
-//int          addEpisodeWME(EpisodeWME* item);
 int          compareEpisodesWME(EpisodeWME* ep1, EpisodeWME* ep2, int compCmd);
 int          compareWME(WME* wme1, WME* wme2);
 EpisodeWME*  createEpisodeWME(Vector* wmes);

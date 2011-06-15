@@ -21,6 +21,7 @@
 
 #include "vector.h"
 #include "../communication/communication.h"
+#include "../wme/wme.h"
 #include "knearest.h"
 
 // Boolean values
@@ -62,6 +63,7 @@
 #define MAX_REPL_RISK        (0.0)  // a more flexible limitation to repls per
                                     // plan (min=0.0)
 
+#define EATERS_MAX_STEPS 1000
 
 // Collecting data for stats
 #define STATS_MODE		0
@@ -132,7 +134,7 @@ typedef struct StartStruct
     int index;                  // the route generated from this start should
                                 // start at the action specified by this index
 } Start;
-
+/*
 //Used for passing arbitrary information as agent's state
 typedef struct WMEStruct {
     char* attr;                 // name of attribute
@@ -152,7 +154,7 @@ typedef struct EpisodeWMEStruct
 	int		now;
 	int 	cmd;
 } EpisodeWME;
-
+*/
 // Global variables for monitoring and connecting
 int g_connectToRoomba;
 int g_statsMode;
@@ -185,6 +187,7 @@ extern int   tick(char* sensorInput);
 // one, except modified to handle EpisodeWME instead of Episode
 extern int   tickWME(Vector* wmes); // DUPL
 int          addEpisodeWME(EpisodeWME* item); // DUPL
+/*
 int          compareEpisodesWME(EpisodeWME* ep1, EpisodeWME* ep2, int compCmd); // DUPL
 int          compareWME(WME* wme1, WME* wme2);
 void         displayEpisodeWME(EpisodeWME* ep); // DUPL
@@ -196,6 +199,7 @@ void         freeEpisodeWME(EpisodeWME* ep);
 void         freeWME(WME* wme);
 Vector*		 stringToWMES(char* senseString);
 Vector*      roombaSensorsToWME(char* sensorInput);
+*/
 // Plan: Once everything functions, roomba calls tick(), which converts
 //       to WME vector then calls tickWME()
 //----------------------------------------------

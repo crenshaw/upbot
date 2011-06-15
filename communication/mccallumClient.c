@@ -463,7 +463,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	initNSM();						// Initialize the Supervisor
+	initNSM(5);						// Initialize the Supervisor
 	parseArguments(argc, argv);		// Parse the arguments and set up global monitoring vars
 
 	// Socket stuff

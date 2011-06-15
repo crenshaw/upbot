@@ -106,6 +106,7 @@ char* g_unknownS = "$$";
 int g_goalCount = 0;              // Number of goals found so far
 int g_goalIdx[NUM_GOALS_TO_FIND];
 
+int g_CMD_COUNT = 0;
 
 /**
  * memTest
@@ -650,7 +651,7 @@ int addEpisodeWME(EpisodeWME* item)
  * @arg compCmd  TRUE indicates the comparison should include the cmd. FALSE
  *               indicates that only the sensor array should be compared
  * @return TRUE if the episodes match and FALSE otherwise
- */
+ *
 int compareEpisodesWME(EpisodeWME* ep1, EpisodeWME* ep2, int compCmd)
 {
     if(ep1->sensors->size != ep2->sensors->size) return FALSE;
@@ -667,7 +668,7 @@ int compareEpisodesWME(EpisodeWME* ep1, EpisodeWME* ep2, int compCmd)
     return TRUE;
 }//compareEpisodesWME
 
-/**
+**
  * compareWME
  *
  * This function takes two WMEs and confirms that they contain
@@ -676,7 +677,7 @@ int compareEpisodesWME(EpisodeWME* ep1, EpisodeWME* ep2, int compCmd)
  * @param wme1 A pointer to a WME
  * @param wme2 A pointer to a WME
  * @return int Boolean value
- */
+ *
 int compareWME(WME* wme1, WME* wme2)
 {
     // This may be more complicated than need be.
@@ -694,13 +695,13 @@ int compareWME(WME* wme1, WME* wme2)
     return FALSE;
 }//compareWME
 
-/**
+**
  * displayEpisodeWME
  *
  * Display the contents of an Episode struct in a verbose human readable format
  *
  * @arg ep a pointer to an episode
- */
+ *
 void displayEpisodeWME(EpisodeWME* ep)
 {
     Vector* sensors = ep->sensors;
@@ -713,13 +714,13 @@ void displayEpisodeWME(EpisodeWME* ep)
     printf("\nTime: %d\n\n", ep->now);
 }//displayEpisodeWME
 
-/**
+**
  * displayWME
  *
  * Print a WME to console.
  *
  * @param wme A pointer to a WME to print
- */
+ *
 void displayWME(WME* wme)
 {
     printf("[%s:", wme->attr);
@@ -729,7 +730,7 @@ void displayWME(WME* wme)
     if(wme->type == WME_STRING) printf("%s]",wme->value.sVal);
 }//displayWME
 
-/**
+**
  * createEpisodeWME
  *
  * Takes a sensor data string and allocates space for episode
@@ -738,7 +739,7 @@ void displayWME(WME* wme)
  *
  * @arg sensorData char* filled with sensor information
  * @return Episode* a pointer to the newly added episode
- */
+ *
 EpisodeWME* createEpisodeWME(Vector* wmes)
 {
     // Timestamp to mark episodes
@@ -758,7 +759,7 @@ EpisodeWME* createEpisodeWME(Vector* wmes)
     ep->now = timestamp++;  // Just set it to our timestamp for now
     ep->cmd = CMD_ILLEGAL;  // Default command for now
 
-    /*
+    *
     This code is the old code that determines how to set the timestamp
     based on connection to roomba versus our virtual environment. We
     may (likely) need to use this again in the future.
@@ -785,7 +786,7 @@ EpisodeWME* createEpisodeWME(Vector* wmes)
         // Store the time
         parsedData->now = time;
     }
-*/
+*
 	if(episodeContainsGoal(ep, 0))
 	{
         g_goalIdx[g_goalCount] = ep->now;
@@ -795,13 +796,13 @@ EpisodeWME* createEpisodeWME(Vector* wmes)
     return ep;
 }//createEpisodeWME
 
-/**
+**
  * freeEpisodeWME
  *
  * This function frees the memory associated with an EpisodeWME.
  *
  * @param ep A pointer to an EpisodeWME
- */
+ *
 void freeEpisodeWME(EpisodeWME* ep)
 {
     Vector* sensors = ep->sensors;
@@ -814,20 +815,20 @@ void freeEpisodeWME(EpisodeWME* ep)
     free(ep);
 }//freeEpisodeWME
 
-/**
+**
  * freeWME
  * 
  * This function frees the memory associated with a WME.
  *
  * @param wme A pointer to a WME.
- */
+ *
 void freeWME(WME* wme)
 {
     free(wme->attr);
     free(wme);
 }//freeWME
 
-/**
+**
  * stringToWMES
  *
  * This function takes a string that contains a series of WMEs
@@ -846,7 +847,7 @@ void freeWME(WME* wme)
  *
  * @return Vector* A vector of WMEs derived from the sense string.
  *					NULL if error
- */
+ *
 Vector* stringToWMES(char* senses)
 {
 	Vector* wmes = newVector();
@@ -892,7 +893,7 @@ Vector* stringToWMES(char* senses)
 	return wmes;
 }//stringToWMES
 
-/**
+**
  * roombaSensorsToWME
  *
  * This function takes the sensor string received from a Roomba
@@ -902,7 +903,7 @@ Vector* stringToWMES(char* senses)
  * @param sensorInput a char string with Roomba sensor data
  * @return Vector* A vector of WMEs created from the Roomba data
  *                 NULL if error
- */
+ *
 Vector* roombaSensorsToWME(char* dataArr)
 {
     int i;
@@ -940,6 +941,8 @@ Vector* roombaSensorsToWME(char* dataArr)
     }//for
     return wmeVec;
 }//roombaSensorsToWME
+*/
+
 
 /**
  * tick
@@ -1828,7 +1831,7 @@ void displayEpisodeShort(Episode * ep)
  * format
  *
  * @arg ep a pointer to an episode
- */
+ *
 void displayEpisodeWMEShort(EpisodeWME * ep)
 {
     if (ep == NULL)
@@ -1840,6 +1843,7 @@ void displayEpisodeWMEShort(EpisodeWME * ep)
     displayWMEList(ep->sensors);
     printf("{%s}", interpretCommandShort(ep->cmd));
 }//displayEpisodeWMEShort
+*/
 
 /**
  * displayEpisodes
@@ -2152,9 +2156,11 @@ int chooseCommand_SemiRandom()
     //Make an array of boolean values (one per command) and init them all to
     //TRUE. This array will eventually indicates whether the given command would
     //create a unique episode (TRUE) or not (FALSE).
-    int numCmds = LAST_MOBILE_CMD - CMD_NO_OP;       // number of commands
-    int valid[numCmds];
-    for(i = 0; i < numCmds; i++)
+    
+    //int numCmds = LAST_MOBILE_CMD - CMD_NO_OP;       // number of commands
+    //int valid[numCmds];
+    int valid[g_CMD_COUNT];
+    for(i = 0; i < g_CMD_COUNT; i++)
     {
         valid[i] = TRUE;        // innocent until proven guilty
     }
@@ -2181,13 +2187,13 @@ int chooseCommand_SemiRandom()
     //default choice for a command.  NOTE: We start the search in a random
     //position so that the agent won't always default to the lowest numbered
     //command.
-    int start = (rand() % numCmds); // random start
+    int start = (rand() % g_CMD_COUNT); // random start
 
     //Starting with the random position and treating "valid" as a circular array
     //scan until the first valid command is found.
-    for(i = 0; i < numCmds; i++)
+    for(i = 0; i < g_CMD_COUNT; i++)
     {
-        int index = (start + i) % numCmds;
+        int index = (start + i) % g_CMD_COUNT;
         if (valid[index])
         {
 #if DEBUGGING
@@ -4297,8 +4303,9 @@ int episodeContainsGoal(void *entry, int level)
  * Initialize the Supervisor vectors
  *
  */
-void initSupervisor()
+void initSupervisor(int numCommands)
 {
+    g_CMD_COUNT = numCommands;
 
     // member variables
     int     i;          // loop iterator
@@ -4562,7 +4569,7 @@ int interpretSensorsShort(int *sensors)
  * @arg    int* Sensors array of ints representing the sensors (must be
  *              of length NUM_SENSORS)
  * @return int that summarizes sensors
- */
+ *
 void displayWMEList(Vector *sensors)
 {
     int i;
@@ -4572,6 +4579,7 @@ void displayWMEList(Vector *sensors)
 	}//for
 
 }//displayWMEList
+*/
 
 /**
  * replacementPossible
