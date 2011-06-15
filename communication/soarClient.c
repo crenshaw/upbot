@@ -471,7 +471,8 @@ int main(int argc, char *argv[])
         }//if
 
         // Once we've found all the goals, print out some data about the search
-        if(getNumSteps((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1)) >= MAX_STEPS)
+        int found;
+        if(getINTValWME((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1), "steps", &found) >= MAX_STEPS)
         {
             //printStats(log);
             // exit the while loop
