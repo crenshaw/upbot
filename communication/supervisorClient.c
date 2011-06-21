@@ -14,6 +14,7 @@
 // If TRUE then we are expecting to receive a sensory string that defines
 // a series of WMEs like so:	:name1,type1,value1:name2,type2,value2:.etc..:
 #define WME_STRING_SENSES 1
+#define CMD_COUNT         5
 
 //if RANDOMIZE is defined then the hallucinogen filter is applied
 //#define RANDOMIZE
@@ -442,7 +443,7 @@ void processCommand(int* cmd, char* buf, FILE* log)
 	}
 
 	// If tick gave us an invalid command, exit with appropriate error code
-	if(*cmd >= NUM_COMMANDS)
+	if(*cmd > CMD_COUNT && *cmd != CMD_SONG)
 	{
 		perror("Illegal command");
 		exit(*cmd);
@@ -474,7 +475,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	initSupervisor(5);				// Initialize the Supervisor
+	initSupervisor(CMD_COUNT);				// Initialize the Supervisor
 	parseArguments(argc, argv);		// Parse the arguments and set up global monitoring vars
 
 	// Socket stuff
@@ -486,10 +487,12 @@ int main(int argc, char *argv[])
 	while(1)
 	{	       
 		// receive the sensor data
+printf("breaking here1\n");
 		recvCommand(sockfd, buf);
+printf("breaking here2\n");
 		// determine the next command to send
 		processCommand(&cmd, buf, log);
-
+printf("breaking here3\n");
 		// If goal is found increase goal count and store the index it was found at
 #if USE_WMES
         EpisodeWME *ep = (EpisodeWME*)getEntry(episodeList, episodeList->size - 1);
@@ -509,15 +512,12 @@ int main(int argc, char *argv[])
 		}
 
 		// Once we've found all the goals, print out some data about the search
-#if USE_WMES
         int found;
-        if(getINTValWME(ep, "steps", &found) > EATERS_MAX_STEPS
-            && found == TRUE)
-#else
-		if(g_goalsFound >= NUM_GOALS_TO_FIND)
-#endif
+        if((getINTValWME(ep, "steps", &found) > EATERS_MAX_STEPS
+            && found == TRUE) ||
+		   (g_goalsFound >= NUM_GOALS_TO_FIND))
 		{
-			printStats(log);
+			if(CMD_COUNT == 6) printStats(log);
 			// exit the while loop
 			printf("All goals found. Exiting.\n");
 			break;

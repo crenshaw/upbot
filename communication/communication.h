@@ -108,10 +108,18 @@ int checkArgName(int argc, char* argv[], char addresses[3][13]);
 #define CMD_MOVE_W 0x5
 
 // Virtual objects in Eaters environment
-#define V_WALL		(1)
-#define V_AGENT		(2)
-#define V_EMPTY		(0)
-#define V_FOOD1		(5)
-#define V_FOOD2		(10)
+#define V_E_WALL		(1)
+#define V_E_AGENT		(2)
+#define V_E_EMPTY		(0)
+#define V_E_FOOD1		(5)
+#define V_E_FOOD2		(10)
+
+// Virtual objects in Roomba environment
+#define V_R_HALLWAY	0
+#define V_R_WALL		1
+#define V_R_ROOMBA	2
+#define V_R_GOAL		3
+#define V_R_DROP		4
+
 
 #endif

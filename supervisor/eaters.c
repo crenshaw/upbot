@@ -85,11 +85,11 @@ void initWorld(int firstInit)
         for(j = 0; j < g_map_height; j++)
         {
             if(i == 0 || i == g_map_width - 1 || 
-                    j == 0 || j == g_map_height - 1) g_world[i][j] = V_WALL;
+                    j == 0 || j == g_map_height - 1) g_world[i][j] = V_E_WALL;
             else if(i == sFoodC1 || i == sFoodC2 || 
                     i == sFoodC3 || i == sFoodC4 || 
-                    i == sFoodC5) g_world[i][j] = V_FOOD2;
-            else g_world[i][j] = V_FOOD1;
+                    i == sFoodC5) g_world[i][j] = V_E_FOOD2;
+            else g_world[i][j] = V_E_FOOD1;
         }//for
     }//for
 
@@ -103,14 +103,14 @@ void initWorld(int firstInit)
         i = (rand() % (g_map_width - 2)) + 1;
         j = (rand() % (g_map_height - 2)) + 1;
 
-        g_world[i][j] = V_WALL;
+        g_world[i][j] = V_E_WALL;
     }//while
 
 #if DEBUGGING
     printf("Inserting agent\n");
 #endif
     //--Insert our agent
-    g_world[g_X][g_Y] = V_AGENT;
+    g_world[g_X][g_Y] = V_E_AGENT;
 }//initWorld
 
 /**
@@ -148,19 +148,19 @@ void displayWorld()
             // Switch on item under pointer
             switch(g_world[j][i])
             {
-                case V_EMPTY:
+                case V_E_EMPTY:
                     if(!g_statsMode) printf(" ");
                     break;
-                case V_WALL:
+                case V_E_WALL:
                     if(!g_statsMode) printf("W");
                     break;
-                case V_FOOD1:
+                case V_E_FOOD1:
                     if(!g_statsMode) printf("-");
                     break;
-                case V_FOOD2:
+                case V_E_FOOD2:
                     if(!g_statsMode) printf("+");
                     break;
-                case V_AGENT:
+                case V_E_AGENT:
                     if(!g_statsMode) printf("O");
                     break;
             }//switch
@@ -223,49 +223,49 @@ char* doMove(int command)
         // Left and Right just turn the Roomba
         case CMD_MOVE_N:
             if(!g_statsMode) printf("Move north...\n");
-            if(g_world[g_X][g_Y - 1] != V_WALL)
+            if(g_world[g_X][g_Y - 1] != V_E_WALL)
             {
                 g_reward = g_world[g_X][g_Y - 1];
                 g_score += g_reward;
-                g_world[g_X][g_Y] = V_EMPTY;
+                g_world[g_X][g_Y] = V_E_EMPTY;
                 g_Y--;
-                g_world[g_X][g_Y] = V_AGENT;
+                g_world[g_X][g_Y] = V_E_AGENT;
             }//if
             else if(!g_statsMode) printf("Cannot complete command.\n");
             break;
         case CMD_MOVE_S:
             if(!g_statsMode) printf("Move south...\n");
-            if(g_world[g_X][g_Y + 1] != V_WALL)
+            if(g_world[g_X][g_Y + 1] != V_E_WALL)
             {
                 g_reward = g_world[g_X][g_Y + 1];
                 g_score += g_reward;
-                g_world[g_X][g_Y] = V_EMPTY;
+                g_world[g_X][g_Y] = V_E_EMPTY;
                 g_Y++;
-                g_world[g_X][g_Y] = V_AGENT;
+                g_world[g_X][g_Y] = V_E_AGENT;
             }//if
             else if(!g_statsMode) printf("Cannot complete command.\n");
             break;
         case CMD_MOVE_E:
             if(!g_statsMode) printf("Move east...\n");
-            if(g_world[g_X + 1][g_Y] != V_WALL)
+            if(g_world[g_X + 1][g_Y] != V_E_WALL)
             {
                 g_reward = g_world[g_X + 1][g_Y];
                 g_score += g_reward;
-                g_world[g_X][g_Y] = V_EMPTY;
+                g_world[g_X][g_Y] = V_E_EMPTY;
                 g_X++;
-                g_world[g_X][g_Y] = V_AGENT;
+                g_world[g_X][g_Y] = V_E_AGENT;
             }//if
             else if(!g_statsMode) printf("Cannot complete command.\n");
             break;
         case CMD_MOVE_W:
             if(!g_statsMode) printf("Move west...\n");
-            if(g_world[g_X - 1][g_Y] != V_WALL)
+            if(g_world[g_X - 1][g_Y] != V_E_WALL)
             {
                 g_reward = g_world[g_X - 1][g_Y];
                 g_score += g_reward;
-                g_world[g_X][g_Y] = V_EMPTY;
+                g_world[g_X][g_Y] = V_E_EMPTY;
                 g_X--;
-                g_world[g_X][g_Y] = V_AGENT;
+                g_world[g_X][g_Y] = V_E_AGENT;
             }//if
             else if(!g_statsMode) printf("Cannot complete command.\n");
             break;

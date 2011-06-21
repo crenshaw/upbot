@@ -14,10 +14,14 @@
 
 #include "../soar/soar.h"
 
+#define CMD_COUNT       6
+
 #define TIMEOUT_SECS	5	// Num seconds in timeout on recv
 #define MAX_TRIES		10	// Num tries to reconnect on lost connection
 
 int g_tries;	// Number of tries to reconnect
+int g_goalsFound = 0;				// Number of times we found the goal
+int g_goalsTimeStamp[NUM_GOALS_TO_FIND];	// Timestamps of found goals
 
 /**
  * exitError
@@ -92,7 +96,7 @@ int sendCommand(int sockfd, int cmd)
 	if(retVal != -1)
 	{
 		// Print command sent to Roomba on stdout
-		printf("The command value sent was: %s (%i)\n", interpretCommand(cmd), cmd);
+		if(!g_statsMode) printf("The command value sent was: %s (%i)\n", interpretCommand(cmd), cmd);
 	}
 	return retVal;
 }// sendCommand
@@ -115,7 +119,7 @@ int recvCommand(int sockfd, char* buf)
 {
 	// reset the number of tries
 	g_tries = 0;
-	if(g_statsMode == 0)
+	if(!g_statsMode)
 	{
 		// Receive sensor data from socket and store in 'buf'
 		printf("Receiving sensor data.\n");
@@ -159,7 +163,7 @@ int recvCommand(int sockfd, char* buf)
 	buf[numbytes] = '\0';
 
 	// Print out the contents of buf
-	if(g_statsMode == 0)
+	if(!g_statsMode)
 	{
 		printf("client: sensor data: '%s'\n", buf);	   
 		printf("numbytes: %d\n", numbytes);
@@ -272,7 +276,7 @@ int handshake(char* ipAddr)
 		{
 		}
 	}
-	else if(g_statsMode == 1)
+	else if(g_statsMode)
 	{
 		// For the unit test this will toggle its copy of g_statsMode
 		int cmd = CMD_NO_OP;
@@ -298,12 +302,12 @@ int handshake(char* ipAddr)
 void printStats(FILE* log)
 {
 	// == 0 means print to console
-	if(g_statsMode == 0)
-	{
+//	if(!g_statsMode)
+//	{
 		// Print the number of goals found and episodes recieved
 //		printf("Roomba has found the Goal %i times.\nSupervisor has received %i episodes.\n",
 //               NUM_GOALS_TO_FIND, (int)g_epMem->size);
-		int i;
+//		int i;
 		// Print the timestamp that each goal was found at
 //		for(i = 0; i < NUM_GOALS_TO_FIND; i++)
 //		{
@@ -319,17 +323,17 @@ void printStats(FILE* log)
 //				printf("\n");
 //			}
 //		}// for
-	}
-	else	// otherwise print to file for import into spreadsheet
-	{
+//	}
+//	else	// otherwise print to file for import into spreadsheet
+//	{
 		int i;
-//		for(i = 0; i < NUM_GOALS_TO_FIND; i++)
-//		{
-//			fprintf(log, "%i:", (i < 1 ? g_goalsTimeStamp[i] : g_goalsTimeStamp[i]-g_goalsTimeStamp[i-1]));
-//		}// for
-//		fprintf(log, "\n");
-//		fflush(log);
-	}// if
+		for(i = 0; i < NUM_GOALS_TO_FIND; i++)
+		{
+			fprintf(log, "%i:", (i < 1 ? g_goalsTimeStamp[i] : g_goalsTimeStamp[i]-g_goalsTimeStamp[i-1]));
+		}// for
+		fprintf(log, "\n");
+		fflush(log);
+//	}// if
 }// printStats
 
 /**
@@ -342,13 +346,11 @@ void printStats(FILE* log)
  */
 void reportGoalFound(int sockfd, FILE* log)
 {
-/*
-	if(g_statsMode != 0)
-	{
-		fprintf(log, "%i:", (g_goalsFound <= 1 ? g_goalsTimeStamp[g_goalsFound - 1] : g_goalsTimeStamp[g_goalsFound - 1]-g_goalsTimeStamp[g_goalsFound-2]));
-		if(g_goalsFound == NUM_GOALS_TO_FIND) fprintf(log, "\n");
-		fflush(log);
-	}
+	// Store the new goal timestamp and increment count;
+    EpisodeWME *ep = ((EpisodeWME*)g_epMem->array[g_epMem->size - 1]);
+        
+	g_goalsTimeStamp[g_goalsFound] = ep->now;
+	g_goalsFound++;
 
 	// Only print if not in stats mode
 	if(g_goalsFound > 1)
@@ -367,8 +369,8 @@ void reportGoalFound(int sockfd, FILE* log)
     fflush(stdout);
 
 	// Send a success command
-//	int cmd = CMD_SONG;
-//	sendCommand(sockfd, cmd);
+	int cmd = CMD_SONG;
+	sendCommand(sockfd, cmd);
 
 	// If connected to Roomba pause to allow time to return Roomba to Init
 	if(g_connectToRoomba == 1)
@@ -376,7 +378,7 @@ void reportGoalFound(int sockfd, FILE* log)
 		printf("Press enter to continue\n");
 		getchar();
 	}
-    */
+    
 }// reportGoalFound
 
 /**
@@ -394,7 +396,7 @@ void processCommand(int* cmd, char* buf, FILE* log)
 	// Call Supervisor tick to process recently added episode
     *cmd = tickWME(buf);
 
-	if(g_statsMode == 0)
+	if(!g_statsMode)
 	{
 		// Print sensor data to log file and force write
 		fprintf(log, "Sensor data: [%s] Command received: %s\n", buf, interpretCommand(*cmd));
@@ -409,7 +411,7 @@ void processCommand(int* cmd, char* buf, FILE* log)
 	}
 
 	// If tick gave us an invalid command, exit with appropriate error code
-	if(*cmd > 5)
+	if(*cmd > CMD_COUNT)
 	{
 		printf("Illegal command is: %i\n", *cmd);
 		perror("Illegal command");
@@ -442,7 +444,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	initSoar(5);					// Initialize the Supervisor
+	initSoar(CMD_COUNT);					// Initialize the Supervisor
 	parseArguments(argc, argv);		// Parse the arguments and set up global monitoring vars
 
 	// Socket stuff
@@ -472,9 +474,10 @@ int main(int argc, char *argv[])
 
         // Once we've found all the goals, print out some data about the search
         int found;
-        if(getINTValWME((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1), "steps", &found) >= MAX_STEPS)
+        if((CMD_COUNT == 5 && getINTValWME((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1), "steps", &found) >= MAX_STEPS) ||
+           (CMD_COUNT == 6 && g_goalsFound >= NUM_GOALS_TO_FIND) )
         {
-            //printStats(log);
+            printStats(log);
             // exit the while loop
             printf("Max steps reached: %i. Exiting.\n", MAX_STEPS);
             break;

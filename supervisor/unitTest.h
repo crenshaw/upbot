@@ -2,7 +2,10 @@
 #define _UNITTEST_H_
 
 #include <stdlib.h>
+#include <stdio.h>
 #include "../communication/communication.h"
+
+#define SEND_CRUTCH 0
 
 // Headings the Roomba can be pointed in
 #define HDG_N	0
@@ -13,13 +16,6 @@
 #define HDG_SW	5
 #define HDG_W	6
 #define HDG_NW	7
-
-// Objects in the virtual world
-#define V_HALLWAY	0
-#define V_WALL		1
-#define V_ROOMBA	2
-#define V_GOAL		3
-#define V_DROP		4
 
 // Sensor values
 #define SNSR_OFF	0

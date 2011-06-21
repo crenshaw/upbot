@@ -12,7 +12,6 @@
 * roomba's location and orientation within the maze.
 */
 
-#include <stdio.h>
 #include "unitTest.h"
 
 // Global vars to keep track of the init and goal coords
@@ -91,30 +90,30 @@ void loadMap(int mapNum)
 		switch(c)
 		{
 			// Virtual map elements
-			case 'W': virtualElement = V_WALL; 		break;
-			case ' ': virtualElement = V_HALLWAY; 	break;
-			case 'G': virtualElement = V_GOAL; 		break;
+			case 'W': virtualElement = V_R_WALL; 		break;
+			case ' ': virtualElement = V_R_HALLWAY; 	break;
+			case 'G': virtualElement = V_R_GOAL; 		break;
 			// Virtual roomba elements
-			case '^': virtualElement = V_ROOMBA; g_init_heading = HDG_N; break;
-			case '7': virtualElement = V_ROOMBA; g_init_heading = HDG_NE; break;
-			case '>': virtualElement = V_ROOMBA; g_init_heading = HDG_E; break;
-			case 'J':virtualElement = V_ROOMBA; g_init_heading = HDG_SE; break;
-			case 'v': virtualElement = V_ROOMBA; g_init_heading = HDG_S; break;
-			case 'L': virtualElement = V_ROOMBA; g_init_heading = HDG_SW; break;
-			case '<': virtualElement = V_ROOMBA; g_init_heading = HDG_W; break;
-			case 'F': virtualElement = V_ROOMBA; g_init_heading = HDG_NW; break;
+			case '^': virtualElement = V_R_ROOMBA; g_init_heading = HDG_N; break;
+			case '7': virtualElement = V_R_ROOMBA; g_init_heading = HDG_NE; break;
+			case '>': virtualElement = V_R_ROOMBA; g_init_heading = HDG_E; break;
+			case 'J':virtualElement = V_R_ROOMBA; g_init_heading = HDG_SE; break;
+			case 'v': virtualElement = V_R_ROOMBA; g_init_heading = HDG_S; break;
+			case 'L': virtualElement = V_R_ROOMBA; g_init_heading = HDG_SW; break;
+			case '<': virtualElement = V_R_ROOMBA; g_init_heading = HDG_W; break;
+			case 'F': virtualElement = V_R_ROOMBA; g_init_heading = HDG_NW; break;
 			case '\n':counter--; break;	// Must subtract 1 here in order for counter to still
 										// be accurate as position marker in map
 		}
 
 		// If we found the roomba or the goal, then use counter to set init coords
-		if(virtualElement == V_ROOMBA)
+		if(virtualElement == V_R_ROOMBA)
 		{
 			g_init_x_R = counter % g_map_width;
 			g_init_y_R = counter / g_map_width;
 			
 		}
-		else if(virtualElement == V_GOAL)
+		else if(virtualElement == V_R_GOAL)
 		{
 			g_init_x_G = counter % g_map_width;
 			g_init_y_G = counter / g_map_width;
@@ -129,7 +128,7 @@ void loadMap(int mapNum)
 	fclose(maps);
 
 	// Do not want stats mode most of the time
-	g_statsMode = 1;
+	g_statsMode = 0;
 	
 	// Set up the world vars according to what we read in
 	resetWorld();
@@ -167,14 +166,14 @@ void resetWorld()
 	// reset heading
 	g_heading = g_init_heading;
 	// reset goal 
-	g_world[g_init_x_G][g_init_y_G] = V_GOAL;
+	g_world[g_init_x_G][g_init_y_G] = V_R_GOAL;
 
     // reset current coords
 	g_X = g_init_x_R;
 	g_Y = g_init_y_R;
 
 	// return roomba to init
-	g_world[g_X][g_Y] = V_ROOMBA;
+	g_world[g_X][g_Y] = V_R_ROOMBA;
 
     g_goalCount++;
 	if(g_statsMode)	printf("Hit Goal %d\n", g_goalCount);
@@ -221,16 +220,16 @@ void displayWorld()
             // Switch on item under pointer
             switch(g_world[j][i])
             {
-                case V_WALL:
+                case V_R_WALL:
                     if(!g_statsMode) printf("W");
                     break;
-                case V_HALLWAY:
+                case V_R_HALLWAY:
                     if(!g_statsMode) printf(" ");
                     break;
-                case V_GOAL:
+                case V_R_GOAL:
                     if(!g_statsMode) printf("G");
                     break;
-                case V_ROOMBA:
+                case V_R_ROOMBA:
                     // Have a different symbol depending on the heading of the Roomba
                     // This is simply for visual feedback
                     switch(g_heading)
@@ -377,44 +376,44 @@ char* doMove(int command)
             // Also begin check for IR in spot we move to
             else if(g_heading == HDG_N)
             {
-                if(g_world[g_X][g_Y-1] == V_WALL)
+                if(g_world[g_X][g_Y-1] == V_R_WALL)
                 {
                     sensorReturn = BOTH_HIT;
                 }
-                else if(g_world[g_X][g_Y-1] == V_GOAL)
+                else if(g_world[g_X][g_Y-1] == V_R_GOAL)
                 {
                     IR = SNSR_ON;
                 }
             }
             else if(g_heading == HDG_E)
             {
-                if(g_world[g_X+1][g_Y] == V_WALL)
+                if(g_world[g_X+1][g_Y] == V_R_WALL)
                 {
                     sensorReturn = BOTH_HIT;
                 }
-                else if(g_world[g_X+1][g_Y] == V_GOAL)
+                else if(g_world[g_X+1][g_Y] == V_R_GOAL)
                 {
                     IR = SNSR_ON;
                 }
             }
             else if(g_heading == HDG_S)
             {
-                if(g_world[g_X][g_Y+1] == V_WALL)
+                if(g_world[g_X][g_Y+1] == V_R_WALL)
                 {
                     sensorReturn = BOTH_HIT;
                 }
-                else if(g_world[g_X][g_Y+1] == V_GOAL)
+                else if(g_world[g_X][g_Y+1] == V_R_GOAL)
                 {
                     IR = SNSR_ON;
                 }
             }
             else if(g_heading == HDG_W)
             {
-                if(g_world[g_X-1][g_Y] == V_WALL) 
+                if(g_world[g_X-1][g_Y] == V_R_WALL) 
                 {
                     sensorReturn = BOTH_HIT;
                 }
-                else if(g_world[g_X-1][g_Y] == V_GOAL) 
+                else if(g_world[g_X-1][g_Y] == V_R_GOAL) 
                 {
                     IR = SNSR_ON;
                 }
@@ -448,24 +447,24 @@ char* doMove(int command)
                 switch(g_heading)
                 {
                     case HDG_N:
-                        g_world[g_X][g_Y] = V_HALLWAY;
+                        g_world[g_X][g_Y] = V_R_HALLWAY;
                         g_Y--;
-                        g_world[g_X][g_Y] = V_ROOMBA;
+                        g_world[g_X][g_Y] = V_R_ROOMBA;
                         break;
                     case HDG_E:
-                        g_world[g_X][g_Y] = V_HALLWAY;
+                        g_world[g_X][g_Y] = V_R_HALLWAY;
                         g_X++;
-                        g_world[g_X][g_Y] = V_ROOMBA;
+                        g_world[g_X][g_Y] = V_R_ROOMBA;
                         break;
                     case HDG_S:
-                        g_world[g_X][g_Y] = V_HALLWAY;
+                        g_world[g_X][g_Y] = V_R_HALLWAY;
                         g_Y++;
-                        g_world[g_X][g_Y] = V_ROOMBA;
+                        g_world[g_X][g_Y] = V_R_ROOMBA;
                         break;
                     case HDG_W:
-                        g_world[g_X][g_Y] = V_HALLWAY;
+                        g_world[g_X][g_Y] = V_R_HALLWAY;
                         g_X--;
-                        g_world[g_X][g_Y] = V_ROOMBA;
+                        g_world[g_X][g_Y] = V_R_ROOMBA;
                         break;
                 }//switch
             }//if
@@ -530,54 +529,54 @@ char* doMoveMcCallum(int command)
     {
         // Left and Right just turn the Roomba
         case CMD_NORTH:
-            if (g_world[g_X][g_Y-1] == V_GOAL)
+            if (g_world[g_X][g_Y-1] == V_R_GOAL)
             {
                 goal = SNSR_ON;
             }
-            else if (g_world[g_X][g_Y-1] == V_HALLWAY)
+            else if (g_world[g_X][g_Y-1] == V_R_HALLWAY)
             {
-                g_world[g_X][g_Y] = V_HALLWAY;
+                g_world[g_X][g_Y] = V_R_HALLWAY;
                 g_Y--;
-                g_world[g_X][g_Y] = V_ROOMBA;
+                g_world[g_X][g_Y] = V_R_ROOMBA;
             }
             break;
             
         case CMD_SOUTH:
-            if (g_world[g_X][g_Y+1] == V_GOAL)
+            if (g_world[g_X][g_Y+1] == V_R_GOAL)
             {
                 goal = SNSR_ON;
             }
-            else if (g_world[g_X][g_Y+1] == V_HALLWAY)
+            else if (g_world[g_X][g_Y+1] == V_R_HALLWAY)
             {
-                g_world[g_X][g_Y] = V_HALLWAY;
+                g_world[g_X][g_Y] = V_R_HALLWAY;
                 g_Y++;
-                g_world[g_X][g_Y] = V_ROOMBA;
+                g_world[g_X][g_Y] = V_R_ROOMBA;
             }
             break;
             
         case CMD_EAST:
-            if (g_world[g_X+1][g_Y] == V_GOAL)
+            if (g_world[g_X+1][g_Y] == V_R_GOAL)
             {
                 goal = SNSR_ON;
             }
-            else if (g_world[g_X+1][g_Y] == V_HALLWAY)
+            else if (g_world[g_X+1][g_Y] == V_R_HALLWAY)
             {
-                g_world[g_X][g_Y] = V_HALLWAY;
+                g_world[g_X][g_Y] = V_R_HALLWAY;
                 g_X++;
-                g_world[g_X][g_Y] = V_ROOMBA;
+                g_world[g_X][g_Y] = V_R_ROOMBA;
             }
             break;
             
         case CMD_WEST:
-            if (g_world[g_X-1][g_Y] == V_GOAL)
+            if (g_world[g_X-1][g_Y] == V_R_GOAL)
             {
                 goal = SNSR_ON;
             }
-            else if (g_world[g_X-1][g_Y] == V_HALLWAY)
+            else if (g_world[g_X-1][g_Y] == V_R_HALLWAY)
             {
-                g_world[g_X][g_Y] = V_HALLWAY;
+                g_world[g_X][g_Y] = V_R_HALLWAY;
                 g_X--;
-                g_world[g_X][g_Y] = V_ROOMBA;
+                g_world[g_X][g_Y] = V_R_ROOMBA;
             }
             break;
 
@@ -599,32 +598,32 @@ char* doMoveMcCallum(int command)
     if (goal == SNSR_OFF)
     {
         //North wall
-        if (g_world[g_X][g_Y-1] == V_WALL)
+        if (g_world[g_X][g_Y-1] == V_R_WALL)
         {
             northWall = SNSR_ON;
         }
 
         //South wall
-        if (g_world[g_X][g_Y+1] == V_WALL)
+        if (g_world[g_X][g_Y+1] == V_R_WALL)
         {
             southWall = SNSR_ON;
         }
 
         //East wall
-        if (g_world[g_X+1][g_Y] == V_WALL)
+        if (g_world[g_X+1][g_Y] == V_R_WALL)
         {
             eastWall = SNSR_ON;
         }
 
         //West wall
-        if (g_world[g_X-1][g_Y] == V_WALL)
+        if (g_world[g_X-1][g_Y] == V_R_WALL)
         {
             westWall = SNSR_ON;
         }
     }//if
     else
     {
-        g_world[g_X][g_Y] = V_HALLWAY;
+        g_world[g_X][g_Y] = V_R_HALLWAY;
         g_hitGoal = TRUE;
     }
                             
@@ -661,6 +660,18 @@ char* setSensorString(int IR, int rCliff, int rCliffFront, int lCliffFront, int 
     static int timeStamp = 0;
     // Memory for data string to return to Supervisor
     char* str = (char*) malloc(sizeof(char) * 24); 
+
+#if SEND_CRUTCH
+    // This is temporary to check how Soar does if we tell it
+    // there is a wall in front of it.
+
+    if(g_heading == HDG_NE || g_heading == HDG_SE || 
+       g_heading == HDG_SW || g_heading == HDG_NW) rCliff = SNSR_ON;
+    else if(g_heading == HDG_N && g_world[g_X][g_Y-1] == V_R_WALL) rCliff = SNSR_ON;
+    else if(g_heading == HDG_E && g_world[g_X+1][g_Y] == V_R_WALL) rCliff = SNSR_ON;
+    else if(g_heading == HDG_S && g_world[g_X][g_Y+1] == V_R_WALL) rCliff = SNSR_ON;
+    else if(g_heading == HDG_W && g_world[g_X-1][g_Y] == V_R_WALL) rCliff = SNSR_ON;
+#endif
 
     // Fill out sensor string
     sprintf(&str[SNSR_IR],				"%i", IR);
@@ -726,13 +737,13 @@ int bumpSensor(int north, int east)
 {
     // return the appropriate value representing which, if any, bumpers are hit
     // account for value representing goal spot which is also a hallway
-    if((north == V_HALLWAY || north == V_GOAL) && (east == V_HALLWAY || east == V_GOAL))
+    if((north == V_R_HALLWAY || north == V_R_GOAL) && (east == V_R_HALLWAY || east == V_R_GOAL))
         return BOTH_HIT;
-    if((north == V_HALLWAY || north == V_GOAL) && east == V_WALL)
+    if((north == V_R_HALLWAY || north == V_R_GOAL) && east == V_R_WALL)
         return RIGHT_HIT;
-    if(north == V_WALL && (east == V_HALLWAY || east == V_GOAL))
+    if(north == V_R_WALL && (east == V_R_HALLWAY || east == V_R_GOAL))
         return LEFT_HIT;
-    if(north == V_WALL && east == V_WALL)
+    if(north == V_R_WALL && east == V_R_WALL)
         return BOTH_HIT;
 
     return NONE_HIT;

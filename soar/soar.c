@@ -10,7 +10,8 @@
  * Last updated: June 7, 2011
  */
 
-#define DEBUGGING 1
+#define DEBUGGING           1
+#define FIND_LAST_REWARD    1
 
 // Global strings for printing to console
 // Full commands
@@ -45,6 +46,7 @@ int g_CMD_COUNT = 0;
 int tickWME(char* wmeString)
 {
     EpisodeWME* ep;
+    int found;
     if (wmeString[0] == ':')
     {
         ep = createEpisodeWME(stringToWMES(wmeString));
@@ -54,8 +56,12 @@ int tickWME(char* wmeString)
         ep = createEpisodeWME(roombaSensorsToWME(wmeString));
     }
     
+    if(getINTValWME(ep, "reward", &found) != 0)
+    {
+        g_goalCount++;
+    }
+    
     addEpisodeWME(ep);
-    int found;
     if(!g_statsMode) printf("++++++++++++++++++++++++++++++++++++++++++\n");
 	if(!g_statsMode) printf("Number of goals found: %i\n", g_goalCount);
 	if(!g_statsMode) printf("Current Score: %i\n", getINTValWME(ep, "score", &found));
@@ -110,7 +116,7 @@ int chooseCommand(EpisodeWME* ep)
     }//if
 
     // Determine the next command, possibility of random command
-    if(g_epMem->size < 2)
+    if(g_epMem->size < 2 || g_goalCount < 1)
     {
         if(!g_statsMode) printf(" selecting random command \n");
         fflush(stdout);
@@ -157,10 +163,20 @@ int setCommand(EpisodeWME* ep)
     //For each possible command
     for(i = CMD_NO_OP; i <= g_CMD_COUNT; i++)
     {
-        if((i == CMD_MOVE_N && getINTValWME(ep, "UM", &found) == V_WALL) ||
-           (i == CMD_MOVE_S && getINTValWME(ep, "LM", &found) == V_WALL) ||
-           (i == CMD_MOVE_E && getINTValWME(ep, "RT", &found) == V_WALL) ||
-           (i == CMD_MOVE_W && getINTValWME(ep, "LT", &found) == V_WALL))
+        // In Eaters environment: skip commands that will lead
+        //                        into a wall
+        // In Roomba environment: skip forward if last sensor
+        //                        data indicates a bump  
+        if((g_CMD_COUNT == 5 && (
+            (i == CMD_MOVE_N && getINTValWME(ep, "UM", &found) == V_E_WALL)   ||
+            (i == CMD_MOVE_S && getINTValWME(ep, "LM", &found) == V_E_WALL)   ||
+            (i == CMD_MOVE_E && getINTValWME(ep, "RT", &found) == V_E_WALL)   ||
+            (i == CMD_MOVE_W && getINTValWME(ep, "LT", &found) == V_E_WALL))) 
+            ||
+           (g_CMD_COUNT == 6 && (
+            (i == CMD_FORWARD && getINTValWME(ep, "cliff_rt", &found)) ||
+            (i == CMD_FORWARD && getINTValWME(ep, "bump_rt", &found))  ||
+            (i == CMD_FORWARD && getINTValWME(ep, "bump_lt", &found)))))
             continue;
         // Here we calculate the score for the current command
         tempScore = findDiscountedCommandScore(i);
@@ -209,7 +225,12 @@ int setCommand(EpisodeWME* ep)
  */
 double findDiscountedCommandScore(int command)
 {
-    int i,j, lastRewardIdx = g_epMem->size - 1; //findLastReward();
+    int i,j;
+#if FIND_LAST_REWARD
+    int lastRewardIdx = findLastReward();
+#else
+    int lastRewardIdx = g_epMem->size - 1;
+#endif
 
     if(!g_statsMode) printf("Searching for command: %s\n", interpretCommand(command));
     if(!g_statsMode) printf("\tLast reward at index: %d\n", lastRewardIdx);
@@ -220,7 +241,7 @@ double findDiscountedCommandScore(int command)
     int topMatch = 0, tempMatch = 0, holder = -1;
     for(i = 0; i < lastRewardIdx; i++)
     {
-        tempMatch = getNumMatches(getEntry(g_epMem, i), curr);
+        tempMatch = getNumMatches(getEntry(g_epMem, i), curr, FALSE);
         if(tempMatch >= topMatch)
         {
             topMatch = tempMatch;
@@ -287,7 +308,7 @@ void initSoar(int numCommands)
     g_CMD_COUNT             = numCommands;
     g_epMem                 = newVector();
     g_connectToRoomba       = 0;
-    g_statsMode             = 0;
+    g_statsMode             = STATS_MODE;
 }//initSoar
 
 /**

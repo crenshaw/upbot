@@ -197,7 +197,8 @@ int episodeContainsAttr(EpisodeWME* ep, char* attr)
  * episodeContainsReward
  *
  * This routine determines whether a given episode contains a
- * goal.
+ * goal or reward. An episode with a WME attribute named 'reward' 
+ * whose value is '0' is considered to be without a reward.
  *
  * @param ep A pointer to an episode
  * @return TRUE if the entry contains a reward and FALSE otherwise
@@ -358,11 +359,12 @@ char* getSTRINGValWME(EpisodeWME* ep, char* attr, int* found)
  *
  * @param ep1 A pointer to an episode
  * @param ep2 A pointer to an episode
+ * @param compareCMD A boolean indicating if the command is important to this match
  * @return int The number of WMEs in common
  */
-int getNumMatches(EpisodeWME* ep1, EpisodeWME* ep2)
+int getNumMatches(EpisodeWME* ep1, EpisodeWME* ep2, int compareCMD)
 {
-    if(ep1->cmd != ep2->cmd) return -1;
+    if(compareCMD && ep1->cmd != ep2->cmd) return -1;
 
     int i,j, count = 0;
     if(ep1->sensors->size > ep2->sensors->size)
@@ -426,16 +428,49 @@ Vector* roombaSensorsToWME(char* dataArr)
         // Here we will set the IR bit attr name to 'reward' to be consistent
         // with how we expect to mark S/F from other state definitions.
         // All other sensor attr names will be named by their index
-        if(i == 0)
+        switch(i)
         {
-            wme->attr = (char*)malloc(sizeof(char) * 7); // "reward\0"
-            sprintf(wme->attr, "%s", "reward");
-        }//if
-        else
-        {
-            wme->attr = (char*)malloc(sizeof(char) * 2);// Account for null term.
-            sprintf(wme->attr, "%i", i); // Just use the index of the sensor.
-        }//else
+            case SNSR_IR:
+                wme->attr = (char*)malloc(sizeof(char) * 7); // "reward\0"
+                sprintf(wme->attr, "%s", "reward");
+                break;
+            case SNSR_CLIFF_RIGHT:
+                wme->attr = (char*)malloc(sizeof(char) * 9); // "reward\0"
+                sprintf(wme->attr, "%s", "cliff_rt");
+                break;
+            case SNSR_CLIFF_F_RIGHT:
+                wme->attr = (char*)malloc(sizeof(char) * 11); // "reward\0"
+                sprintf(wme->attr, "%s", "cliff_f_rt");
+                break;
+            case SNSR_CLIFF_F_LEFT:
+                wme->attr = (char*)malloc(sizeof(char) * 11); // "reward\0"
+                sprintf(wme->attr, "%s", "cliff_f_lt");
+                break;
+            case SNSR_CLIFF_LEFT:
+                wme->attr = (char*)malloc(sizeof(char) * 9); // "reward\0"
+                sprintf(wme->attr, "%s", "cliff_lt");
+                break;
+            case SNSR_CASTER:
+                wme->attr = (char*)malloc(sizeof(char) * 7); // "reward\0"
+                sprintf(wme->attr, "%s", "caster");
+                break;
+            case SNSR_DROP_LEFT:
+                wme->attr = (char*)malloc(sizeof(char) * 8); // "reward\0"
+                sprintf(wme->attr, "%s", "drop_lt");
+                break;
+            case SNSR_DROP_RIGHT:
+                wme->attr = (char*)malloc(sizeof(char) * 8); // "reward\0"
+                sprintf(wme->attr, "%s", "drop_rt");
+                break;
+            case SNSR_BUMP_LEFT:
+                wme->attr = (char*)malloc(sizeof(char) * 8); // "reward\0"
+                sprintf(wme->attr, "%s", "bump_lt");
+                break;
+            case SNSR_BUMP_RIGHT:
+                wme->attr = (char*)malloc(sizeof(char) * 8); // "reward\0"
+                sprintf(wme->attr, "%s", "bump_rt");
+                break;
+        }
         // Add the new WME to the vector
         addEntry(wmeVec, wme);
     }//for

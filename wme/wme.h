@@ -55,7 +55,7 @@ char         getCHARValWME(EpisodeWME* ep, char* attr, int* found);
 double       getDOUBLEValWME(EpisodeWME* ep, char* attr, int* found);
 int          getINTValWME(EpisodeWME* ep, char* attr, int* found);
 char*        getSTRINGValWME(EpisodeWME* ep, char* attr, int* found);
-int          getNumMatches(EpisodeWME* ep1, EpisodeWME* ep2);
+int          getNumMatches(EpisodeWME* ep1, EpisodeWME* ep2, int compareCMD);
 Vector*      roombaSensorsToWME(char* dataArr);
 Vector*		 stringToWMES(char* senseString);
 

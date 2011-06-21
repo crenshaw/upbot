@@ -21,6 +21,8 @@
 #include "../communication/communication.h"
 #include "../wme/wme.h"
 
+#define STATS_MODE          0
+
 // Boolean values
 #define TRUE                1
 #define FALSE               0
@@ -28,9 +30,10 @@
 
 // Matching defines
 #define MAX_STEPS           1000
+#define NUM_GOALS_TO_FIND   50
 
 // Defines for Q-Learning algorithm
-#define DISCOUNT            (0.9)
+#define DISCOUNT            (0.75)
 
 #define LOOK_AHEAD_N        0
 
