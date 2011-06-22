@@ -5635,17 +5635,10 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
 #else
     Episode *lastEp = (Episode *)lastAct->epmem->array[lastAct->index];
 #endif
-    if (lastEp->cmd != CMD_SONG)
+    if ( (lastEp->cmd != CMD_SONG)
+         && (startingOffset < level0Eps->size - 1) )
     {
         startingOffset += 1;
-        if (startingOffset == level0Eps->size)
-        {
-            printf("Last level 1 ep size: %d\n", lastLevel1Ep->size);
-    //        displayEpisodeWME(lastLevel1Ep->array[lastLevel1Ep->size - 1]);
-            Vector* secondTL = (Vector *)level1Eps->array[level1Eps->size - 2];
-            displayEpisodeWME((EpisodeWME*)secondTL->array[secondTL->size - 1]);
-
-        }
     }
     
     printf("findInterimStartPartialMatch() is breaking here 1\n");
@@ -5676,7 +5669,7 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
             EpisodeWME *ep2 = (EpisodeWME *)level0Eps->array[i-matchLen];
 //            if (compareEpisodesWME(ep1, ep2, matchLen > 0))
     printf("findInterimStartPartialMatch() is breaking here 4\n");
-    printf("Mem len: %d ; i = %d\n", level0Eps->size, i);
+    printf("Mem len: %d ; i = %d\n", (int)level0Eps->size, i);
     assert(ep1 != NULL);
     assert(ep2 != NULL);
             if((matchCount = getNumMatches(ep1, ep2, matchLen > 0)) > 0)
