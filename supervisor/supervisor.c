@@ -63,6 +63,11 @@
  *
  */
 
+//This setting, if present, modifies the debug outputs to reflect the Eaters
+//environment
+#define EATERS_MODE
+
+
 //Setting this turns on verbose output to aid debugging
 #define DEBUGGING 1
 
@@ -82,6 +87,7 @@
 #endif
 
 // global strings for printing to console
+#ifndef EATERS_MODE
 char* g_forward = "forward";
 char* g_right   = "right";
 char* g_left    = "left";
@@ -101,6 +107,31 @@ char* g_blinkS   = "BL";
 char* g_no_opS   = "NO";
 char* g_songS    = "SO";
 char* g_unknownS = "$$";
+
+
+#else
+char* g_forward = "north";
+char* g_right   = "south";
+char* g_left    = "east";
+char* g_adjustR = "west";
+char* g_adjustL = "illegal adjust left";
+char* g_blink   = "illegal blink";
+char* g_no_op   = "no operation";
+char* g_song    = "song";
+char* g_unknown = "unknown";
+
+char* g_forwardS = "N";
+char* g_rightS   = "S";
+char* g_leftS    = "E";
+char* g_adjustRS = "W";
+char* g_adjustLS = "?";
+char* g_blinkS   = "?";
+char* g_no_opS   = "NO";
+char* g_songS    = "SO";
+char* g_unknownS = "$$";
+
+
+#endif
 
 // Keep track of goals
 int g_goalCount = 0;              // Number of goals found so far
@@ -5635,13 +5666,15 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
 #else
     Episode *lastEp = (Episode *)lastAct->epmem->array[lastAct->index];
 #endif
-    if ( (lastEp->cmd != CMD_SONG)
-         && (startingOffset < level0Eps->size - 1) )
+    if (lastEp->cmd != CMD_SONG)
     {
         startingOffset += 1;
     }
-    
-    printf("findInterimStartPartialMatch() is breaking here 1\n");
+
+    if (startingOffset >= level0Eps->size - 1)
+    {
+        startingOffset = level0Eps->size - 2;
+    } 
     
     //Iterate backwards over the level 0 episodes finding the longest
     //subsequence that matches the most recent episodes
@@ -5654,24 +5687,18 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
     double discount;
     for(i = startingOffset; i >= bestMatchLen; i--)
     {
-    printf("findInterimStartPartialMatch() is breaking here 2\n");
         //Count the length of the match at this point
         matchLen = 0;
         totalMatch = 0;
         discount = 1.0;
         while(TRUE)
         {
-    printf("findInterimStartPartialMatch() is breaking here 3\n");
             //don't fall off the end of the array
             if (i-matchLen < 0) break;
 #if USE_WMES
             EpisodeWME *ep1 = (EpisodeWME *)level0Eps->array[(level0Eps->size - 1) - matchLen];
             EpisodeWME *ep2 = (EpisodeWME *)level0Eps->array[i-matchLen];
 //            if (compareEpisodesWME(ep1, ep2, matchLen > 0))
-    printf("findInterimStartPartialMatch() is breaking here 4\n");
-    printf("Mem len: %d ; i = %d\n", (int)level0Eps->size, i);
-    assert(ep1 != NULL);
-    assert(ep2 != NULL);
             if((matchCount = getNumMatches(ep1, ep2, matchLen > 0)) > 0)
 #else
             Episode *ep1 = (Episode *)level0Eps->array[(level0Eps->size - 1) - matchLen];
@@ -5679,7 +5706,6 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
             if (compareEpisodes(ep1, ep2, matchLen > 0))
 #endif
             {
-    printf("findInterimStartPartialMatch() is breaking here 5\n");
                 totalMatch += (matchCount * discount);;
                 matchLen++;
                 discount *= 0.9;
@@ -5689,7 +5715,6 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
                 break;          // end of match
             }
         }//while
-    printf("findInterimStartPartialMatch() is breaking here 6\n");
 
         if(totalMatch > bestTotalMatch)
         {
@@ -5697,8 +5722,12 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
             bestTotalMatchLen = matchLen;
             bestTotalMatchIdx = i;
 #ifdef DEBUGGING_FINDINTERIMSTART
-            if(!g_statsMode) printf("findInterimStartPartialMatch_NO_KNN:\n");
-            if(!g_statsMode) printf("\tNew best total match: %lf found at index: %d with len: %d\n", bestTotalMatch, bestTotalMatchIdx, bestTotalMatchLen);
+            if(!g_statsMode)
+            {
+                printf("findInterimStartPartialMatch_NO_KNN:\n");
+                printf("\tNew best total match: %lf found at index: %d with len: %d\n", bestTotalMatch, bestTotalMatchIdx, bestTotalMatchLen);
+                printf("\tEpMem len: %d\n", (int)level0Eps->size);
+            }
 #endif
         }
            
@@ -5730,7 +5759,6 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
             */
         }//if
     }//for
-    printf("findInterimStartPartialMatch() is breaking here 7\n");
 
     //---------------------------------------------
 

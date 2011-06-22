@@ -487,12 +487,11 @@ int main(int argc, char *argv[])
 	while(1)
 	{	       
 		// receive the sensor data
-printf("breaking here1\n");
 		recvCommand(sockfd, buf);
-printf("breaking here2\n");
+
 		// determine the next command to send
 		processCommand(&cmd, buf, log);
-printf("breaking here3\n");
+
 		// If goal is found increase goal count and store the index it was found at
 #if USE_WMES
         EpisodeWME *ep = (EpisodeWME*)getEntry(episodeList, episodeList->size - 1);
