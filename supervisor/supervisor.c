@@ -75,12 +75,12 @@
 //Particularly verbose debugging for specific methods
 #ifdef DEBUGGING
 // #define DEBUGGING_UPDATEALL 1
-// #define DEBUGGING_UPDATEPLAN 1
+#define DEBUGGING_UPDATEPLAN 1
 #define DEBUGGING_CHOOSECMD 1
 #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
 #define DEBUGGING_INITPLAN 1
 #define DEBUGGING_FINDINTERIMSTART 1
-// #define DEBUGGING_NSIV 1        // nextStepIsValid()
+#define DEBUGGING_NSIV 1        // nextStepIsValid()
 // #define DEBUGGING_FIND_REPL 1
 // #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
 // #define DEBUGGING_KNN 1
@@ -88,45 +88,45 @@
 
 // global strings for printing to console
 #ifndef EATERS_MODE
-char* g_forward = "forward";
-char* g_right   = "right";
-char* g_left    = "left";
-char* g_adjustR = "adjust right";
-char* g_adjustL = "adjust left";
-char* g_blink   = "blink";
 char* g_no_op   = "no operation";
+char* g_forward = "forward";
+char* g_left    = "left";
+char* g_right   = "right";
+char* g_adjustL = "adjust left";
+char* g_adjustR = "adjust right";
+char* g_blink   = "blink";
 char* g_song    = "song";
 char* g_unknown = "unknown";
 
+char* g_no_opS   = "NO";
 char* g_forwardS = "FW";
 char* g_rightS   = "RT";
 char* g_leftS    = "LT";
 char* g_adjustRS = "AR";
 char* g_adjustLS = "AL";
 char* g_blinkS   = "BL";
-char* g_no_opS   = "NO";
 char* g_songS    = "SO";
 char* g_unknownS = "$$";
 
 
 #else
-char* g_forward = "north";
-char* g_right   = "south";
-char* g_left    = "east";
-char* g_adjustR = "west";
-char* g_adjustL = "illegal adjust left";
-char* g_blink   = "illegal blink";
 char* g_no_op   = "no operation";
+char* g_forward = "north";
+char* g_left    = "south";
+char* g_right   = "east";
+char* g_adjustL = "west";
+char* g_adjustR = "illegal adjust right";
+char* g_blink   = "illegal blink";
 char* g_song    = "song";
 char* g_unknown = "unknown";
 
+char* g_no_opS   = "NO";
 char* g_forwardS = "N";
 char* g_rightS   = "S";
 char* g_leftS    = "E";
 char* g_adjustRS = "W";
 char* g_adjustLS = "?";
 char* g_blinkS   = "?";
-char* g_no_opS   = "NO";
 char* g_songS    = "SO";
 char* g_unknownS = "$$";
 
@@ -676,309 +676,6 @@ int addEpisodeWME(EpisodeWME* item)
     Vector* episodes = (Vector *)g_epMem->array[0];
     return addEntry(episodes, item);
 }//addEpisodeWME
-
-/**
- * compareEpisodesWME
- *
- * Compare the sensor arrays of two episodes and return if they match or not
- *
- * @arg ep1 a pointer to an EpisodeWME
- * @arg ep2 a pointer to another EpisodeWME
- * @arg compCmd  TRUE indicates the comparison should include the cmd. FALSE
- *               indicates that only the sensor array should be compared
- * @return TRUE if the episodes match and FALSE otherwise
- *
-int compareEpisodesWME(EpisodeWME* ep1, EpisodeWME* ep2, int compCmd)
-{
-    if(ep1->sensors->size != ep2->sensors->size) return FALSE;
-
-    int i;
-    for(i = 0; i < ep1->sensors->size; i++)
-    {
-        if(!compareWME(getEntry(ep1->sensors, i), getEntry(ep2->sensors, i))) return FALSE;
-    }//for
-
-    //Compare the commands if that's required
-    if(compCmd && ep1->cmd != ep2->cmd) return FALSE;
-
-    return TRUE;
-}//compareEpisodesWME
-
-**
- * compareWME
- *
- * This function takes two WMEs and confirms that they contain
- * the same information.
- *
- * @param wme1 A pointer to a WME
- * @param wme2 A pointer to a WME
- * @return int Boolean value
- *
-int compareWME(WME* wme1, WME* wme2)
-{
-    // This may be more complicated than need be.
-    // I feel like it's likely we don't need to switch on the type
-    // except for that one is a string which requires a function
-    // for copmarison
-    if(strcmp(wme1->attr, wme2->attr) == 0 &&
-       wme1->type == wme2->type)
-    {
-        if(wme1->type == WME_INT && wme1->value.iVal == wme2->value.iVal) return TRUE;
-        if(wme1->type == WME_CHAR && wme1->value.cVal == wme2->value.cVal) return TRUE;
-        if(wme1->type == WME_DOUBLE && wme1->value.dVal == wme2->value.dVal) return TRUE;
-        if(wme1->type == WME_STRING && strcmp(wme1->value.sVal, wme2->value.sVal) == 0) return TRUE;
-    }
-    return FALSE;
-}//compareWME
-
-**
- * displayEpisodeWME
- *
- * Display the contents of an Episode struct in a verbose human readable format
- *
- * @arg ep a pointer to an episode
- *
-void displayEpisodeWME(EpisodeWME* ep)
-{
-    Vector* sensors = ep->sensors;
-
-    printf("\nSenses:");
-    int i;
-    for(i = 0; i < sensors->size; i++) displayWME(getEntry(sensors, i));
-
-    printf("\nCommand: %s", interpretCommandShort(ep->cmd));
-    printf("\nTime: %d\n\n", ep->now);
-}//displayEpisodeWME
-
-**
- * displayWME
- *
- * Print a WME to console.
- *
- * @param wme A pointer to a WME to print
- *
-void displayWME(WME* wme)
-{
-    printf("[%s:", wme->attr);
-    if(wme->type == WME_INT)    printf("%d]",wme->value.iVal);
-    if(wme->type == WME_CHAR)   printf("%c]",wme->value.cVal);
-    if(wme->type == WME_DOUBLE) printf("%lf]",wme->value.dVal);
-    if(wme->type == WME_STRING) printf("%s]",wme->value.sVal);
-}//displayWME
-
-**
- * createEpisodeWME
- *
- * Takes a sensor data string and allocates space for episode
- * then parses the data and populates the episode and adds it
- * to the global episode list
- *
- * @arg sensorData char* filled with sensor information
- * @return Episode* a pointer to the newly added episode
- *
-EpisodeWME* createEpisodeWME(Vector* wmes)
-{
-    // Timestamp to mark episodes
-    static int timestamp = 0;
-    
-    if(wmes == NULL)
-    {
-        printf("WME vector in parse is null");
-        return NULL;;
-    }
-
-    // Allocate space for episode and score
-    EpisodeWME* ep = (EpisodeWME*) malloc(sizeof(EpisodeWME));
-    
-    // Set EpisodeWME sensors vector to our WME vector
-    ep->sensors = wmes;
-    ep->now = timestamp++;  // Just set it to our timestamp for now
-    ep->cmd = CMD_ILLEGAL;  // Default command for now
-
-    *
-    This code is the old code that determines how to set the timestamp
-    based on connection to roomba versus our virtual environment. We
-    may (likely) need to use this again in the future.
-
-    if(g_connectToRoomba == 1)
-    {
-        // Pull out the timestamp
-        parsedData->now = timeStamp++;
-    }else
-    {
-        // Alg for determining timestamp from string of chars
-        int time = 0;
-        for(i = NUM_SENSORS; dataArr[i] != '\0'; i++)
-        {
-            if(dataArr[i] != ' ')
-            {
-                time = time * 10 + (dataArr[i] - '0');
-            }
-            if(dataArr[i] == ' ' && time != 0)
-            {
-                break;
-            }
-        }
-        // Store the time
-        parsedData->now = time;
-    }
-*
-	if(episodeContainsGoal(ep, 0))
-	{
-        g_goalIdx[g_goalCount] = ep->now;
-        g_goalCount++;
-	}//if
-    
-    return ep;
-}//createEpisodeWME
-
-**
- * freeEpisodeWME
- *
- * This function frees the memory associated with an EpisodeWME.
- *
- * @param ep A pointer to an EpisodeWME
- *
-void freeEpisodeWME(EpisodeWME* ep)
-{
-    Vector* sensors = ep->sensors;
-    int i;
-    for(i = 0; i < sensors->size; i++)
-    {
-        freeWME(getEntry(sensors, i));
-    }//for
-    freeVector(sensors);
-    free(ep);
-}//freeEpisodeWME
-
-**
- * freeWME
- * 
- * This function frees the memory associated with a WME.
- *
- * @param wme A pointer to a WME.
- *
-void freeWME(WME* wme)
-{
-    free(wme->attr);
-    free(wme);
-}//freeWME
-
-**
- * stringToWMES
- *
- * This function takes a string that contains a series of WMEs
- * and converts them into actual WMEs contained in a vector.
- *
- * @param senses A char* indicating a string defining several WMEs
- *
- * A WME is defined by 3 values: Attribute Name, Attribute Type, Attribute Value
- * These are delineated with a comma. Multiple WMEs are delineated with a semi-colon.
- * Types are a single char: i (integer), c (char), d (double), s (string {char*}).
- * {:name,type,value:}
- *
- * ex:		:size,i,25:name,s,john:open,i,1:pi,d,3.14159:
- *
- * Note: The first WME is preceded by a ':' and the final WME is succeded by a ':'
- *
- * @return Vector* A vector of WMEs derived from the sense string.
- *					NULL if error
- *
-Vector* stringToWMES(char* senses)
-{
-	Vector* wmes = newVector();
-	char delims[] = ":,";
-	char* result = strtok(senses, delims);
-	int i;
-	WME* wme;
-	while(result != NULL)
-	{
-		wme = (WME*)malloc(sizeof(WME));
-		for(i = 0; i < 3; i++)
-		{
-			switch(i)
-			{
-				case 0:
-					wme->attr = (char*)malloc(sizeof(char) * (strlen(result) + 1));
-					sprintf(wme->attr, "%s", result);
-					break;
-				case 1:
-					if(strcmp(result, "i") == 0) wme->type = WME_INT;
-					else if(strcmp(result, "c") == 0) wme->type = WME_CHAR;
-					else if(strcmp(result, "d") == 0) wme->type = WME_DOUBLE;
-					else if(strcmp(result, "s") == 0) wme->type = WME_STRING;
-					else return NULL;
-					break;
-				case 2:
-					if(wme->type == WME_INT) wme->value.iVal = atoi(result);
-					else if(wme->type == WME_CHAR) wme->value.cVal = (char)result[0];
-					else if(wme->type == WME_DOUBLE) wme->value.dVal = atof(result);
-					else if(wme->type == WME_STRING)
-					{
-						wme->value.sVal = (char*)malloc(sizeof(char) * (strlen(result) + 1));
-						sprintf(wme->value.sVal, "%s", result);
-					}
-					else return NULL;
-					break;
-			}//switch	
-			result = strtok(NULL, delims);
-		}//for
-		addEntry(wmes, wme);
-	}//while
-	
-	return wmes;
-}//stringToWMES
-
-**
- * roombaSensorsToWME
- *
- * This function takes the sensor string received from a Roomba
- * and converts it into the WME vector used by Ziggurat (in the
- * near future).
- *
- * @param sensorInput a char string with Roomba sensor data
- * @return Vector* A vector of WMEs created from the Roomba data
- *                 NULL if error
- *
-Vector* roombaSensorsToWME(char* dataArr)
-{
-    int i;
-    Vector* wmeVec = newVector();
-    // set the episodes sensor values to the sensor data
-    for(i = 0; i < NUM_SENSORS; i++)
-    {
-        // convert char to int and return error if not 0/1
-        int bit = (dataArr[i] - '0');
-        if ((bit < 0) || (bit > 1))
-        {
-            printf("%s", dataArr);
-            return NULL;     
-        }
-
-        // Create the WME for the current sensor
-        WME* wme = (WME*)malloc(sizeof(WME));
-        wme->type = WME_INT;
-        wme->value.iVal = bit; 
-		// Here we will set the IR bit attr name to 'reward' to be consistent
-		// with how we expect to mark S/F from other state definitions.
-		// All other sensor attr names will be named by their index
-		if(i == 0)
-		{
-			wme->attr = (char*)malloc(sizeof(char) * 7); // "reward\0"
-			sprintf(wme->attr, "%s", "reward");
-		}//if
-		else
-		{
-        	wme->attr = (char*)malloc(sizeof(char) * 2);// Account for null term.
-        	sprintf(wme->attr, "%i", i); // Just use the index of the sensor.
-		}//else
-        // Add the new WME to the vector
-        addEntry(wmeVec, wme);
-    }//for
-    return wmeVec;
-}//roombaSensorsToWME
-*/
-
 
 /**
  * tick
@@ -2266,7 +1963,11 @@ int nextStepIsValid()
     Route* level0Route = (Route *)g_plan->array[0];
 
     // if this is a brand new route, then the next step is always valid
-    if (level0Route->currActIndex == 0 && level0Route->currSeqIndex == 0)
+    //UNLESS it was a 1 step plan.  In that case, we need to check
+    //that the final output matches the expecatation (see Special Case below)
+    if (level0Route->currActIndex == 0
+        && level0Route->currSeqIndex == 0
+        && !level0Route->needsRecalc)
     {
         return TRUE;
     }//if
@@ -2298,9 +1999,36 @@ int nextStepIsValid()
     fflush(stdout);
 #endif
 
-    //Get the current sensing from the episode list
+    //Save a convenient reference to the level 0 episode list
     Vector *episodeList = g_epMem->array[0];
 
+    //Special Case: We've just completed a plan we need to verify that we
+    //reached the goal as expected
+    if (level0Route->needsRecalc)
+    {
+#if DEBUGGING_NSIV
+    printf("We've just completed a plan so verify goal was reached.\n");
+    fflush(stdout);
+#endif
+
+        
+#if USE_WMES
+        //See if we got the expected reward
+        EpisodeWME* currEp     = episodeList->array[episodeList->size - 1];
+        EpisodeWME* expectedEp = currAction->epmem->array[currAction->outcome];
+        int found;
+        int expectedReward = getINTValWME(expectedEp, "reward", &found);
+        int actualReward = getINTValWME(currEp, "reward", &found);
+        return expectedReward == actualReward;
+#else
+        //see if this is a goal
+        Episode* currEp = episodeList->array[episodeList->size - 1];
+        return currEp->sensors[SNSR_IR];
+#endif
+    }//
+    
+
+    //Get the current sensing from the level 0 episode list
 #if USE_WMES
     EpisodeWME* currEp     = episodeList->array[episodeList->size - 1];
    
@@ -2314,6 +2042,7 @@ int nextStepIsValid()
     // to-be-executed action
     Episode* nextStep = currAction->epmem->array[currAction->index];
 #endif
+
 
 #if DEBUGGING
     fflush(stdout);
@@ -2645,12 +2374,20 @@ int updatePlan(int level)
     //If there is one more action left on this last sequence, let it go 
     if (route->currActIndex == currSequence->size - 1)
     {
+#if DEBUGGING_UPDATEPLAN
+        printf("Setting current action to very last action.\n");
+        fflush(stdout);
+#endif
         return SUCCESS;
     }
     
     //Since there is nothing left to execute, we must report that this level is
     //done.  The lower level should still perform the outcome sequence
     //associated with the last action at this level.  
+#if DEBUGGING_UPDATEPLAN
+    printf("Informing caller that plan needs recalc.\n");
+    fflush(stdout);
+#endif
     (route->currActIndex)--;    // make this a valid value, just for safety
     route->needsRecalc = TRUE;
     return PLAN_ON_OUTCOME;
