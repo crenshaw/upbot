@@ -13,8 +13,6 @@
 
 // If TRUE then we are expecting to receive a sensory string that defines
 // a series of WMEs like so:	:name1,type1,value1:name2,type2,value2:.etc..:
-#define WME_STRING_SENSES 1
-#define CMD_COUNT         5
 
 //if RANDOMIZE is defined then the hallucinogen filter is applied
 //#define RANDOMIZE
@@ -31,6 +29,9 @@
 
 #define TIMEOUT_SECS	5	// Num seconds in timeout on recv
 #define MAX_TRIES		10	// Num tries to reconnect on lost connection
+
+#define WME_STRING_SENSES 1
+#define CMD_COUNT         5
 
 int g_goalsFound = 0;				// Number of times we found the goal
 int g_goalsTimeStamp[NUM_GOALS_TO_FIND];	// Timestamps of found goals
@@ -360,6 +361,14 @@ void printStats(FILE* log)
  */
 void reportGoalFound(int sockfd, FILE* log)
 {
+    // Return if we are in the Eaters environment
+    if(CMD_COUNT == 5)
+    {
+	    // Send a success command
+	    int cmd = CMD_SONG;
+	    sendCommand(sockfd, cmd);
+        return;
+    }//if
 	// Store the new goal timestamp and increment count
 	Vector* episodeList = g_epMem->array[0];
 #if USE_WMES
@@ -511,17 +520,28 @@ int main(int argc, char *argv[])
 		}
 
 		// Once we've found all the goals, print out some data about the search
+        printf("breaking here\n");
+		fflush(stdout);
         int found;
-        if((getINTValWME(ep, "steps", &found) > EATERS_MAX_STEPS
-            && found == TRUE) ||
-		   (g_goalsFound >= NUM_GOALS_TO_FIND))
+        
+        if((CMD_COUNT == 5 && getINTValWME((EpisodeWME*)getEntry(episodeList, episodeList->size - 1), "steps", &found) >= EATERS_MAX_STEPS) ||
+           (CMD_COUNT == 6 && g_goalsFound >= NUM_GOALS_TO_FIND) )
 		{
-			if(CMD_COUNT == 6) printStats(log);
-			// exit the while loop
-			printf("All goals found. Exiting.\n");
-			break;
-		}
-
+            if(CMD_COUNT == 6) 
+            {
+                printStats(log);
+			    printf("All goals found. Exiting.\n");
+            }
+            if(CMD_COUNT == 5)
+            {
+                printf("Max steps reached: %i. Exiting.\n", EATERS_MAX_STEPS);
+            }
+            // exit the while loop
+            break;
+		}//if
+        
+        printf("not breaking here\n");
+		fflush(stdout);
 	}// while
 
 	// End Supervisor, call frees memory associated with Supervisor vectors

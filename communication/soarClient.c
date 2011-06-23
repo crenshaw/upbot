@@ -477,9 +477,16 @@ int main(int argc, char *argv[])
         if((CMD_COUNT == 5 && getINTValWME((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1), "steps", &found) >= MAX_STEPS) ||
            (CMD_COUNT == 6 && g_goalsFound >= NUM_GOALS_TO_FIND) )
         {
-            printStats(log);
+            if(CMD_COUNT == 6) 
+            {
+                printStats(log);
+			    printf("All goals found. Exiting.\n");
+            }
+            if(CMD_COUNT == 5)
+            {
+                printf("Max steps reached: %i. Exiting.\n", MAX_STEPS);
+            }
             // exit the while loop
-            printf("Max steps reached: %i. Exiting.\n", MAX_STEPS);
             break;
         }//if
     }// while

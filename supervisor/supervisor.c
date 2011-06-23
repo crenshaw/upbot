@@ -81,7 +81,7 @@
 #define DEBUGGING_INITPLAN 1
 #define DEBUGGING_FINDINTERIMSTART 1
 #define DEBUGGING_NSIV 1        // nextStepIsValid()
-// #define DEBUGGING_FIND_REPL 1
+#define DEBUGGING_FIND_REPL 1
 // #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
 // #define DEBUGGING_KNN 1
 #endif
@@ -657,6 +657,10 @@ int tickWME(Vector* wmes)
     }
     fflush(stdout);
 #endif
+
+    printf("\n----------Current Memory----------\n");
+    displayEpisodes(g_epMem->array[0], 0);
+    printf("\n----------Current Memory----------\n");
 
     return ep->cmd;
 }//tickWME
@@ -1611,7 +1615,7 @@ void displayEpisodes(Vector *episodeList, int level)
             Episode *ep = (Episode*)episodeList->array[i];
             displayEpisodeShort(ep);
 #endif
-            if (i + 1 < episodeList->size) printf(", "); // delimiter
+            if (i + 1 < episodeList->size) printf(",\n"); // delimiter
         }
         else //episodeList contains sequences
         {
@@ -1956,11 +1960,16 @@ int chooseCommand_SemiRandom()
  */
 int nextStepIsValid()
 {
+    printf("Entered nextStepIsValid\n");
+    fflush(stdout);
     //If there is no plan then there is no next step
     if (g_plan == NULL) return FALSE;
+    printf("Plan is not NULL\n");
+    fflush(stdout);
    
     //Get the current action that we are about to execute
     Route* level0Route = (Route *)g_plan->array[0];
+    assert(level0Route != NULL);
 
     // if this is a brand new route, then the next step is always valid
     //UNLESS it was a 1 step plan.  In that case, we need to check
@@ -1969,6 +1978,8 @@ int nextStepIsValid()
         && level0Route->currSeqIndex == 0
         && !level0Route->needsRecalc)
     {
+    printf("returning from default\n");
+    fflush(stdout);
         return TRUE;
     }//if
 
@@ -2687,7 +2698,7 @@ void considerReplacement()
         if (newRepl == NULL)
         {
 #if DEBUGGING
-            printf("No valid replacement found.\n", g_selfConfidence);
+            printf("No valid replacement found. Self-confidence: %lf\n", g_selfConfidence);
             fflush(stdout);
 #endif
             return;
@@ -2767,17 +2778,36 @@ int chooseCommand_WithPlan()
 
     //Get the level 0 route from from the plan
     Route* level0Route = (Route *)g_plan->array[0];
+    assert(level0Route != NULL);
 
+    printf("Displaying the current route\n");
+    fflush(stdout);
+//    displayRoute(level0Route, FALSE);
+    printf("\n");
+    fflush(stdout);
+    printf("Level: %d\n", level0Route->level);
+    assert(level0Route->sequences != NULL);
+    printf("NumSeqs: %d\n", level0Route->sequences->size);
+    printf("FirstSeqLen: %d\n", ((Vector*)level0Route->sequences->array[0])->size);
+    printf("CurrSeqIdx: %d\n", level0Route->currSeqIndex);
+    printf("CurrActIdx: %d\n", level0Route->currActIndex);
+    printf("NeedsRecalc: %d\n", level0Route->needsRecalc);
+    printf("\n");
+    fflush(stdout);
     //Extract the current action
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
     Action* currAction = currSequence->array[level0Route->currActIndex];
 #if USE_WMES
+            printf("breaking here\n");
+    fflush(stdout);
+    assert(currAction != NULL);
     EpisodeWME* nextStep = currAction->epmem->array[currAction->index];
+            printf("not breaking here\n");
+    fflush(stdout);
 #else
     Episode* nextStep = currAction->epmem->array[currAction->index];
 #endif
     
-
     //move the "current action" pointer to the next action as a result
     //of taking this action
     updatePlan(0);
@@ -3582,7 +3612,7 @@ Vector* initPlan(int isReplan)
         }
     }//if
 
-   
+  printf("In initPlan, offset is: %d\n", offset); 
 
     //Figure out what level the startSeq is at
     Action *act = (Action *)startSeq->array[0];
@@ -3638,8 +3668,8 @@ Vector* initPlan(int isReplan)
     //If I'm replanning after the failure of a previous plan that means that the
     //first command in the new plan may not be the very first command in the
     //first sequence.
-    if (isReplan)
-    {
+//    if (isReplan)
+//    {
         Route *route = (Route *)resultPlan->array[0];
 
         //If the route was based on a partial match at level 0 then the offset
@@ -3651,9 +3681,10 @@ Vector* initPlan(int isReplan)
         //At level 1+ just skip the first command
         else                   
         {
-            route->currActIndex = 1;
+            //route->currActIndex = 1;
+            route->currActIndex = 0;
         }
-    }//if
+//    }//if
 
 
     return resultPlan;
@@ -5360,6 +5391,7 @@ Vector* findInterimStart_NO_KNN()
  */
 Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
 {
+    static Vector* lastReturnedMatch = NULL;
     int i,j,k;                    // iterators
     Vector *level0Eps = (Vector *)g_epMem->array[0];
     Vector *level1Eps = (Vector *)g_epMem->array[1];
@@ -5474,7 +5506,7 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
             bestMatchLenMatchCount = totalMatch;
             bestMatchLen    = matchLen;
             bestMatchIndex  = i;
-/*               
+               
 #ifdef DEBUGGING_FINDINTERIMSTART
             printf("\tBest partial match so far length %d at index %d:  ",
                    bestMatchLen, bestMatchIndex);
@@ -5493,7 +5525,7 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
             printf("\n");
             fflush(stdout);
 #endif
-            */
+            
         }//if
     }//for
 
@@ -5627,7 +5659,11 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
     fflush(stdout);
 #endif
 
-    //Report the result
+    if(lastReturnedMatch == currSeq) return NULL;
+
+    lastReturnedMatch = currSeq;
+
+//Report the result
     *offset = currActIndex;
     return currSeq;
    
