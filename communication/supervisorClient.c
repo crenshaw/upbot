@@ -293,10 +293,13 @@ int handshake(char* ipAddr)
 	else if(g_statsMode == 1)
 	{
 		// For the unit test this will toggle its copy of g_statsMode
+        /*
+        printf("Hitting here is incorrect?\n");
 		int cmd = CMD_BLINK;
 		if(send(sockfd, &cmd, 1, 0) == -1)
 		{
 		}
+        */
 	}// if
 
 	// Free the space allocated for recv buffer
@@ -315,40 +318,64 @@ int handshake(char* ipAddr)
  */
 void printStats(FILE* log)
 {
-	// == 0 means print to console
-	Vector* episodeList = g_epMem->array[0];
-	if(g_statsMode == 0)
-	{
-		// Print the number of goals found and episodes recieved
-		printf("Roomba has found the Goal %i times.\nSupervisor has received %u episodes.\n",
-               NUM_GOALS_TO_FIND, (unsigned int)episodeList->size);
-		int i;
-		// Print the timestamp that each goal was found at
-		for(i = 0; i < NUM_GOALS_TO_FIND; i++)
-		{
-			printf("Goal %i was found at time %i", i, g_goalsTimeStamp[i]);
+    Vector* episodeList = g_epMem->array[0];
+    if(CMD_COUNT == 5)
+    {
+        int found;
+        EpisodeWME *finalEp = (EpisodeWME*)episodeList->array[episodeList->size - 1];
+        int score = getINTValWME(finalEp, "score", &found);
+        if(!g_statsMode)
+        {
+            printf("Number of random commands: %d\n", g_numRandom);
+            printf("Random commands from low confidence: %d\n", g_numRandomLowConfidence);
+            printf("Final Score: %d\n", score);
+        }//if
+        else
+        {
+            fprintf(log, "%d,%d,%d\n", g_numRandom, g_numRandomLowConfidence, score);
+        //    fprintf(log, "\n");
+            fflush(log);
+        }//else
+        g_numRandom = 0;
+        g_numRandomLowConfidence = 0;
+        return;
+    }//if
+    if(CMD_COUNT == 6)
+    {
+        // == 0 means print to console
+        if(g_statsMode == 0)
+        {
+            // Print the number of goals found and episodes recieved
+            printf("Roomba has found the Goal %i times.\nSupervisor has received %u episodes.\n",
+                    NUM_GOALS_TO_FIND, (unsigned int)episodeList->size);
+            int i;
+            // Print the timestamp that each goal was found at
+            for(i = 0; i < NUM_GOALS_TO_FIND; i++)
+            {
+                printf("Goal %i was found at time %i", i, g_goalsTimeStamp[i]);
 
-			//If not the first goal, print number of episodes between previous and current goal
-			if(i > 0)
-			{
-				printf(" and it took %i episodes to find it after goal %i\n", g_goalsTimeStamp[i]-g_goalsTimeStamp[i-1], i-1);
-			}
-			else
-			{
-				printf("\n");
-			}
-		}// for
-	}
-	else	// otherwise print to file for import into spreadsheet
-	{
-		int i;
-		for(i = 0; i < NUM_GOALS_TO_FIND; i++)
-		{
-			fprintf(log, "%i:", (i < 1 ? g_goalsTimeStamp[i] : g_goalsTimeStamp[i]-g_goalsTimeStamp[i-1]));
-		}// for
-		fprintf(log, "\n");
-		fflush(log);
-	}// if
+                //If not the first goal, print number of episodes between previous and current goal
+                if(i > 0)
+                {
+                    printf(" and it took %i episodes to find it after goal %i\n", g_goalsTimeStamp[i]-g_goalsTimeStamp[i-1], i-1);
+                }
+                else
+                {
+                    printf("\n");
+                }
+            }// for
+        }//if
+        else	// otherwise print to file for import into spreadsheet
+        {
+            int i;
+            for(i = 0; i < NUM_GOALS_TO_FIND; i++)
+            {
+                fprintf(log, "%i:", (i < 1 ? g_goalsTimeStamp[i] : g_goalsTimeStamp[i]-g_goalsTimeStamp[i-1]));
+            }// for
+            fprintf(log, "\n");
+            fflush(log);
+        }//else
+    }//if
 }// printStats
 
 /**
@@ -361,51 +388,59 @@ void printStats(FILE* log)
  */
 void reportGoalFound(int sockfd, FILE* log)
 {
+    Vector* episodeList = g_epMem->array[0];
+
     // Return if we are in the Eaters environment
     if(CMD_COUNT == 5)
     {
-	    // Send a success command
-	    int cmd = CMD_SONG;
-	    sendCommand(sockfd, cmd);
+        int found = 0;
+        EpisodeWME *ep = ((EpisodeWME*)episodeList->array[episodeList->size - 1]);
+        if(!g_statsMode)
+            printf("Reward received at step: %d. Current Score: %d\n",
+                    getINTValWME(ep, "steps", &found),
+                    getINTValWME(ep, "score", &found));
+        // Send a success command
+        int cmd = CMD_SONG;
+        sendCommand(sockfd, cmd);
         return;
     }//if
-	// Store the new goal timestamp and increment count
-	Vector* episodeList = g_epMem->array[0];
+
+    // Store the new goal timestamp and increment count
 #if USE_WMES
     EpisodeWME *ep = ((EpisodeWME*)episodeList->array[episodeList->size - 1]);
 #else
     Episode *ep = ((Episode*)episodeList->array[episodeList->size - 1]);
 #endif
-        
-	g_goalsTimeStamp[g_goalsFound] = ep->now;
-	g_goalsFound++;
 
-	// Only print if not in stats mode
-	if(g_goalsFound > 1)
-	{
-		printf("Goal %i found after %i steps at timestamp %i\n"
-							, g_goalsFound
-							, g_goalsTimeStamp[g_goalsFound - 1] - g_goalsTimeStamp[g_goalsFound - 2]
-							, g_goalsTimeStamp[g_goalsFound - 1]);
-	}
-	else
-	{
-		printf("Goal %i found at timestamp %i\n"
-							, g_goalsFound
-							, g_goalsTimeStamp[g_goalsFound - 1]);
-	}
+    g_goalsTimeStamp[g_goalsFound] = ep->now;
+    g_goalsFound++;
 
-	// Send a success command
-	int cmd = CMD_SONG;
-	sendCommand(sockfd, cmd);
+    // Only print if not in stats mode
+    if(g_goalsFound > 1)
+    {
+        printf("Goal %i found after %i steps at timestamp %i\n"
+                , g_goalsFound
+                , g_goalsTimeStamp[g_goalsFound - 1] - g_goalsTimeStamp[g_goalsFound - 2]
+                , g_goalsTimeStamp[g_goalsFound - 1]);
+    }
+    else
+    {
+        printf("Goal %i found at timestamp %i\n"
+                , g_goalsFound
+                , g_goalsTimeStamp[g_goalsFound - 1]);
+    }
 
-	// If connected to Roomba 
+    // Send a success command
+    int cmd = CMD_SONG;
+    sendCommand(sockfd, cmd);
+
+    // If connected to Roomba 
     //pause to allow time to return Roomba to Init
-	if(g_connectToRoomba == 1)
-	{
-		printf("Press enter to continue\n");
-		getchar();
-	}
+    if(g_connectToRoomba == 1)
+    {
+        printf("Press enter to continue\n");
+        getchar();
+    }
 }// reportGoalFound
 
 /**
@@ -420,11 +455,11 @@ void reportGoalFound(int sockfd, FILE* log)
  */
 void processCommand(int* cmd, char* buf, FILE* log)
 {
-	// Call Supervisor tick to process recently added episode.
+    // Call Supervisor tick to process recently added episode.
     // The incoming sensing may be filtered depending upon
     // RANDOMIZE and FILTERING
 #if WME_STRING_SENSES
-	*cmd = tickWME(stringToWMES(buf));
+    *cmd = tickWME(stringToWMES(buf));
 #else
 #ifdef RANDOMIZE
     insertConfusion(buf); 
@@ -437,26 +472,27 @@ void processCommand(int* cmd, char* buf, FILE* log)
     *cmd = tick(buf);
 #endif
 #endif
-	if(g_statsMode == 0)
-	{
-		// Print sensor data to log file and force write
-		fprintf(log, "Sensor data: [%s] Command received: %s\n", buf, interpretCommand(*cmd));
-		fflush(log);
-	}
+    if(g_statsMode == 0)
+    {
+        // Print sensor data to log file and force write
+        fprintf(log, "Sensor data: [%s] Command received: %s\n", buf, interpretCommand(*cmd));
+        fflush(log);
+    }
 
-	// Error in processing, exit with appropriate error code
-	if(*cmd < CMD_NO_OP)
-	{
-		perror("Tick returned error\n");
-		exit(*cmd);
-	}
+    // Error in processing, exit with appropriate error code
+    if(*cmd < CMD_NO_OP)
+    {
+        perror("Tick returned error\n");
+        exit(*cmd);
+    }
 
-	// If tick gave us an invalid command, exit with appropriate error code
-	if(*cmd > CMD_COUNT && *cmd != CMD_SONG)
-	{
-		perror("Illegal command");
-		exit(*cmd);
-	}
+    // If tick gave us an invalid command, exit with appropriate error code
+    if(*cmd > CMD_COUNT && *cmd != CMD_SONG)
+    {
+        printf("Exiting here: Should not happen\n");
+        perror("Illegal command");
+        exit(*cmd);
+    }
 }// processCommand
 
 /**
@@ -466,91 +502,114 @@ void processCommand(int* cmd, char* buf, FILE* log)
  */
 int main(int argc, char *argv[])
 {
-	// User did not pass in minimum number of arguments
-	if (argc < 2) {
-		fprintf(stderr,"\nUSAGE: %s <hostname> [-m stats|visual] [-c roomba|test]\n\n",
+    // User did not pass in minimum number of arguments
+    if (argc < 2) {
+        fprintf(stderr,"\nUSAGE: %s <hostname> [-m stats|visual] [-c roomba|test]\n\n",
                 argv[0]);
-		exit(1);
-	}
+        exit(1);
+    }
 
-	// Open log file for output
-	char* buf = (char*) malloc(sizeof(char) * MAXDATASIZE);
-	FILE* log = fopen("supClient.log", "a");
+    // Open log file for output
+    char* buf = (char*) malloc(sizeof(char) * MAXDATASIZE);
+    FILE* log = fopen("supClient.log", "a");
 
-	// File was not opened correctly
-	if(!log)
-	{
-		fprintf(stderr, "File not opened correctly");
-		exit(1);
-	}
+    // File was not opened correctly
+    if(!log)
+    {
+        fprintf(stderr, "File not opened correctly");
+        exit(1);
+    }
 
-	initSupervisor(CMD_COUNT);				// Initialize the Supervisor
-	parseArguments(argc, argv);		// Parse the arguments and set up global monitoring vars
+    initSupervisor(CMD_COUNT);				// Initialize the Supervisor
+    parseArguments(argc, argv);		// Parse the arguments and set up global monitoring vars
 
-	// Socket stuff
-	int sockfd = handshake(argv[1]);
-	int cmd = CMD_LEFT;				// command to send to Roomba
+    // Socket stuff
+    int sockfd = handshake(argv[1]);
+    int cmd = CMD_LEFT;				// command to send to Roomba
+    static int numRuns = 0;
+    Vector* episodeList = g_epMem->array[0];
+    // Main send/recv processing loop
+    while(1)
+    {	       
+        // receive the sensor data
+        recvCommand(sockfd, buf);
 
-	Vector* episodeList = g_epMem->array[0];
-	// Main send/recv processing loop
-	while(1)
-	{	       
-		// receive the sensor data
-		recvCommand(sockfd, buf);
+        // determine the next command to send
+        processCommand(&cmd, buf, log);
 
-		// determine the next command to send
-		processCommand(&cmd, buf, log);
-
-		// If goal is found increase goal count and store the index it was found at
+        // If goal is found increase goal count and store the index it was found at
 #if USE_WMES
         EpisodeWME *ep = (EpisodeWME*)getEntry(episodeList, episodeList->size - 1);
 #else
         Episode *ep = (Episode*)getEntry(episodeList, episodeList->size - 1);
 #endif
-        if (episodeContainsGoal(ep, FALSE))
-		{
-			reportGoalFound(sockfd, log);
-		}
-		else
-		{
-			if(sendCommand(sockfd, cmd) < 0)
-			{
-				perror("Error sending to socket");
-			}
-		}
-
-		// Once we've found all the goals, print out some data about the search
-        printf("breaking here\n");
-		fflush(stdout);
+        // Once we've found all the goals, print out some data about the search
+        // Eaters: If we have only done under a certain number
+        //          of runs, then reset the environment and
+        //          continue.
         int found;
-        
-        if((CMD_COUNT == 5 && getINTValWME((EpisodeWME*)getEntry(episodeList, episodeList->size - 1), "steps", &found) >= EATERS_MAX_STEPS) ||
-           (CMD_COUNT == 6 && g_goalsFound >= NUM_GOALS_TO_FIND) )
-		{
+        if((CMD_COUNT == 5 && getINTValWME(ep, "steps", &found) > EATERS_MAX_STEPS) ||
+                (CMD_COUNT == 6 && g_goalsFound >= NUM_GOALS_TO_FIND) )
+        {
+            numRuns++;
             if(CMD_COUNT == 6) 
             {
                 printStats(log);
-			    printf("All goals found. Exiting.\n");
+                printf("All goals found. Exiting.\n");
+                break;
             }
             if(CMD_COUNT == 5)
             {
-                printf("Max steps reached: %i. Exiting.\n", EATERS_MAX_STEPS);
-            }
-            // exit the while loop
-            break;
-		}//if
-        
-        printf("not breaking here\n");
-		fflush(stdout);
-	}// while
+                printStats(log);
+                printf("Max steps reached: %i. Sending RESET command.\n\n", EATERS_MAX_STEPS);
+                if(sendCommand(sockfd, CMD_EATERS_RESET) < 0)
+                {
+                    perror("Error sending to socket");
+                }
+                recvCommand(sockfd, buf);
+                if(strcmp(buf, "Reset: Success") == 0)
+                {
+                    if(!g_statsMode) printf("Eaters reset successful\n");
+                }
+                else
+                {
+                    if(!g_statsMode) printf("Eaters reset unsuccessful\n");
+                    break;
+                }
 
-	// End Supervisor, call frees memory associated with Supervisor vectors
-	endSupervisor();
+                // exit the while loop
+                if(numRuns > 10)
+                    break;
 
-	// close the connection to Roomba server
-	close(sockfd);
-	fclose(log);
+                // Reset command to default for the first
+                // command in the newly reset environment
+                cmd = CMD_NO_OP;
+            }//if
+        }//if
 
-	return 0;
+        if (episodeContainsGoal(ep, FALSE))
+        {
+            reportGoalFound(sockfd, log);
+        }//if
+        else
+        {
+            if(sendCommand(sockfd, cmd) < 0)
+            {
+                perror("Error sending to socket");
+            }//if
+        }//else
+
+    }// while
+
+    printf("Runs completed... Exiting.\n");
+
+    // End Supervisor, call frees memory associated with Supervisor vectors
+    endSupervisor();
+
+    // close the connection to Roomba server
+    close(sockfd);
+    fclose(log);
+
+    return 0;
 }//main
 

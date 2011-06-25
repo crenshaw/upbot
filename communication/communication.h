@@ -102,10 +102,11 @@ int checkArgName(int argc, char* argv[], char addresses[3][13]);
 #define WME_STRING 0x3
 
 // Moves for Eaters environment
-#define CMD_MOVE_N 0x2
-#define CMD_MOVE_S 0x3
-#define CMD_MOVE_E 0x4
-#define CMD_MOVE_W 0x5
+#define CMD_MOVE_N          0x2
+#define CMD_MOVE_S          0x3
+#define CMD_MOVE_E          0x4
+#define CMD_MOVE_W          0x5
+#define CMD_EATERS_RESET    0x6
 
 // Virtual objects in Eaters environment
 #define V_E_WALL		(1)

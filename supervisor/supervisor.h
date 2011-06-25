@@ -66,7 +66,7 @@
 #define EATERS_MAX_STEPS 1000
 
 // Collecting data for stats
-#define STATS_MODE		0
+#define STATS_MODE		1
 
 #define DECREASE_RANDOM(randChance) if((randChance) > 10) { (randChance) -= 5;}
 
@@ -158,6 +158,8 @@ typedef struct EpisodeWMEStruct
 // Global variables for monitoring and connecting
 int g_connectToRoomba;
 int g_statsMode;
+int g_numRandom;
+int g_numRandomLowConfidence;
 
 // These vectors contain the entire episodic memory
 Vector* g_epMem;

@@ -69,7 +69,7 @@
 
 
 //Setting this turns on verbose output to aid debugging
-#define DEBUGGING 1
+//#define DEBUGGING 1
 
 
 //Particularly verbose debugging for specific methods
@@ -115,7 +115,7 @@ char* g_forward = "north";
 char* g_left    = "south";
 char* g_right   = "east";
 char* g_adjustL = "west";
-char* g_adjustR = "illegal adjust right";
+char* g_adjustR = "reset";
 char* g_blink   = "illegal blink";
 char* g_song    = "song";
 char* g_unknown = "unknown";
@@ -125,7 +125,7 @@ char* g_forwardS = "N";
 char* g_rightS   = "S";
 char* g_leftS    = "E";
 char* g_adjustRS = "W";
-char* g_adjustLS = "?";
+char* g_adjustLS = "R";
 char* g_blinkS   = "?";
 char* g_songS    = "SO";
 char* g_unknownS = "$$";
@@ -606,16 +606,12 @@ void replanTest()
 int tickWME(Vector* wmes)
 {
     // Create new Episode
-    printf("Entering TICKWME\n");
     EpisodeWME* ep = createEpisodeWME(wmes);
-    printf("Episode created\n");
 
     // Add new episode to the history
     addEpisodeWME(ep);
-    printf("Episode added\n");
 
         updateAll(0);
-    printf("Update all complete\n");
 #if DEBUGGING_UPDATEALL
     printf("updateAll complete\n");
     fflush(stdout);
@@ -625,15 +621,24 @@ int tickWME(Vector* wmes)
     // and if not then send ep to determine a valid command
     if(episodeContainsGoal(ep, FALSE))
     {
-    printf("Episode contains a goal\n");
         ep->cmd = CMD_SONG;
 
         //If a a plan is in place, reward the agent and any outstanding replacements
-        if (g_plan != NULL)
+        //if (g_plan != NULL)
+        if (nextStepIsValid())
         {
+            if(!g_statsMode) printf("Goal found via valid plan...\n");
+            if(!g_statsMode) printf("Applying Replacement rewards...\n");
             rewardReplacements();
-            rewardAgent();
         }
+        else if(g_plan != NULL)
+        {
+            if(!g_statsMode) printf("Goal found via invalid plan...\n");
+            if(!g_statsMode) printf("Skipping Replacement rewards...\n");
+        }
+        
+        if(!g_statsMode) printf("Rewarding agent...\n");
+        rewardAgent();
        
         //Current, presumably successful, plan no longer needed
         if (g_plan != NULL)
@@ -644,10 +649,9 @@ int tickWME(Vector* wmes)
     }
     else
     {
-    printf("Episode does not contain a goal\n");
         ep->cmd = chooseCommand();
     }
-    printf("Episode command chosen\n");
+    if(!g_statsMode) printf("Episode command chosen\n");
 
 #if DEBUGGING
     // Print out the parsed episode if not in statsMode
@@ -657,11 +661,7 @@ int tickWME(Vector* wmes)
     }
     fflush(stdout);
 #endif
-
-    printf("\n----------Current Memory----------\n");
-    displayEpisodes(g_epMem->array[0], 0);
-    printf("\n----------Current Memory----------\n");
-
+    
     return ep->cmd;
 }//tickWME
 
@@ -1883,6 +1883,7 @@ void displayAction(Action* action)
  */
 int chooseCommand_SemiRandom()
 {
+    g_numRandom++;
     int i;                      // iterator
    
 #if DEBUGGING
@@ -1960,12 +1961,8 @@ int chooseCommand_SemiRandom()
  */
 int nextStepIsValid()
 {
-    printf("Entered nextStepIsValid\n");
-    fflush(stdout);
     //If there is no plan then there is no next step
     if (g_plan == NULL) return FALSE;
-    printf("Plan is not NULL\n");
-    fflush(stdout);
    
     //Get the current action that we are about to execute
     Route* level0Route = (Route *)g_plan->array[0];
@@ -1978,8 +1975,6 @@ int nextStepIsValid()
         && level0Route->currSeqIndex == 0
         && !level0Route->needsRecalc)
     {
-    printf("returning from default\n");
-    fflush(stdout);
         return TRUE;
     }//if
 
@@ -2780,6 +2775,7 @@ int chooseCommand_WithPlan()
     Route* level0Route = (Route *)g_plan->array[0];
     assert(level0Route != NULL);
 
+#if DEBUGGING
     printf("Displaying the current route\n");
     fflush(stdout);
 //    displayRoute(level0Route, FALSE);
@@ -2794,16 +2790,13 @@ int chooseCommand_WithPlan()
     printf("NeedsRecalc: %d\n", level0Route->needsRecalc);
     printf("\n");
     fflush(stdout);
+#endif
     //Extract the current action
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
     Action* currAction = currSequence->array[level0Route->currActIndex];
 #if USE_WMES
-            printf("breaking here\n");
-    fflush(stdout);
     assert(currAction != NULL);
     EpisodeWME* nextStep = currAction->epmem->array[currAction->index];
-            printf("not breaking here\n");
-    fflush(stdout);
 #else
     Episode* nextStep = currAction->epmem->array[currAction->index];
 #endif
@@ -2836,6 +2829,15 @@ int chooseCommand()
             printf("Entering chooseCommand\n");
             fflush(stdout);
 #endif
+            
+    if(g_selfConfidence < 0.0005)
+    {
+        freePlan(g_plan);
+        g_plan = NULL;
+        g_numRandomLowConfidence++;
+        if(!g_statsMode) printf("Choosing a random command due to lack of confidence: %lf\n", g_selfConfidence);
+        return chooseCommand_SemiRandom();
+    }
            
     //If the agent has taken a wrong step, then it loses confidence in itself
     //and in the recently applied replacements
@@ -3612,8 +3614,6 @@ Vector* initPlan(int isReplan)
         }
     }//if
 
-  printf("In initPlan, offset is: %d\n", offset); 
-
     //Figure out what level the startSeq is at
     Action *act = (Action *)startSeq->array[0];
     int level = act->level;
@@ -4112,6 +4112,8 @@ int episodeContainsGoal(void *entry, int level)
  */
 void initSupervisor(int numCommands)
 {
+    g_numRandom = 0;
+    g_numRandomLowConfidence = 0;
     g_CMD_COUNT = numCommands;
 
     // member variables
@@ -5392,6 +5394,7 @@ Vector* findInterimStart_NO_KNN()
 Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
 {
     static Vector* lastReturnedMatch = NULL;
+    static int oldMatchIdx = -1;
     int i,j,k;                    // iterators
     Vector *level0Eps = (Vector *)g_epMem->array[0];
     Vector *level1Eps = (Vector *)g_epMem->array[1];
@@ -5531,7 +5534,10 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
 
     //---------------------------------------------
 
-    if(bestTotalMatch + bestTotalMatchLen > bestMatchLenMatchCount + bestMatchLen)
+    if(oldMatchIdx == bestMatchIndex || 
+        (bestTotalMatch + bestTotalMatchLen > 
+            bestMatchLenMatchCount + bestMatchLen &&
+         oldMatchIdx != bestTotalMatchIdx))
     {
 #ifdef DEBUGGING_FINDINTERIMSTART
         printf("Swapping the best match index\n");
@@ -5539,6 +5545,8 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
         bestMatchIndex = bestTotalMatchIdx;
         bestMatchLen = bestTotalMatchLen;
     }//if
+
+    oldMatchIdx = bestMatchIndex;
 
     //---------------------------------------------
 

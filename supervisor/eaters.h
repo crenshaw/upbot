@@ -22,6 +22,6 @@ void freeWorld();
 void displayWorld();
 char* unitTest(int comand, int needCleanup);
 char* doMove(int command);
-char* setSenseString();
+char* setSenseString(int command);
 
 #endif // _EATERS_H_

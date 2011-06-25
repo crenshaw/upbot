@@ -14,7 +14,7 @@
 
 #include "../soar/soar.h"
 
-#define CMD_COUNT       6
+#define CMD_COUNT       5
 
 #define TIMEOUT_SECS	5	// Num seconds in timeout on recv
 #define MAX_TRIES		10	// Num tries to reconnect on lost connection

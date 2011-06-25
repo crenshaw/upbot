@@ -272,6 +272,10 @@ char* doMove(int command)
         case CMD_NO_OP:
             if(!g_statsMode) printf("No operation...\n");
             break;
+        case CMD_EATERS_RESET:
+            if(!g_statsMode) printf("Reset Eaters environment...\n");
+            initWorld(FALSE);
+            break;
         default:
             if(!g_statsMode) printf("Invalid command: %i\n", command);
             break;
@@ -281,7 +285,7 @@ char* doMove(int command)
 
     if(!g_statsMode) displayWorld();
 
-    return setSenseString();
+    return setSenseString(command);
 }//doMove
 
 /**
@@ -291,17 +295,24 @@ char* doMove(int command)
  *
  * @return char*	The sensor data to be sent to the Supervisor
  */
-char* setSenseString()
+char* setSenseString(int command)
 {
     // Memory for data string to return to Supervisor
     char* str = (char*) malloc(sizeof(char) * 150); 
 
     // Fill out sensor string
-    sprintf(str, ":UL,i,%d:UM,i,%d:UR,i,%d:LT,i,%d:RT,i,%d:LL,i,%d:LM,i,%d:LR,i,%d:score,i,%d:steps,i,%d:color,s,%s:reward,i,%d:", 
-            g_world[g_X - 1][g_Y - 1], g_world[g_X][g_Y - 1], g_world[g_X + 1][g_Y - 1], 
-            g_world[g_X - 1][g_Y], g_world[g_X + 1][g_Y], 
-            g_world[g_X - 1][g_Y + 1], g_world[g_X][g_Y + 1], g_world[g_X + 1][g_Y + 1],
-            g_score, g_numMoves, g_color, g_reward);
+    if(command == CMD_EATERS_RESET)
+    {
+        sprintf(str, "Reset: Success");
+    }
+    else
+    {
+        sprintf(str, ":UL,i,%d:UM,i,%d:UR,i,%d:LT,i,%d:RT,i,%d:LL,i,%d:LM,i,%d:LR,i,%d:score,i,%d:steps,i,%d:color,s,%s:reward,i,%d:", 
+                g_world[g_X - 1][g_Y - 1], g_world[g_X][g_Y - 1], g_world[g_X + 1][g_Y - 1], 
+                g_world[g_X - 1][g_Y], g_world[g_X + 1][g_Y], 
+                g_world[g_X - 1][g_Y + 1], g_world[g_X][g_Y + 1], g_world[g_X + 1][g_Y + 1],
+                g_score, g_numMoves, g_color, g_reward);
+    }
 
     return str;
 }//setSenseString
