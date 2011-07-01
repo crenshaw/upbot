@@ -160,6 +160,9 @@ int g_connectToRoomba;
 int g_statsMode;
 int g_numRandom;
 int g_numRandomLowConfidence;
+int g_numGoalsFromRandom;
+int g_numGoalsFromInvalidPlan;
+int g_numGoalsFromValidPlan;
 
 // These vectors contain the entire episodic memory
 Vector* g_epMem;
@@ -258,5 +261,14 @@ void         rewardReplacements();
 //int          setCommand2(Episode* ep);
 //int          takeNextStep(Episode* currEp);
 int          updateAll();
+
+// Functions borrowed from Soar agent
+double      findDiscountedCommandScore(int command);
+int         findLastReward();
+void        visuallyInterpretLevel0Route(Route* route);
+char*       visuallyInterpretEpisodesWME(EpisodeWME* ep);
+void        displayVisualizedEpisodeWME(EpisodeWME* ep);
+void        displayVisualizedAction(Action* action);
+void        displayVisualizedLevel0Sequence(Vector* seq, int isComplete);
 
 #endif //_SUPERVISOR_H_

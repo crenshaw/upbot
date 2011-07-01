@@ -17,13 +17,15 @@
 // map dimensions
 int g_map_width;
 int g_map_height;
+int g_initX;
+int g_initY;
 
 int g_X;
 int g_Y;
 char* g_color;
 int** g_world;
 
-//keep track of number times goal is found
+// Keep track of some state variables
 int g_numMoves;
 int g_score;
 int g_reward;
@@ -39,8 +41,6 @@ int g_reward;
 void initWorld(int firstInit)
 {
     int i,j;
-    // At some point I'm figuring we may want to randomly choose the columns that have the special food.
-    int sFoodC1 = 2, sFoodC2 = 5, sFoodC3 = 8, sFoodC4 = 11, sFoodC5 = 14;
 
 	//--Allocate memory if this is the first time initWorld is called
 	if(firstInit)
@@ -74,6 +74,10 @@ void initWorld(int firstInit)
     g_score 		= 0;
     g_reward        = 0;
     g_statsMode 	= FALSE;
+
+    // Save the initial coords for resetting the environment
+    g_initX         = g_X;
+    g_initY         = g_Y;
     //----------------------------
 
 #if DEBUGGING
@@ -86,9 +90,9 @@ void initWorld(int firstInit)
         {
             if(i == 0 || i == g_map_width - 1 || 
                     j == 0 || j == g_map_height - 1) g_world[i][j] = V_E_WALL;
-            else if(i == sFoodC1 || i == sFoodC2 || 
-                    i == sFoodC3 || i == sFoodC4 || 
-                    i == sFoodC5) g_world[i][j] = V_E_FOOD2;
+            else if(i == SFOODC1 || i == SFOODC2 || 
+                    i == SFOODC3 || i == SFOODC4 || 
+                    i == SFOODC5) g_world[i][j] = V_E_FOOD2;
             else g_world[i][j] = V_E_FOOD1;
         }//for
     }//for
@@ -112,6 +116,55 @@ void initWorld(int firstInit)
     //--Insert our agent
     g_world[g_X][g_Y] = V_E_AGENT;
 }//initWorld
+
+/**
+ * resetWorld
+ *
+ * This function refills the environment with food, without
+ * changing the location of the existing internal walls.
+ */
+void resetWorld()
+{
+    int i,j;
+
+#if DEBUGGING
+    printf("Resetting globals\n");
+#endif
+    //--Set up globals------------
+    g_X 			= g_initX;
+    g_Y 			= g_initY;
+    g_numMoves 		= -1; // Account for the increment associated
+                          // with the RESET command
+    g_score 		= 0;
+    g_reward        = 0;
+    g_statsMode 	= FALSE;
+    //----------------------------
+
+#if DEBUGGING
+    printf("Resetting environment\n");
+#endif
+    //--Set up the environment with bounding walls and food supplies
+    for(i = 1; i < g_map_width - 1; i++)
+    {
+        for(j = 1; j < g_map_height - 1; j++)
+        {
+            // If this is an internal wall, skip it
+            if(g_world[i][j] == V_E_WALL) continue;
+
+            // Otherwise set to the appropriate food value
+            else if(i == SFOODC1 || i == SFOODC2 || 
+                    i == SFOODC3 || i == SFOODC4 || 
+                    i == SFOODC5) g_world[i][j] = V_E_FOOD2;
+            else g_world[i][j] = V_E_FOOD1;
+        }//for
+    }//for
+
+#if DEBUGGING
+    printf("Resetting agent location\n");
+#endif
+    //--Insert our agent
+    g_world[g_initX][g_initY] = V_E_AGENT;
+}//resetWorld
 
 /**
  * freeWorld
@@ -274,7 +327,7 @@ char* doMove(int command)
             break;
         case CMD_EATERS_RESET:
             if(!g_statsMode) printf("Reset Eaters environment...\n");
-            initWorld(FALSE);
+            resetWorld();
             break;
         default:
             if(!g_statsMode) printf("Invalid command: %i\n", command);

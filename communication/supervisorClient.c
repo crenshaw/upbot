@@ -20,6 +20,8 @@
 //if FILTERING is defined then then KNN filter is applied
 //#define FILTERING
 
+#define NUM_EATERS_RUNS 20
+
 #include "communication.h"
 #include "../supervisor/supervisor.h"
 #ifdef FILTERING
@@ -328,16 +330,28 @@ void printStats(FILE* log)
         {
             printf("Number of random commands: %d\n", g_numRandom);
             printf("Random commands from low confidence: %d\n", g_numRandomLowConfidence);
+            printf("Number of goals from random commands: %d\n", g_numGoalsFromRandom);
+            printf("Number of goals from valid plan: %d\n", g_numGoalsFromValidPlan);
+            printf("Number of goals from invalid plan: %d\n", g_numGoalsFromInvalidPlan);
             printf("Final Score: %d\n", score);
         }//if
         else
         {
-            fprintf(log, "%d,%d,%d\n", g_numRandom, g_numRandomLowConfidence, score);
-        //    fprintf(log, "\n");
+            fprintf(log, "%d,%d,%d,%d,%d,%d\n", 
+                g_numRandom, 
+                g_numRandomLowConfidence, 
+                g_numGoalsFromRandom, 
+                g_numGoalsFromValidPlan, 
+                g_numGoalsFromInvalidPlan, 
+                score);
             fflush(log);
         }//else
-        g_numRandom = 0;
-        g_numRandomLowConfidence = 0;
+
+        g_numRandom                 = 0;
+        g_numRandomLowConfidence    = 0;
+        g_numGoalsFromRandom        = 0;
+        g_numGoalsFromValidPlan     = 0;
+        g_numGoalsFromInvalidPlan   = 0;
         return;
     }//if
     if(CMD_COUNT == 6)
@@ -578,7 +592,7 @@ int main(int argc, char *argv[])
                 }
 
                 // exit the while loop
-                if(numRuns > 10)
+                if(numRuns >= NUM_EATERS_RUNS)
                     break;
 
                 // Reset command to default for the first

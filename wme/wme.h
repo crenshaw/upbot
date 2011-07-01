@@ -11,6 +11,8 @@
 * Last edit: June 15, 2011
 */
 
+#define USE_WALL_MARKER     0
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -22,6 +24,10 @@
 
 //Used for passing arbitrary information as agent's state
 typedef struct WMEStruct {
+#if USE_WALL_MARKER
+    int containsWall;
+    int isEmpty;
+#endif
     char* attr;                 // name of attribute
     int type;                   // var type of attribute
     union {

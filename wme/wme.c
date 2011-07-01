@@ -27,14 +27,20 @@ int compareEpisodesWME(EpisodeWME* ep1, EpisodeWME* ep2, int compCmd)
 {
     if(ep1->sensors->size != ep2->sensors->size) return FALSE;
 
+    //Compare the commands if that's required
+    if(compCmd && ep1->cmd != ep2->cmd) return FALSE;
+
     int i;
     for(i = 0; i < ep1->sensors->size; i++)
     {
-        if(!compareWME(getEntry(ep1->sensors, i), getEntry(ep2->sensors, i))) return FALSE;
+        WME* ep1WME = getEntry(ep1->sensors, i);
+        WME* ep2WME = getEntry(ep2->sensors, i);
+#if USE_WALL_MARKER
+        //if(!ep1WME->containsWall) continue;
+        //if(!ep1WME->isFree) continue;
+#endif
+        if(!compareWME(ep1WME, ep2WME)) return FALSE;
     }//for
-
-    //Compare the commands if that's required
-    if(compCmd && ep1->cmd != ep2->cmd) return FALSE;
 
     return TRUE;
 }//compareEpisodesWME
@@ -58,10 +64,29 @@ int compareWME(WME* wme1, WME* wme2)
     if(strcmp(wme1->attr, wme2->attr) == 0 &&
        wme1->type == wme2->type)
     {
-        if(wme1->type == WME_INT && wme1->value.iVal == wme2->value.iVal) return TRUE;
-        if(wme1->type == WME_CHAR && wme1->value.cVal == wme2->value.cVal) return TRUE;
-        if(wme1->type == WME_DOUBLE && wme1->value.dVal == wme2->value.dVal) return TRUE;
-        if(wme1->type == WME_STRING && strcmp(wme1->value.sVal, wme2->value.sVal) == 0) return TRUE;
+        if(wme1->type == WME_INT && 
+            wme1->value.iVal == wme2->value.iVal) return TRUE;
+/*
+        if(wme1->type == WME_INT)
+        { 
+            int w1 = FALSE, w2 = FALSE;
+            if(wme1->value.iVal == V_E_EMPTY ||
+               wme1->value.iVal == V_E_FOOD1 ||
+               wme1->value.iVal == V_E_FOOD2) w1 = TRUE;
+            if(wme2->value.iVal == V_E_EMPTY ||
+               wme2->value.iVal == V_E_FOOD1 ||
+               wme2->value.iVal == V_E_FOOD2) w2 = TRUE;
+            
+            if(w1 && w2) return TRUE;
+            else return wme1->value.iVal == wme2->value.iVal;
+        }
+*/
+        if(wme1->type == WME_CHAR && 
+            wme1->value.cVal == wme2->value.cVal) return TRUE;
+        if(wme1->type == WME_DOUBLE && 
+            wme1->value.dVal == wme2->value.dVal) return TRUE;
+        if(wme1->type == WME_STRING && 
+            strcmp(wme1->value.sVal, wme2->value.sVal) == 0) return TRUE;
     }
     return FALSE;
 }//compareWME
@@ -375,7 +400,16 @@ int getNumMatches(EpisodeWME* ep1, EpisodeWME* ep2, int compareCMD)
             {
                 WME* wme1 = (WME*)getEntry(ep1->sensors, i);
                 WME* wme2 = (WME*)getEntry(ep2->sensors, j);
+#if USE_WALL_MARKER
+                if(compareWME(wme1, wme2))
+                {
+//                    count++;
+                    if(wme1->containsWall) count++;
+                    if(wme1->isFree) count++;
+                }
+#else
                 if(compareWME(wme1, wme2)) count++;
+#endif
             }//for
         }//for
     }//if
@@ -387,7 +421,15 @@ int getNumMatches(EpisodeWME* ep1, EpisodeWME* ep2, int compareCMD)
             {
                 WME* wme1 = (WME*)getEntry(ep2->sensors, i);
                 WME* wme2 = (WME*)getEntry(ep1->sensors, j);
+#if USE_WALL_MARKER
+                if(compareWME(wme1, wme2))
+                {
+//                    count++;
+                    if(wme1->containsWall) count++;
+                }
+#else
                 if(compareWME(wme1, wme2)) count++;
+#endif
             }//for
         }//for
     }//else
@@ -524,7 +566,29 @@ Vector* stringToWMES(char* senses)
                     else return NULL;
                     break;
                 case 2:
-                    if(wme->type == WME_INT) wme->value.iVal = atoi(result);
+                    if(wme->type == WME_INT) 
+                    {
+                        wme->value.iVal = atoi(result);
+#if USE_WALL_MARKER
+                        if(strcmp(wme->attr, "UL") == 0   ||
+                           strcmp(wme->attr, "UM") == 0   ||
+                           strcmp(wme->attr, "UR") == 0   ||
+                           strcmp(wme->attr, "LT") == 0   ||
+                           strcmp(wme->attr, "RT") == 0   ||
+                           strcmp(wme->attr, "LL") == 0   ||
+                           strcmp(wme->attr, "LM") == 0   ||
+                           strcmp(wme->attr, "LR") == 0   )
+                        {
+                             wme->containsWall = (wme->value.iVal == V_E_WALL);
+                             wme->isFree = (wme->value.iVal == V_E_EMPTY);
+                        }
+                        else 
+                        {
+                            wme->containsWall = FALSE;
+                            wme->isFree = FALSE;
+                        }
+#endif
+                    }
                     else if(wme->type == WME_CHAR) wme->value.cVal = (char)result[0];
                     else if(wme->type == WME_DOUBLE) wme->value.dVal = atof(result);
                     else if(wme->type == WME_STRING)
