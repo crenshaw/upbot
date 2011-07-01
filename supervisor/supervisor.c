@@ -5538,7 +5538,6 @@ Vector* findInterimStart_NO_KNN()
 
 }//findInterimStart_NO_KNN
 
-
 /**
  * findInterimStartPartialMatch_NO_KNN
  *
@@ -5834,7 +5833,6 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
                 currActIndex = currSeq->size-1;
             }
         }//if
-
     }//while
 
 #ifdef DEBUGGING_FINDINTERIMSTART
@@ -5891,36 +5889,21 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
 void visuallyInterpretLevel0Route(Route* route)
 {
     Vector* sequences = route->sequences;
+    int i,j;
 
     //handle the empty case
-    if (sequences->size == 0)
-    {
-        printf("\t<empty route>\n");
-        return;
-    }//if
+    if (sequences->size == 0) return;
 
     printf("\n========================================\n");
-
-    int i,j;
     printf("Confirm: Route is level %d\n", route->level);
     printf("Level 0 route contains %d sequences\n\n", sequences->size);
 
-    for(i = 0; i < sequences->size; i++)
-    {
-        //this is the sequence that will be printed
+    for(i = 0; i < sequences->size; i++) {
         Vector *seq = (Vector *)sequences->array[i];
-        printf("%d sequence contains %d actions and is ", i, seq->size);
-
-        //at level 0, print the index number of this sequence
-        if (route->level == 0)
-        {
-            Vector *seqList = (Vector *)g_sequences->array[0];
-            int index = findEntry(seqList, seq);
-            printf("sequence %d in sequence memory\n\n", index);
-        }//if
-        
+        printf("Sequence %d contains %d actions\n", i, seq->size);
         displayVisualizedLevel0Sequence(seq, TRUE);
-    }
+        printf("\n");
+    }//for
     printf("\n========================================\n");
 }//visuallyInterpretLevel0Route
 
@@ -5929,6 +5912,7 @@ void visuallyInterpretLevel0Route(Route* route)
  *
  * Turn a series of WMEs into a char array that
  * depicts the surrounding environment.
+ * Caller is responsible for freeing retrieved memory.
  *
  * @param ep A pointer to an episode to interpret
  * @return char* An array representing the senses
@@ -5951,28 +5935,17 @@ char* visuallyInterpretEpisodesWME(EpisodeWME* ep)
 
     int i;
     char t;
-    for(i = 0; i < 9; i++)
-    {
-        switch(senses[i])
-        {
-            case V_E_WALL:
-                t = 'W';
-                break;
-            case V_E_FOOD1:
-                t = '-';
-                break;
-            case V_E_FOOD2:
-                t = '+';
-                break;
-            case V_E_EMPTY:
-                t = ' ';
-                break;
+    for(i = 0; i < 9; i++) {
+        switch(senses[i]) {
+            case V_E_WALL:  t = 'W'; break;
+            case V_E_FOOD1: t = '-'; break;
+            case V_E_FOOD2: t = '+'; break;
+            case V_E_EMPTY: t = ' '; break;
         }//switch
-
         visualizedWMEs[i] = t;
     }//for
 
-    visualizedWMEs[9] = '\0'; // Insert NULL terminator
+    visualizedWMEs[9] = '\0'; // Insert NULL terminator jic
     return visualizedWMEs;
 }//visuallyInterpretEpisodesWME
 
@@ -5988,8 +5961,7 @@ void displayVisualizedEpisodeWME(EpisodeWME* ep)
 {
     char* senses = visuallyInterpretEpisodesWME(ep);
     int k;
-    for(k = 0; k < 9; k++)
-    {
+    for(k = 0; k < 9; k++) {
         if(k % 3 == 0) printf("\n ");
         printf("%c", senses[k]);
     }//for
@@ -6008,105 +5980,56 @@ void displayVisualizedAction(Action* action)
 {
     int i,j,k,l,m;
     char* senses;
-    int xl, yl, xInit, yInit, xFin, yFin;
+    int xl, yl, xInit, yInit;
     int x,y;
-    int moved = FALSE;
     EpisodeWME* begin = (EpisodeWME*)action->epmem->array[action->index];
     EpisodeWME* outcome = (EpisodeWME*)action->epmem->array[action->outcome];
-    
-    if(begin->cmd == CMD_MOVE_N)
-    {
-        xl = 5; yl = 6; 
-        xInit = 2; yInit = 3;
-    }
-    else if(begin->cmd == CMD_MOVE_S)
-    {
-        xl = 5; yl = 6; 
-        xInit = 2; yInit = 2;
-    }
-    else if(begin->cmd == CMD_MOVE_E)
-    { 
-        xl = 6; yl = 5; 
-        xInit = 2; yInit = 2;
-    }
-    else if(begin->cmd == CMD_MOVE_W)
-    {
-        xl = 6; yl = 5; 
-        xInit = 3; yInit = 2;
-    }
-    else if(begin->cmd == CMD_NO_OP)
-    {
-        xl = 5; yl = 5; 
-        xInit = 2; yInit = 2;
-    }
 
-    x = xInit;
-    y = yInit;   // Current coords for agent
+    //-------------------------------------------------
+    switch(begin->cmd) {
+        case CMD_MOVE_N: xl = 5; yl = 6; xInit = 2; yInit = 3; break;
+        case CMD_MOVE_S: xl = 5; yl = 6; xInit = 2; yInit = 2; break;
+        case CMD_MOVE_E: xl = 6; yl = 5; xInit = 2; yInit = 2; break;
+        case CMD_MOVE_W: xl = 6; yl = 5; xInit = 3; yInit = 2; break;
+        case CMD_NO_OP:  xl = 5; yl = 5; xInit = 2; yInit = 2; break;
+    }//switch
 
+    // Set up current coords
+    x = xInit; y = yInit;  
+
+    //-------------------------------------------------
     // Init the memory to use and fill with '*'
     char** map = (char**)malloc(sizeof(char*) * xl);
     for(i = 0; i < xl; i++) map[i] = (char*)malloc(sizeof(char) * yl);
-    for(i = 0; i < xl; i++) 
-        for(j = 0; j < yl; j++) 
-            map[i][j] = '*';
+    for(i = 0; i < xl; i++) for(j = 0; j < yl; j++) map[i][j] = '*';
 
+    //-------------------------------------------------
+    // Apply initial senses to action map
     senses = visuallyInterpretEpisodesWME(begin);
-
     l = x - 1; m = y - 1;
-    for(k = 0; k < 9; k++)
-    {
-        if(k > 0 && k % 3 == 0) 
-        {
-            m++;
-            l = x - 1;
-        }
+    for(k = 0; k < 9; k++) {
+        if(k > 0 && k % 3 == 0) { m++; l = x - 1; }
         map[l][m] = senses[k];
         l++;
     }//for
-
-    // Determine if the next command can be completed
-    // If so, update the coords and set flag
-    switch(begin->cmd)
-    {
-        case CMD_MOVE_N:
-            if(map[x][y - 1] != 'W')  {
-                y--;
-                moved = TRUE;
-            }
-            break;
-        case CMD_MOVE_S:
-            if(map[x][y + 1] != 'W') {
-                y++;
-                moved = TRUE;
-            }
-            break;
-        case CMD_MOVE_E:
-            if(map[x + 1][y] != 'W') {
-                x++;
-                moved = TRUE;
-            }
-            break;
-        case CMD_MOVE_W:
-            if(map[x - 1][y] != 'W') {
-                x--;
-                moved = TRUE;
-            }
-            break;
-    }//switch
     free(senses);
 
-    // Save the final coords
-    xFin = x; yFin = y;
+    //-------------------------------------------------
+    // Determine if the next command can be completed
+    // If so, update the coords and set flag
+    switch(begin->cmd) {
+        case CMD_MOVE_N: if(map[x][y - 1] != 'W') y--; break;
+        case CMD_MOVE_S: if(map[x][y + 1] != 'W') y++; break;
+        case CMD_MOVE_E: if(map[x + 1][y] != 'W') x++; break;
+        case CMD_MOVE_W: if(map[x - 1][y] != 'W') x--; break;
+    }//switch
 
     // Retrieve the final senses and update map accordingly
-    if(moved)
-    {
+    if(x != xInit || y != yInit) {
         senses = visuallyInterpretEpisodesWME(outcome);
         l = x - 1; m = y - 1;
-        for(k = 0; k < 9; k++)
-        {
-            if(k > 0 && k % 3 == 0) 
-            {
+        for(k = 0; k < 9; k++) {
+            if(k > 0 && k % 3 == 0) {
                 m++;
                 l = x - 1;
             }//if
@@ -6116,25 +6039,27 @@ void displayVisualizedAction(Action* action)
         free(senses);
     }//if
 
+    //-------------------------------------------------
     // Mark begin and end locations
-    map[xInit][yInit]   = '1';
-    map[xFin][yFin]     = '2';
+    map[xInit][yInit] = '1';
+    map[x][y]         = '2';
 
+    //-------------------------------------------------
     // Display the visualized route
-    for(i = 0; i < yl; i++) 
-    {
+    for(i = 0; i < yl; i++) {
         for(j = 0; j < xl; j++) 
             printf("%c", map[j][i]);
         printf("\n");
     }//for
 
+    //-------------------------------------------------
     // Display the command queue for this sequence
     printf("COMMAND: %s\n", interpretCommand(begin->cmd));
-
     int found;
     int reward = getINTValWME(outcome, "reward", &found);
     printf("REWARD: %d\n", reward);
 
+    //-------------------------------------------------
     // Free the memory used to hold the route
     for(i = 0; i < xl; i++) 
         free(map[i]);
@@ -6153,49 +6078,46 @@ void displayVisualizedAction(Action* action)
  */
 void displayVisualizedLevel0Sequence(Vector* seq, int isComplete)
 {
+#ifdef DEBUGGING
     printf("Displaying Level 0 Sequence\n");
     printf("Sequence Length: %d\n", seq->size);
+#endif
+
     int i,j,k,l,m;
-    char* senses;
+    char* senses[seq->size];
+    int commands[seq->size];
+    char* currSense;
     EpisodeWME* ep;
     Action* action;
-
     int currX = 0, currY = 0;;
     int maxRight = 0, maxLeft = 0, maxUp = 0, maxDown = 0;
-    
+
+    //-------------------------------------------------
     // Determine the maximal dimensions necessary for visualization
     for(i = 0; i < seq->size; i++)
     {
         action = seq->array[i];
         ep = (EpisodeWME*)action->epmem->array[action->index];
-        senses = visuallyInterpretEpisodesWME(ep);
-        switch(ep->cmd)
-        {
-            case CMD_MOVE_N:
-                if(senses[1] != 'W') currY--;
-                break;
-            case CMD_MOVE_S:
-                if(senses[7] != 'W') currY++;
-                break;
-            case CMD_MOVE_E:
-                if(senses[5] != 'W') currX++;
-                break;
-            case CMD_MOVE_W:
-                if(senses[3] != 'W') currX--;
-                break;
+        senses[i] = currSense = visuallyInterpretEpisodesWME(ep);
+        commands[i] = ep->cmd;
+
+        switch(ep->cmd) {
+            case CMD_MOVE_N: if(currSense[1] != 'W') currY--; break;
+            case CMD_MOVE_S: if(currSense[7] != 'W') currY++; break;
+            case CMD_MOVE_E: if(currSense[5] != 'W') currX++; break;
+            case CMD_MOVE_W: if(currSense[3] != 'W') currX--; break;
         }//switch
-        
+
         if(currX > maxRight) maxRight = currX;
         if(currX < maxLeft)  maxLeft  = currX;
         if(currY > maxDown)  maxDown  = currY;
         if(currY < maxUp)    maxUp    = currY;
-
-        free(senses);
     }//for
 
+    //-------------------------------------------------
     // Set 5 for default square around one episode,
     // Add the number needed to accomodate the commands
-    // within the sequence
+    // within the sequence. mL and mU are negative, so negate
     int xl = maxRight - maxLeft + 5;    // Map dimensions
     int yl = maxDown - maxUp + 5;       // Map dimensions
 
@@ -6205,11 +6127,10 @@ void displayVisualizedLevel0Sequence(Vector* seq, int isComplete)
     int xInit = 2 - maxLeft, yInit = 2 - maxUp; // Init coords for agent
 
     // Set up the rest of the variables used for tracking
-    int xFin, yFin;             // Final coords for agent
     int x = xInit, y = yInit;   // Current coords for agent
     int moved = TRUE;           // Flag indicating successful action
 
-/*  // Debugging output
+#ifdef DEBUGGING    
     printf("MaxRight: %d\n", maxRight);
     printf("MaxLeft: %d\n", maxLeft);
     printf("MaxUp: %d\n", maxUp);
@@ -6218,43 +6139,28 @@ void displayVisualizedLevel0Sequence(Vector* seq, int isComplete)
     printf("Y Len: %d\n", yl);
     printf("X Init: %d\n", xInit);
     printf("Y Init: %d\n", yInit);
-*/
+#endif
 
+    //-------------------------------------------------
     // Init the memory to use and fill with '*'
     char** map = (char**)malloc(sizeof(char*) * xl);
     for(i = 0; i < xl; i++) map[i] = (char*)malloc(sizeof(char) * yl);
-    for(i = 0; i < xl; i++) 
-        for(j = 0; j < yl; j++) 
-            map[i][j] = '*';
+    for(i = 0; i < xl; i++) for(j = 0; j < yl; j++) map[i][j] = '*';
 
+    //-------------------------------------------------
     // Iterate over the sequence to piece it together
     for(i = 0; i < seq->size; i++)
     {
-        // Retrieve the action, then episode and finally
-        // the senses converted into a char[]
-        action = seq->array[i];
-
-/*      // Debugging output
-        printf("Incorporating action %d:\n", i);
-        displayVisualizedAction(action);
-        printf("into visualized sequence.\n");
-*/
-        ep = (EpisodeWME*)action->epmem->array[action->index];
-        senses = visuallyInterpretEpisodesWME(ep);
-
-        // If the last move was successful, then save the
-        // new sensing.
-        if(moved)
-        {
+        currSense = senses[i];
+        // If the last move was successful, then integrate the new sensing.
+        if(moved) {
             l = x - 1; m = y - 1;
-            for(k = 0; k < 9; k++)
-            {
-                if(k > 0 && k % 3 == 0) 
-                {
+            for(k = 0; k < 9; k++) {
+                if(k > 0 && k % 3 == 0) {
                     m++;
                     l = x - 1;
                 }
-                map[l][m] = senses[k];
+                map[l][m] = currSense[k];
                 l++;
             }//for
             moved = FALSE; // reset flag
@@ -6262,93 +6168,63 @@ void displayVisualizedLevel0Sequence(Vector* seq, int isComplete)
 
         // Determine if the next command can be completed
         // If so, update the coords and set flag
-        switch(ep->cmd)
-        {
-            case CMD_MOVE_N:
-                if(map[x][y - 1] != 'W')  {
-                    y--;
-                    moved = TRUE;
-                }
-                break;
-            case CMD_MOVE_S:
-                if(map[x][y + 1] != 'W') {
-                    y++;
-                    moved = TRUE;
-                }
-                break;
-            case CMD_MOVE_E:
-                if(map[x + 1][y] != 'W') {
-                    x++;
-                    moved = TRUE;
-                }
-                break;
-            case CMD_MOVE_W:
-                if(map[x - 1][y] != 'W') {
-                    x--;
-                    moved = TRUE;
-                }
-                break;
+        switch(commands[i]) {
+            case CMD_MOVE_N: if(map[x][y - 1] != 'W') { y--; moved = TRUE; } break;
+            case CMD_MOVE_S: if(map[x][y + 1] != 'W') { y++; moved = TRUE; } break;
+            case CMD_MOVE_E: if(map[x + 1][y] != 'W') { x++; moved = TRUE; } break;
+            case CMD_MOVE_W: if(map[x - 1][y] != 'W') { x--; moved = TRUE; } break;
         }//switch
-        free(senses);
     }//for
 
-    // Save the final coords
-    xFin = x; yFin = y;
-
+    //-------------------------------------------------
     // Only retrieve the final action's outcome if this
     // is a complete sequence
-    if(isComplete)
+    if(isComplete && moved)
     {
         // Retrieve the final senses and update map accordingly
         ep = (EpisodeWME*)action->epmem->array[action->outcome];
-        senses = visuallyInterpretEpisodesWME(ep);
-        if(moved)
-        {
-            l = x - 1; m = y - 1;
-            for(k = 0; k < 9; k++)
-            {
-                if(k > 0 && k % 3 == 0) 
-                {
-                    m++;
-                    l = x - 1;
-                }//if
-                map[l][m] = senses[k];
-                l++;
-            }//for
-        }//if
-        free(senses);
+        currSense = visuallyInterpretEpisodesWME(ep);
+        l = x - 1; m = y - 1;
+        for(k = 0; k < 9; k++) {
+            if(k > 0 && k % 3 == 0) {
+                m++;
+                l = x - 1;
+            }//if
+            map[l][m] = currSense[k];
+            l++;
+        }//for
+        free(currSense);
     }//if
-
     // Mark begin and end locations
-    map[xInit][yInit]   = '1';
-    map[xFin][yFin]     = '2';
+    map[xInit][yInit] = '1';
+    map[x][y]         = '2';
 
+    //-------------------------------------------------
     // Display the visualized route
-    for(i = 0; i < yl; i++) 
-    {
+    for(i = 0; i < yl; i++) {
         for(j = 0; j < xl; j++) 
             printf("%c", map[j][i]);
         printf("\n");
     }//for
 
+    //-------------------------------------------------
     // Display the command queue for this sequence
+    // Take advantage of loop to free senses array
     printf("BEGIN:");
-
-    for(i = 0; i < seq->size; i++)
-    {
-        action = seq->array[i];
-        ep = (EpisodeWME*)action->epmem->array[action->index];
-        printf("%s", interpretCommandShort(ep->cmd));
+    for(i = 0; i < seq->size; i++) {
+        free(senses[i]);
+        printf("%s", interpretCommandShort(commands[i]));
         if(i != seq->size - 1) printf(",");
     }//for
-
     // Display the final rewarded obtained
-    ep = (EpisodeWME*)action->epmem->array[action->outcome];
-    int found;
-    int reward = getINTValWME(ep, "reward", &found);
-    if(isComplete && reward > 0) printf("<%d>,SONG", reward);
+    if(isComplete) {
+        int found;
+        int reward = getINTValWME(ep, "reward", &found);
+        printf("<%d>,SONG", reward);
+    }//if
     printf(":END\n\n");
 
+    //-------------------------------------------------
     // Free the memory used to hold the route
     for(i = 0; i < xl; i++) 
         free(map[i]);
