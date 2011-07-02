@@ -122,5 +122,10 @@ int checkArgName(int argc, char* argv[], char addresses[3][13]);
 #define V_R_GOAL		3
 #define V_R_DROP		4
 
+//Eaters configuration
+#define EATERS_MAX_STEPS 2000   // number of steps per run
+#define NUM_EATERS_RUNS 5      // number of runs before simulation stops
+
+
 
 #endif

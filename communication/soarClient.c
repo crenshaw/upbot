@@ -14,7 +14,7 @@
 
 #include "../soar/soar.h"
 
-#define CMD_COUNT       5
+#define CMD_COUNT       6  //5=roomba, 6=eaters
 
 #define TIMEOUT_SECS	5	// Num seconds in timeout on recv
 #define MAX_TRIES		10	// Num tries to reconnect on lost connection
@@ -451,6 +451,7 @@ int main(int argc, char *argv[])
 	int sockfd = handshake(argv[1]);
 	int cmd = CMD_NO_OP;				// This is the reset command, used to ensure init
 										// state of the virtual environment
+    static int numRuns = 0;
 
 	// Main send/recv processing loop
 	while(1)
@@ -484,7 +485,30 @@ int main(int argc, char *argv[])
             }
             if(CMD_COUNT == 5)
             {
-                printf("Max steps reached: %i. Exiting.\n", MAX_STEPS);
+                printStats(log);
+                printf("Max steps reached: %i. Sending RESET command.\n\n", EATERS_MAX_STEPS);
+                if(sendCommand(sockfd, CMD_EATERS_RESET) < 0)
+                {
+                    perror("Error sending to socket");
+                }
+                recvCommand(sockfd, buf);
+                if(strcmp(buf, "Reset: Success") == 0)
+                {
+                    if(!g_statsMode) printf("Eaters reset successful\n");
+                }
+                else
+                {
+                    if(!g_statsMode) printf("Eaters reset unsuccessful\n");
+                    break;
+                }
+
+                // exit the while loop
+                if(numRuns >= NUM_EATERS_RUNS)
+                    break;
+
+                // Reset command to default for the first
+                // command in the newly reset environment
+                cmd = CMD_NO_OP;
             }
             // exit the while loop
             break;

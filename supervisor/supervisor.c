@@ -65,26 +65,27 @@
 
 //This setting, if present, modifies the debug outputs to reflect the Eaters
 //environment
-#define EATERS_MODE
+#define EATERS_MODE 1
 
 #define MIN_SELF_CONFIDENCE (0.05)
 
 //Setting this turns on verbose output to aid debugging
-//#define DEBUGGING 1
+#define DEBUGGING 1
 
 
 //Particularly verbose debugging for specific methods
 #ifdef DEBUGGING
-// #define DEBUGGING_UPDATEALL 1
+#define DEBUGGING_UPDATEALL 1
 //#define DEBUGGING_UPDATEPLAN 1
 #define DEBUGGING_CHOOSECMD 1
-#define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
-#define DEBUGGING_INITPLAN 1
+// #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
+// #define DEBUGGING_INITPLAN 1
 #define DEBUGGING_FINDINTERIMSTART 1
 //#define DEBUGGING_NSIV 1        // nextStepIsValid()
 //#define DEBUGGING_FIND_REPL 1
 // #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
 // #define DEBUGGING_KNN 1
+// #define DEBUGGING_EATERSVISUALS 1
 #endif
 
 // global strings for printing to console
@@ -1610,7 +1611,11 @@ void displayEpisodes(Vector *episodeList, int level)
         {
 #if USE_WMES
             EpisodeWME *ep = (EpisodeWME*)episodeList->array[i];
+#if EATERS_MODE
+            displayVisualizedEpisodeWME(ep);
+#else
             displayEpisodeWMEShort(ep);
+#endif
 #else
             Episode *ep = (Episode*)episodeList->array[i];
             displayEpisodeShort(ep);
@@ -1753,7 +1758,13 @@ void displaySequences(Vector* sequences)
     for(i = 0; i < sequences->size; i++)
     {
         printf("%3i. ", i);
+#if EATERS_MODE
+        printf("\n");
+        if (i == sequences->size-1) continue;
+        displayVisualizedLevel0Sequence(sequences->array[i], TRUE);
+#else            
         displaySequenceShort(sequences->array[i]);
+#endif
         printf("\n");
     }
 }//displaySequences
@@ -1792,6 +1803,12 @@ void displayAction(Action* action)
 {
     int i,j;
 
+#if EATERS_MODE
+    printf("\n");
+    displayVisualizedAction(action);
+    return;
+#endif
+            
     //Indicate if this is a start action
     if (action->containsStart) printf("s");
     else printf(" ");
@@ -2173,6 +2190,9 @@ int nextStepIsValid()
     printf("comparing the current sensing:");
 #if USE_WMES
     displayWMEList(currEp->sensors);
+#if EATERS_MODE
+    displayVisualizedEpisodeWME(currEp);
+#endif
 #else
     printf("%i ", interpretSensorsShort(currEp->sensors));
 #endif
@@ -2180,6 +2200,9 @@ int nextStepIsValid()
     printf(" to the expected sensing: ");
 #if USE_WMES
     displayEpisodeWMEShort(nextStep);
+#if EATERS_MODE
+    displayVisualizedEpisodeWME(nextStep);
+#endif
 #else
     displayEpisodeShort(nextStep);
 #endif
@@ -2913,8 +2936,8 @@ int chooseCommand_WithPlan()
     fflush(stdout);
     printf("Level: %d\n", level0Route->level);
     assert(level0Route->sequences != NULL);
-    printf("NumSeqs: %d\n", level0Route->sequences->size);
-    printf("FirstSeqLen: %d\n", ((Vector*)level0Route->sequences->array[0])->size);
+    printf("NumSeqs: %d\n", (int)level0Route->sequences->size);
+    printf("FirstSeqLen: %d\n", (int)((Vector*)level0Route->sequences->array[0])->size);
     printf("CurrSeqIdx: %d\n", level0Route->currSeqIndex);
     printf("CurrActIdx: %d\n", level0Route->currActIndex);
     printf("NeedsRecalc: %d\n", level0Route->needsRecalc);
@@ -3800,34 +3823,35 @@ Vector* initPlan(int isReplan)
     //If I'm replanning after the failure of a previous plan that means that the
     //first command in the new plan may not be the very first command in the
     //first sequence.
-    //    if (isReplan)
-    //    {
-    Route *route = (Route *)resultPlan->array[0];
-
-    //If the route was based on a partial match at level 0 then the offset
-    //variable was set by findInterimStartPartialMatch
-    if (offset > -1) 
+    if (isReplan)
     {
-        route->currActIndex = offset;
-    }
-    //At level 1+ just skip the first command
-    else                   
-    {
-        //route->currActIndex = 1;
-        route->currActIndex = 0;
-    }
-    //    }//if
+        Route *route = (Route *)resultPlan->array[0];
 
+        //If the route was based on a partial match at level 0 then the offset
+        //variable was set by findInterimStartPartialMatch
+        if (offset > -1) 
+        {
+            route->currActIndex = offset;
+        }
+        //At level 1+ just skip the first command
+        else                   
+        {
+            route->currActIndex = 1;
+        }
+    }//if
+
+#ifdef DEBUGGING
     if(resultPlan->array[0] != NULL)
     {
         printf("\n\n===============\nValid plan created at level 0. Begin inspection.\n");
 
         visuallyInterpretLevel0Route(resultPlan->array[0]);
 
-        // Pause to review plan visually
-        getchar();
+        // DEBUGGING: Pause to review plan visually
+        //getchar();
     }//if
-
+#endif
+    
     return resultPlan;
 }// initPlan
 
@@ -5413,7 +5437,7 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
     }//while
 
 #ifdef DEBUGGING_FINDINTERIMSTART
-    printf("\tPartial match result of length %d corresponds to level 1 sequence %d and and action %d:  ",
+    printf("\tPartial match result of length %d corresponds to level 1 episode %d and and action %d:  ",
             matchLen, currSeqIndex, currActIndex);
     fflush(stdout);
     for(i = 0; i < currSeq->size; i++)
@@ -5619,10 +5643,10 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
     } 
 
 #ifdef DEBUGGING_FINDINTERIMSTART
-    printf("Num Level 0 eps: %d\n", level0Eps->size);    
-    printf("Num Level 1 eps: %d\n", level1Eps->size); 
-    printf("Last Level 0 Seq. size: %d\n", lastLevel0Seq->size); 
-    printf("Last Level 1 Eps size: %d\n", lastLevel1Ep->size); 
+    printf("Num Level 0 eps: %d\n", (int)level0Eps->size);    
+    printf("Num Level 1 eps: %d\n", (int)level1Eps->size); 
+    printf("Last Level 0 Seq. size: %d\n", (int)lastLevel0Seq->size); 
+    printf("Last Level 1 Eps size: %d\n", (int)lastLevel1Ep->size); 
     printf("Final starting offset: %d\n", startingOffset); 
     fflush(stdout);
 #endif
@@ -5652,14 +5676,14 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
             //if (compareEpisodesWME(ep1, ep2, matchLen > 0))
             if((matchCount = getNumMatches(ep1, ep2, matchLen > 0)) > 0)
 #else
-                Episode *ep1 = (Episode *)level0Eps->array[(level0Eps->size - 1) - matchLen];
+            Episode *ep1 = (Episode *)level0Eps->array[(level0Eps->size - 1) - matchLen];
             Episode *ep2 = (Episode *)level0Eps->array[i-matchLen];
             if (compareEpisodes(ep1, ep2, matchLen > 0))
 #endif
             {
                 totalMatch += (matchCount * discount);;
                 matchLen++;
-                discount *= 0.9;
+                discount *= MATCH_DISCOUNT;
             }
             else
             {
@@ -5745,7 +5769,8 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
     }
     
     //---------------------------------------------
-/*    printf("Best Match Len: %d at index: %d", bestMatchLen, bestMatchIndex);
+#if DEBUGGING_FINDINTERIMSTART
+    printf("Best Match Len: %d at index: %d", bestMatchLen, bestMatchIndex);
 
     for(i = bestMatchLen - 1; i >= 0; i--)
     {
@@ -5758,7 +5783,8 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
         displayVisualizedEpisodeWME(ep2);
     }//for
     printf("\n\n");
-*/
+#endif
+
     /*======================================================================
      * Step 2: Iterate backwards over all the level 1 episodes to figure out
      *         which one corresponds to the partial match found at level 0.
@@ -5806,6 +5832,7 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
 
         //decrement current action index
         currActIndex--;
+        
 
         //If I fall off the edge of a sequence, proceed to the next sequence
         if (currActIndex < 0)
@@ -5835,8 +5862,12 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
         }//if
     }//while
 
+    //KLUDGE:  if the currSequence is of length:1, sometimes
+    //         currActIndex == -1 which no good
+    if (currActIndex < 0) currActIndex = 0;
+
 #ifdef DEBUGGING_FINDINTERIMSTART
-    printf("\tPartial match result of length %d corresponds to level 1 sequence %d and and action %d:  ",
+    printf("\tPartial match result of length %d corresponds to level 1 episode %d and and action %d:  ",
             bestMatchLen, currSeqIndex, currActIndex);
     fflush(stdout);
     for(i = 0; i < currSeq->size; i++)
@@ -5857,8 +5888,9 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
     fflush(stdout);
 #endif
     
+#ifdef DEBUGGING
     printf("Best partial matched sequence to current state\n");
-/*    printf("Current State:\n");
+    printf("Current State:\n");
 
     for(i = currActIndex; i >= 0; i--)
     {
@@ -5866,10 +5898,12 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
         EpisodeWME *ep = (EpisodeWME *)level0Eps->array[level0Eps->size - 1 - i];
         displayVisualizedEpisodeWME(ep);
     }//for
-*/
+
+
     printf("\n\nMatched Sequence:\n");
     printf("Action index: %d\n", currActIndex);
     displayVisualizedLevel0Sequence(currSeq, TRUE);
+#endif
 
     //Report the result
     *offset = currActIndex;
@@ -5896,11 +5930,11 @@ void visuallyInterpretLevel0Route(Route* route)
 
     printf("\n========================================\n");
     printf("Confirm: Route is level %d\n", route->level);
-    printf("Level 0 route contains %d sequences\n\n", sequences->size);
+    printf("Level 0 route contains %d sequences\n\n", (int)sequences->size);
 
     for(i = 0; i < sequences->size; i++) {
         Vector *seq = (Vector *)sequences->array[i];
-        printf("Sequence %d contains %d actions\n", i, seq->size);
+        printf("Sequence %d contains %d actions\n", i, (int)seq->size);
         displayVisualizedLevel0Sequence(seq, TRUE);
         printf("\n");
     }//for
@@ -5941,6 +5975,8 @@ char* visuallyInterpretEpisodesWME(EpisodeWME* ep)
             case V_E_FOOD1: t = '-'; break;
             case V_E_FOOD2: t = '+'; break;
             case V_E_EMPTY: t = ' '; break;
+            case -1:        t = '.'; break;
+            default:        t = '?'; break; // should not happen
         }//switch
         visualizedWMEs[i] = t;
     }//for
@@ -5985,6 +6021,9 @@ void displayVisualizedAction(Action* action)
     EpisodeWME* begin = (EpisodeWME*)action->epmem->array[action->index];
     EpisodeWME* outcome = (EpisodeWME*)action->epmem->array[action->outcome];
 
+    //only works on level 0 actions
+    if (action->level != 0) return;
+    
     //-------------------------------------------------
     switch(begin->cmd) {
         case CMD_MOVE_N: xl = 5; yl = 6; xInit = 2; yInit = 3; break;
@@ -6009,7 +6048,10 @@ void displayVisualizedAction(Action* action)
     l = x - 1; m = y - 1;
     for(k = 0; k < 9; k++) {
         if(k > 0 && k % 3 == 0) { m++; l = x - 1; }
-        map[l][m] = senses[k];
+        if (senses[k] != '.' || map[l][m] == '*')
+        {
+            map[l][m] = senses[k];
+        }
         l++;
     }//for
     free(senses);
@@ -6033,7 +6075,10 @@ void displayVisualizedAction(Action* action)
                 m++;
                 l = x - 1;
             }//if
-            map[l][m] = senses[k];
+            if (senses[k] != '.' || map[l][m] == '*')
+            {
+                map[l][m] = senses[k];
+            }
             l++;
         }//for
         free(senses);
@@ -6058,6 +6103,14 @@ void displayVisualizedAction(Action* action)
     int found;
     int reward = getINTValWME(outcome, "reward", &found);
     printf("REWARD: %d\n", reward);
+    if(action->isIndeterminate)
+    {
+        printf("INDETERMINATE:  %2i \n", action->freq * 100 / *(action->overallFreq));
+    }
+    else
+    {
+        printf("DETERMINATE\n");
+    }
 
     //-------------------------------------------------
     // Free the memory used to hold the route
@@ -6078,9 +6131,9 @@ void displayVisualizedAction(Action* action)
  */
 void displayVisualizedLevel0Sequence(Vector* seq, int isComplete)
 {
-#ifdef DEBUGGING
+#if DEBUGGING_EATERSVISUALS
     printf("Displaying Level 0 Sequence\n");
-    printf("Sequence Length: %d\n", seq->size);
+    printf("Sequence Length: %d\n", (int)seq->size);
 #endif
 
     int i,j,k,l,m;
@@ -6092,6 +6145,9 @@ void displayVisualizedLevel0Sequence(Vector* seq, int isComplete)
     int currX = 0, currY = 0;;
     int maxRight = 0, maxLeft = 0, maxUp = 0, maxDown = 0;
 
+    //only level 0 sequences can be printed
+    if ( ((Action *)seq->array[0])->level != 0) return;
+    
     //-------------------------------------------------
     // Determine the maximal dimensions necessary for visualization
     for(i = 0; i < seq->size; i++)
@@ -6130,7 +6186,7 @@ void displayVisualizedLevel0Sequence(Vector* seq, int isComplete)
     int x = xInit, y = yInit;   // Current coords for agent
     int moved = TRUE;           // Flag indicating successful action
 
-#ifdef DEBUGGING    
+#if DEBUGGING_EATERSVISUALS
     printf("MaxRight: %d\n", maxRight);
     printf("MaxLeft: %d\n", maxLeft);
     printf("MaxUp: %d\n", maxUp);
@@ -6160,7 +6216,10 @@ void displayVisualizedLevel0Sequence(Vector* seq, int isComplete)
                     m++;
                     l = x - 1;
                 }
-                map[l][m] = currSense[k];
+                if (currSense[k] != '.' || map[l][m] == '*')
+                {
+                    map[l][m] = currSense[k];
+                }
                 l++;
             }//for
             moved = FALSE; // reset flag
@@ -6190,7 +6249,10 @@ void displayVisualizedLevel0Sequence(Vector* seq, int isComplete)
                 m++;
                 l = x - 1;
             }//if
-            map[l][m] = currSense[k];
+            if (currSense[k] != '.' || map[l][m] == '*')
+            {
+                map[l][m] = currSense[k];
+            }
             l++;
         }//for
         free(currSense);

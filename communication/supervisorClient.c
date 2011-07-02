@@ -20,7 +20,6 @@
 //if FILTERING is defined then then KNN filter is applied
 //#define FILTERING
 
-#define NUM_EATERS_RUNS 20
 
 #include "communication.h"
 #include "../supervisor/supervisor.h"

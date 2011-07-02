@@ -35,6 +35,7 @@ int compareEpisodesWME(EpisodeWME* ep1, EpisodeWME* ep2, int compCmd)
     {
         WME* ep1WME = getEntry(ep1->sensors, i);
         WME* ep2WME = getEntry(ep2->sensors, i);
+
 #if USE_WALL_MARKER
         //if(!ep1WME->containsWall) continue;
         //if(!ep1WME->isFree) continue;
@@ -60,10 +61,17 @@ int compareWME(WME* wme1, WME* wme2)
     // This may be more complicated than need be.
     // I feel like it's likely we don't need to switch on the type
     // except for that one is a string which requires a function
-    // for copmarison
+    // for comparison
     if(strcmp(wme1->attr, wme2->attr) == 0 &&
        wme1->type == wme2->type)
     {
+        //%%%TEMPORARY?:  don't compare 'score' and 'steps'
+        if ( (strcmp(wme1->attr, "steps") == 0)
+             || (strcmp(wme1->attr, "score") == 0))
+        {
+            return TRUE;
+        }
+    
         if(wme1->type == WME_INT && 
             wme1->value.iVal == wme2->value.iVal) return TRUE;
 /*
@@ -330,7 +338,7 @@ double getDOUBLEValWME(EpisodeWME* ep, char* attr, int* found)
  * @param ep A pointer to an episode.
  * @param attr A pointer to a string with the desired attribute name
  *
- * @return int The desired value. NULL if not found
+ * @return int The desired value. -1 if not found
  */
 int getINTValWME(EpisodeWME* ep, char* attr, int* found)
 {
@@ -346,7 +354,7 @@ int getINTValWME(EpisodeWME* ep, char* attr, int* found)
         }
     }//for
     (*found) = FALSE;
-    return 0;
+    return -1;
 }//getINTValWME
 
 /**
@@ -405,7 +413,7 @@ int getNumMatches(EpisodeWME* ep1, EpisodeWME* ep2, int compareCMD)
                 {
 //                    count++;
                     if(wme1->containsWall) count++;
-                    if(wme1->isFree) count++;
+//                    if(wme1->isFree) count++;
                 }
 #else
                 if(compareWME(wme1, wme2)) count++;
@@ -580,12 +588,12 @@ Vector* stringToWMES(char* senses)
                            strcmp(wme->attr, "LR") == 0   )
                         {
                              wme->containsWall = (wme->value.iVal == V_E_WALL);
-                             wme->isFree = (wme->value.iVal == V_E_EMPTY);
+//                             wme->isFree = (wme->value.iVal == V_E_EMPTY);
                         }
                         else 
                         {
                             wme->containsWall = FALSE;
-                            wme->isFree = FALSE;
+//                            wme->isFree = FALSE;
                         }
 #endif
                     }

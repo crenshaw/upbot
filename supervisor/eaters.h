@@ -8,7 +8,8 @@
 // Map dimensions
 #define MAP_WIDTH			(18)
 #define MAP_HEIGHT			(18)
-#define MAP_PERCENT_WALLS 	(15)
+#define MAP_PERCENT_WALLS 	(20)
+#define MAX_WALL_LEN        (7)
 
 // Map columns containing special food
 #define SFOODC1     2

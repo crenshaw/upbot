@@ -40,7 +40,7 @@ int g_reward;
  */
 void initWorld(int firstInit)
 {
-    int i,j;
+    int i,j,k;
 
 	//--Allocate memory if this is the first time initWorld is called
 	if(firstInit)
@@ -104,12 +104,34 @@ void initWorld(int firstInit)
     int numWalls = 0, percentWalls = MAP_PERCENT_WALLS;
     while(numWalls++ < (g_map_height - 2) * (g_map_width - 2) * (percentWalls) / 100)
     {
-        i = (rand() % (g_map_width - 2)) + 1;
-        j = (rand() % (g_map_height - 2)) + 1;
+        i = (rand() % (g_map_width - 6)) + 2;
+        j = (rand() % (g_map_height - 6)) + 2;
+        int len = (rand() % (MAX_WALL_LEN)) + 1;
+        int vert = (rand() % (2));
 
-        g_world[i][j] = V_E_WALL;
+        for(k=0; k < len; k++)
+        {
+            if ((i >= g_map_width - 2) || (j >= g_map_height - 2))
+            {
+                break;
+            }
+
+            g_world[i][j] = V_E_WALL;
+
+            if (vert)
+            {
+                j++;
+            }
+            else
+            {
+                i++;
+            }
+            numWalls++;
+        }
     }//while
 
+
+    
 #if DEBUGGING
     printf("Inserting agent\n");
 #endif
@@ -137,7 +159,6 @@ void resetWorld()
                           // with the RESET command
     g_score 		= 0;
     g_reward        = 0;
-    g_statsMode 	= FALSE;
     //----------------------------
 
 #if DEBUGGING
@@ -326,7 +347,7 @@ char* doMove(int command)
             if(!g_statsMode) printf("No operation...\n");
             break;
         case CMD_EATERS_RESET:
-            if(!g_statsMode) printf("Reset Eaters environment...\n");
+            printf("Reset Eaters environment...\n");
             resetWorld();
             break;
         default:
@@ -335,6 +356,9 @@ char* doMove(int command)
     }//switch
 
     g_numMoves++;
+
+    //Print the reward for data collection
+    if (g_statsMode) printf("%d\n", g_reward);
 
     if(!g_statsMode) displayWorld();
 
@@ -360,11 +384,22 @@ char* setSenseString(int command)
     }
     else
     {
-        sprintf(str, ":UL,i,%d:UM,i,%d:UR,i,%d:LT,i,%d:RT,i,%d:LL,i,%d:LM,i,%d:LR,i,%d:score,i,%d:steps,i,%d:color,s,%s:reward,i,%d:", 
-                g_world[g_X - 1][g_Y - 1], g_world[g_X][g_Y - 1], g_world[g_X + 1][g_Y - 1], 
-                g_world[g_X - 1][g_Y], g_world[g_X + 1][g_Y], 
-                g_world[g_X - 1][g_Y + 1], g_world[g_X][g_Y + 1], g_world[g_X + 1][g_Y + 1],
+
+        //Send big state
+        // sprintf(str, ":UL,i,%d:UM,i,%d:UR,i,%d:LT,i,%d:RT,i,%d:LL,i,%d:LM,i,%d:LR,i,%d:score,i,%d:steps,i,%d:color,s,%s:reward,i,%d:", 
+        //         g_world[g_X - 1][g_Y - 1], g_world[g_X][g_Y - 1], g_world[g_X + 1][g_Y - 1], 
+        //         g_world[g_X - 1][g_Y], g_world[g_X + 1][g_Y], 
+        //         g_world[g_X - 1][g_Y + 1], g_world[g_X][g_Y + 1], g_world[g_X + 1][g_Y + 1],
+        //         g_score, g_numMoves, g_color, g_reward);
+
+        // //Don't send info about corner cells
+        sprintf(str, ":UM,i,%d:LT,i,%d:RT,i,%d:LM,i,%d:score,i,%d:steps,i,%d:color,s,%s:reward,i,%d:", 
+                g_world[g_X][g_Y - 1], 
+                g_world[g_X - 1][g_Y],
+                g_world[g_X + 1][g_Y], 
+                g_world[g_X][g_Y + 1], 
                 g_score, g_numMoves, g_color, g_reward);
+
     }
 
     return str;

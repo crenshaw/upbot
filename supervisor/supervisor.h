@@ -45,9 +45,10 @@
 #define DISCOUNT             (1.0)
 #define MAX_LEN_LHS          (1)
 #define MAX_LEVEL_DEPTH      (4)
-#define MIN_LEVEL0_MATCH_LEN (2) // do not set this to anything less than 2!
+#define MIN_LEVEL0_MATCH_LEN (2)   // do not set this to anything less than 2!
 #define K_NEAREST            (8)
-#define MIN_NEIGHBORS        (1) //minimum number of neighbors required for match
+#define MIN_NEIGHBORS        (1)   //minimum number of neighbors required for match
+#define MATCH_DISCOUNT       (0.5) //discount factor for sequence best partial match
 
 //Planning defines
 #define MAX_ROUTE_LEN        (50)
@@ -63,10 +64,8 @@
 #define MAX_REPL_RISK        (0.0)  // a more flexible limitation to repls per
                                     // plan (min=0.0)
 
-#define EATERS_MAX_STEPS 1000
-
 // Collecting data for stats
-#define STATS_MODE		1
+#define STATS_MODE		0
 
 #define DECREASE_RANDOM(randChance) if((randChance) > 10) { (randChance) -= 5;}
 
