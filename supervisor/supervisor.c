@@ -1382,35 +1382,38 @@ int updateAll(int level)
             || ( (updateExistingAction->isIndeterminate)
                 && (currSequence->size > 1) ) )
         {
-                        // if the sequence we just completed already exists then
-                        // reset the vector's size to 0
-                        // This will allow updateAll to reuse the same vector
-                        // without needing to free memory
+
+            //record meta info about this latest sequence
+            addSeqInfo(currSequence, level);
+            
+            // if the sequence we just completed already exists then
+            // reset the vector's size to 0
+            // This will allow updateAll to reuse the same vector
+            // without needing to free memory
             Vector* duplicate = containsSequence(sequenceList, currSequence, TRUE);
             Vector *parentEpList = g_epMem->array[level + 1];
-                        if(duplicate != NULL)
-                        {
-                                currSequence->size = 0;
+            if(duplicate != NULL)
+            {
+                currSequence->size = 0;
                 // this duplicate sequence becomes the next episode in the
                 // next level's episodic memory
                 if (level + 1 < MAX_LEVEL_DEPTH)
                 {
                     addEntry(parentEpList, duplicate);
                 }
-                        }
-                        else
-                        {
+            }
+            else
+            {
                 // this newly completed sequence becomes the next
                 // episode in the next level's episodic memory UNLESS:
                 // - the required level doesn't exist
                 // - the sequence only contains one entry (i.e., its
                 //   sole action contains a path from start to goal)
                 // We've removed this test because at this point we
-                //
                 // think it's reasonable to include an episode that is a
                 // sequence from start to goal in the next level's epMem.
                 // This is becuase, even though it is a complete path, it was
-                // still an even in our past as thus in our episodic memeory
+                // still an event in our past as thus in our episodic memeory
                 if (level + 1 < MAX_LEVEL_DEPTH)
                 {
 #if DEBUGGING_UPDATEALL
@@ -1425,7 +1428,7 @@ int updateAll(int level)
                 currSequence = newVector();
                 addEntry(sequenceList, currSequence);
 
-                        }//else
+            }//else
 
             // typically the next sequence starts with the action that
             // ended the last sequence.  (Exception:  last action
@@ -2339,6 +2342,40 @@ void penalizeReplacements()
     g_activeRepls->size = 0;
 
 }//penalizeReplacements
+
+/**
+ * addSeqInfo
+ *
+ * initializes a SeqInfo struct with a given sequence and inserts it into
+ * the g_seqInfo vector.
+ *
+ * @arg seq     a valid sequence containing at least one action
+ * @arg level   the level of this sequence
+ *
+ */
+void addSeqInfo(Vector *seq, int level)
+{
+    //Create a SeqInfo struct to store meta data about this sequence
+    SeqInfo *newSI = (SeqInfo *)malloc(sizeof(SeqInfo));
+
+    //Extract the first and last action in the sequence for reference
+    Action *firstAct = (Action *)seq->array[0];
+    Action *lastAct = (Action *)seq->array[seq->size - 1 ];
+    
+    //init the struct
+    newSI->seq           = seq;
+    newSI->level         = level;
+    newSI->valid         = TRUE;
+    newSI->firstIndex    = firstAct->index;
+    newSI->lastIndex     = lastAct->index;
+    newSI->containsStart = firstAct->containsStart;
+    newSI->containsGoal  = lastAct->containsGoal; 
+    
+    //Insert the struct into the proper list
+    Vector *subSeqList = (Vector *)g_seqInfo->array[level];
+    addEntry(subSeqList, newSI);
+    
+}//addSeqInfo
 
 /**
  * initRouteFromParent
@@ -4302,6 +4339,7 @@ void initSupervisor(int numCommands)
     g_statsMode       = STATS_MODE;           // no output optimization
     g_selfConfidence  = INIT_SELF_CONFIDENCE;
     g_lastUpdateLevel = -1;
+    g_seqInfo         = newVector();
 
     for(i = 0; i < MAX_LEVEL_DEPTH; i++)
     {
@@ -4319,6 +4357,9 @@ void initSupervisor(int numCommands)
 
         // pad sequence vector to avoid crash on first call of updateAll()
         addEntry(g_sequences->array[i], newVector());
+
+        temp = newVector();
+        addEntry(g_seqInfo, temp);
     }
 
     // seed rand (sow some wild oats)

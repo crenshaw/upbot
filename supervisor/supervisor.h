@@ -101,6 +101,28 @@ typedef struct ActionStruct
                               // the LHS?
 } Action;
 
+/*
+ * SeqInfo
+ *
+ * Originally, sequences were stored as vectors but painful experience has shown
+ * that a lack of meta-data, particularly about the episodes associated with a
+ * sequence, is over-complicating the match routine.  So, I'm creating this
+ * struct to store meta-data about a sequence for the purpose of matching.
+ * Methods and structs will continue to expect sequences are vectors as it is
+ * too much work (at least right now) to change everything over.
+ */
+typedef struct SeqInfoStruct
+{
+    Vector *seq;                // reference to the sequence itself
+    int level;                  // level of the sequence
+    int firstIndex;             // index of the first episode in this sequence
+    int lastIndex;              // index of the last episode in this sequence
+    int containsStart;          // T/F: is this seq the start of a new run?
+    int containsGoal;           // T/F: does this sequence end in a goal?
+    int valid;                  // T/F: is this sequence valid and complete?
+} SeqInfo;
+
+
 typedef struct RouteStruct
 {
     int level;                // The level of this route
@@ -133,27 +155,7 @@ typedef struct StartStruct
     int index;                  // the route generated from this start should
                                 // start at the action specified by this index
 } Start;
-/*
-//Used for passing arbitrary information as agent's state
-typedef struct WMEStruct {
-    char* attr;                 // name of attribute
-    int type;                   // var type of attribute
-    union {
-        int iVal;
-        char cVal;
-        double dVal;
-        char* sVal;
-    } value;                    // value of attribute
-} WME;
 
-// Episode struct for WMEs. Only difference is Vector WMEs instead of int[] sensors
-typedef struct EpisodeWMEStruct
-{
-	Vector*	sensors;            // A Vector of WMEs
-	int		now;
-	int 	cmd;
-} EpisodeWME;
-*/
 // Global variables for monitoring and connecting
 int g_connectToRoomba;
 int g_statsMode;
@@ -177,6 +179,10 @@ Vector* g_activeRepls;    // these are replacements that have recently been
                           // applied and are awaiting reward/punishment
 int     g_lastUpdateLevel;// the highest level that was updated in the last
                           // updateAll().  Used to aid findInterimStart().
+Vector* g_seqInfo;        // 2D vector of meta-data about the sequences.  These
+                          // are listed in episode order and repeated as
+                          // necessary to mimic the episode list at the next
+                          // level up.
 
 
 
@@ -213,6 +219,7 @@ int          addAction(Vector* actions, Action* item, int checkRedundant);
 void         addActionToRoute(int actionIdx);
 int          addActionToSequence(Vector* sequence,  Action* action);
 int          addEpisode(Episode* item);
+void         addSeqInfo(Vector *seq, int level);
 int          addSequenceAsEpisode(Vector* sequence);
 void         applyReplacementToPlan(Vector *plan, Replacement *repl);
 Vector*      applyReplacementToSequence(Vector* seq, Replacement* repl);
