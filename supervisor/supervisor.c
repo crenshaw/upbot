@@ -1383,8 +1383,6 @@ int updateAll(int level)
                 && (currSequence->size > 1) ) )
         {
 
-            //record meta info about this latest sequence
-            addSeqInfo(currSequence, level);
             
             // if the sequence we just completed already exists then
             // reset the vector's size to 0
@@ -1400,6 +1398,11 @@ int updateAll(int level)
                 if (level + 1 < MAX_LEVEL_DEPTH)
                 {
                     addEntry(parentEpList, duplicate);
+
+                    //record meta info about this latest sequence
+                    addSeqInfo(duplicate, level);
+                    assert(parentEpList->size ==
+                           ((Vector *)g_seqInfo->array[level])->size);
                 }
             }
             else
@@ -1423,6 +1426,11 @@ int updateAll(int level)
                     fflush(stdout);
 #endif
                     addEntry(parentEpList, currSequence);
+
+                    //record meta info about this latest sequence
+                    addSeqInfo(currSequence, level);
+                    assert(parentEpList->size ==
+                           ((Vector *)g_seqInfo->array[level])->size);
                 }
                 // create an vector to hold the next sequence
                 currSequence = newVector();
@@ -3410,7 +3418,10 @@ void displayPlan()
 
     //Calculate and print the plan length
     int length = routeLength(r);
-    printf("(level %d; %d steps) \n", r->level, length);
+    Vector *currSeq = (Vector *)r->sequences->array[r->currSeqIndex];
+    printf("(level %d; %d of %d actions in %d of %d seqs; %d total actions) \n",
+           r->level, r->currActIndex+1, (int)currSeq->size,
+           r->currSeqIndex+1, r->sequences->size, length);
     fflush(stdout);
 
     displayRoute(r, TRUE);
@@ -6333,3 +6344,239 @@ void displayVisualizedLevel0Sequence(Vector* seq, int isComplete)
         free(map[i]);
     free(map);
 }//displayVisualizedLevel0Sequence
+
+/**
+ * evalLevel0Match
+ *
+ * examines two specified positions in the level 0 epmem vector and returns a
+ * score indicating how well they match to each other.
+ *
+ * @arg pos1 - position of the most recent episode of the more recent sequence
+ * @arg pos2 - position of the most recent episode of the less recent sequence
+ *
+ */
+double evalLevel0Match(int pos1, int pos2)
+{
+    int i;
+    int matchLen = 0;         // number of matching episodes so far
+    int matchCount = 0;       // stores result of calls to getNumMatches
+    double score = 0.0;       // match score so far
+    double discount = 1.0;    // current discount
+    
+    //get the level 0 episodes vector
+    Vector *level0Eps = (Vector *)g_epMem->array[0];
+
+    for(i = 0; i <= pos2; i++)
+    {
+#if USE_WMES
+        EpisodeWME *ep1 = (EpisodeWME *)level0Eps->array[pos1 - i];
+        EpisodeWME *ep2 = (EpisodeWME *)level0Eps->array[pos2 - i];
+        if((matchCount = getNumMatches(ep1, ep2, matchLen > 0)) > 0)
+#else
+        Episode    *ep1 = (Episode *)level0Eps->array[pos1 - i];
+        Episode    *ep2 = (Episode *)level0Eps->array[pos2 - i];
+        if (compareEpisodes(ep1, ep2, matchLen > 0))
+#endif
+        {
+            score += ((double)matchCount * discount);
+            matchLen++;
+            discount *= MATCH_DISCOUNT;
+        }
+        else
+        {
+            break;          // end of match
+        }
+    }//for
+
+    //Verify this result is worth scoring
+    if (matchLen < MIN_LEVEL0_MATCH_LEN)
+    {
+        return -1.0;
+    }
+
+    return score;
+}//evalLevel0Match
+
+
+/**
+ * findInterimStartPartialMatch
+ *
+ * Like findInterimStart(), this method searches episodes for the best match to
+ * the present.  However, it only searches level 0 and since the planning
+ * routines need a sequences to build plans, it takes its best match and returns
+ * it as a level 0 sequence and an offset into that sequence.  The plan is built
+ * from the sequence but begins where the match left off
+ *
+ * @arg offset is the index of the action in the returned sequence that a new
+ * plan should start with
+ *
+ * @return the "start" sequence that was found or NULL if there was no partial
+ *         match
+ */
+Vector *findInterimStartPartialMatch(int *offset)
+{
+    static int oldMatchIdx = -1;
+    Vector *level0Eps = (Vector *)g_epMem->array[0];
+    Vector *level1Eps = (Vector *)g_epMem->array[1];
+    int lastIndex = level0Eps->size-1; // where the match begins
+    int matchLen = 0;             // length of current match
+    int bestMatchLen = 0;         // length of the best match
+    int bestMatchIndex = -1;    // index of level 1 episode that is best match
+    int bestMatchOffset = -1;   // index of first matching action in best match
+
+
+    int i,j,k;                    // iterators
+    Vector *seqInfoList = (Vector *)g_seqInfo->array[0];
+    
+#ifdef DEBUGGING_FINDINTERIMSTART
+    printf("Entering findInterimStartPartialMatch()\n");
+    fflush(stdout);
+#endif
+
+    //Must be at least two level 1 episodes to do a partial match
+    if (level1Eps->size < 2) 
+    {
+#ifdef DEBUGGING_FINDINTERIMSTART
+        printf("Not enough Level 1 episodes for a partial match. Returning NULL...\n");
+        fflush(stdout);
+#endif
+        return NULL;
+    }//if
+
+    /*======================================================================
+     * Step 1: Initialize pos1 and pos2.  pos1 stays constant (pointing to the
+     * most recent episode) and pos2 starts in the most recent episode from the
+     * previous sequence.  Essentially, pos2 is initialized to the position
+     * of the most recent level 0 episode that could be a legitimate match.
+     * ----------------------------------------------------------------------
+     */
+
+    int pos1 = level0Eps->size - 1; // points to the most recent episode we are
+                                    // trying to find a match to this position
+    SeqInfo *lastSeqInfo  =         // info about the last complete sequence
+        (SeqInfo *)seqInfoList->array[seqInfoList->size - 1];
+    //Make sure that lastSeqInfo does not contain pos1 otherwise we'll
+    //end up with a match that's too recent
+    if (lastSeqInfo->lastIndex >= pos1)
+    {
+        lastSeqInfo = (SeqInfo *)seqInfoList->array[seqInfoList->size - 2];
+    }
+
+    int pos2 = lastSeqInfo->lastIndex; // reference to the last position
+                                       // that can contain a match.
+    //If the last sequence doesn't contain a goal, skip back one 1 because of
+    //sequence overlap
+    if (lastSeqInfo->containsGoal)
+    {
+        pos2 = lastSeqInfo->lastIndex - 1;
+    }
+
+    /*======================================================================
+     * Step 2: Find the best match by comparing the sequence starting at pos1 to
+     * that starting at pos2 (comparing backwards in time not forwards).
+     * ----------------------------------------------------------------------
+     */
+    
+    //Find the best match
+    double bestMatchScore = -1.0; // best match score seen so far
+    int bestMatchPos = -1;        // position of best match seen so far
+    for( ; pos2 >= 0; pos2--)
+    {
+        double score = evalLevel0Match(pos1, pos2);
+
+        if (score > bestMatchScore)
+        {
+            bestMatchScore = score;
+            bestMatchPos = pos2;
+            
+#ifdef DEBUGGING_FINDINTERIMSTART
+            if(!g_statsMode)
+            {
+                printf("\tNew best total match: %lf found at index: %d of %d\n",
+                       bestMatchScore, bestMatchPos, (int)level0Eps->size);
+            }
+            fflush(stdout);
+#endif
+        }//if
+
+    }//for
+
+    //Check for no acceptable match found
+    if (bestMatchScore <= 0.0)
+    {
+#ifdef DEBUGGING_FINDINTERIMSTART
+        printf("findInterimStartPartialMatch found no match\n");
+        fflush(stdout);
+#endif
+        return NULL;
+    }
+    
+    /*======================================================================
+     * Step 3: Iterate backwards over all the level 0 SeqInfo structs to figure
+     * out which level 1 episode corresponds to the position of the most recent
+     * episode in the best match.
+     * ----------------------------------------------------------------------
+     */
+
+    int ep1Pos = -1;
+    SeqInfo *si = NULL;
+    for(i = seqInfoList->size - 2; i >= 0; i--)
+    {
+        si = (SeqInfo *)seqInfoList->array[i];
+
+        if ( (si->firstIndex <= bestMatchPos)
+             && (si->lastIndex >= bestMatchPos) )
+        {
+            ep1Pos = i;
+            break;
+        }
+    }
+
+    //sanity check:  should never happen
+    if ((ep1Pos < 0) || (si == NULL) )  return NULL;
+
+
+    /*======================================================================
+     * Step 4: Return the corresponding episode and offset to the caller.  This
+     * is trivial since the SeqInfo struct shares the same index
+     * ----------------------------------------------------------------------
+     */
+#ifdef DEBUGGING
+    printf("Partial Match Found.\n");
+
+    printf("last 3 episodes of match:\n");
+
+    for(i = 2; i >= 0; i--)
+    {
+        if (bestMatchPos - i  < 0) continue;
+        
+#if USE_WMES
+        EpisodeWME *ep1 = (EpisodeWME *)level0Eps->array[pos1 - i];
+        EpisodeWME *ep2 = (EpisodeWME *)level0Eps->array[bestMatchPos - i];
+
+        displayVisualizedEpisodeWME(ep1);
+        printf("\n<-- curr-%d /// bestMatch-%d -->", i, i);
+        fflush(stdout);
+        displayVisualizedEpisodeWME(ep2);
+        printf("\n---------------\n");
+#else
+        printf("\t");
+        Episode    *ep1 = (Episode *)level0Eps->array[pos1 - i];
+        Episode    *ep2 = (Episode *)level0Eps->array[bestMatchPos - i];
+        displayEpisodeShort(ep1);
+        printf("<-- curr-%d /// bestMatch-%d -->", i, i);
+        fflush(stdout);
+        displayEpisodeShort(ep2);
+        printf("\n");
+#endif
+
+        fflush(stdout);
+    }//for
+#endif
+        
+    //Report the result
+    *offset = ep1Pos - si->firstIndex;
+    return (Vector *)level1Eps->array[ep1Pos];
+
+}//findInterimStartPartialMatch
+

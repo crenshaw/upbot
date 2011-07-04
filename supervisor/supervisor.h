@@ -241,6 +241,7 @@ void         endSupervisor();
 int 		 episodeContainsGoal(void* entry, int level);
 Vector*      findInterimStart_KNN();
 Vector*      findInterimStart_NO_KNN();
+Vector*      findInterimStartPartialMatch(int *offset);
 Vector*      findInterimStartPartialMatch_KNN(int *offset);
 Vector*      findInterimStartPartialMatch_NO_KNN(int *offset);
 Replacement* findBestReplacement();
