@@ -958,7 +958,6 @@ int updateAll(int level)
     newAction->epmem           = episodeList;
     newAction->outcome         = episodeList->size - 1;
     newAction->index           = episodeList->size - 2;
-    newAction->length          = 1;
     newAction->freq            = 1;
     newAction->overallFreq     = NULL;
     newAction->cousins         = NULL;
@@ -999,7 +998,7 @@ int updateAll(int level)
     //then create a pool of indeterminate actions.  If the candidate
     //matches an existing action, it'll be discarded and the existing
     //action's frequency will be updated
-    int i,j;
+    int i;
     int matchComplete = FALSE;
     int addNewAction = TRUE;
     Action* updateExistingAction = NULL;
@@ -1008,213 +1007,126 @@ int updateAll(int level)
         //Compare the i-th action to the candidate action
         Action* curr = (Action*)actionList->array[i];
 
-        for(j = 0; j < newAction->length; j++)
+        //Find out if the LHS matches
+        if (compareActOrEp(episodeList, newAction->index, curr->index, level))
         {
-            //Find out if the j-th part of the LHS matches
-            if (compareActOrEp(episodeList, newAction->index - j, curr->index - j, level))
+#if DEBUGGING_UPDATEALL
+            printf("found LHS match with action: ");
+            displayAction(curr);
+            printf(" and ");
+            displayAction(newAction);
+            printf("\n");
+            fflush(stdout);
+#endif
+
+            //If the candidate action has matched a percentage
+            //action then there may already be a matching cousin
+            //out there
+            if(curr->isIndeterminate)
             {
 #if DEBUGGING_UPDATEALL
-                printf("found match between %i-th entries of: ", j);
-                displayAction(curr);
-                printf(" and ");
-                displayAction(newAction);
-                printf("\n");
+                printf("comparing cousins: \n");
                 fflush(stdout);
 #endif
-
-                //If the LHS match so far but we haven't reached the end
-                //of either action then continue comparing them
-                if (newAction->length > j+1 && curr->length > j+1)
+                int k;
+                //Iterate over cousins and find one with same outcome as candidate action
+                for(k = 0; k < curr->cousins->size; k++)
                 {
-                    continue;
+                    Action* cousin = curr->cousins->array[k];
+
+#if DEBUGGING_UPDATEALL
+                    printf("\t");
+                    displayAction(cousin);
+                    printf(" AND ");
+                    displayAction(newAction);
+                    printf("\n");
+                    fflush(stdout);
+#endif
+
+                    //If we find one with same outcome, increase
+                    //frequency and inform not to add action
+                    if (compareActOrEp(episodeList, newAction->outcome,
+                                       cousin->outcome, level))
+                    {
+                               
+                        cousin->freq++;
+                        addNewAction = FALSE;
+                        updateExistingAction = cousin;
+                        break;
+                    }
+                }//for
+
+                //If no cousins match candidate action, add it
+                //as a new cousin
+                if(addNewAction)
+                {
+#if DEBUGGING_UPDATEALL
+                    printf("new cousin is unique.  Adding...\n");
+                    fflush(stdout);
+#endif
+                    newAction->isIndeterminate = TRUE;
+                    newAction->overallFreq = curr->overallFreq;
+                    newAction->cousins = curr->cousins;
+
+                    addAction(newAction->cousins, newAction, FALSE);
                 }
 
-                //If we've matched to the end and they are the same
-                //length, then the LHS's match.
-                if(newAction->length == curr->length)
-                {
-                    //If the candidate action has matched a percentage
-                    //action then there may already be a matching cousin
-                    //out there
-                    if(curr->isIndeterminate)
-                    {
-#if DEBUGGING_UPDATEALL
-                        printf("comparing cousins: \n");
-                        fflush(stdout);
-#endif
-                        int k;
-                        //Iterate over cousins and find one with same outcome as candidate action
-                        for(k = 0; k < curr->cousins->size; k++)
-                        {
-                            Action* cousin = curr->cousins->array[k];
-
-#if DEBUGGING_UPDATEALL
-                            printf("\t");
-                            displayAction(cousin);
-                            printf(" AND ");
-                            displayAction(newAction);
-                            printf("\n");
-                            fflush(stdout);
-#endif
-
-                            //If we find one with same outcome, increase
-                            //frequency and inform not to add action
-                            if (compareActOrEp(episodeList, newAction->outcome,
-                                        cousin->outcome, level))
-                            {
-                               
-                                cousin->freq++;
-                                addNewAction = FALSE;
-                                updateExistingAction = cousin;
-                                break;
-                            }
-                        }//for
-
-                        //If no cousins match candidate action, add it
-                        //as a new cousin
-                        if(addNewAction)
-                        {
-#if DEBUGGING_UPDATEALL
-                            printf("new cousin is unique.  Adding...\n");
-                            fflush(stdout);
-#endif
-                            newAction->isIndeterminate = TRUE;
-                            newAction->overallFreq = curr->overallFreq;
-                            newAction->cousins = curr->cousins;
-
-                            addAction(newAction->cousins, newAction, FALSE);
-                        }
-
-                        // Regardless of whether candidate action is
-                        // unique we need to increase overall
-                        // frequency for all cousins in the list and
-                        // end the matching process
-                        (*(curr->overallFreq))++;
-                        matchComplete = TRUE;
-                    }
-                    else    //Found a LHS match to a determinate action
-                    {
-                        //Now see if the RHS of both actions match
-                        if (compareActOrEp(episodeList, newAction->outcome,
-                                    curr->outcome, level))
-                        {
-                            //We have a complete match between the
-                            //candidate and an existing action, so just
-                            //update the existing action
-                            curr->freq++;
-
-                            //Done with update
-                            matchComplete = TRUE;
-                            addNewAction = FALSE;
-                            updateExistingAction = curr;
-                        }
-                        else    //RHS does not match
-                        {
-#if DEBUGGING_UPDATEALL
-                            printf("LHS match but RHS doesn't while comparing to %i...\n", i);
-                            printf("Creating new cousins\n");
-                            fflush(stdout);
-#endif
-
-                            // We need to convert both the current action and
-                            // the candidate action into indeterminate actions
-
-                            // allocate cousins list and add both peer
-                            // indetermiante actions into same cousins list
-                            curr->cousins = newVector();
-                            addAction(curr->cousins, curr, TRUE);
-                            addAction(curr->cousins, newAction, TRUE);
-                            newAction->cousins = curr->cousins;
-
-                            //Update actions
-                            curr->isIndeterminate = TRUE;
-                            newAction->isIndeterminate = TRUE;
-                            curr->overallFreq = (int*) malloc(sizeof(int));
-                            newAction->overallFreq = curr->overallFreq;
-                            *(curr->overallFreq) = curr->freq + 1;
-
-                            //We're done with this match
-                            matchComplete = TRUE;
-                            addNewAction = TRUE;
-                        }// else
-                    }// else
-                }// if
-                else // newAction and curr have different lengths
-                {
-                    //If we make it here, the candidate action and
-                    //current action are different lengths but they do
-                    //match up to the length of the shorter action.
-
-                    //If the candidate is longer then consider it a
-                    //degenerate action and stop
-                    if (newAction->length > curr->length)
-                    {
-                        matchComplete = TRUE;
-                        addNewAction = FALSE;
-#if DEBUGGING_UPDATEALL
-                        printf("newAction matches but is bigger than current action.  Aborting.\n");
-                        fflush(stdout);
-#endif
-                    }
-//===============================================================================
-// I think that this code needs to probably be expanded to prevent the newAction
-// from expanding beyond its limits, as above.
-                    //If the new action can be expanded, try doing so to
-                    //see if that makes it unique
-                    else if(newAction->length < MAX_LEN_LHS)
-                    {
-                        //-----This is the part that I added
-                        int newLHSEntryIndex = (newAction->index - newAction->length) - 1;
-
-                        if (episodeContainsGoal(episodeList->array[newLHSEntryIndex],
-                                         level))
-                        {
-#if DEBUGGING_UPDATEALL
-                            printf("2. NewAction expands into goal at index: %i\n",
-                                   newLHSEntryIndex);
-                            fflush(stdout);
-#endif
-
-                            //the new action can't be expanded so we
-                            //consider it degenerate so just abort
-                            //and create no new actions or updates
-                            matchComplete = TRUE;
-                            addNewAction = FALSE;
-                        }
-                        //----------------------------------
-                        else
-                        {
-                            newAction->length++;
-
-#if DEBUGGING_UPDATEALL
-                            printf("expanded new action to len %i\n",
-                                   newAction->length);
-                            printf("new candidate: ");
-                            displayAction(newAction);
-                            printf("\n");
-                            fflush(stdout);
-#endif
-                        }
-//============================================================================                                         
-                    }
-                    else
-                    {
-                        //Should never happen
-                        printf("Nux was wrong\n");
-                        fflush(stdout);
-                    }
-                }// else
-            }// if
-            else // j-th episodes in actions do not match
-            {
-                //The current action's nth entry doesn't match so we can
-                //abort the comparison even if the candidate action has
-                //more entries in its LHS
-                break;
+                // Regardless of whether candidate action is
+                // unique we need to increase overall
+                // frequency for all cousins in the list and
+                // end the matching process
+                (*(curr->overallFreq))++;
+                matchComplete = TRUE;
             }
-        }// for
+            else    //Found a LHS match to a determinate action
+            {
+                //Now see if the RHS of both actions match
+                if (compareActOrEp(episodeList, newAction->outcome,
+                                   curr->outcome, level))
+                {
+                    //We have a complete match between the
+                    //candidate and an existing action, so just
+                    //update the existing action
+                    curr->freq++;
 
-        // if matched action break out of loop and free memory
+                    //Done with update
+                    matchComplete = TRUE;
+                    addNewAction = FALSE;
+                    updateExistingAction = curr;
+                }
+                else    //RHS does not match
+                {
+#if DEBUGGING_UPDATEALL
+                    printf("LHS match but RHS doesn't while comparing to %i...\n", i);
+                    printf("Creating new cousins\n");
+                    fflush(stdout);
+#endif
+
+                    // We need to convert both the current action and
+                    // the candidate action into indeterminate actions
+
+                    // allocate cousins list and add both peer
+                    // indetermiante actions into same cousins list
+                    curr->cousins = newVector();
+                    addAction(curr->cousins, curr, TRUE);
+                    addAction(curr->cousins, newAction, TRUE);
+                    newAction->cousins = curr->cousins;
+
+                    //Update actions
+                    curr->isIndeterminate = TRUE;
+                    newAction->isIndeterminate = TRUE;
+                    curr->overallFreq = (int*) malloc(sizeof(int));
+                    newAction->overallFreq = curr->overallFreq;
+                    *(curr->overallFreq) = curr->freq + 1;
+
+                    //We're done with this match
+                    matchComplete = TRUE;
+                    addNewAction = TRUE;
+                }// else
+            }// else
+        }// if
+
+        // if we matched an action break out of loop and free memory
         if(matchComplete == TRUE)
         {
             break;
@@ -1714,31 +1626,27 @@ void displayAction(Action* action)
     else printf(" ");
 
     //Print the LHS
-    for(i = 0; i < action->length; i++)
+    if (action->level == 0)
     {
-        if (action->level == 0)
-        {
 #if USE_WMES
-            displayEpisodeWMEShort((EpisodeWME*)action->epmem->array[action->index - i]);
+        displayEpisodeWMEShort((EpisodeWME*)action->epmem->array[action->index - i]);
 #else
-            displayEpisodeShort((Episode*)action->epmem->array[action->index - i]);
+        displayEpisodeShort((Episode*)action->epmem->array[action->index - i]);
 #endif
-        }
-        else //sequence
-        {
-            //Get the episode that corresponds to the LHS of this action
-            Vector *epSeq = (Vector *)action->epmem->array[action->index - i];
+    }
+    else //sequence
+    {
+        //Get the episode that corresponds to the LHS of this action
+        Vector *epSeq = (Vector *)action->epmem->array[action->index - i];
                
-            //Lookup the index of this sequence in the list of all sequences at
-            //the next level down
-            Vector *seqList = (Vector *)g_sequences->array[action->level - 1];
-            int index = findEntry(seqList, epSeq);
+        //Lookup the index of this sequence in the list of all sequences at
+        //the next level down
+        Vector *seqList = (Vector *)g_sequences->array[action->level - 1];
+        int index = findEntry(seqList, epSeq);
 
-            //print the index
-            printf("%i", index);
-        }
-
-    }//for
+        //print the index
+        printf("%i", index);
+    }
 
     //Print the arrow
     if(action->isIndeterminate)
@@ -4025,9 +3933,6 @@ int compareActions(Action* r1, Action* r2)
 
     //Make sure that both actions have the same index
     if (r1->index != r2->index) return FALSE;
-
-    //Make sure that both actions have the same length
-    if (r1->length != r2->length) return FALSE;
 
     return TRUE;
 }//compareActions

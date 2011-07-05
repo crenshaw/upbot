@@ -44,9 +44,9 @@
 #define NUM_GOALS_TO_FIND    (50)
 #define DISCOUNT             (1.0)
 #define MAX_LEN_LHS          (1)
-#define MAX_LEVEL_DEPTH      (4)
+#define MAX_LEVEL_DEPTH      (4)   // max number of levels
 #define MIN_LEVEL0_MATCH_LEN (2)   // do not set this to anything less than 2!
-#define K_NEAREST            (8)
+#define K_NEAREST            (8)   // if using KNN matching, this specs K value
 #define MIN_NEIGHBORS        (1)   //minimum number of neighbors required for match
 #define MATCH_DISCOUNT       (0.5) //discount factor for sequence best partial match
 
@@ -85,7 +85,6 @@ typedef struct ActionStruct
                               // or sequences (for level 1+)
     int  level;               // what level is this action?
     int  index;               // index into epmem where the action's LHS ends
-    int  length;              // number of entries in the LHS
     int  freq;                // number of times this action has "matched" epmem
     int* overallFreq;         // number of times just the most recent sensor
                               // data has matched epmem. This is a pointer
