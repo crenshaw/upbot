@@ -113,6 +113,7 @@ typedef struct ActionStruct
  */
 typedef struct SeqInfoStruct
 {
+    int index;                  // index of this struct in its Vector
     Vector *seq;                // reference to the sequence itself
     int level;                  // level of the sequence
     int firstIndex;             // index of the first episode in this sequence
