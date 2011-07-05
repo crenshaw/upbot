@@ -283,6 +283,8 @@ void freeWME(WME* wme)
  *
  * @param ep A pointer to an episode.
  * @param attr A pointer to a string with the desired attribute name
+ * @param found will be set to TRUE if found and FALSE otherwise.  This
+ *              parameter is optional can can be set to NULL
  *
  * @return char The desired value. NULL if not found
  */
@@ -295,11 +297,17 @@ char getCHARValWME(EpisodeWME* ep, char* attr, int* found)
         WME* wme = (WME*)getEntry(wmes, i);
         if(strcmp(attr, wme->attr) == 0) 
         {
-            (*found) = TRUE;
+            if (found != NULL)
+            {
+                (*found) = TRUE;
+            }
             return wme->value.cVal;
         }
     }//for
-    (*found) = FALSE;
+    if (found != NULL)
+    {
+        (*found) = FALSE;
+    }
     return '0';;
 }//getCHARValWME
 
@@ -310,6 +318,8 @@ char getCHARValWME(EpisodeWME* ep, char* attr, int* found)
  *
  * @param ep A pointer to an episode.
  * @param attr A pointer to a string with the desired attribute name
+ * @param found will be set to TRUE if found and FALSE otherwise.  This
+ *              parameter is optional can can be set to NULL
  *
  * @return double The desired value. NULL if not found
  */
@@ -322,11 +332,17 @@ double getDOUBLEValWME(EpisodeWME* ep, char* attr, int* found)
         WME* wme = (WME*)getEntry(wmes, i);
         if(strcmp(attr, wme->attr) == 0) 
         {
-            (*found) = TRUE;
+            if (found != NULL)
+            {
+                (*found) = TRUE;
+            }
             return wme->value.dVal;
         }
     }//for
-    (*found) = FALSE;
+    if (found != NULL)
+    {
+        (*found) = FALSE;
+    }
     return 0;
 }//getDOUBLEValWME
 
@@ -337,6 +353,8 @@ double getDOUBLEValWME(EpisodeWME* ep, char* attr, int* found)
  *
  * @param ep A pointer to an episode.
  * @param attr A pointer to a string with the desired attribute name
+ * @param found will be set to TRUE if found and FALSE otherwise.  This
+ *              parameter is optional can can be set to NULL
  *
  * @return int The desired value. -1 if not found
  */
@@ -349,11 +367,17 @@ int getINTValWME(EpisodeWME* ep, char* attr, int* found)
         WME* wme = (WME*)getEntry(wmes, i);
         if(strcmp(attr, wme->attr) == 0) 
         {
-            (*found) = TRUE;
+            if (found != NULL)
+            {
+                (*found) = TRUE;
+            }
             return wme->value.iVal;
         }
     }//for
-    (*found) = FALSE;
+    if (found != NULL)
+    {
+        (*found) = FALSE;
+    }
     return -1;
 }//getINTValWME
 
@@ -362,8 +386,10 @@ int getINTValWME(EpisodeWME* ep, char* attr, int* found)
  *
  * Retrieve the string value from an episode
  *
- * @param ep A pointer to an episode.
- * @param attr A pointer to a string with the desired attribute name
+ * @param ep    A pointer to an episode.
+ * @param attr  A pointer to a string with the desired attribute name
+ * @param found will be set to TRUE if found and FALSE otherwise.  This
+ *              parameter is optional can can be set to NULL
  *
  * @return string The desired value. NULL if not found
  */
@@ -376,11 +402,17 @@ char* getSTRINGValWME(EpisodeWME* ep, char* attr, int* found)
         WME* wme = (WME*)getEntry(wmes, i);
         if(strcmp(attr, wme->attr) == 0) 
         {
-            (*found) = TRUE;
+            if (found != NULL)
+            {
+                (*found) = TRUE;
+            }
             return wme->value.sVal;
         }
     }//for
-    (*found) = FALSE;
+    if (found != NULL)
+    {
+        (*found) = FALSE;
+    }
     return NULL;
 }//getSTRINGValWME
 

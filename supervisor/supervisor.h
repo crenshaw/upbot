@@ -52,8 +52,9 @@
 
 //Planning defines
 #define MAX_ROUTE_LEN        (50)
-#define MAX_ROUTE_CANDS      (40) // maximum number of candidate routes to
+#define MAX_ROUTE_CANDS      (40)  // maximum number of candidate routes to
                                    // examine before giving up
+#define ROUTE_DISCOUNT       (0.9) // discount factor for scoring routes
 
 //Replacement defines
 #define MAX_CONFIDENCE       (1.0)

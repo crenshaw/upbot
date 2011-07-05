@@ -78,8 +78,8 @@
 #define DEBUGGING_UPDATEALL 1
 //#define DEBUGGING_UPDATEPLAN 1
 #define DEBUGGING_CHOOSECMD 1
-// #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
-// #define DEBUGGING_INITPLAN 1
+ #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
+ #define DEBUGGING_INITPLAN 1
 #define DEBUGGING_FINDINTERIMSTART 1
 //#define DEBUGGING_NSIV 1        // nextStepIsValid()
 //#define DEBUGGING_FIND_REPL 1
@@ -3547,8 +3547,9 @@ int findRoute(Route* newRoute, Vector *startSeq)
      */
     //(Note: the size of the candRoutes vector will grow as the search
     //continues.  Each candidate is a partial route.)
-    int bSuccess = FALSE;
     int routeLen = -1;           // length of shortest route so far
+    double bestScore = -1.0;     // best route score so far
+    Route *bestRoute = NULL;     // best complete route seen so far
     for(i = 0; i < candRoutes->size; i++)
     {
 #ifdef DEBUGGING
@@ -3580,14 +3581,6 @@ int findRoute(Route* newRoute, Vector *startSeq)
             break;
         }
 
-        //%%%I tried this as an alternative to the above.  It seems to be worse!
-        //%%%This needs to be investigated.
-        // //To avoid long delays, give up on planning after examining N candidate routes
-        // if (i > MAX_ROUTE_CANDS)
-        // {
-        //     break;
-        // }
-
         //Move this shortest unexamined route to the current position in the
         //candRoutes vector via a swap
         if (routePos != i)
@@ -3604,21 +3597,36 @@ int findRoute(Route* newRoute, Vector *startSeq)
         fflush(stdout);
 #endif
 
-        //If the last sequence in this route contains the goal state, we're
-        //done.  Copy the details of this route to the newRoute struct we were
-        //given and exit the loop.
+        //If the last sequence in this route contains the goal state, we have a
+        //complete route to evaluate to see if it's the best.
         Vector *lastSeq = (Vector *)route->sequences->array[route->sequences->size - 1];
         int actionIdx = getGoalAction(lastSeq);
         if (actionIdx >= 0)
         {
-            newRoute->level = route->level;
-            newRoute->sequences = cloneVector(route->sequences);
-            newRoute->currSeqIndex = 0;
-            newRoute->currActIndex = 0;
-            newRoute->needsRecalc = FALSE;
+#if USE_WMES
+            //Retrieve the value of the goal (discounted reward)
+            Action *goalAct = (Action *)lastSeq->array[actionIdx];
+            EpisodeWME *goalEp = (EpisodeWME *)goalAct->epmem->array[goalAct->outcome];
+            int reward = getINTValWME(goalEp, "reward", NULL);
+            double score = (double)pow(ROUTE_DISCOUNT, routeLen) * reward;
+#else
+            double score = (double)routeLength(route);
+#endif
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestRoute = route;
 
-            bSuccess = TRUE;
-            break;
+#if USE_WMES
+#if DEBUGGING_INITROUTE
+                //print the current best candidate
+                printf("found new best route %ld of length %d that leads to reward %d (score=%g)\n",
+                       (long)route, routeLen, reward, score);
+                fflush(stdout);
+#endif
+#endif
+            }//if
+            
         }//if
 
         /*----------------------------------------------------------------------
@@ -3684,6 +3692,16 @@ int findRoute(Route* newRoute, Vector *startSeq)
 #ifdef DEBUGGING
     printf("\n");
 #endif
+ 
+    //Copy the details of the bestRoute to the newRoute struct we were given
+    if (bestRoute != NULL)
+    {
+        newRoute->level = bestRoute->level;
+        newRoute->sequences = cloneVector(bestRoute->sequences);
+        newRoute->currSeqIndex = 0;
+        newRoute->currActIndex = 0;
+        newRoute->needsRecalc = FALSE;
+    }
 
     //Clean up the RAM in the candRoutes list
     for(i = 0; i < candRoutes->size; i++)
@@ -3694,7 +3712,7 @@ int findRoute(Route* newRoute, Vector *startSeq)
     }
     freeVector(candRoutes);
 
-    if (bSuccess) return SUCCESS;
+    if (bestRoute != NULL) return SUCCESS;
 
     return PLAN_NOT_FOUND;
 }//findRoute
@@ -5764,15 +5782,15 @@ char* visuallyInterpretEpisodesWME(EpisodeWME* ep)
     int senses[9];
 
     int found;
-    senses[0] = getINTValWME(ep, "UL", &found);
-    senses[1] = getINTValWME(ep, "UM", &found);
-    senses[2] = getINTValWME(ep, "UR", &found);
-    senses[3] = getINTValWME(ep, "LT", &found);
+    senses[0] = getINTValWME(ep, "NW", &found);
+    senses[1] = getINTValWME(ep, "N", &found);
+    senses[2] = getINTValWME(ep, "NE", &found);
+    senses[3] = getINTValWME(ep, "W", &found);
     senses[4] = V_E_EMPTY;
-    senses[5] = getINTValWME(ep, "RT", &found);
-    senses[6] = getINTValWME(ep, "LL", &found);
-    senses[7] = getINTValWME(ep, "LM", &found);
-    senses[8] = getINTValWME(ep, "LR", &found);
+    senses[5] = getINTValWME(ep, "E", &found);
+    senses[6] = getINTValWME(ep, "SW", &found);
+    senses[7] = getINTValWME(ep, "S", &found);
+    senses[8] = getINTValWME(ep, "SE", &found);
 
     int i;
     char t;
@@ -5808,7 +5826,7 @@ void displayVisualizedEpisodeWME(EpisodeWME* ep)
         if(k % 3 == 0) printf("\n ");
         printf("%c", senses[k]);
     }//for
-    printf("\nCommand: %s", interpretCommand(ep->cmd));
+    printf("\nCommand: %s\n", interpretCommand(ep->cmd));
     free(senses);
 }//displayVisualizedEpisodeWME
 
