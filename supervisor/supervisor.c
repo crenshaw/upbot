@@ -6383,7 +6383,12 @@ Vector *findInterimStartPartialMatch(int *offset)
 #if USE_WMES
 
     Action *act = (Action *)retVal->array[*offset];
-    if(bestMatchPos == act->index)
+    if (act == NULL)         
+    {
+        printf("are of unknown match (return value specifies "
+               "an incomplete action).\n");
+    }
+    else if(bestMatchPos == act->index)
     {
         printf("match.\n");
     }
@@ -6402,7 +6407,7 @@ Vector *findInterimStartPartialMatch(int *offset)
         printf("\n---------------\n");
     }
     fflush(stdout);
-        
+            
 #endif
     
 #endif  // DEBUGGING
