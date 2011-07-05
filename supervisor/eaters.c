@@ -393,7 +393,7 @@ char* setSenseString(int command)
         //         g_score, g_numMoves, g_color, g_reward);
 
         // //Don't send info about corner cells
-        sprintf(str, ":UM,i,%d:LT,i,%d:RT,i,%d:LM,i,%d:score,i,%d:steps,i,%d:color,s,%s:reward,i,%d:", 
+        sprintf(str, ":N,i,%d:W,i,%d:E,i,%d:S,i,%d:score,i,%d:steps,i,%d:color,s,%s:reward,i,%d:", 
                 g_world[g_X][g_Y - 1], 
                 g_world[g_X - 1][g_Y],
                 g_world[g_X + 1][g_Y], 

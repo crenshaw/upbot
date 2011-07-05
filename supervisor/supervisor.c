@@ -2908,7 +2908,7 @@ int chooseCommand()
 #if DEBUGGING
             if (g_plan != NULL)
             {
-                printf("Replan:\n");
+                printf("RePlan:\n");
                 fflush(stdout);
                 displayPlan();
                 printf("\n");
@@ -2922,6 +2922,33 @@ int chooseCommand()
             printf("Plan successful so far.\n");
             fflush(stdout);
 #endif
+            //Generate a new plan from this position to see if it's better than
+            //the current plan
+            Vector *newPlan = initPlan(TRUE);
+            Route* rNew = getTopRoute(newPlan);
+            Route* rCurr = getTopRoute(g_plan);
+            if (rNew != NULL)
+            {
+                int lenNew  = routeLength(rNew);
+                int lenCurr = routeLength(rCurr);
+                if (lenNew < lenCurr)
+                {
+                    freePlan(g_plan);
+                    g_plan = newPlan;
+                    
+#if DEBUGGING_CHOOSECMD
+                    printf("Found a new plan that's better than the current one.\n");
+                    fflush(stdout);
+                    printf("Replacement Plan:\n");
+                    fflush(stdout);
+                    displayPlan();
+                    printf("\n");
+                    fflush(stdout);
+#endif
+                }//if
+            }//if
+
+            
             //If a sequence has been completed then the active replacements need
             //to be applied to the new current sequence
             Route *topRoute = getTopRoute(g_plan);
@@ -2973,7 +3000,7 @@ int chooseCommand()
 #if DEBUGGING
         if (g_plan != NULL)
         {
-            printf("New plan:\n");
+            printf("New Plan:\n");
             fflush(stdout);
             displayPlan();
             printf("\n");
@@ -3262,7 +3289,7 @@ void displayPlan()
     Vector *currSeq = (Vector *)r->sequences->array[r->currSeqIndex];
     printf("(level %d; %d of %d actions in %d of %d seqs; %d total actions) \n",
            r->level, r->currActIndex+1, (int)currSeq->size,
-           r->currSeqIndex+1, r->sequences->size, length);
+           r->currSeqIndex+1, (int)r->sequences->size, length);
     fflush(stdout);
 
     displayRoute(r, TRUE);
@@ -3416,6 +3443,54 @@ int routeLength(Route *r)
 
     return result;
 }//routeLength
+
+/**
+ * remainingRouteLength
+ *
+ * calculates the number of levle 0 steps remaining in a given route
+ *
+ * @arg r the route to calculate the length of
+ *
+ * @return result
+ */
+int remainingRouteLength(Route *r)
+{
+    int i;                      // iterator
+    int result = 0;             // counter to sum the lengths of the sequences
+
+    //The current sequence needs special care
+    Vector *seq = (Vector *)r->sequences->array[i];
+    if (r->replSeq != NULL)
+    {
+        seq = r->replSeq;
+    }
+
+    //Count the level 0 actions
+    if (r->level == 0)
+    {
+        result += seq->size - r->currActIndex;
+    }
+    else
+    {
+        for(i = r->currActIndex; i < seq->size; i++)
+        {
+            Action *act = (Action *)seq->array[i];
+            Vector *subSeq = (Vector *)act->epmem->array[act->index];
+            result += sequenceLength(subSeq, r->level - 1);
+        }
+    }//else
+
+    //Add up the remaining sequences also
+    for(i = r->currSeqIndex + 1; i < r->sequences->size; i++)
+    {
+        seq = (Vector *)r->sequences->array[i];
+        result += sequenceLength(seq, r->level);
+    }//for
+
+    return result;
+}//remainingRouteLength
+
+
 
 /**
  * findRoute
