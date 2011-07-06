@@ -14,7 +14,7 @@
 
 #include "../soar/soar.h"
 
-#define CMD_COUNT       6  //5=roomba, 6=eaters
+#define CMD_COUNT       5  //6=roomba, 5=eaters
 
 #define TIMEOUT_SECS	5	// Num seconds in timeout on recv
 #define MAX_TRIES		10	// Num tries to reconnect on lost connection
@@ -278,11 +278,13 @@ int handshake(char* ipAddr)
 	}
 	else if(g_statsMode)
 	{
+        /*
 		// For the unit test this will toggle its copy of g_statsMode
 		int cmd = CMD_NO_OP;
 		if(send(sockfd, &cmd, 1, 0) == -1)
 		{
 		}
+        */
 	}// if
 	
     // Free the space allocated for recv buffer
@@ -301,40 +303,81 @@ int handshake(char* ipAddr)
  */
 void printStats(FILE* log)
 {
-	// == 0 means print to console
-//	if(!g_statsMode)
-//	{
-		// Print the number of goals found and episodes recieved
-//		printf("Roomba has found the Goal %i times.\nSupervisor has received %i episodes.\n",
-//               NUM_GOALS_TO_FIND, (int)g_epMem->size);
-//		int i;
-		// Print the timestamp that each goal was found at
-//		for(i = 0; i < NUM_GOALS_TO_FIND; i++)
-//		{
-//			printf("Goal %i was found at time %i", i, g_goalsTimeStamp[i]);
+    if(CMD_COUNT == 5)
+    {
+        int found;
+        EpisodeWME *finalEp = (EpisodeWME*)g_epMem->array[g_epMem->size - 1];
+        int score = getINTValWME(finalEp, "score", &found);
+        if(!g_statsMode)
+        {
+            /*
+            printf("Number of random commands: %d\n", g_numRandom);
+            printf("Random commands from low confidence: %d\n", g_numRandomLowConfidence);
+            printf("Number of goals from random commands: %d\n", g_numGoalsFromRandom);
+            printf("Number of goals from valid plan: %d\n", g_numGoalsFromValidPlan);
+            printf("Number of goals from invalid plan: %d\n", g_numGoalsFromInvalidPlan);
+            printf("Final Score: %d\n", score);
+            */
+        }//if
+        else
+        {
+            /*
+            fprintf(log, "%d,%d,%d,%d,%d,%d\n", 
+                g_numRandom, 
+                g_numRandomLowConfidence, 
+                g_numGoalsFromRandom, 
+                g_numGoalsFromValidPlan, 
+                g_numGoalsFromInvalidPlan, 
+                score);
+            fflush(log);
+            */
+        }//else
+        /*
+        g_numRandom                 = 0;
+        g_numRandomLowConfidence    = 0;
+        g_numGoalsFromRandom        = 0;
+        g_numGoalsFromValidPlan     = 0;
+        g_numGoalsFromInvalidPlan   = 0;
+        */
+        return;
+    }//if
+    if(CMD_COUNT == 6)
+    {
+        // == 0 means print to console
+        if(g_statsMode == 0)
+        {
+            // Print the number of goals found and episodes recieved
+            printf("Roomba has found the Goal %i times.\nSupervisor has received %u episodes.\n",
+                    NUM_GOALS_TO_FIND, (unsigned int)g_epMem->size);
+            int i;
+            // Print the timestamp that each goal was found at
+            for(i = 0; i < NUM_GOALS_TO_FIND; i++)
+            {
+                printf("Goal %i was found at time %i", i, g_goalsTimeStamp[i]);
 
-			//If not the first goal, print number of episodes between previous and current goal
-//			if(i > 0)
-//			{
-//				printf(" and it took %i episodes to find it after goal %i\n", g_goalsTimeStamp[i]-g_goalsTimeStamp[i-1], i-1);
-//			}
-//			else
-//			{
-//				printf("\n");
-//			}
-//		}// for
-//	}
-//	else	// otherwise print to file for import into spreadsheet
-//	{
-		int i;
-		for(i = 0; i < NUM_GOALS_TO_FIND; i++)
-		{
-			fprintf(log, "%i:", (i < 1 ? g_goalsTimeStamp[i] : g_goalsTimeStamp[i]-g_goalsTimeStamp[i-1]));
-		}// for
-		fprintf(log, "\n");
-		fflush(log);
-//	}// if
-}// printStats
+                //If not the first goal, print number of episodes between previous and current goal
+                if(i > 0)
+                {
+                    printf(" and it took %i episodes to find it after goal %i\n", g_goalsTimeStamp[i]-g_goalsTimeStamp[i-1], i-1);
+                }
+                else
+                {
+                    printf("\n");
+                }
+            }// for
+        }//if
+        else	// otherwise print to file for import into spreadsheet
+        {
+            int i;
+            for(i = 0; i < NUM_GOALS_TO_FIND; i++)
+            {
+                fprintf(log, "%i:", (i < 1 ? g_goalsTimeStamp[i] : g_goalsTimeStamp[i]-g_goalsTimeStamp[i-1]));
+            }// for
+            fprintf(log, "\n");
+            fflush(log);
+        }//else
+    }//if
+}//printStats
 
 /**
  * reportGoalFound
@@ -346,39 +389,53 @@ void printStats(FILE* log)
  */
 void reportGoalFound(int sockfd, FILE* log)
 {
-	// Store the new goal timestamp and increment count;
+    // Return if we are in the Eaters environment
+    if(CMD_COUNT == 5)
+    {
+        int found = 0;
+        EpisodeWME *ep = ((EpisodeWME*)g_epMem->array[g_epMem->size - 1]);
+        if(!g_statsMode)
+            printf("Reward received at step: %d. Current Score: %d\n",
+                    getINTValWME(ep, "steps", &found),
+                    getINTValWME(ep, "score", &found));
+        // Send a success command
+        int cmd = CMD_SONG;
+        sendCommand(sockfd, cmd);
+        return;
+    }//if
+
+    // Store the new goal timestamp and increment count
     EpisodeWME *ep = ((EpisodeWME*)g_epMem->array[g_epMem->size - 1]);
-        
-	g_goalsTimeStamp[g_goalsFound] = ep->now;
-	g_goalsFound++;
 
-	// Only print if not in stats mode
-	if(g_goalsFound > 1)
-	{
-		printf("Goal %i found after %i episodes at timestamp %i\n"
-							, g_goalsFound
-							, g_goalsTimeStamp[g_goalsFound - 1] - g_goalsTimeStamp[g_goalsFound - 2]
-							, g_goalsTimeStamp[g_goalsFound - 1]);
-	}
-	else
-	{
-		printf("Goal %i found at timestamp %i\n"
-							, g_goalsFound
-							, g_goalsTimeStamp[g_goalsFound - 1]);
-	}
-    fflush(stdout);
+    g_goalsTimeStamp[g_goalsFound] = ep->now;
+    g_goalsFound++;
 
-	// Send a success command
-	int cmd = CMD_SONG;
-	sendCommand(sockfd, cmd);
+    // Only print if not in stats mode
+    if(g_goalsFound > 1)
+    {
+        printf("Goal %i found after %i steps at timestamp %i\n"
+                , g_goalsFound
+                , g_goalsTimeStamp[g_goalsFound - 1] - g_goalsTimeStamp[g_goalsFound - 2]
+                , g_goalsTimeStamp[g_goalsFound - 1]);
+    }//if
+    else
+    {
+        printf("Goal %i found at timestamp %i\n"
+                , g_goalsFound
+                , g_goalsTimeStamp[g_goalsFound - 1]);
+    }//else
 
-	// If connected to Roomba pause to allow time to return Roomba to Init
-	if(g_connectToRoomba == 1)
-	{
-		printf("Press enter to continue\n");
-		getchar();
-	}
-    
+    // Send a success command
+    int cmd = CMD_SONG;
+    sendCommand(sockfd, cmd);
+
+    // If connected to Roomba 
+    //pause to allow time to return Roomba to Init
+    if(g_connectToRoomba == 1)
+    {
+        printf("Press enter to continue\n");
+        getchar();
+    }//if
 }// reportGoalFound
 
 /**
@@ -411,7 +468,7 @@ void processCommand(int* cmd, char* buf, FILE* log)
 	}
 
 	// If tick gave us an invalid command, exit with appropriate error code
-	if(*cmd > CMD_COUNT)
+	if(*cmd > CMD_COUNT && *cmd != CMD_SONG)
 	{
 		printf("Illegal command is: %i\n", *cmd);
 		perror("Illegal command");
@@ -456,32 +513,29 @@ int main(int argc, char *argv[])
 	// Main send/recv processing loop
 	while(1)
 	{	       
-		// receive the sensor data
-		recvCommand(sockfd, buf);
-		// determine the next command to send
-		processCommand(&cmd, buf, log);
-		
+        // receive the sensor data
+        recvCommand(sockfd, buf);
+
+        // determine the next command to send
+        processCommand(&cmd, buf, log);
+
         // If goal is found increase goal count and store the index it was found at
-		if(g_epMem->size > 2 && episodeContainsReward((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1)))
-		{
-//			printf("Number of episodes: %i\n", g_epMem->size);
-            reportGoalFound(sockfd, log);
-        }//if
-
-        if(sendCommand(sockfd, cmd) < 0)
-        {
-            perror("Error sending to socket");
-        }//if
-
+        EpisodeWME *ep = (EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1);
+        
         // Once we've found all the goals, print out some data about the search
+        // Eaters: If we have only done under a certain number
+        //          of runs, then reset the environment and
+        //          continue.
         int found;
-        if((CMD_COUNT == 5 && getINTValWME((EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1), "steps", &found) >= MAX_STEPS) ||
-           (CMD_COUNT == 6 && g_goalsFound >= NUM_GOALS_TO_FIND) )
+        if((CMD_COUNT == 5 && getINTValWME(ep, "steps", &found) > EATERS_MAX_STEPS) ||
+                (CMD_COUNT == 6 && g_goalsFound >= NUM_GOALS_TO_FIND) )
         {
+            numRuns++;
             if(CMD_COUNT == 6) 
             {
                 printStats(log);
-			    printf("All goals found. Exiting.\n");
+                printf("All goals found. Exiting.\n");
+                break;
             }
             if(CMD_COUNT == 5)
             {
@@ -509,10 +563,20 @@ int main(int argc, char *argv[])
                 // Reset command to default for the first
                 // command in the newly reset environment
                 cmd = CMD_NO_OP;
-            }
-            // exit the while loop
-            break;
+            }//if
         }//if
+
+        if (episodeContainsReward(ep))
+        {
+            reportGoalFound(sockfd, log);
+        }//if
+        else
+        {
+            if(sendCommand(sockfd, cmd) < 0)
+            {
+                perror("Error sending to socket");
+            }//if
+        }//else
     }// while
 
     // End Soar agent to free memory

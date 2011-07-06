@@ -20,6 +20,7 @@ char* g_north    = "north";
 char* g_east     = "east";
 char* g_south    = "south";
 char* g_west     = "west";
+char* g_reset    = "reset";
 char* g_unknown  = "unknown";
 
 // Condensed commands
@@ -28,6 +29,7 @@ char* g_northS   = "N";
 char* g_eastS    = "E";
 char* g_southS   = "S";
 char* g_westS    = "W";
+char* g_resetS   = "R";
 char* g_unknownS = "U";
 
 // Keep track of goals
@@ -157,6 +159,8 @@ int setCommand(EpisodeWME* ep)
     int holder = CMD_NO_OP;     // current command
     int status = -1;            // did we find a matching episode for the
                                 // current command?
+    int ties = 0;
+    int tiedCmds[g_CMD_COUNT];
     double topScore=0.0, tempScore=0.0;
 
     int found;
@@ -168,10 +172,10 @@ int setCommand(EpisodeWME* ep)
         // In Roomba environment: skip forward if last sensor
         //                        data indicates a bump  
         if((g_CMD_COUNT == 5 && (
-            (i == CMD_MOVE_N && getINTValWME(ep, "UM", &found) == V_E_WALL)   ||
-            (i == CMD_MOVE_S && getINTValWME(ep, "LM", &found) == V_E_WALL)   ||
-            (i == CMD_MOVE_E && getINTValWME(ep, "RT", &found) == V_E_WALL)   ||
-            (i == CMD_MOVE_W && getINTValWME(ep, "LT", &found) == V_E_WALL))) 
+            (i == CMD_MOVE_N && getINTValWME(ep, "N", &found) == V_E_WALL)   ||
+            (i == CMD_MOVE_S && getINTValWME(ep, "S", &found) == V_E_WALL)   ||
+            (i == CMD_MOVE_E && getINTValWME(ep, "E", &found) == V_E_WALL)   ||
+            (i == CMD_MOVE_W && getINTValWME(ep, "W", &found) == V_E_WALL))) 
             ||
            (g_CMD_COUNT == 6 && (
             (i == CMD_FORWARD && getINTValWME(ep, "cliff_rt", &found)) ||
@@ -189,17 +193,32 @@ int setCommand(EpisodeWME* ep)
         {
             if (!g_statsMode) printf("\t%s score= %lf\n", interpretCommandShort(i), tempScore);
 
-            if(tempScore > topScore)
+            if(tempScore == topScore) 
+            {
+                tiedCmds[ties] = i;
+                ties++;
+            }
+            else if(tempScore > topScore)
             {
                 topScore = tempScore;
                 holder = i;
                 status = 1;
+                ties = 0;
             }//if
         }//else
     }//for
 
-    // do action offset
-    ep->cmd = holder;
+    if(ties > 0)
+    {
+        if(!g_statsMode) printf("Choosing random from tied commands.\n");
+        int index = (rand() % ties);
+        ep->cmd = tiedCmds[index];
+    }//if
+    else
+    {
+        // do action offset
+        ep->cmd = holder;
+    }
     return status;
 }//setCommand
 
@@ -354,6 +373,9 @@ char* interpretCommand(int action)
         case CMD_MOVE_W:
             return g_west;
             break;
+        case CMD_EATERS_RESET:
+            return g_reset;
+            break;
         default:
             return g_unknown;
             break;
@@ -387,6 +409,9 @@ char* interpretCommandShort(int action)
             break;
         case CMD_MOVE_W:
             return g_westS;
+            break;
+        case CMD_EATERS_RESET:
+            return g_resetS;
             break;
         default:
             return g_unknownS;

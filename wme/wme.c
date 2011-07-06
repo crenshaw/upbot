@@ -74,21 +74,6 @@ int compareWME(WME* wme1, WME* wme2)
     
         if(wme1->type == WME_INT && 
             wme1->value.iVal == wme2->value.iVal) return TRUE;
-/*
-        if(wme1->type == WME_INT)
-        { 
-            int w1 = FALSE, w2 = FALSE;
-            if(wme1->value.iVal == V_E_EMPTY ||
-               wme1->value.iVal == V_E_FOOD1 ||
-               wme1->value.iVal == V_E_FOOD2) w1 = TRUE;
-            if(wme2->value.iVal == V_E_EMPTY ||
-               wme2->value.iVal == V_E_FOOD1 ||
-               wme2->value.iVal == V_E_FOOD2) w2 = TRUE;
-            
-            if(w1 && w2) return TRUE;
-            else return wme1->value.iVal == wme2->value.iVal;
-        }
-*/
         if(wme1->type == WME_CHAR && 
             wme1->value.cVal == wme2->value.cVal) return TRUE;
         if(wme1->type == WME_DOUBLE && 
