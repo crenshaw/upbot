@@ -11,7 +11,7 @@
  */
 
 #define DEBUGGING           1
-#define FIND_LAST_REWARD    1
+#define FIND_LAST_REWARD    0
 
 // Global strings for printing to console
 // Full commands
@@ -118,7 +118,7 @@ int chooseCommand(EpisodeWME* ep)
     }//if
 
     // Determine the next command, possibility of random command
-    if(g_epMem->size < 2 || g_goalCount < 1)
+    if(g_epMem->size < 10 || g_goalCount < 1)
     {
         if(!g_statsMode) printf(" selecting random command \n");
         fflush(stdout);
@@ -245,22 +245,29 @@ int setCommand(EpisodeWME* ep)
 double findDiscountedCommandScore(int command)
 {
     int i,j;
-#if FIND_LAST_REWARD
     int lastRewardIdx = findLastReward();
-#else
-    int lastRewardIdx = g_epMem->size - 1;
-#endif
+    int currIndex = g_epMem->size - 1;
 
     if(!g_statsMode) printf("Searching for command: %s\n", interpretCommand(command));
-    if(!g_statsMode) printf("\tLast reward at index: %d\n", lastRewardIdx);
+    if(!g_statsMode) printf("\tCurrent index: %d\n", currIndex);
+    if(!g_statsMode) printf("\tLast reward index: %d\n", lastRewardIdx);
+#if FIND_LAST_REWARD
+    if(!g_statsMode) printf("\tSearching to last reward\n");
+#else
+    if(!g_statsMode) printf("\tSearching to current index\n");
+#endif
     
     EpisodeWME* curr = (EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1);
     curr->cmd = command;
     
     int topMatch = 0, tempMatch = 0, holder = -1;
+#if FIND_LAST_REWARD
     for(i = 0; i < lastRewardIdx; i++)
+#else
+    for(i = 0; i < currIndex; i++)
+#endif
     {
-        tempMatch = getNumMatches(getEntry(g_epMem, i), curr, FALSE);
+        tempMatch = getNumMatches(getEntry(g_epMem, i), curr, TRUE);
         if(tempMatch >= topMatch)
         {
             topMatch = tempMatch;
