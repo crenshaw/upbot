@@ -124,10 +124,10 @@ int checkArgName(int argc, char* argv[], char addresses[3][13]);
 
 //Eaters configuration
 #define EATERS_MAX_STEPS 2000   // number of steps per run
-#define NUM_EATERS_RUNS 2      // number of runs before simulation stops
-#define FIND_LAST_REWARD    0  // if set, this flag causes eaters agent to
-                               // search only up until last reward when looking
-                               // for a match
+#define NUM_EATERS_RUNS  2      // number of runs before simulation stops
+#define FIND_LAST_REWARD 0      // if set, this flag causes eaters agent to
+                                // search only up until last reward when looking
+                                // for a match
 
 
 

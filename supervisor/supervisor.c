@@ -1833,7 +1833,8 @@ double findDiscountedCommandScore(int command)
 {
     int i,j;
     int lastRewardIdx = findLastReward();
-    int currIndex = g_epMem->size - 1;
+    Vector *level0Eps = ((Vector *)g_epMem->array[0]);
+    int currIndex = level0Eps->size - 1;
 
     if(!g_statsMode) printf("Searching for command: %s\n", interpretCommand(command));
     if(!g_statsMode) printf("\tCurrent index: %d\n", currIndex);
@@ -1844,7 +1845,7 @@ double findDiscountedCommandScore(int command)
     if(!g_statsMode) printf("\tSearching to current index\n");
 #endif
     
-    EpisodeWME* curr = (EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1);
+    EpisodeWME* curr = (EpisodeWME*)getEntry(level0Eps, level0Eps->size - 1);
     curr->cmd = command;
     
     int topMatch = 0, tempMatch = 0, holder = -1;
@@ -1854,7 +1855,8 @@ double findDiscountedCommandScore(int command)
     for(i = 0; i < currIndex; i++)
 #endif
     {
-        tempMatch = getNumMatches(getEntry(g_epMem, i), curr, TRUE);
+        tempMatch = getNumMatches(getEntry(level0Eps, i), curr, TRUE);
+
         if(tempMatch >= topMatch)
         {
             topMatch = tempMatch;
@@ -1871,7 +1873,7 @@ double findDiscountedCommandScore(int command)
     for(i = 1; i + holder <= lastRewardIdx; i++)
 #endif
     {
-        EpisodeWME* ep = (EpisodeWME*)getEntry(g_epMem, i + holder);
+        EpisodeWME* ep = (EpisodeWME*)getEntry(level0Eps, i + holder);
 
         if(ep == curr) 
         {

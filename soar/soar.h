@@ -32,7 +32,6 @@
 #define MAX_STEPS           1000
 #define NUM_GOALS_TO_FIND   50
 
-// Defines for Q-Learning algorithm
 #define DISCOUNT            (0.75)
 
 #define LOOK_AHEAD_N        0
