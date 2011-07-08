@@ -2930,7 +2930,7 @@ int chooseCommand()
             if (rNew != NULL)
             {
                 int lenNew  = routeLength(rNew);
-                int lenCurr = routeLength(rCurr);
+                int lenCurr = remainingRouteLength(rCurr);
                 if (lenNew < lenCurr)
                 {
                     freePlan(g_plan);
@@ -3459,7 +3459,7 @@ int remainingRouteLength(Route *r)
     int result = 0;             // counter to sum the lengths of the sequences
 
     //The current sequence needs special care
-    Vector *seq = (Vector *)r->sequences->array[i];
+    Vector *seq = (Vector *)r->sequences->array[r->currSeqIndex];
     if (r->replSeq != NULL)
     {
         seq = r->replSeq;
@@ -3489,7 +3489,6 @@ int remainingRouteLength(Route *r)
 
     return result;
 }//remainingRouteLength
-
 
 
 /**
@@ -3606,11 +3605,17 @@ int findRoute(Route* newRoute, Vector *startSeq)
 #if USE_WMES
             //Retrieve the value of the goal (discounted reward)
             Action *goalAct = (Action *)lastSeq->array[actionIdx];
+            while(goalAct->level > 0)
+            {
+                printf("goalAct level=%d\n", goalAct->level);
+                Vector *vec = (Vector *)goalAct->epmem->array[goalAct->outcome];
+                goalAct = (Action *)vec->array[vec->size - 1];
+            }
             EpisodeWME *goalEp = (EpisodeWME *)goalAct->epmem->array[goalAct->outcome];
             int reward = getINTValWME(goalEp, "reward", NULL);
             double score = (double)pow(ROUTE_DISCOUNT, routeLen) * reward;
 #else
-            double score = (double)routeLength(route);
+            double score = (double)pow(ROUTE_DISCOUNT, routeLen);
 #endif
             if (score > bestScore)
             {

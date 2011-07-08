@@ -4,6 +4,10 @@ syntax: glob
 *.out
 *.ot
 *.txt
+*.csv
+*.gnumeric
+*.zip
+*.log
 communication/client2.c
 
 syntax: regexp
