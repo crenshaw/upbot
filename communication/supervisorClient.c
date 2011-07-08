@@ -64,6 +64,10 @@ void exitError(int errCode)
 void parseArguments(int argc, char *argv[])
 {
 	int i;
+
+    //%%%HARD-CODED
+    g_statsMode = TRUE;
+    
 	// Iterate through arguments and set vars based on flags found
 	for(i = 0; i < argc; i++)
 	{

@@ -11,7 +11,6 @@
  */
 
 #define DEBUGGING           1
-#define FIND_LAST_REWARD    0
 
 // Global strings for printing to console
 // Full commands

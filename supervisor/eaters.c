@@ -73,7 +73,7 @@ void initWorld(int firstInit)
     g_numMoves 		= 0;
     g_score 		= 0;
     g_reward        = 0;
-    g_statsMode 	= FALSE;
+    g_statsMode 	= TRUE;
 
     // Save the initial coords for resetting the environment
     g_initX         = g_X;
@@ -385,13 +385,13 @@ char* setSenseString(int command)
     else
     {
 
-        //Send big state
-        sprintf(str, ":NW,i,%d:N,i,%d:NE,i,%d:W,i,%d:E,i,%d:SW,i,%d:S,i,%d:SE,i,%d:score,i,%d:steps,i,%d:color,s,%s:reward,i,%d:", 
-                g_world[g_X - 1][g_Y - 1], g_world[g_X][g_Y - 1], g_world[g_X + 1][g_Y - 1], 
-                g_world[g_X - 1][g_Y], g_world[g_X + 1][g_Y], 
-                g_world[g_X - 1][g_Y + 1], g_world[g_X][g_Y + 1], g_world[g_X + 1][g_Y + 1],
-                g_score, g_numMoves, g_color, g_reward);
-/*
+        // //Send big state
+        // sprintf(str, ":NW,i,%d:N,i,%d:NE,i,%d:W,i,%d:E,i,%d:SW,i,%d:S,i,%d:SE,i,%d:score,i,%d:steps,i,%d:color,s,%s:reward,i,%d:", 
+        //         g_world[g_X - 1][g_Y - 1], g_world[g_X][g_Y - 1], g_world[g_X + 1][g_Y - 1], 
+        //         g_world[g_X - 1][g_Y], g_world[g_X + 1][g_Y], 
+        //         g_world[g_X - 1][g_Y + 1], g_world[g_X][g_Y + 1], g_world[g_X + 1][g_Y + 1],
+        //         g_score, g_numMoves, g_color, g_reward);
+
         // //Don't send info about corner cells
         sprintf(str, ":N,i,%d:W,i,%d:E,i,%d:S,i,%d:score,i,%d:steps,i,%d:color,s,%s:reward,i,%d:", 
                 g_world[g_X][g_Y - 1], 
@@ -399,7 +399,6 @@ char* setSenseString(int command)
                 g_world[g_X + 1][g_Y], 
                 g_world[g_X][g_Y + 1], 
                 g_score, g_numMoves, g_color, g_reward);
-*/
     }
 
     return str;

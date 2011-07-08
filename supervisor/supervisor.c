@@ -1767,34 +1767,36 @@ int chooseCommand_SemiRandom()
     for(i = 0; i < g_CMD_COUNT; i++)
     {
         int index = (start + i) % g_CMD_COUNT;
+/*%%%OMIT this for now
         if (valid[index])
         {
-/*
-            //For each possible command
-            // Here we calculate the score for the current command
-            tempScore = findDiscountedCommandScore(index + CMD_NO_OP);
-
-            if(tempScore < 0)
-            {
-                if (!g_statsMode) printf("\t%s: no valid reward found\n", interpretCommandShort(index + CMD_NO_OP));
-            }//if
-            else
-            {
-               // if (!g_statsMode) printf("\t%s score= %lf\n", interpretCommandShort(index), tempScore);
-                if(!g_statsMode) printf("\t%s score= %lf ", interpretCommandShort(index + CMD_NO_OP), tempScore);
-
-                if(tempScore > topScore)
-                {
-                    if(!g_statsMode) printf("; Saving as new top score.");
-                    topScore = tempScore;
-                    holder = index;
-                    status = 1;
-                }//if
-                if(!g_statsMode) printf("\n");
-            }//else
-*/
             return index + CMD_NO_OP;
         }//if
+*/
+        
+        //For each possible command
+        // Here we calculate the score for the current command
+        tempScore = findDiscountedCommandScore(index + CMD_NO_OP);
+
+        if(tempScore < 0)
+        {
+            if (!g_statsMode) printf("\t%s: no valid reward found\n", interpretCommandShort(index + CMD_NO_OP));
+        }//if
+        else
+        {
+            // if (!g_statsMode) printf("\t%s score= %lf\n", interpretCommandShort(index), tempScore);
+            if(!g_statsMode) printf("\t%s score= %lf ", interpretCommandShort(index + CMD_NO_OP), tempScore);
+
+            if(tempScore > topScore)
+            {
+                if(!g_statsMode) printf("; Saving as new top score.");
+                topScore = tempScore;
+                holder = index;
+                status = 1;
+            }//if
+            if(!g_statsMode) printf("\n");
+        }//else
+
     }//for
     
     if(status != -1) return holder + CMD_NO_OP;
@@ -1831,19 +1833,28 @@ double findDiscountedCommandScore(int command)
 {
     int i,j;
     int lastRewardIdx = findLastReward();
+    int currIndex = g_epMem->size - 1;
 
     if(!g_statsMode) printf("Searching for command: %s\n", interpretCommand(command));
-    if(!g_statsMode) printf("\tLast reward at index: %d\n", lastRewardIdx);
-
-    Vector* episodeList = (Vector*)g_epMem->array[0];
-
-    EpisodeWME* curr = (EpisodeWME*)getEntry(episodeList, episodeList->size - 1);
+    if(!g_statsMode) printf("\tCurrent index: %d\n", currIndex);
+    if(!g_statsMode) printf("\tLast reward index: %d\n", lastRewardIdx);
+#if FIND_LAST_REWARD
+    if(!g_statsMode) printf("\tSearching to last reward\n");
+#else
+    if(!g_statsMode) printf("\tSearching to current index\n");
+#endif
+    
+    EpisodeWME* curr = (EpisodeWME*)getEntry(g_epMem, g_epMem->size - 1);
     curr->cmd = command;
-
+    
     int topMatch = 0, tempMatch = 0, holder = -1;
+#if FIND_LAST_REWARD
     for(i = 0; i < lastRewardIdx; i++)
+#else
+    for(i = 0; i < currIndex; i++)
+#endif
     {
-        tempMatch = getNumMatches(getEntry(episodeList, i), curr, FALSE);
+        tempMatch = getNumMatches(getEntry(g_epMem, i), curr, TRUE);
         if(tempMatch >= topMatch)
         {
             topMatch = tempMatch;
@@ -1854,9 +1865,13 @@ double findDiscountedCommandScore(int command)
     if(holder < 0) return -1.0;
 
     if(!g_statsMode) printf("\tState best matched at index: %d\n", holder);
+#if LOOK_AHEAD_N
+    for(i = 1; i <= LOOK_AHEAD_N && i + holder <= lastRewardIdx; i++)
+#else
     for(i = 1; i + holder <= lastRewardIdx; i++)
+#endif
     {
-        EpisodeWME* ep = (EpisodeWME*)getEntry(episodeList, i + holder);
+        EpisodeWME* ep = (EpisodeWME*)getEntry(g_epMem, i + holder);
 
         if(ep == curr) 
         {
@@ -1868,12 +1883,13 @@ double findDiscountedCommandScore(int command)
         {
             int found;
             if(!g_statsMode) printf("\tNondiscounted reward: %i at %i steps from match\n", getINTValWME(ep, "reward", &found), i);
-            if(!g_statsMode) printf("\tDiscount: %lf\n", pow(0.9, i));
-            return (((double)getINTValWME(ep, "reward", &found)) * (double)pow(0.9, i));
+            if(!g_statsMode) printf("\tDiscount: %lf\n", pow(DISCOUNT, i));
+            return (((double)getINTValWME(ep, "reward", &found)) * (double)pow(DISCOUNT, i));
         }//if
     }//for
     return -1.0;
 }//findDiscountedCommandScore
+
 
 /**
  * findLastReward
@@ -6307,11 +6323,8 @@ Vector *findInterimStartPartialMatch(int *offset)
             bestMatchPos = pos2;
             
 #ifdef DEBUGGING_FINDINTERIMSTART
-            if(!g_statsMode)
-            {
-                printf("\tNew best total match: %lf found at index: %d of %d\n",
-                       bestMatchScore, bestMatchPos, (int)level0Eps->size);
-            }
+            printf("\tNew best total match: %lf found at index: %d of %d\n",
+                   bestMatchScore, bestMatchPos, (int)level0Eps->size);
             fflush(stdout);
 #endif
         }//if
@@ -6410,7 +6423,10 @@ Vector *findInterimStartPartialMatch(int *offset)
         printf("\n---------------\n");
     }
     fflush(stdout);
-            
+
+    printf("Returning index %d in this sequence:\n", *offset);
+    displayVisualizedLevel0Sequence(retVal, TRUE);
+    
 #endif
     
 #endif  // DEBUGGING
