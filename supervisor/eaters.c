@@ -14,9 +14,6 @@
 
 #define DEBUGGING 0
 
-//Used to configure how walls are drawn
-
-
 // map dimensions
 int g_map_width;
 int g_map_height;

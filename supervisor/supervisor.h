@@ -41,7 +41,7 @@
 
 // Matching defines
 #define NUM_TO_MATCH         (15)
-#define NUM_GOALS_TO_FIND    (50)
+#define NUM_GOALS_TO_FIND    (100)
 #define DISCOUNT             (0.75)
 #define MAX_LEN_LHS          (1)
 #define MAX_LEVEL_DEPTH      (4)   // max number of levels

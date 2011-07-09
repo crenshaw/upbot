@@ -65,11 +65,11 @@
 
 //This setting, if present, modifies the debug outputs to reflect the Eaters
 //environment
-#define EATERS_MODE 1
+//#define EATERS_MODE 1
 
 
 //Setting this turns on verbose output to aid debugging
-#define DEBUGGING 1
+//#define DEBUGGING 1
 
 
 //Particularly verbose debugging for specific methods
@@ -1619,8 +1619,6 @@ void displayReplacement(Replacement *repl)
  */
 void displayAction(Action* action)
 {
-    int i,j;
-
     //Use the special visualization code for level 0 actions
 #if EATERS_MODE
     if (action->level == 0)
@@ -1639,9 +1637,9 @@ void displayAction(Action* action)
     if (action->level == 0)
     {
 #if USE_WMES
-        displayEpisodeWMEShort((EpisodeWME*)action->epmem->array[action->index - i]);
+        displayEpisodeWMEShort((EpisodeWME*)action->epmem->array[action->index]);
 #else
-        displayEpisodeShort((Episode*)action->epmem->array[action->index - i]);
+        displayEpisodeShort((Episode*)action->epmem->array[action->index]);
 #endif
     }
     else //sequence
@@ -1777,13 +1775,8 @@ int chooseCommand_SemiRandom()
     for(i = 0; i < g_CMD_COUNT; i++)
     {
         int index = (start + i) % g_CMD_COUNT;
-/*%%%OMIT this for now
-        if (valid[index])
-        {
-            return index + CMD_NO_OP;
-        }//if
-*/
-        
+
+#ifdef EATERS_MODE        
         //For each possible command
         // Here we calculate the score for the current command
         tempScore = findDiscountedCommandScore(index + CMD_NO_OP);
@@ -1806,6 +1799,14 @@ int chooseCommand_SemiRandom()
             }//if
             if(!g_statsMode) printf("\n");
         }//else
+#else
+        if (valid[index])
+        {
+            return index + CMD_NO_OP;
+        }//if
+#endif
+
+        
 
     }//for
     
