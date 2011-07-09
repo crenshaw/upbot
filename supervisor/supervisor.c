@@ -69,7 +69,7 @@
 
 
 //Setting this turns on verbose output to aid debugging
-//#define DEBUGGING 1
+#define DEBUGGING 1
 
 
 //Particularly verbose debugging for specific methods
@@ -80,7 +80,7 @@
  #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
  #define DEBUGGING_INITPLAN 1
 #define DEBUGGING_FINDINTERIMSTART 1
-//#define DEBUGGING_NSIV 1        // nextStepIsValid()
+#define DEBUGGING_NSIV 1        // nextStepIsValid()
 //#define DEBUGGING_FIND_REPL 1
 // #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
 // #define DEBUGGING_KNN 1
@@ -1009,13 +1009,6 @@ int updateAll(int level)
         if (compareVecOrEp(episodeList, newAction->index, curr->index, level))
         {
             
-        //%%%DELETE THIS!
-        if (level > 0)
-        {
-            int foo = 42;
-            
-        }
-        
 #if DEBUGGING_UPDATEALL
             printf("found LHS match with action: ");
             displayAction(curr);
@@ -1673,7 +1666,7 @@ void displayAction(Action* action)
 
 #if USE_WMES
         EpisodeWME *outcomeEp = (EpisodeWME*)episodeList->array[action->outcome];
-        displayWMEList(outcomeEp->sensors);
+        displayWMEListShort(outcomeEp->sensors);
 #else
         Episode *outcomeEp = (Episode*)episodeList->array[action->outcome];
         printf("%i", interpretSensorsShort(outcomeEp->sensors));
@@ -2026,7 +2019,7 @@ int nextStepIsValid()
     fflush(stdout);
     printf("comparing the current sensing:");
 #if USE_WMES
-    displayWMEList(currEp->sensors);
+    displayWMEListShort(currEp->sensors);
 #if EATERS_MODE
     displayVisualizedEpisodeWME(currEp);
 #endif
@@ -2955,6 +2948,7 @@ int chooseCommand()
             printf("Plan successful so far.\n");
             fflush(stdout);
 #endif
+            
             //Generate a new plan from this position to see if it's better than
             //the current plan
             Vector *newPlan = initPlan(TRUE);
@@ -3218,7 +3212,7 @@ void displayRoute(Route *route, int recurse)
             //just print the sensors
 #if USE_WMES
             EpisodeWME *ep = (EpisodeWME*)lastAction->epmem->array[lastAction->outcome];
-            displayWMEList(ep->sensors);
+            displayWMEListShort(ep->sensors);
 #else
             Episode *ep = (Episode*)lastAction->epmem->array[lastAction->outcome];
             printf("-->%i; ", interpretSensorsShort(ep->sensors));
@@ -3844,7 +3838,11 @@ Vector* initPlan(int isReplan)
     {
         printf("\n\n===============\nValid plan created at level 0. Begin inspection.\n");
 
+#if EATERS_MODE
         visuallyInterpretLevel0Route(resultPlan->array[0]);
+#else
+        displayRoute(resultPlan->array[0], FALSE);
+#endif
 
         // DEBUGGING: Pause to review plan visually
         //getchar();
@@ -4048,40 +4046,6 @@ int compareActions(Action* r1, Action* r2)
 }//compareActions
 
 /**
- * containsEpisode
- *
- * TODO: Fix up something like this for EpisodeWMEs
- *
- * Check a list of episodes for a previous occurence of a particular
- * episode
- *
- * @arg episodeList A vector containing a series of sequences
- * @arg ep  a pointer to the episode struct to search for
- * @arg ignoreSelf If TRUE then if you find ep in episodeList ignore
- *                 it (i.e., we are looking for a duplicate not itself)
- * @return a pointer to the matching episode if it is found, NULL otherwise
- */
-Episode* containsEpisode(Vector* episodeList, Episode* ep, int ignoreSelf)
-{
-    int i;
-
-    for(i = 0; i < episodeList->size; i++)
-    {
-        Episode *toCompare = (Episode*)episodeList->array[i];
-
-        //See if the episodes match
-        if(compareEpisodes(toCompare, ep, TRUE))
-        {
-            //Handle the ignoreSelf parameter
-            if (!ignoreSelf) return toCompare;
-            if (ep != toCompare) return toCompare;
-        }
-    }
-    // otherwise it's not there
-    return NULL;
-}//containsEpisode
-
-/**
  * containsSequence
  *
  * Check a list of sequences for a previous occurence of a particular
@@ -4203,8 +4167,12 @@ int compareVecOrEp(Vector *list, int i1, int i2, int level)
         }
 
         //Do comparison
-        return compareEpisodes(list->array[i1],
-                list->array[i2], compCmd);
+#if USE_WMES
+        return compareEpisodesWME(list->array[i1], list->array[i2], compCmd);
+#else
+        return compareEpisodes(list->array[i1], list->array[i2], compCmd);
+#endif
+        
     }
     else //sequence
     {
@@ -4542,26 +4510,6 @@ int interpretSensorsShort(int *sensors)
 
     return result;
 }//interpretSensorsShort
-
-/**
- * displayWMEList
- *
- * Given an vector of WME structs, this method prints their contents
- *
- * @arg    int* Sensors array of ints representing the sensors (must be
- *              of length NUM_SENSORS)
- * @return int that summarizes sensors
- *
- void displayWMEList(Vector *sensors)
- {
- int i;
- for(i = 0; i < sensors->size; i++)
- {
- displayWME((WME*)getEntry(sensors, i));
- }//for
-
- }//displayWMEList
- */
 
 /**
  * replacementPossible
@@ -4926,6 +4874,11 @@ void displayNeighborhood(KN_Neighborhood* nbrHood, int bEps)
  */
 int evaluateNeighborhood(KN_Neighborhood *hood, int bEps)
 {
+#ifdef USE_WMES
+    printf("ERROR:  WMEs not supported!");
+    exit(-1);
+#endif
+    
     //Create an array to store the frequency of each entry
     int* freqs = (int *)malloc(sizeof(int) * (hood->numNeighbors));
 
@@ -5112,6 +5065,11 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
     int lastIndex = level0Eps->size-1; // where the match begins
     int matchLen = 0;             // length of current match
 
+#ifdef USE_WMES
+    printf("ERROR:  WMEs not supported!");
+    exit(-1);
+#endif
+    
     //Must be at least two level 1 episodes to do a partial match
     if (level1Eps->size < 2) return NULL;
 
@@ -5436,6 +5394,11 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
     fflush(stdout);
 #endif
 
+#ifdef USE_WMES
+    printf("ERROR:  WMEs not supported!");
+    exit(-1);
+#endif
+    
     //Must be at least two level 1 episodes to do a partial match
     if (level1Eps->size < 2) 
     {
@@ -6374,11 +6337,20 @@ Vector *findInterimStartPartialMatch(int *offset)
         EpisodeWME *ep1 = (EpisodeWME *)level0Eps->array[pos1 - i];
         EpisodeWME *ep2 = (EpisodeWME *)level0Eps->array[bestMatchPos - i];
 
+#if EATERS_MODE
         displayVisualizedEpisodeWME(ep1);
         printf("\n<-- curr-%d /// bestMatch-%d -->", i, i);
         fflush(stdout);
         displayVisualizedEpisodeWME(ep2);
         printf("\n---------------\n");
+#else
+        printf("\t");
+        displayEpisodeWMEShort(ep1);
+        printf("<-- curr-%d /// bestMatch-%d -->", i, i);
+        fflush(stdout);
+        displayEpisodeWMEShort(ep2);
+        printf("\n");
+#endif
 #else
         printf("\t");
         Episode    *ep1 = (Episode *)level0Eps->array[pos1 - i];
@@ -6413,13 +6385,23 @@ Vector *findInterimStartPartialMatch(int *offset)
         EpisodeWME *alsoNextWME = (EpisodeWME *)level0Eps->array[act->index];
         
         printf("should match:\n");
+#if EATERS_MODE
         displayVisualizedEpisodeWME(nextWME);
+        printf("\n");
+#else
+        displayEpisodeWMEShort(nextWME);
+#endif
         fflush(stdout);
-        printf("\n<-- from bestMatchPos(%d) /// from retVal(%d) -->",
+        printf(" <-- from bestMatchPos(%d) /// from retVal(%d) -->",
                bestMatchPos, act->index);
         fflush(stdout);
+#if EATERS_MODE
         displayVisualizedEpisodeWME(alsoNextWME);
-        printf("\n---------------\n");
+        printf("\n---------------");
+#else
+        displayEpisodeWMEShort(nextWME);
+#endif
+        printf("\n");
     }
     fflush(stdout);
 

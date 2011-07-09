@@ -151,7 +151,7 @@ void displayEpisodeWMEShort(EpisodeWME * ep)
         return;
     }
 
-    displayWMEList(ep->sensors);
+    displayWMEListShort(ep->sensors);
     printf("{%d}", ep->cmd);
 }//displayEpisodeWMEShort
 
@@ -170,6 +170,42 @@ void displayWME(WME* wme)
     if(wme->type == WME_DOUBLE) printf("%lf]",wme->value.dVal);
     if(wme->type == WME_STRING) printf("%s]",wme->value.sVal);
 }//displayWME
+
+/**
+ * displayWMEShort
+ *
+ * Print a WME to console.
+ *
+ * @param wme A pointer to a WME to print
+ */
+void displayWMEShort(WME* wme)
+{
+    if(wme->type == WME_INT)    printf("%d",wme->value.iVal);
+    if(wme->type == WME_CHAR)   printf("%c",wme->value.cVal);
+    if(wme->type == WME_DOUBLE) printf("%lf",wme->value.dVal);
+    if(wme->type == WME_STRING) printf("%s",wme->value.sVal);
+}//displayWMEShort
+
+/**
+ * displayWMEListShort
+ *
+ * Given an vector of WME structs, this method prints their contents
+ *
+ * @arg    int* Sensors array of ints representing the sensors (must be
+ *              of length NUM_SENSORS)
+ * @return int that summarizes sensors
+ */
+void displayWMEListShort(Vector *sensors)
+{
+    int i;
+    printf("[");
+	for(i = 0; i < sensors->size; i++)
+	{
+        if (i != 0) printf(",");
+		displayWMEShort((WME*)getEntry(sensors, i));
+	}//for
+    printf("]");
+}//displayWMEListShort
 
 /**
  * displayWMEList
