@@ -10,6 +10,9 @@
 #define MAP_HEIGHT			(18)
 #define MAP_PERCENT_WALLS 	(20)
 #define MAX_WALL_LEN        (7)
+#define WALLTYPE_NONE       (0) // no interior walls
+#define WALLTYPE_RANDOM     (1) // randomly generated as spec'd by above defines
+#define WALLTYPE_STATIC     (2) // a fixed pattern
 
 // Map columns containing special food
 #define SFOODC1     2

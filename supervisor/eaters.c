@@ -14,6 +14,9 @@
 
 #define DEBUGGING 0
 
+//Used to configure how walls are drawn
+
+
 // map dimensions
 int g_map_width;
 int g_map_height;
@@ -24,6 +27,7 @@ int g_X;
 int g_Y;
 char* g_color;
 int** g_world;
+int g_wallsConfig = WALLTYPE_RANDOM;
 
 // Keep track of some state variables
 int g_numMoves;
@@ -73,7 +77,7 @@ void initWorld(int firstInit)
     g_numMoves 		= 0;
     g_score 		= 0;
     g_reward        = 0;
-    g_statsMode 	= TRUE;
+    g_statsMode 	= FALSE;
 
     // Save the initial coords for resetting the environment
     g_initX         = g_X;
@@ -100,38 +104,73 @@ void initWorld(int firstInit)
 #if DEBUGGING
     printf("Adding internal walls\n");
 #endif
-    //--Set up internal walls in random layout
-    int numWalls = 0, percentWalls = MAP_PERCENT_WALLS;
-    while(numWalls++ < (g_map_height - 2) * (g_map_width - 2) * (percentWalls) / 100)
+
+    if (g_wallsConfig == WALLTYPE_RANDOM)  //random walls
     {
-        i = (rand() % (g_map_width - 6)) + 2;
-        j = (rand() % (g_map_height - 6)) + 2;
-        int len = (rand() % (MAX_WALL_LEN)) + 1;
-        int vert = (rand() % (2));
-
-        for(k=0; k < len; k++)
+        //--Set up internal walls in random layout
+        int numWalls = 0, percentWalls = MAP_PERCENT_WALLS;
+        while(numWalls++ < (g_map_height - 2) * (g_map_width - 2) * (percentWalls) / 100)
         {
-            if ((i >= g_map_width - 2) || (j >= g_map_height - 2))
-            {
-                break;
-            }
+            i = (rand() % (g_map_width - 6)) + 2;
+            j = (rand() % (g_map_height - 6)) + 2;
+            int len = (rand() % (MAX_WALL_LEN)) + 1;
+            int vert = (rand() % (2));
 
-            g_world[i][j] = V_E_WALL;
+            for(k=0; k < len; k++)
+            {
+                if ((i >= g_map_width - 2) || (j >= g_map_height - 2))
+                {
+                    break;
+                }
 
-            if (vert)
-            {
-                j++;
+                g_world[i][j] = V_E_WALL;
+
+                if (vert)
+                {
+                    j++;
+                }
+                else
+                {
+                    i++;
+                }
+                numWalls++;
             }
-            else
-            {
-                i++;
-            }
-            numWalls++;
+        }//while
+    }//if
+    else if (g_wallsConfig == WALLTYPE_STATIC)
+    {
+        //I just made this configuration up...
+        for(i = 3; i < 13; i++)
+        {
+            g_world[i][13] = V_E_WALL;
         }
-    }//while
 
+        for(i = 3; i < 11; i++)
+        {
+            g_world[11][i] = V_E_WALL;
+        }
 
-    
+        for(i = 5; i < 10; i++)
+        {
+            g_world[8][i] = V_E_WALL;
+            if (i != 7)
+            {
+                g_world[4][i] = V_E_WALL;
+            }
+        }
+
+        g_world[2][2] = V_E_WALL;
+        g_world[3][2] = V_E_WALL;
+
+        g_world[2][15] = V_E_WALL;
+        g_world[3][15] = V_E_WALL;
+
+            
+    }
+    else // WALLTYPE_NONE
+    {
+        //do nothing.  no interior walls
+    }
 #if DEBUGGING
     printf("Inserting agent\n");
 #endif

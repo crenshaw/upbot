@@ -64,6 +64,8 @@
 #define MAX_REPLS            (1)    // maximum number of replacements per plan
 #define MAX_REPL_RISK        (0.0)  // a more flexible limitation to repls per
                                     // plan (min=0.0)
+#define MIN_SELF_CONFIDENCE (0.05)  //below this threshold, the agent will take
+                                    //random actions
 
 // Collecting data for stats
 #define STATS_MODE		0

@@ -67,7 +67,6 @@
 //environment
 #define EATERS_MODE 1
 
-#define MIN_SELF_CONFIDENCE (0.05)
 
 //Setting this turns on verbose output to aid debugging
 #define DEBUGGING 1
@@ -994,8 +993,7 @@ int updateAll(int level)
     //Iterate over every action in the list and compare it to our new
     //candidate action.  If the candidate is unique, it'll be added to
     //the action list.  If it's a partial match (same LHS , different
-    //RHS) but can't be made unique without increasing size of LHS
-    //then create a pool of indeterminate actions.  If the candidate
+    //RHS) it is a new indeterminate action.  If the candidate
     //matches an existing action, it'll be discarded and the existing
     //action's frequency will be updated
     int i;
@@ -1008,8 +1006,16 @@ int updateAll(int level)
         Action* curr = (Action*)actionList->array[i];
 
         //Find out if the LHS matches
-        if (compareActOrEp(episodeList, newAction->index, curr->index, level))
+        if (compareVecOrEp(episodeList, newAction->index, curr->index, level))
         {
+            
+        //%%%DELETE THIS!
+        if (level > 0)
+        {
+            int foo = 42;
+            
+        }
+        
 #if DEBUGGING_UPDATEALL
             printf("found LHS match with action: ");
             displayAction(curr);
@@ -1163,7 +1169,7 @@ int updateAll(int level)
     {
         // add most recently seen action to current sequence
         Vector* currSequence = sequenceList->array[sequenceList->size - 1];
-       
+
 #if DEBUGGING_UPDATEALL
         printf("Adding action #%d: ", findEntry(actionList, updateExistingAction));
         displayAction(updateExistingAction);
@@ -1615,10 +1621,14 @@ void displayAction(Action* action)
 {
     int i,j;
 
+    //Use the special visualization code for level 0 actions
 #if EATERS_MODE
-    printf("\n");
-    displayVisualizedAction(action);
-    return;
+    if (action->level == 0)
+    {
+        printf("\n");
+        displayVisualizedAction(action);
+        return;
+    }
 #endif
             
     //Indicate if this is a start action
@@ -1637,7 +1647,7 @@ void displayAction(Action* action)
     else //sequence
     {
         //Get the episode that corresponds to the LHS of this action
-        Vector *epSeq = (Vector *)action->epmem->array[action->index - i];
+        Vector *epSeq = (Vector *)action->epmem->array[action->index];
                
         //Lookup the index of this sequence in the list of all sequences at
         //the next level down
@@ -2882,19 +2892,23 @@ int chooseCommand()
 {
     int i,j;                    // iterators
 
-//    g_selfConfidence *= 0.95;
-
 #if DEBUGGING_CHOOSECMD
     printf("Entering chooseCommand\n");
     fflush(stdout);
 #endif
 
+    //If agent confidence is too low, it takes a random actions
+    //before attempting to plan again
     if(g_selfConfidence < MIN_SELF_CONFIDENCE)
     {
         freePlan(g_plan);
         g_plan = NULL;
         g_numRandomLowConfidence++;
-        if(!g_statsMode) printf("Choosing a random command due to lack of confidence: %lf\n", g_selfConfidence);
+        
+#if DEBUGGING_CHOOSECMD
+        printf("Choosing a random command due to lack of confidence: %lf\n", g_selfConfidence);
+        fflush(stdout);
+#endif
         return chooseCommand_SemiRandom();
     }
 
@@ -5870,7 +5884,10 @@ void displayVisualizedAction(Action* action)
     EpisodeWME* outcome = (EpisodeWME*)action->epmem->array[action->outcome];
 
     //only works on level 0 actions
-    if (action->level != 0) return;
+    if (action->level != 0)
+    {
+        displayAction(action);
+    }
     
     //-------------------------------------------------
     switch(begin->cmd) {
