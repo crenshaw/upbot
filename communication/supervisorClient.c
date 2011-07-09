@@ -32,7 +32,7 @@
 #define MAX_TRIES		10	// Num tries to reconnect on lost connection
 
 #define WME_STRING_SENSES 1
-#define CMD_COUNT         5
+#define CMD_COUNT       6  //6=roomba, 5=eaters
 
 int g_goalsFound = 0;				// Number of times we found the goal
 int g_goalsTimeStamp[NUM_GOALS_TO_FIND];	// Timestamps of found goals
@@ -66,7 +66,7 @@ void parseArguments(int argc, char *argv[])
 	int i;
 
     //%%%HARD-CODED
-    g_statsMode = FALSE;
+    g_statsMode = TRUE;
     
 	// Iterate through arguments and set vars based on flags found
 	for(i = 0; i < argc; i++)
@@ -475,9 +475,7 @@ void processCommand(int* cmd, char* buf, FILE* log)
     // Call Supervisor tick to process recently added episode.
     // The incoming sensing may be filtered depending upon
     // RANDOMIZE and FILTERING
-#if WME_STRING_SENSES
-    *cmd = tickWME(stringToWMES(buf));
-#else
+
 #ifdef RANDOMIZE
     insertConfusion(buf); 
 #endif
@@ -488,7 +486,7 @@ void processCommand(int* cmd, char* buf, FILE* log)
 #else
     *cmd = tick(buf);
 #endif
-#endif
+    
     if(g_statsMode == 0)
     {
         // Print sensor data to log file and force write

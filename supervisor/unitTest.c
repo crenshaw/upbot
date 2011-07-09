@@ -128,7 +128,7 @@ void loadMap(int mapNum)
 	fclose(maps);
 
 	// Do not want stats mode most of the time
-	g_statsMode = 0;
+	g_statsMode = TRUE;
 	
 	// Set up the world vars according to what we read in
 	resetWorld();
