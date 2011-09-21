@@ -17,15 +17,17 @@
 //if RANDOMIZE is defined then the hallucinogen filter is applied
 //#define RANDOMIZE
 
-//if FILTERING is defined then then KNN filter is applied
-//#define FILTERING
+//if KNN_FILTER is defined then then KNN filter is applied
+//#define KNN_FILTER
 
 
 #include "communication.h"
 #include "../supervisor/supervisor.h"
-#ifdef FILTERING
+#ifdef KNN_FILTER
 #include "../supervisor/filter_KNN.h"
 #include "../supervisor/hallucinogen.h"
+#elif SACC_FILTER
+#include "../supervisor/saccFilt.h"
 #endif
 
 #define TIMEOUT_SECS	5	// Num seconds in timeout on recv
@@ -474,15 +476,32 @@ void processCommand(int* cmd, char* buf, FILE* log)
 {
     // Call Supervisor tick to process recently added episode.
     // The incoming sensing may be filtered depending upon
-    // RANDOMIZE and FILTERING
+    // RANDOMIZE and KNN_FILTER
 
 #ifdef RANDOMIZE
     insertConfusion(buf); 
 #endif
-#ifdef FILTERING
+#ifdef KNN_FILTER
     char * rState = receiveState(buf);
     int tickAction = tick(rState);
     *cmd = receiveAction(tickAction);
+#elif SACC_FILTER
+
+    //The saccades filter introduces internal commands that only modify the
+    //curernt sensing.  This loop continually responds to internals commands
+    //until Ziggurat issues an external command.
+    int lastCmd = CMD_SACC;     // last command issued (init'd to CMD_SACC)
+    while( (lastCmd >= FIRST_SACC_CMD) && (lastCmd < NUM_COMMANDS) )
+    {
+        char * rState = receiveState(buf);
+        int tickAction = tick(rState);
+        *cmd = receiveAction(tickAction);
+        
+        if ( (lastCmd >= FIRST_SACC_CMD) && (lastCmd < NUM_COMMANDS))
+        {
+            void getCurrSaccSensing(buf); // note:  buf is modified
+        }
+    }
 #else
     *cmd = tick(buf);
 #endif
