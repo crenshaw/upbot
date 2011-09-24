@@ -35,7 +35,7 @@ public class SaccFilter
 	 * @return The divided input with a binary label appended to the front
 	 * returns null if the requested window is out of bounds or input is null
 	 */
-	 public static int[] currentWindow(int[] input, int windowSize, int currentWindow){
+	 private int[] currentWindow(int[] input, int windowSize, int currentWindow){
 		//returns null if the input is null
 		if(input == null){return null;}
 		//finding the number of windows that the input will be divided into
@@ -156,7 +156,7 @@ public class SaccFilter
 	 * @return, a string with the binary form of the input number with the 
 	 * specified number of bits. 
 	 */
-	public static String getBinary(int num, int numBits){
+	 private String getBinary(int num, int numBits){
 		String returnString = Integer.toBinaryString(num);
 		//if the binary form of the input number isn't the specified number of bits,
 		//then append 0's in front until the correct length is reached. 
