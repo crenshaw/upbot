@@ -14,22 +14,22 @@
 
 
 /* 
- *receiveState() takes in a 10 bit sense and returns a thinned senses array.
+ *saccReceiveState() takes in a 10 bit sense and returns a thinned senses array.
  *
  * @param the 10 bit sense
  */
-char * receiveState(char * input)
+char * saccReceiveState(char * input)
 {
     return input;
 }
 
 
 /**
- *receiveAction() takes an integer command and forwards it to the environment
+ *saccReceiveAction() takes an integer command and forwards it to the environment
  *
  *@param int command code.
  */
-int receiveAction(int command)
+int saccReceiveAction(int command)
 {
     //send command to the environment
     return command;
@@ -37,12 +37,12 @@ int receiveAction(int command)
 
 
 /**
- *getCurrSaccSensing() takes a sensing array buffer and fills it with
+ *saccGetCurrSensing() takes a sensing array buffer and fills it with
  * the current sensing.
  *
  * @param buf    the 10 bit sense
  */
-void getCurrSaccSensing(char *buf)
+void saccGetCurrSensing(char *buf)
 {
 
 }

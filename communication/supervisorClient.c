@@ -20,6 +20,9 @@
 //if KNN_FILTER is defined then then KNN filter is applied
 //#define KNN_FILTER
 
+//if we want to use the saccades filter, turn this on
+#define SACC_FILTER 1
+
 
 #include "communication.h"
 #include "../supervisor/supervisor.h"
@@ -493,13 +496,13 @@ void processCommand(int* cmd, char* buf, FILE* log)
     int lastCmd = CMD_SACC;     // last command issued (init'd to CMD_SACC)
     while( (lastCmd >= FIRST_SACC_CMD) && (lastCmd < NUM_COMMANDS) )
     {
-        char * rState = receiveState(buf);
+        char * rState = saccReceiveState(buf);
         int tickAction = tick(rState);
-        *cmd = receiveAction(tickAction);
+        *cmd = saccReceiveAction(tickAction);
         
         if ( (lastCmd >= FIRST_SACC_CMD) && (lastCmd < NUM_COMMANDS))
         {
-            void getCurrSaccSensing(buf); // note:  buf is modified
+            saccGetCurrSensing(buf); // note:  buf is modified
         }
     }
 #else
