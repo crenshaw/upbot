@@ -1,4 +1,5 @@
 #include "supervisor.h"
+#include <math.h>
 
 /*
  * This file contains the code for the Supervisor. All the functions
