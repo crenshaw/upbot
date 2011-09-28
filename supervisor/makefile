@@ -1,6 +1,8 @@
 #makefile for supervisor
 CC=gcc
 
+#must have 
+
 all: supervisor filter_KNN KNN_unitTest saccFilt
 
 supervisor: supervisor.c supervisor.h vector.h vector.c knearest.h knearest.c
@@ -14,8 +16,9 @@ filter_KNN: filter_KNN_unitTestMain.c filter_KNN.c supervisor
 	$(CC) -g -c filter_KNN_unitTestMain.c
 	$(CC) -o filter_KNN.out filter_KNN_unitTestMain.o filter_KNN.o vector.o supervisor.o knearest.o ../wme/wme.o -lm
 
-saccFilt: saccFilt.c supervisor
-	$(CC) -g -c saccFilt.c
+saccFilt: saccFilt.c supervisor SaccFilter.java
+	$(CC) -g -I '/usr/lib/jvm/default-java/include' -I '/usr/lib/jvm/default-java/include/linux' -c saccFilt.c -L'/usr/lib/jvm/default-java/jre/lib/amd64/server' -ljvm
+	javac SaccFilter.java
 
 KNN_unitTest: KNN_unitTest.c knearest.c
 	$(CC) -o KNN_unitTest.out KNN_unitTest.c knearest.c
@@ -28,6 +31,9 @@ EATERS_unitTest: EATERS_unitTest.c eaters.c vector.c supervisor
 	$(CC) -g -c EATERS_unitTest.c 
 	$(CC) -g -c eaters.c 
 	$(CC) -o EATERS_unitTest.out EATERS_unitTest.o eaters.o vector.o supervisor.o knearest.o
+	
+jni_demo: FilterInterface.c
+	$(CC) -g -I '/usr/lib/jvm/default-java/include' -I '/usr/lib/jvm/default-java/include/linux' -o FilterInterface.out FilterInterface.c -L'/usr/lib/jvm/default-java/jre/lib/amd64/server' -ljvm
 
 clean:
 	rm -r *.dSYM
