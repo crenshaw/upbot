@@ -10,6 +10,7 @@
 public class SaccFilter
 {
     private char[] sensorArray;
+    private int currentWindow;
 
     /**
     * The constructor will set the sensor array to all zeros.
@@ -20,6 +21,7 @@ public class SaccFilter
     public SaccFilter()
     {
         char[] sensorArray = {'0','0','0','0','0','0','0','0','0','0'};
+        currentWindow = 0;
     }
 
     /**
@@ -42,7 +44,7 @@ public class SaccFilter
     * Just returns the current sensor array.
     */
     public char[] getSensorArray()
-{
+    {
         return sensorArray;
     }
 
