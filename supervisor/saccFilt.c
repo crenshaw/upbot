@@ -29,6 +29,7 @@ jclass clid_Filter = NULL; //the calss ID for SaccFilter
 jobject obid_FilterObj = NULL; //the object ID for SaccFilter
 jmethodID mid_initFilter = NULL; //The ID for the constructor
 jmethodID mid_runFilter = NULL; //The ID for the runFilter method
+jmethodID mid_filterCommand = NULL; //The ID for the filterCommand method
 jmethodID mid_getSensors = NULL; //The ID for the getSensorArray method
 
 /**
@@ -123,32 +124,42 @@ char * saccReceiveState(char * input)
         init_ids();
     }
     
+    jchar* temp = (jchar*)malloc(SENSOR_LENGTH * sizeof(jchar));
+    int i;
+    for(i=0; i < SENSOR_LENGTH; i++)
+    {
+        temp[i] = input[i];
+    }
+    
     //create a jcharArray from the jchar[].
     jcharArray jca; //the new jcharArray
     //requests that java make an array of length SENSOR_LENGTH to fit our array
     jca = (*env)->NewCharArray(env, SENSOR_LENGTH);
     //copies our array into the jcharArray.
-    (*env)->SetCharArrayRegion(env, jca, 0, SENSOR_LENGTH, input);
+    (*env)->SetCharArrayRegion(env, jca, 0, SENSOR_LENGTH, temp);
+    
+    
+    free(temp);
+    temp = NULL;
+    
     
     //call the method in Java to run the saccfilter and return a thinned array.
     //the array returned will need to be converted back into a C-friendly form
     //before we can pass it back out to the calling program.
     jcharArray out = (jcharArray)(*env)->CallObjectMethod(env, obid_FilterObj, mid_runFilter, jca);
-    
-    jchar * tempArray = (*env)->GetCharArrayElements(env, out, NULL);
+    temp = (*env)->GetCharArrayElements(env, out, NULL);
     
     //check that the extraction was successful
-    if (tempArray == NULL) {
+    if (temp == NULL) {
         return; /* exception occurred */
     }
     
     //this memory will need to be free'd somewhere else...
     char* ret = (char*)malloc(SENSOR_LENGTH * sizeof(char));
     
-    int i;
     for(i=0; i<SENSOR_LENGTH; i++)
     {
-        ret[i] = (char)tempArray[i];
+        ret[i] = (char)temp[i];
     }
     
     return ret;
