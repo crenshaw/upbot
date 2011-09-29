@@ -1,7 +1,7 @@
 #makefile for supervisor
 CC=gcc
 
-#must have 
+#must have export LD_LIBRARY_PATH='/usr/lib64/jvm/default-java/jre/lib/amd64/server/'
 
 all: supervisor filter_KNN KNN_unitTest saccFilt
 
