@@ -4,55 +4,75 @@
  * Last Modified: 28 Sep 2011
  *
  * TODO 
+ *  Implement filterCommand
+ *  Make sure sensorArray and lastModified are being updated appropriately.
  *
  **/
 
 public class SaccFilter
 {
+    //A constant to define how large the sensor array should be.
+    public static final int SENSOR_LENGTH = 10;
+    
+    
+    //sensorArray should contain the most recent UNMODIFIED sensor array.
     private char[] sensorArray;
-    private int currentWindow;
+    //lastModified should contain the most recent THINNED sensor array.
+    private char[] lastModified;
+    //currentWindowAdr should contain the number of the saccades frame that we should be in.
+    private int currentWindowAdr;
 
     /**
-    * The constructor will set the sensor array to all zeros.
-    * it is important to initialize the sensor array in the event
-    * that the calling program were to immediately ask for the current
-    * sensor array.
-    */
+     * The constructor will set the sensor array to all zeros.
+     * it is important to initialize the sensor array in the event
+     * that the calling program were to immediately ask for the current
+     * sensor array.
+     */
     public SaccFilter()
     {
         char[] sensorArray = {'0','0','0','0','0','0','0','0','0','0'};
-        currentWindow = 0;
+        char[] lastModified = {'0','0','0','0','0','0','0','0','0','0'};
+        currentWindowAdr = 0;
     }
 
     /**
-    * runFilter is used as platform to launch the filter.
-    * we choose to use it as opposed to calling the filter methods directly
-    * because it allows us to code multiple versions of the filter and call
-    * one at a time without modifying the calling program or changing method names.
-    */
+     * runFilter is used as platform to launch the filter.
+     * we choose to use it as opposed to calling the filter methods directly
+     * because it allows us to code multiple versions of the filter and call
+     * one at a time without modifying the calling program or changing method names.
+     */
     public char[] runFilter(char[] sensors)
     {
         return reverseArray(sensors);
     }
-    
+
+    /**
+     * filterCommand is intercepting commands and checking for a command to change
+     * the currentWindowAdr.
+     * Currently, undecided if C will pre-filter nonrelevant commands...
+     *  more efficient to avoid calling java, but, ideally, the C program is just 
+     *  a wrapper for the java. With the idea that eventually the entire project 
+     *  will be rewritten into java and these methods will be called without
+     *  an intermediate step.
+     */
     public int filterCommand(int command)
     {
         return command;
     }
 
     /**
-    * Just returns the current sensor array.
-    */
+     * Just returns the lastModified sensor array.
+     */
     public char[] getSensorArray()
     {
-        return sensorArray;
+        return lastModified;
     }
 
     /**
-    * This method is for testing purposes only!!!
-    * it takes a character array, reverses it,
-    * and spits it back out.
-    */
+     * This method is for testing purposes only!!!
+     * it takes a character array, reverses it,
+     * and spits it back out.
+     */
     private char[] reverseArray(char[] chararr)
     {
         for(int i=0; i<chararr.length/2; i++)
