@@ -13,7 +13,7 @@ public class SaccFilter
 {
     //A constant to define how large the sensor array should be.
     public static final int SENSOR_LENGTH = 10;
-    
+    public static final int WINDOW_SIZE = 3;
     
     //sensorArray should contain the most recent UNMODIFIED sensor array.
     private char[] sensorArray;
@@ -43,7 +43,11 @@ public class SaccFilter
      */
     public char[] runFilter(char[] sensors)
     {
-        return reverseArray(sensors);
+        //return reverseArray(sensors);
+        //save the new sensor array to the global variable
+        sensorArray = sensors;
+        //call currentWindow()
+        return currentWindow();
     }
 
     /**
@@ -90,18 +94,18 @@ public class SaccFilter
      * @return The divided input with a binary label appended to the front
      * returns null if the requested window is out of bounds or input is null
      */
-    private char[] currentWindow(char[] input, int windowSize, int currentWindow){
+    private char[] currentWindow(/*char[] input, int windowSize, int currentWindow*/){
     //returns null if the input is null
-    if(input == null){return null;}
+    if(sensorArray == null){return null;}
     //finding the number of windows that the input will be divided into
-    int numWindows = input.length/windowSize + input.length%windowSize; 
+    int numWindows = sensorArray.length/WINDOW_SIZE + sensorArray.length%WINDOW_SIZE; 
     //returns null if the requested window is out of bounds or if the window size is too long/short
-    if(currentWindow > numWindows-1 || currentWindow < 0 || windowSize < 1 || 
-        windowSize > input.length){return null;}
+    if(currentWindowAdr > numWindows-1 || currentWindowAdr < 0 || WINDOW_SIZE < 1 || 
+        WINDOW_SIZE > sensorArray.length){return null;}
     //finds the length of; the binary label that will be appended to the front of the array
     int binaryLength = numWindows/2 + numWindows%2;
     //Sets up a double array to store the divided input
-    char[][] dividedInput = new char[numWindows][binaryLength+windowSize];
+    char[][] dividedInput = new char[numWindows][binaryLength+WINDOW_SIZE];
     //keeps track of where in the input array the loop left off at
     int arrayLocation = 0;
     //temporary string used to store a binary string
@@ -117,9 +121,9 @@ public class SaccFilter
             dividedInput[i][k] = temp[k];
         }
         //saves the input into the divided array in the appropriate place
-        for(int j=0; j<+windowSize;j++){
-            if(arrayLocation<input.length){
-                dividedInput[i][j+binaryLabel.length()] = input[arrayLocation];
+        for(int j=0; j<+WINDOW_SIZE;j++){
+            if(arrayLocation<sensorArray.length){
+                dividedInput[i][j+binaryLabel.length()] = sensorArray[arrayLocation];
                 arrayLocation++;
             }
             //if at the end of the input array, insert 0's
@@ -127,11 +131,11 @@ public class SaccFilter
                 dividedInput[i][j+binaryLabel.length()] = '0';
         }
     }
-    char[] returnArray = new char[input.length];
+    char[] returnArray = new char[sensorArray.length];
     //sets the values in the return array
-    for(int i=0; i<input.length;i++){
-        if(i<dividedInput[currentWindow].length)
-            returnArray[i]=dividedInput[currentWindow][i];
+    for(int i=0; i<sensorArray.length;i++){
+        if(i<dividedInput[currentWindowAdr].length)
+            returnArray[i]=dividedInput[currentWindowAdr][i];
         else
             returnArray[i]='0';
     }
