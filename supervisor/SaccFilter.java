@@ -49,11 +49,6 @@ public class SaccFilter
     /**
      * filterCommand is intercepting commands and checking for a command to change
      * the currentWindowAdr.
-     * Currently, undecided if C will pre-filter nonrelevant commands...
-     *  more efficient to avoid calling java, but, ideally, the C program is just 
-     *  a wrapper for the java. With the idea that eventually the entire project 
-     *  will be rewritten into java and these methods will be called without
-     *  an intermediate step.
      */
     public int filterCommand(int command)
     {

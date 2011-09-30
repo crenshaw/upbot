@@ -498,13 +498,14 @@ void processCommand(int* cmd, char* buf, FILE* log)
     {
         char * rState = saccReceiveState(buf);
         int tickAction = tick(rState);
-        *cmd = saccReceiveAction(tickAction);
+        lastCmd = saccReceiveAction(tickAction);
         
         if ( (lastCmd >= FIRST_SACC_CMD) && (lastCmd < NUM_COMMANDS))
         {
             saccGetCurrSensing(buf); // note:  buf is modified
         }
     }
+    *cmd = lastCmd;
 #else
     *cmd = tick(buf);
 #endif

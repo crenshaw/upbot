@@ -42,7 +42,7 @@ JNIEnv* create_vm(JavaVM ** jvm)
     JNIEnv *env;
     JavaVMInitArgs vm_args;
     JavaVMOption options;
-    options.optionString = "-Djava.class.path=."; //Path to the java source code assuming it is in the same directory...
+    options.optionString = "-Djava.class.path=../supervisor"; //Path to the java source code assuming it is in the same directory...
     vm_args.version = JNI_VERSION_1_6; //JDK version. This indicates version 1.6
     vm_args.nOptions = 1;
     vm_args.options = &options;
