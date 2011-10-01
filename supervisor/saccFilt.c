@@ -159,6 +159,8 @@ char * saccReceiveState(char * input)
         ret[i] = (char)temp[i];
     }
     
+    //prevent memory leak by telling java that we are done with this array.
+    (*env)->ReleaseCharArrayElements(env, out, temp, 0);
     return ret;
 }
 
@@ -205,14 +207,15 @@ void saccGetCurrSensing(char *buf)
     int js = (int)(*env)->GetArrayLength(env, out);//testing the actual length of the array (as java sees it)
     jchar * tempArray = (*env)->GetCharArrayElements(env, out, NULL);
     
-    //is *buf alread malloc'ed?
-    
     //casting each element to char and adding them to *buf.
     int i;
     for(i=0; i<SENSOR_LENGTH; i++)
     {
         buf[i] = (char)tempArray[i];
     }
+    
+    //prevent memory leak by telling java that we are done with this array.
+    (*env)->ReleaseCharArrayElements(env, out, tempArray, 0);
     return;
 }
 
