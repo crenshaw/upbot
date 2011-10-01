@@ -11,7 +11,7 @@
 #include <stdlib.h>
 
 //defines
-#define NUM_SENSES 10           // number of binary senses that the agent has
+#define SENSOR_LENGTH 10           // number of binary senses that the agent has
 #define TRUE 1
 #define FALSE 0
 

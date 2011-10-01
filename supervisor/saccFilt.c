@@ -17,9 +17,6 @@
 #include <stdio.h>
 
 
-#define SENSOR_LENGTH 10
-
-
 //note: we are aware that we do not destroy the JVM at the end of a successful run.
 // our expiriments indicate that the JVM is automatically freed.
 JNIEnv *env = NULL; //the environmental pointer
@@ -173,6 +170,13 @@ char * saccReceiveState(char * input)
  */
 int saccReceiveAction(int command)
 {
+    //Setup the JVM if it isn't already running.
+    if (env == NULL)
+    {
+        env = create_vm(&jvm);
+        init_ids();
+    }
+    
     int ret = (*env)->CallIntMethod(env, obid_FilterObj, mid_filterCommand, (jint)command);
     //send command to the environment
     return ret;
@@ -187,6 +191,13 @@ int saccReceiveAction(int command)
  */
 void saccGetCurrSensing(char *buf)
 {
+    //Setup the JVM if it isn't already running.
+    if (env == NULL)
+    {
+        env = create_vm(&jvm);
+        init_ids();
+    }
+    
     //gets sensor array by calling the method in java. then must extract the array
     //from the jcharArray. we now have an array of jchars which needs to be cast
     //element by element to chars just in-case other parts of the program don't appreciate jchars...

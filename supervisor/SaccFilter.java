@@ -13,7 +13,20 @@ public class SaccFilter
 {
     //A constant to define how large the sensor array should be.
     public static final int SENSOR_LENGTH = 10;
+    //A constant to define how large the sacc window should be.
     public static final int WINDOW_SIZE = 3;
+    
+    /**
+     * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     * The following definitions MUST, MUST, MUST accurately reflect the definitions
+     * in ../communication/communication.h PLEASE double and tripple check these
+     * on a regular basis!!!!
+     * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     */
+    public static final int NUM_COMMANDS = 0xA;
+    public static final int FIRST_SACC_CMD = 0x9;
+    public static final int CMD_SACC = 0x9;
+    
     
     //sensorArray should contain the most recent UNMODIFIED sensor array.
     private char[] sensorArray;
@@ -56,6 +69,10 @@ public class SaccFilter
      */
     public int filterCommand(int command)
     {
+        if(command == CMD_SACC)
+        {
+            this.saccades();
+        }
         return command;
     }
 
@@ -66,7 +83,17 @@ public class SaccFilter
     {
         return lastModified;
     }
-
+    
+    
+    
+    
+    private void saccades()
+    {
+        //should be 0, 1, 2, or 3. (in other words mod 4)
+        currentWindowAdr = currentWindowAdr+1 % 
+            (int)(Math.ceil(SENSOR_LENGTH/(double)WINDOW_SIZE));
+    }
+    
     /**
      * This method is for testing purposes only!!!
      * it takes a character array, reverses it,
