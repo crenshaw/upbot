@@ -174,6 +174,7 @@ public class SaccFilter
 	        else
 	            returnArray[i]='0';
 	    }
+	    //preserving goal bit
 	    returnArray[0] = sensorArray[0];
 	    return returnArray;
     }
@@ -182,7 +183,7 @@ public class SaccFilter
      * getBinary()
      * takes a number and converts it into binary with the requested amount of bits
      * and returns the binary number in a string form to maintain leading 0's
-     *  
+     * 
      * @param num: number to turn into binary
      * @param numBits: number of bits for the binary form
      * @return, a string with the binary form of the input number with the 
