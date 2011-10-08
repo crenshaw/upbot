@@ -22,6 +22,10 @@ saccFilt: saccFilt.c supervisor SaccFilter.java
 
 KNN_unitTest: KNN_unitTest.c knearest.c
 	$(CC) -o KNN_unitTest.out KNN_unitTest.c knearest.c
+	
+SF_UnitTest: SF_UnitTest.c saccFilt.c SaccFilter.java
+	$(CC) -o SF_UnitTest.out -I '/usr/lib/jvm/default-java/include' -I '/usr/lib/jvm/default-java/include/linux' SF_UnitTest.c saccFilt.c -L'/usr/lib/jvm/default-java/jre/lib/amd64/server' -ljvm
+	javac SaccFilter.java
 
 WME_unitTest: WME_unitTest.c supervisor
 	$(CC) -g -c WME_unitTest.c

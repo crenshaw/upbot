@@ -154,9 +154,9 @@ public class SaccFilter
 	        //sets the front of the array to the binary label
 	        
 	        int storageLocation = SENSOR_LENGTH-binaryLabel.length()-WINDOW_SIZE;
-	        System.out.println("Bin Length: " + binaryLabel.length() + " stor loc: " +storageLocation );
+	        //System.out.println("Bin Length: " + binaryLabel.length() + " stor loc: " +storageLocation );
 	        for(int k=0; k<binaryLabel.length();k++){
-	        	System.out.println("k: " + k);
+	        	//System.out.println("k: " + k);
 	            dividedInput[i][k+storageLocation] = temp[k];
 	        }
 	        //saves the input into the divided array in the appropriate place
