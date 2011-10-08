@@ -24,7 +24,7 @@ public class SaccFilter
      * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      */
     public static final int NUM_COMMANDS = 0xA;
-    public static final int RST_SACC_CMD = 0x9;
+    public static final int FIRST_SACC_CMD = 0x9;
     public static final int CMD_SACC = 0x9;
     
     
@@ -56,6 +56,7 @@ public class SaccFilter
      */
     public char[] runFilter(char[] sensors)
     {
+        //System.out.println("runFilter(" + sensors +")");
         //return reverseArray(sensors);
         //save the new sensor array to the global variable
         sensorArray = sensors;
@@ -69,8 +70,10 @@ public class SaccFilter
      */
     public int filterCommand(int command)
     {
+        //System.out.println("filterCommand(" + command + ")");
         if(command == CMD_SACC)
         {
+            System.exit(1);
             this.saccades();
         }
         return command;
@@ -81,6 +84,7 @@ public class SaccFilter
      */
     public char[] getSensorArray()
     {
+        //System.out.println("getSensorArray()");
         return lastModified;
     }
     
