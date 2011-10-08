@@ -73,7 +73,6 @@ public class SaccFilter
         //System.out.println("filterCommand(" + command + ")");
         if(command == CMD_SACC)
         {
-            System.exit(1);
             this.saccades();
         }
         return command;
@@ -94,8 +93,9 @@ public class SaccFilter
     private void saccades()
     {
         //should be 0, 1, 2, or 3. (in other words mod 4)
-        currentWindowAdr = currentWindowAdr+1 % 
+        currentWindowAdr = (currentWindowAdr+1) % 
             (int)(Math.ceil(SENSOR_LENGTH/(double)WINDOW_SIZE));
+        System.out.println(currentWindowAdr);
     }
     
     /**

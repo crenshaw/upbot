@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
     }
     printf("\n");
     
-    
+    saccReceiveAction(0x9);
     
     
     
