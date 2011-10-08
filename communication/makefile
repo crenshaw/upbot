@@ -28,6 +28,7 @@ testCQ: testCommandQueue.c commandQueue.c tell.c serverUtility.c
 
 supclient:	supervisorClient.c communication.h serverUtility.c ../supervisor/supervisor.h ../supervisor/vector.h ../supervisor/knearest.h ../wme/wme.h commandQueue.c
 	gcc $(DEBUG_OPT) -I '/usr/lib/jvm/default-java/include' -I '/usr/lib/jvm/default-java/include/linux' -o supervisorClient.out supervisorClient.c serverUtility.c ../supervisor/supervisor.c ../supervisor/vector.c ../supervisor/knearest.c ../wme/wme.c commandQueue.c ../supervisor/filter_KNN.c ../supervisor/hallucinogen.c ../supervisor/saccFilt.c -lm -L'/usr/lib/jvm/default-java/jre/lib/amd64/server' -ljvm
+	javac ../supervisor/SaccFilter.java
 
 mccClient: mccallumClient.c communication.h serverUtility.c ../mccallum/nsm.h ../mccallum/forgetfulmem.h ../mccallum/vector.h commandQueue.c
 	gcc $(DEBUG_OPT) -o mccallumClient.out mccallumClient.c serverUtility.c ../mccallum/nsm.c ../mccallum/forgetfulmem.c ../mccallum/vector.c commandQueue.c ../supervisor/filter_KNN.c ../supervisor/hallucinogen.c
