@@ -7,5 +7,5 @@ WME_unitTest: WME_unitTest.c wme.c ../supervisor/vector.c
 	$(CC) -o WME_unitTest.out WME_unitTest.c wme.c ../supervisor/vector.c 
 
 clean:
-	rm -r *.dSYM
+	rm -rf *.dSYM
 	rm *.out *.o

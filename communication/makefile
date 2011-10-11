@@ -26,6 +26,9 @@ sclient:	simpleClient.c communication.h
 testCQ: testCommandQueue.c commandQueue.c tell.c serverUtility.c
 	$(CC) $(CFLAGS) -o testCQ.out testCommandQueue.c commandQueue.c tell.c serverUtility.c
 
+# make sure that the path 'usr/lib/jvm/defaul-java' exists and points to
+# sunjava's 64 bit jdk. Also make sure that '/usr/lib64/jvm/default-java/jre/lib/amd64/server/'
+# is in the LD_LIBRARY_PATH. Add to bashrc or add on a one-time basis.
 supclient:	supervisorClient.c communication.h serverUtility.c ../supervisor/supervisor.h ../supervisor/vector.h ../supervisor/knearest.h ../wme/wme.h commandQueue.c
 	gcc $(DEBUG_OPT) -I '/usr/lib/jvm/default-java/include' -I '/usr/lib/jvm/default-java/include/linux' -o supervisorClient.out supervisorClient.c serverUtility.c ../supervisor/supervisor.c ../supervisor/vector.c ../supervisor/knearest.c ../wme/wme.c commandQueue.c ../supervisor/filter_KNN.c ../supervisor/hallucinogen.c ../supervisor/saccFilt.c -lm -L'/usr/lib/jvm/default-java/jre/lib/amd64/server' -ljvm
 	javac ../supervisor/SaccFilter.java
@@ -75,5 +78,5 @@ compass.o:	../devices/compass.c ../devices/compass.h
 	$(CC) $(CFLAGS) -c ../devices/compass.c
 
 clean:
-	rm -r *.dSYM
+	rm -rf *.dSYM
 	rm *.out *.o 

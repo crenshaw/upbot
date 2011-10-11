@@ -16,12 +16,9 @@
 #define FALSE 0
 
 // Function Prototypes
-extern char * saccReceiveState(char * input);
+extern char* saccReceiveState(char* input);
 extern int saccReceiveAction(int command);
-extern void saccGetCurrSensing(char *buf);
-
-
-
+extern void saccGetCurrSensing(char* buf);
 
 #endif //SACC_FILT
 

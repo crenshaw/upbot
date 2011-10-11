@@ -1,7 +1,9 @@
 #makefile for supervisor
 CC=gcc
 
-#must have export LD_LIBRARY_PATH='/usr/lib64/jvm/default-java/jre/lib/amd64/server/'
+# make sure that the path 'usr/lib/jvm/defaul-java' exists and points to
+# sunjava's 64 bit jdk. Also make sure that '/usr/lib64/jvm/default-java/jre/lib/amd64/server/'
+# is in the LD_LIBRARY_PATH. Add to bashrc or add on a one-time basis.
 
 all: supervisor filter_KNN KNN_unitTest saccFilt
 
@@ -40,7 +42,7 @@ jni_demo: FilterInterface.c
 	$(CC) -g -I '/usr/lib/jvm/default-java/include' -I '/usr/lib/jvm/default-java/include/linux' -o FilterInterface.out FilterInterface.c -L'/usr/lib/jvm/default-java/jre/lib/amd64/server' -ljvm
 
 clean:
-	rm -r *.dSYM
-	rm *.out *.o
+	rm -rf *.dSYM
+	rm *.out *.o *.class
 
 #	$(CC) -o ../soar/soar.o -c ../soar/soar.c

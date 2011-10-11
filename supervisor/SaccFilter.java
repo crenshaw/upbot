@@ -6,7 +6,7 @@
  * TODO 
  *  Implement filterCommand
  *  Make sure sensorArray and lastModified are being updated appropriately.
- *
+ *  Check for NULL objects being passed in.
  **/
 
 public class SaccFilter
@@ -88,8 +88,12 @@ public class SaccFilter
     }
     
     
-    
-    
+    /**
+     * A helper method for filterCommand.
+     * after recieving a command to change the saccades window
+     * this method is called.
+     * currently this method moves the windo to the right, and then wraps around.
+     */
     private void saccades()
     {
         //should be 0, 1, 2, or 3. (in other words mod 4)
