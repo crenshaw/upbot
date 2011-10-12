@@ -14,7 +14,7 @@
 
 #include "../soar/soar.h"
 
-#define CMD_COUNT       5  //6=roomba, 5=eaters
+#define CMD_COUNT       5  //5=eaters, >5 is roomba
 
 #define TIMEOUT_SECS	5	// Num seconds in timeout on recv
 #define MAX_TRIES		10	// Num tries to reconnect on lost connection
@@ -341,7 +341,7 @@ void printStats(FILE* log)
         */
         return;
     }//if
-    if(CMD_COUNT == 6)
+    if(CMD_COUNT > 5)
     {
         // == 0 means print to console
         if(g_statsMode == 0)
@@ -528,16 +528,16 @@ int main(int argc, char *argv[])
         //          continue.
         int found;
         if((CMD_COUNT == 5 && getINTValWME(ep, "steps", &found) > EATERS_MAX_STEPS) ||
-                (CMD_COUNT == 6 && g_goalsFound >= NUM_GOALS_TO_FIND) )
+                (CMD_COUNT > 5 && g_goalsFound >= NUM_GOALS_TO_FIND) )
         {
             numRuns++;
-            if(CMD_COUNT == 6) 
+            if(CMD_COUNT > 5) //roomba
             {
                 printStats(log);
                 printf("All goals found. Exiting.\n");
                 break;
             }
-            if(CMD_COUNT == 5)
+            if(CMD_COUNT == 5) //eaters
             {
                 printStats(log);
                 printf("Max steps reached: %i. Sending RESET command.\n\n", EATERS_MAX_STEPS);

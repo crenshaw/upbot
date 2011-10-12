@@ -37,7 +37,7 @@
 #define MAX_TRIES		10	// Num tries to reconnect on lost connection
 
 #define WME_STRING_SENSES 1
-#define CMD_COUNT       6  //6=roomba, 5=eaters
+#define CMD_COUNT       7  //7=roomba, 5=eaters
 
 int g_goalsFound = 0;				// Number of times we found the goal
 int g_goalsTimeStamp[NUM_GOALS_TO_FIND];	// Timestamps of found goals
@@ -329,7 +329,7 @@ int handshake(char* ipAddr)
 void printStats(FILE* log)
 {
     Vector* episodeList = g_epMem->array[0];
-    if(CMD_COUNT == 5)
+    if(CMD_COUNT == 5) //eaters
     {
         int found;
         EpisodeWME *finalEp = (EpisodeWME*)episodeList->array[episodeList->size - 1];
@@ -362,7 +362,7 @@ void printStats(FILE* log)
         g_numGoalsFromInvalidPlan   = 0;
         return;
     }//if
-    if(CMD_COUNT == 6)
+    if(CMD_COUNT > 5)  //roomba
     {
         // == 0 means print to console
         if(g_statsMode == 0)
@@ -494,13 +494,13 @@ void processCommand(int* cmd, char* buf, FILE* log)
     //curernt sensing.  This loop continually responds to internals commands
     //until Ziggurat issues an external command.
     int lastCmd = CMD_SACC;     // last command issued (init'd to CMD_SACC)
-    while( (lastCmd >= FIRST_SACC_CMD) && (lastCmd < NUM_COMMANDS) )
+    while( (lastCmd >= FIRST_SACC_CMD) && (lastCmd <= LAST_SACC_CMD) )
     {
         char * rState = saccReceiveState(buf);
         int tickAction = tick(rState);
         lastCmd = saccReceiveAction(tickAction);
         
-        if ( (lastCmd >= FIRST_SACC_CMD) && (lastCmd < NUM_COMMANDS))
+        if ( (lastCmd >= FIRST_SACC_CMD) && (lastCmd <= LAST_SACC_CMD))
         {
             saccGetCurrSensing(buf); // note:  buf is modified
         }
@@ -587,16 +587,16 @@ int main(int argc, char *argv[])
         //          continue.
         int found;
         if((CMD_COUNT == 5 && getINTValWME(ep, "steps", &found) > EATERS_MAX_STEPS) ||
-                (CMD_COUNT == 6 && g_goalsFound >= NUM_GOALS_TO_FIND) )
+                (CMD_COUNT > 5 && g_goalsFound >= NUM_GOALS_TO_FIND) )
         {
             numRuns++;
-            if(CMD_COUNT == 6) 
+            if(CMD_COUNT > 5) //roomba
             {
                 printStats(log);
                 printf("All goals found. Exiting.\n");
                 break;
             }
-            if(CMD_COUNT == 5)
+            if(CMD_COUNT == 5) //eaters
             {
                 printStats(log);
                 printf("Max steps reached: %i. Sending RESET command.\n\n", EATERS_MAX_STEPS);

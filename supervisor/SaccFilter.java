@@ -23,9 +23,9 @@ public class SaccFilter
      * on a regular basis!!!!
      * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      */
-    public static final int NUM_COMMANDS = 0xA;
-    public static final int FIRST_SACC_CMD = 0x9;
-    public static final int CMD_SACC = 0x9;
+    public static final int FIRST_SACC_CMD = 0x7;
+    public static final int LAST_SACC_CMD = 0x7;
+    public static final int CMD_SACC = 0x7;
     
     
     //sensorArray should contain the most recent UNMODIFIED sensor array.
