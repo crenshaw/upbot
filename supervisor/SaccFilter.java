@@ -48,7 +48,8 @@ public class SaccFilter
     {
         char[] sensorArray = new char[SENSOR_LENGTH];
         for(char c:sensorArray) {c = '0';}
-        char [] lastModified = sensorArray;
+        char [] lastModified = new char[SENSOR_LENGTH];
+        for(char c:lastModified) {c = '0';}
         currentWindowAdr = 0;
     }
 
@@ -80,7 +81,10 @@ public class SaccFilter
         //////////////////////////////
         //     END filter calls     //
         //////////////////////////////
-        
+        for(char c:sensorArray){System.out.print(c);}
+        System.out.print(" => ");
+        for(char c:lastModified){System.out.print(c);}
+        System.out.println();
         return lastModified;
     }
 
@@ -90,7 +94,6 @@ public class SaccFilter
      */
     public int filterCommand(int command)
     {
-        System.out.println("filterCommand(" + command + ")");
         if(command == CMD_SACC)
         {
             this.saccades();
@@ -103,16 +106,13 @@ public class SaccFilter
      */
     public char[] getSensorArray()
     {
-        if(sensorArray == null)
+        if(lastModified == null)
         {
             System.out.println("SensorData NULL");
             System.exit(1);
             return null;
         }
-        System.out.println("getSensorArray()");
         return lastModified;
-        //char[] ret = {'0','0','0','0','0','0','0','0','0','0'};
-        //return ret;
     }
     
     
@@ -124,11 +124,9 @@ public class SaccFilter
      */
     private void saccades()
     {
-        System.out.println("saccades()");
         //should be 0, 1, 2, or 3. (in other words mod 4)
         currentWindowAdr = (currentWindowAdr+1) % 
-            (int)(Math.ceil(SENSOR_LENGTH/(double)WINDOW_SIZE));
-        System.out.println(currentWindowAdr);
+            (int)(Math.ceil((SENSOR_LENGTH-1)/(double)WINDOW_SIZE));
     }
     
     /**
@@ -163,7 +161,6 @@ public class SaccFilter
      * returns null if the requested window is out of bounds or input is null
      */
     private char[] currentWindow(/*char[] input, int windowSize, int currentWindow*/){
-        System.out.println("currentWindow()");
      //returns null if the input is null
 	    if(sensorArray == null){return null;}
 	    //finding the number of windows that the input will be divided into
@@ -249,7 +246,7 @@ public class SaccFilter
         //window 0 = [1,3] // binary 00
         //window 1 = [4,6] // binary 01
         //window 2 = [7,9] // binary 10
-        //{G,x,x,x,x,A,A,w,w,w} where G is the Goal, x's are ignored, AA represents
+        //{G,x,x,x,x,A,A,w,w,w} where G is the Goal, x's are masked out, AA represents
         // the window address in binary, and the w's represent the bits in the window.
         
         //calculate the number of windows (round up to nearest int)

@@ -15,7 +15,7 @@
 // a series of WMEs like so:	:name1,type1,value1:name2,type2,value2:.etc..:
 
 //if RANDOMIZE is defined then the hallucinogen filter is applied
-//#define RANDOMIZE
+#define RANDOMIZE
 
 //if KNN_FILTER is defined then then KNN filter is applied
 //#define KNN_FILTER

@@ -39,7 +39,7 @@ G	-	Goal
 
 Roomba Elements:
 ^	-	Facing North
-7	-	Facing North-East
+\7	-	Facing North-East
 >	-	Facing East
 J	-	Facing South_East
 v	-	Facing South
@@ -123,7 +123,6 @@ W WWGWW W
 W WW WW W
 W       W
 WWWWWWWWW
-
 
 #Pockets Map 1 (switches to pocket map #2 after 25 steps)
 9 7 7 25 10
