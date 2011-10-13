@@ -14,7 +14,7 @@ public class SaccFilter
     //A constant to define how large the sensor array should be.
     public static final int SENSOR_LENGTH = 10;
     //A constant to define how large the sacc window should be.
-    public static final int WINDOW_SIZE = 3;
+    public static final int WINDOW_SIZE = 2;
     
     //sensorArray should contain the most recent UNMODIFIED sensor array.
     private char[] sensorArray;
@@ -263,13 +263,15 @@ public class SaccFilter
             else {adr[i] = '1';}
             temp = temp/2; //perform an integer division to move to the next binary place.
         }
-        // retrieve the current window from sensor array.
+        // retrieve the current window from sensor array. if it runs of the end
+        // of the sensor array, fill it with 0's
         char[] currentWindow = new char[WINDOW_SIZE];
         int windowStart = (currentWindowAdr*WINDOW_SIZE)+1;
         for(int i = 0; i<WINDOW_SIZE; i++)
         {
             currentWindow[i] = ((windowStart+i) < SENSOR_LENGTH) ? sensorArray[windowStart+i] : '0';
         }
+        // put the peices together!
         char[] ret = new char[SENSOR_LENGTH];
         ret[0] = sensorArray[0]; //the goal bit is never changed and is never included in a window
         for(int i = 1; i<SENSOR_LENGTH; i++)
