@@ -16,6 +16,14 @@ public class SaccFilter
     //A constant to define how large the sacc window should be.
     public static final int WINDOW_SIZE = 3;
     
+    //sensorArray should contain the most recent UNMODIFIED sensor array.
+    private char[] sensorArray;
+    //lastModified should contain the most recent THINNED sensor array.
+    private char[] lastModified;
+    //currentWindowAdr should contain the number of the saccades frame that we should be in.
+    private int currentWindowAdr;
+    
+    
     /**
      * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      * The following definitions MUST, MUST, MUST accurately reflect the definitions
@@ -28,12 +36,7 @@ public class SaccFilter
     public static final int CMD_SACC = 0x7;
     
     
-    //sensorArray should contain the most recent UNMODIFIED sensor array.
-    private char[] sensorArray;
-    //lastModified should contain the most recent THINNED sensor array.
-    private char[] lastModified;
-    //currentWindowAdr should contain the number of the saccades frame that we should be in.
-    private int currentWindowAdr;
+
 
     /**
      * The constructor will set the sensor array to all zeros.
@@ -43,8 +46,9 @@ public class SaccFilter
      */
     public SaccFilter()
     {
-        char[] sensorArray = {'0','0','0','0','0','0','0','0','0','0'};
-        char[] lastModified = {'0','0','0','0','0','0','0','0','0','0'};
+        char[] sensorArray = new char[SENSOR_LENGTH];
+        for(char c:sensorArray) {c = '0';}
+        char [] lastModified = sensorArray;
         currentWindowAdr = 0;
     }
 
@@ -56,12 +60,28 @@ public class SaccFilter
      */
     public char[] runFilter(char[] sensors)
     {
-        //System.out.println("runFilter(" + sensors +")");
-        //return reverseArray(sensors);
-        //save the new sensor array to the global variable
         sensorArray = sensors;
-        //call currentWindow()
-        return currentWindow();
+        
+        if(sensorArray == null)
+        {
+            System.out.println("SensorData NULL");
+            System.exit(1);
+            return null;
+        }
+        
+        //////////////////////////////
+        //  Add filter calls bellow //
+        //////////////////////////////
+        
+        //lastModified = reverseArray(sensors);
+        //lastModified = currentWindow();
+        lastModified = sFilter();
+        
+        //////////////////////////////
+        //     END filter calls     //
+        //////////////////////////////
+        
+        return lastModified;
     }
 
     /**
@@ -70,7 +90,7 @@ public class SaccFilter
      */
     public int filterCommand(int command)
     {
-        //System.out.println("filterCommand(" + command + ")");
+        System.out.println("filterCommand(" + command + ")");
         if(command == CMD_SACC)
         {
             this.saccades();
@@ -83,8 +103,16 @@ public class SaccFilter
      */
     public char[] getSensorArray()
     {
-        //System.out.println("getSensorArray()");
+        if(sensorArray == null)
+        {
+            System.out.println("SensorData NULL");
+            System.exit(1);
+            return null;
+        }
+        System.out.println("getSensorArray()");
         return lastModified;
+        //char[] ret = {'0','0','0','0','0','0','0','0','0','0'};
+        //return ret;
     }
     
     
@@ -96,6 +124,7 @@ public class SaccFilter
      */
     private void saccades()
     {
+        System.out.println("saccades()");
         //should be 0, 1, 2, or 3. (in other words mod 4)
         currentWindowAdr = (currentWindowAdr+1) % 
             (int)(Math.ceil(SENSOR_LENGTH/(double)WINDOW_SIZE));
@@ -134,6 +163,7 @@ public class SaccFilter
      * returns null if the requested window is out of bounds or input is null
      */
     private char[] currentWindow(/*char[] input, int windowSize, int currentWindow*/){
+        System.out.println("currentWindow()");
      //returns null if the input is null
 	    if(sensorArray == null){return null;}
 	    //finding the number of windows that the input will be divided into
@@ -211,4 +241,51 @@ public class SaccFilter
         }
         return null;
     }
+    
+    
+    private char[] sFilter()
+    {
+        //if the currentWindowAdr is 0 and the window size is 3, then...
+        //window 0 = [1,3] // binary 00
+        //window 1 = [4,6] // binary 01
+        //window 2 = [7,9] // binary 10
+        //{G,x,x,x,x,A,A,w,w,w} where G is the Goal, x's are ignored, AA represents
+        // the window address in binary, and the w's represent the bits in the window.
+        
+        //calculate the number of windows (round up to nearest int)
+        int numWindows = (int)Math.ceil((SENSOR_LENGTH - 1.0)/WINDOW_SIZE);
+        //take the log base2 of the number of windows and the round up...
+        //this is the number of bits needed to represent the window address.
+        int adrSize = (int)Math.ceil(Math.log(numWindows)/Math.log(2));
+        char[] adr = new char[adrSize];
+        // convert the address to binary
+        int temp = currentWindowAdr;
+        for(int i = adrSize-1; i>=0; i--)
+        {
+            if(temp % 2 == 0) {adr[i] = '0';}
+            else {adr[i] = '1';}
+            temp = temp/2; //perform an integer division to move to the next binary place.
+        }
+        // retrieve the current window from sensor array.
+        char[] currentWindow = new char[WINDOW_SIZE];
+        int windowStart = (currentWindowAdr*WINDOW_SIZE)+1;
+        for(int i = 0; i<WINDOW_SIZE; i++)
+        {
+            currentWindow[i] = ((windowStart+i) < SENSOR_LENGTH) ? sensorArray[windowStart+i] : '0';
+        }
+        char[] ret = new char[SENSOR_LENGTH];
+        ret[0] = sensorArray[0]; //the goal bit is never changed and is never included in a window
+        for(int i = 1; i<SENSOR_LENGTH; i++)
+        {
+            if(i<(SENSOR_LENGTH-(WINDOW_SIZE+adrSize))){ret[i] = '0';}
+            else if(i<SENSOR_LENGTH-WINDOW_SIZE){ret[i] = adr[i-(SENSOR_LENGTH-(WINDOW_SIZE+adrSize))];}
+            else {ret[i] = currentWindow[i-(SENSOR_LENGTH-WINDOW_SIZE)];}
+        }
+        return ret;
+    }
 }
+
+
+
+
+

@@ -4,7 +4,7 @@
 int main(int argc, char* argv[])
 {
     char * temp = (char*)malloc(10 * sizeof(char));
-    temp[0]='0';
+    temp[0]='1';
     temp[1]='1';
     temp[2]='0';
     temp[3]='1';
@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
     }
     printf("\n");
     
-    saccReceiveAction(0x9);
+    saccReceiveAction(0x7);
     printf("Saccades called once\n");
     
     temp2 = saccReceiveState(temp);
@@ -36,8 +36,8 @@ int main(int argc, char* argv[])
         printf("%c",temp2[i]);
     }
     printf("\n");
-    saccReceiveAction(0x9);
-    saccReceiveAction(0x9);
+    saccReceiveAction(0x7);
+    saccReceiveAction(0x7);
     printf("Saccades called three times\n");
     temp2 = saccReceiveState(temp);
     printf("Calling saccReceiveState with 0101101100\n");
@@ -48,7 +48,7 @@ int main(int argc, char* argv[])
     }
     printf("\n");
     
-    saccReceiveAction(0x9);
+    saccReceiveAction(0x7);
     
     
     
