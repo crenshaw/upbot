@@ -49,8 +49,8 @@ int main(int argc, char* argv[])
     saccReceiveAction(0x7);
     printf("Saccades called twice\n");
     temp2 = saccReceiveState(temp);
-    printf("Calling saccReceiveState with 0101101100\n");
-    printf("Expected result is: \n0000001100\nResult is:\n");
+    printf("Calling saccReceiveState with 1101101100\n");
+    printf("Expected result is: \n1000001100\nResult is:\n");
     for(i=0; i < 10; i++)
     {
         printf("%c",temp2[i]);
@@ -61,8 +61,8 @@ int main(int argc, char* argv[])
     saccReceiveAction(0x7);
     printf("Saccades called thrice\n");
     temp2 = saccReceiveState(temp);
-    printf("Calling saccReceiveState with 0101101100\n");
-    printf("Expected result is: \n0000011101\nResult is:\n");
+    printf("Calling saccReceiveState with 1101101100\n");
+    printf("Expected result is: \n1000011101\nResult is:\n");
     for(i=0; i < 10; i++)
     {
         printf("%c",temp2[i]);
