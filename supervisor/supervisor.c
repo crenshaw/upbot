@@ -78,9 +78,9 @@
 #define DEBUGGING_UPDATEALL 1
 //#define DEBUGGING_UPDATEPLAN 1
 #define DEBUGGING_CHOOSECMD 1
- #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
- #define DEBUGGING_INITPLAN 1
-#define DEBUGGING_FINDINTERIMSTART 1
+//#define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
+//#define DEBUGGING_INITPLAN 1
+//#define DEBUGGING_FINDINTERIMSTART 1
 #define DEBUGGING_NSIV 1        // nextStepIsValid()
 //#define DEBUGGING_FIND_REPL 1
 // #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
@@ -98,6 +98,7 @@ char* g_adjustL = "adjust left";
 char* g_adjustR = "adjust right";
 char* g_blink   = "blink";
 char* g_song    = "song";
+char* g_sacc    = "saccade";
 char* g_unknown = "unknown";
 
 char* g_no_opS   = "NO";
@@ -1991,7 +1992,17 @@ int nextStepIsValid()
         int found;
         int expectedReward = getINTValWME(expectedEp, "reward", &found);
         int actualReward = getINTValWME(currEp, "reward", &found);
-        return expectedReward == actualReward;
+
+#if DEBUGGING_NSIV
+        printf("Comparing rewards from:\n");
+        printf("\tcurrEp=");
+        displayEpisodeWMEShort(currEp);
+        printf("\texpectedEp=");
+        displayEpisodeWMEShort(expectedEp);
+#endif
+
+        return ( (expectedReward == actualReward)
+                 && (expectedReward > 0) );
 #else
         //see if this is a goal
         Episode* currEp = episodeList->array[episodeList->size - 1];
@@ -2950,6 +2961,10 @@ int chooseCommand()
             fflush(stdout);
 #endif
             
+#if DEBUGGING_CHOOSECMD
+            printf("Double checking for a better plan...");
+            fflush(stdout);
+#endif
             //Generate a new plan from this position to see if it's better than
             //the current plan
             Vector *newPlan = initPlan(TRUE);
@@ -2974,6 +2989,13 @@ int chooseCommand()
                     fflush(stdout);
 #endif
                 }//if
+                else
+                {
+#if DEBUGGING_CHOOSECMD
+                    printf("\nnone found.\n");
+                    fflush(stdout);
+#endif
+                }
             }//if
 
             
@@ -2986,6 +3008,10 @@ int chooseCommand()
                 Route *currRoute = (Route *)g_plan->array[0];
                 if ((currRoute->currSeqIndex > 0) && (currRoute->currActIndex <= 1))
                 {
+#if DEBUGGING_CHOOSECMD
+                    printf("Applying active replacements to next sequence in the plan...\n");
+                    fflush(stdout);
+#endif
                     //MEMORY LEAK: If currRoute->replSeq is set, it points to
                     //memory that needs to be deleted at some point.
                     //Unfortunately, it can't be deleted now *and* the pointer
@@ -3006,6 +3032,10 @@ int chooseCommand()
                 }//if
             }//for
 
+#if DEBUGGING_CHOOSECMD
+            printf("Increasing agent confidence due to partial success with plan.\n");
+            fflush(stdout);
+#endif
             //If a level 0 sequence has just completed then the agent's
             //confidence is increased due to the partial success
             //(Note: Index 1 rather than 0 is used due to overlap between
@@ -3028,7 +3058,7 @@ int chooseCommand()
 #if DEBUGGING
         if (g_plan != NULL)
         {
-            printf("New Plan:\n");
+            printf("\nNew Plan:\n");
             fflush(stdout);
             displayPlan();
             printf("\n");
@@ -3841,6 +3871,7 @@ Vector* initPlan(int isReplan)
 
 #if EATERS_MODE
         visuallyInterpretLevel0Route(resultPlan->array[0]);
+        printf("\n");
 #else
         displayRoute(resultPlan->array[0], FALSE);
 #endif
@@ -4435,6 +4466,9 @@ char* interpretCommand(int cmd)
         case CMD_SONG:
             return g_song;
             break;
+        case CMD_SACC:
+            return g_sacc;
+            break;
         default:
             return g_unknown;
             break;
@@ -4795,7 +4829,7 @@ void applyReplacementToPlan(Vector *plan, Replacement *repl)
 
     //Adjust the agent's confidence based upon its confidence in this
     //replacement
-    //%%%old code: penalizeAgent();
+    //old code: penalizeAgent();
     if (g_selfConfidence > repl->confidence)
     {
 #if DEBUGGING
@@ -6406,8 +6440,12 @@ Vector *findInterimStartPartialMatch(int *offset)
     }
     fflush(stdout);
 
+#if EATERS_MODE
     printf("Returning index %d in this sequence:\n", *offset);
     displayVisualizedLevel0Sequence(retVal, TRUE);
+#else
+    displaySequenceShort(retVal);
+#endif
     
 #endif
     
