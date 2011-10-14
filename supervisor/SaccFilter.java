@@ -4,38 +4,39 @@
  * Last Modified: 28 Sep 2011
  *
  * TODO 
- *  Implement filterCommand
- *  Make sure sensorArray and lastModified are being updated appropriately.
- *  Check for NULL objects being passed in.
+ *  
  **/
 
 public class SaccFilter
 {
-    //A constant to define how large the sensor array should be.
-    public static final int SENSOR_LENGTH = 10;
-    //A constant to define how large the sacc window should be.
-    public static final int WINDOW_SIZE = 3;
-    
-    //sensorArray should contain the most recent UNMODIFIED sensor array.
-    private char[] sensorArray;
-    //lastModified should contain the most recent THINNED sensor array.
-    private char[] lastModified;
-    //currentWindowAdr should contain the number of the saccades frame that we should be in.
-    private int currentWindowAdr;
+/***************************** DEBUG MODE **************************************
+***************/ public static final boolean DEBUG = false /********************
+*******************************************************************************/
     
     /**
-     * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-     * The following definitions MUST, MUST, MUST accurately reflect the definitions
-     * in ../communication/communication.h PLEASE double and tripple check these
-     * on a regular basis!!!!
-     * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     * Note about variables and constants with regard to style:
+     *
+     *  because this program is operating as a part of of program written in C
+     *  We have chosen to have constants and variables follow the java convension
+     *  iff it is used entirely within the java code, however if the constant or
+     *  variable is reflecting a corresponding constant or variable in the main
+     *  program, it will follow the convension (all caps). This mixed convension
+     *  should assist in readablity and debugging.
      */
-    public static final int FIRST_SACC_CMD = 0x7;
-    public static final int LAST_SACC_CMD = 0x7;
-    public static final int CMD_SACC = 0x7;
     
+    public static final int FIRST_SACC_CMD = 0x7;   //found in ../communication.h
+    public static final int LAST_SACC_CMD = 0x7;    //found in ../communication.h
+    public static final int CMD_SACC = 0x7;         //found in ../communication.h
     
-
+    public static final int SENSOR_LENGTH = 10;     //
+    
+    public static final int windowSize = 3; //the number of sensor bits per window
+    
+    private int currentWindowAdr; //indicates which window currently "has focus"
+    
+    private char[] sensorArray; //contains a recent unmodified sensor array.
+    private char[] lastModified; //contains a recent thinned sensor array.
+    
 
     /**
      * The constructor will set the sensor array to all zeros.
@@ -45,11 +46,12 @@ public class SaccFilter
      */
     public SaccFilter()
     {
+        //initilize the sensorArray, and then make last modified the same.
         char[] sensorArray = new char[SENSOR_LENGTH];
         for(char c:sensorArray) {c = '0';}
-        char [] lastModified = new char[SENSOR_LENGTH];
-        for(char c:lastModified) {c = '0';}
-        currentWindowAdr = 0;
+        char [] lastModified = sensorArray;
+        
+        currentWindowAdr = 0; //the first window always starts with focus
     }
 
     /**
@@ -57,6 +59,9 @@ public class SaccFilter
      * we choose to use it as opposed to calling the filter methods directly
      * because it allows us to code multiple versions of the filter and call
      * one at a time without modifying the calling program or changing method names.
+     * 
+     * @param the newest sensor array, which will be stored into sensorArray
+     * @return the thinned version of the most recent sensorArray.
      */
     public char[] runFilter(char[] sensors)
     {
@@ -65,7 +70,6 @@ public class SaccFilter
         if(sensorArray == null)
         {
             System.out.println("SensorData NULL");
-            System.exit(1);
             return null;
         }
         
@@ -73,23 +77,30 @@ public class SaccFilter
         //  Add filter calls bellow //
         //////////////////////////////
         
-        //lastModified = reverseArray(sensors);
         //lastModified = currentWindow();
         lastModified = sFilter();
         
         //////////////////////////////
         //     END filter calls     //
         //////////////////////////////
-        for(char c:sensorArray){System.out.print(c);}
-        System.out.print(" => ");
-        for(char c:lastModified){System.out.print(c);}
-        System.out.println();
+        
+        if(DEBUG)
+        {
+            for(char c:sensorArray){System.out.print(c);}
+            System.out.print(" => ");
+            for(char c:lastModified){System.out.print(c);}
+            System.out.println();
+        }
+        
         return lastModified;
     }
 
     /**
      * filterCommand is intercepting commands and checking for a command to change
      * the currentWindowAdr.
+     * 
+     * @param the command we are intercepting
+     * @return the unchanged command that was passed in.
      */
     public int filterCommand(int command)
     {
@@ -102,13 +113,14 @@ public class SaccFilter
 
     /**
      * Just returns the lastModified sensor array.
+     * 
+     * @return the most recent sensor array.
      */
     public char[] getSensorArray()
     {
         if(lastModified == null)
         {
             System.out.println("SensorData NULL");
-            System.exit(1);
             return null;
         }
         return lastModified;
@@ -120,30 +132,16 @@ public class SaccFilter
      * after recieving a command to change the saccades window
      * this method is called.
      * currently this method moves the windo to the right, and then wraps around.
+     * 
+     * @return void
      */
     private void saccades()
     {
         //should be 0, 1, 2, or 3. (in other words mod 4)
         currentWindowAdr = (currentWindowAdr+1) % 
-            (int)(Math.ceil((SENSOR_LENGTH-1)/(double)WINDOW_SIZE));
+            (int)(Math.ceil((SENSOR_LENGTH-1)/(double)windowSize));
     }
     
-    /**
-     * This method is for testing purposes only!!!
-     * it takes a character array, reverses it,
-     * and spits it back out.
-     */
-    private char[] reverseArray(char[] chararr)
-    {
-        for(int i=0; i<chararr.length/2; i++)
-        {
-            char temp = chararr[chararr.length-(i+1)];
-            chararr[chararr.length-(i+1)] = chararr[i];
-            chararr[i] = temp;
-        }
-        return chararr;
-    }
-
     /**
      * currentWindow()
      * Divides the sensorArray into windows of length WINDOW_LENGTH and applies a 
@@ -163,10 +161,10 @@ public class SaccFilter
      //returns null if the input is null
 	    if(sensorArray == null){return null;}
 	    //finding the number of windows that the input will be divided into
-	    int numWindows = sensorArray.length/WINDOW_SIZE + sensorArray.length%WINDOW_SIZE; 
+	    int numWindows = sensorArray.length/windowSize + sensorArray.length%windowSize; 
 	    //returns null if the requested window is out of bounds or if the window size is too long/short
-	    if(currentWindowAdr > numWindows-1 || currentWindowAdr < 0 || WINDOW_SIZE < 1 || 
-	        WINDOW_SIZE > sensorArray.length){return null;}
+	    if(currentWindowAdr > numWindows-1 || currentWindowAdr < 0 || windowSize < 1 || 
+	        windowSize > sensorArray.length){return null;}
 	    //finds the length of; the binary label that will be appended to the front of the array
 	    int binaryLength = numWindows/2 + numWindows%2;
 	    //Sets up a double array to store the divided input
@@ -183,14 +181,14 @@ public class SaccFilter
 	        temp = binaryLabel.toCharArray();
 	        //sets the front of the array to the binary label
 	        
-	        int storageLocation = SENSOR_LENGTH-binaryLabel.length()-WINDOW_SIZE;
+	        int storageLocation = SENSOR_LENGTH-binaryLabel.length()-windowSize;
 	        //System.out.println("Bin Length: " + binaryLabel.length() + " stor loc: " +storageLocation );
 	        for(int k=0; k<binaryLabel.length();k++){
 	        	//System.out.println("k: " + k);
 	            dividedInput[i][k+storageLocation] = temp[k];
 	        }
 	        //saves the input into the divided array in the appropriate place
-	        for(int j=0; j<WINDOW_SIZE;j++){
+	        for(int j=0; j<windowSize;j++){
 	            if(arrayLocation<sensorArray.length){
 	                dividedInput[i][j+storageLocation+binaryLabel.length()] = sensorArray[arrayLocation];
 	                arrayLocation++;
@@ -203,7 +201,7 @@ public class SaccFilter
 	    char[] returnArray = new char[sensorArray.length];
 	    //sets the values in the return array
 	    for(int i=0; i<SENSOR_LENGTH;i++){
-	        if(i>=binaryLength+WINDOW_SIZE)
+	        if(i>=binaryLength+windowSize)
 	            returnArray[i]=dividedInput[currentWindowAdr][i];
 	        else
 	            returnArray[i]='0';
@@ -238,7 +236,12 @@ public class SaccFilter
         return null;
     }
     
-    
+    /**
+     * A filter method variation that does not ever include the goalbit.
+     *
+     *
+     * @return the thinned version of the most recent sensorArray.
+     */
     private char[] sFilter()
     {
         //if the currentWindowAdr is 0 and the window size is 3, then...
@@ -249,7 +252,7 @@ public class SaccFilter
         // the window address in binary, and the w's represent the bits in the window.
         
         //calculate the number of windows (round up to nearest int)
-        int numWindows = (int)Math.ceil((SENSOR_LENGTH - 1.0)/WINDOW_SIZE);
+        int numWindows = (int)Math.ceil((SENSOR_LENGTH - 1.0)/windowSize);
         //take the log base2 of the number of windows and the round up...
         //this is the number of bits needed to represent the window address.
         int adrSize = (int)Math.ceil(Math.log(numWindows)/Math.log(2));
@@ -264,9 +267,9 @@ public class SaccFilter
         }
         // retrieve the current window from sensor array. if it runs of the end
         // of the sensor array, fill it with 0's
-        char[] currentWindow = new char[WINDOW_SIZE];
-        int windowStart = (currentWindowAdr*WINDOW_SIZE)+1;
-        for(int i = 0; i<WINDOW_SIZE; i++)
+        char[] currentWindow = new char[windowSize];
+        int windowStart = (currentWindowAdr*windowSize)+1;
+        for(int i = 0; i<windowSize; i++)
         {
             currentWindow[i] = ((windowStart+i) < SENSOR_LENGTH) ? sensorArray[windowStart+i] : '0';
         }
@@ -277,9 +280,9 @@ public class SaccFilter
         ret[0] = sensorArray[0]; //the goal bit is never changed and is never included in a window
         for(int i = 1; i<SENSOR_LENGTH; i++)
         {
-            if(i<(SENSOR_LENGTH-(WINDOW_SIZE+adrSize))){ret[i] = '0';}
-            else if(i<SENSOR_LENGTH-WINDOW_SIZE){ret[i] = adr[i-(SENSOR_LENGTH-(WINDOW_SIZE+adrSize))];}
-            else {ret[i] = currentWindow[i-(SENSOR_LENGTH-WINDOW_SIZE)];}
+            if(i<(SENSOR_LENGTH-(windowSize+adrSize))){ret[i] = '0';}
+            else if(i<SENSOR_LENGTH-windowSize){ret[i] = adr[i-(SENSOR_LENGTH-(windowSize+adrSize))];}
+            else {ret[i] = currentWindow[i-(SENSOR_LENGTH-windowSize)];}
         }
         return ret;
     }
