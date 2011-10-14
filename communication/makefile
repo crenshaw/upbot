@@ -26,7 +26,7 @@ sclient:	simpleClient.c communication.h
 testCQ: testCommandQueue.c commandQueue.c tell.c serverUtility.c
 	$(CC) $(CFLAGS) -o testCQ.out testCommandQueue.c commandQueue.c tell.c serverUtility.c
 
-# make sure that the path 'usr/lib/jvm/defaul-java' exists and points to
+# make sure that the path 'usr/lib/jvm/default-java' exists and points to
 # sunjava's 64 bit jdk. Also make sure that '/usr/lib64/jvm/default-java/jre/lib/amd64/server/'
 # is in the LD_LIBRARY_PATH. Add to bashrc or add on a one-time basis.
 supclient:	supervisorClient.c communication.h serverUtility.c ../supervisor/supervisor.h ../supervisor/vector.h ../supervisor/knearest.h ../wme/wme.h commandQueue.c
