@@ -3081,6 +3081,30 @@ int chooseCommand()
         return chooseCommand_SemiRandom();
     }//if
 
+    //%%%TEMPORARY:  For Dustin and Ben
+    //  adding a % chance of random action depending upon how long it's been
+    //  since we've reached the goal
+    int randDelay = 100;
+    static int lastGoal = 0;
+    static int stepsSoFar = 0;
+    stepsSoFar++;
+    if (lastGoal < g_goalCount)
+    {
+        stepsSoFar = 0;
+        lastGoal = g_goalCount;
+    }
+    printf("stepsSoFar=%d\n", stepsSoFar);
+    if (stepsSoFar > randDelay)
+    {
+        int rNum = (rand() % 1000); // random number 0..999
+        if (stepsSoFar - randDelay > rNum)
+        {
+            return chooseCommand_SemiRandom();
+            stepsSoFar = 0;
+        }
+    }
+    
+
     //If we've reached this point then there is a working plan so the agent
     //should select the next step with that plan.
     return chooseCommand_WithPlan();

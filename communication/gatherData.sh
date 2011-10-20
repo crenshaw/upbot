@@ -15,9 +15,10 @@
 
 NUM_ARGS=4
 
-#arg1 is the map
-#arg2 is how many trials
-#arg3 is the anme of the trial
+#arg1 is the algorithm:  ziggurat or mccallum
+#arg2 is the map
+#arg3 is how many trials
+#arg4 is the name of the trial
 
 #variables
 ALGORITHM=$1
@@ -69,7 +70,7 @@ for (( j = 0 ; j < $NUM_TRIALS ; j++ )); do
 
     #clean up the output text
     grep "found a" temp | grep timestamp | sed -e 's/s at timestamp.*//g' | sed -e 's/Goal.*found//g' | sed -e 's/[a-z]//g' | sed -e 's/ //g' >> ../$NAME/results.txt
-    echo '*********************************' >> ../$NAME/results.txt
+    echo 'end' >> ../$NAME/results.txt
 
     #kill the process to start again
     ps -e | grep unitTest | sed -e 's/^ *//' | sed -e 's/ .*//' | xargs kill
