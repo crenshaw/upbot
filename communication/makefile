@@ -27,10 +27,20 @@ testCQ: testCommandQueue.c commandQueue.c tell.c serverUtility.c
 	$(CC) $(CFLAGS) -o testCQ.out testCommandQueue.c commandQueue.c tell.c serverUtility.c
 
 # make sure that the path 'usr/lib/jvm/default-java' exists and points to
-# sunjava's 64 bit jdk. Also make sure that '/usr/lib64/jvm/default-java/jre/lib/amd64/server/'
-# is in the LD_LIBRARY_PATH. Add to bashrc or add on a one-time basis.
+# sun's java's jdk. You may need to add it manually with a command
+# like this:
+#   sudo ln -s /usr/lib/jvm/java-6-sun-1.6.0.26 /usr/lib/jvm/default-java
+#    (Important:  modify the above to include the proper Java version number)
+#
+#
+# Also make sure that the libjvm.so file is in the LD_LIBRARY_PATH.
+# For 64 bit computers:
+#   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/jvm/default-java/jre/lib/amd64/server/
+# For 32 bit computers:
+#   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/jvm/default-java/jre/lib/i386/server/
+# You can add the above line to bashrc or run the command on a one-time basis.
 supclient:	supervisorClient.c communication.h serverUtility.c ../supervisor/supervisor.h ../supervisor/vector.h ../supervisor/knearest.h ../wme/wme.h commandQueue.c
-	gcc $(DEBUG_OPT) -I '/usr/lib/jvm/default-java/include' -I '/usr/lib/jvm/default-java/include/linux' -o supervisorClient.out supervisorClient.c serverUtility.c ../supervisor/supervisor.c ../supervisor/vector.c ../supervisor/knearest.c ../wme/wme.c commandQueue.c ../supervisor/filter_KNN.c ../supervisor/hallucinogen.c ../supervisor/saccFilt.c -lm -L'/usr/lib/jvm/default-java/jre/lib/amd64/server' -ljvm
+	gcc $(DEBUG_OPT) -I '/usr/lib/jvm/default-java/include' -I '/usr/lib/jvm/default-java/include/linux' -o supervisorClient.out supervisorClient.c serverUtility.c ../supervisor/supervisor.c ../supervisor/vector.c ../supervisor/knearest.c ../wme/wme.c commandQueue.c ../supervisor/filter_KNN.c ../supervisor/hallucinogen.c ../supervisor/saccFilt.c -lm -L'/usr/lib/jvm/default-java/jre/lib/amd64/server' -L'/usr/lib/jvm/default-java/jre/lib/i386/server' -ljvm
 	javac ../supervisor/SaccFilter.java
 
 mccClient: mccallumClient.c communication.h serverUtility.c ../mccallum/nsm.h ../mccallum/forgetfulmem.h ../mccallum/vector.h commandQueue.c
