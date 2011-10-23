@@ -21,16 +21,11 @@
 
 #include "vector.h"
 #include "../communication/communication.h"
-#include "../wme/wme.h"
 #include "knearest.h"
 
 // Boolean values
 #define TRUE				1
 #define FALSE				0
-
-//Flags
-#define USE_WMES 1              // use to activate EpisodeWME
-
 
 // Function return codes
 #define SUCCESS             0
@@ -41,20 +36,18 @@
 
 // Matching defines
 #define NUM_TO_MATCH         (15)
-#define NUM_GOALS_TO_FIND    (50)
-#define DISCOUNT             (0.75)
+#define NUM_GOALS_TO_FIND    (100)
+#define DISCOUNT             (1.0)
 #define MAX_LEN_LHS          (1)
-#define MAX_LEVEL_DEPTH      (4)   // max number of levels
-#define MIN_LEVEL0_MATCH_LEN (2)   // do not set this to anything less than 2!
-#define K_NEAREST            (8)   // if using KNN matching, this specs K value
-#define MIN_NEIGHBORS        (1)   //minimum number of neighbors required for match
-#define MATCH_DISCOUNT       (0.5) //discount factor for sequence best partial match
+#define MAX_LEVEL_DEPTH      (4)
+#define MIN_LEVEL0_MATCH_LEN (2) // do not set this to anything less than 2!
+#define K_NEAREST            (8)
+#define MIN_NEIGHBORS        (1) //minimum number of neighbors required for match
 
 //Planning defines
 #define MAX_ROUTE_LEN        (50)
-#define MAX_ROUTE_CANDS      (40)  // maximum number of candidate routes to
+#define MAX_ROUTE_CANDS      (20) // maximum number of candidate routes to
                                    // examine before giving up
-#define ROUTE_DISCOUNT       (0.9) // discount factor for scoring routes
 
 //Replacement defines
 #define MAX_CONFIDENCE       (1.0)
@@ -64,8 +57,7 @@
 #define MAX_REPLS            (1)    // maximum number of replacements per plan
 #define MAX_REPL_RISK        (0.0)  // a more flexible limitation to repls per
                                     // plan (min=0.0)
-#define MIN_SELF_CONFIDENCE (0.05)  //below this threshold, the agent will take
-                                    //random actions
+
 
 // Collecting data for stats
 #define STATS_MODE		0
@@ -88,6 +80,7 @@ typedef struct ActionStruct
                               // or sequences (for level 1+)
     int  level;               // what level is this action?
     int  index;               // index into epmem where the action's LHS ends
+    int  length;              // number of entries in the LHS
     int  freq;                // number of times this action has "matched" epmem
     int* overallFreq;         // number of times just the most recent sensor
                               // data has matched epmem. This is a pointer
@@ -102,29 +95,6 @@ typedef struct ActionStruct
     int containsStart;        // Does this action contain a starting state on
                               // the LHS?
 } Action;
-
-/*
- * SeqInfo
- *
- * Originally, sequences were stored as vectors but painful experience has shown
- * that a lack of meta-data, particularly about the episodes associated with a
- * sequence, is over-complicating the match routine.  So, I'm creating this
- * struct to store meta-data about a sequence for the purpose of matching.
- * Methods and structs will continue to expect sequences are vectors as it is
- * too much work (at least right now) to change everything over.
- */
-typedef struct SeqInfoStruct
-{
-    int index;                  // index of this struct in its Vector
-    Vector *seq;                // reference to the sequence itself
-    int level;                  // level of the sequence
-    int firstIndex;             // index of the first episode in this sequence
-    int lastIndex;              // index of the last episode in this sequence
-    int containsStart;          // T/F: is this seq the start of a new run?
-    int containsGoal;           // T/F: does this sequence end in a goal?
-    int valid;                  // T/F: is this sequence valid and complete?
-} SeqInfo;
-
 
 typedef struct RouteStruct
 {
@@ -162,11 +132,6 @@ typedef struct StartStruct
 // Global variables for monitoring and connecting
 int g_connectToRoomba;
 int g_statsMode;
-int g_numRandom;
-int g_numRandomLowConfidence;
-int g_numGoalsFromRandom;
-int g_numGoalsFromInvalidPlan;
-int g_numGoalsFromValidPlan;
 
 // These vectors contain the entire episodic memory
 Vector* g_epMem;
@@ -182,10 +147,6 @@ Vector* g_activeRepls;    // these are replacements that have recently been
                           // applied and are awaiting reward/punishment
 int     g_lastUpdateLevel;// the highest level that was updated in the last
                           // updateAll().  Used to aid findInterimStart().
-Vector* g_seqInfo;        // 2D vector of meta-data about the sequences.  These
-                          // are listed in episode order and repeated as
-                          // necessary to mimic the episode list at the next
-                          // level up.
 
 
 
@@ -194,35 +155,11 @@ extern char* interpretCommand(int cmd);
 extern void  simpleTest();
 extern int   tick(char* sensorInput);
 
-// Functions added to accomodate WMEs ----------
-// Duplicate functions are commented DUPL. This means they are
-// the same functionality and function name as a previously existing
-// one, except modified to handle EpisodeWME instead of Episode
-extern int   tickWME(Vector* wmes); // DUPL
-int          addEpisodeWME(EpisodeWME* item); // DUPL
-/*
-int          compareEpisodesWME(EpisodeWME* ep1, EpisodeWME* ep2, int compCmd); // DUPL
-int          compareWME(WME* wme1, WME* wme2);
-void         displayEpisodeWME(EpisodeWME* ep); // DUPL
-void         displayEpisodeWMEShort(EpisodeWME* ep); // DUPL
-void         displayWME(WME* wme);
-void         displayWMEList(Vector *sensors);  // DUPL (sort of) of interpretSensorsShort
-EpisodeWME*  createEpisodeWME(Vector* wmes); // DUPL
-void         freeEpisodeWME(EpisodeWME* ep);
-void         freeWME(WME* wme);
-Vector*		 stringToWMES(char* senseString);
-Vector*      roombaSensorsToWME(char* sensorInput);
-*/
-// Plan: Once everything functions, roomba calls tick(), which converts
-//       to WME vector then calls tickWME()
-//----------------------------------------------
-
 Action*      actionMatch(int action);
 int          addAction(Vector* actions, Action* item, int checkRedundant);
 void         addActionToRoute(int actionIdx);
 int          addActionToSequence(Vector* sequence,  Action* action);
 int          addEpisode(Episode* item);
-void         addSeqInfo(Vector *seq, int level);
 int          addSequenceAsEpisode(Vector* sequence);
 void         applyReplacementToPlan(Vector *plan, Replacement *repl);
 Vector*      applyReplacementToSequence(Vector* seq, Replacement* repl);
@@ -241,17 +178,15 @@ void         displaySequence(Vector* sequence);
 void         displaySequenceShort(Vector* sequence);
 void         displaySequences(Vector* sequences);
 void         endSupervisor();
-int 		 episodeContainsGoal(void* entry, int level);
 Vector*      findInterimStart_KNN();
 Vector*      findInterimStart_NO_KNN();
-Vector*      findInterimStartPartialMatch(int *offset);
 Vector*      findInterimStartPartialMatch_KNN(int *offset);
 Vector*      findInterimStartPartialMatch_NO_KNN(int *offset);
 Replacement* findBestReplacement();
-//int          findTopMatch(double* scoreTable, double* indvScore, int command);
+int          findTopMatch(double* scoreTable, double* indvScore, int command);
 void         freePlan(Vector *plan);
 void         freeRoute(Route *r);
-//int          generateScoreTable(Vector* vector, double* score);
+int          generateScoreTable(Vector* vector, double* score);
 Route*       getTopRoute(Vector *plan);
 Vector*      initPlan();
 void         initRouteFromSequence(Route *route, Vector *seq);
@@ -264,21 +199,12 @@ int          parseEpisode(Episode* parsedData, char* dataArr);
 void         penalizeAgent();
 void         penalizeReplacements();
 int          planNeedsRecalc(Vector *plan);
-//int          planRoute(Episode* currEp);
+int          planRoute(Episode* currEp);
 void         rewardAgent();
 void         rewardReplacements();
-//int          setCommand(Episode* ep);
-//int          setCommand2(Episode* ep);
-//int          takeNextStep(Episode* currEp);
+int          setCommand(Episode* ep);
+int          setCommand2(Episode* ep);
+int          takeNextStep(Episode* currEp);
 int          updateAll();
-
-// Functions borrowed from Soar agent
-double      findDiscountedCommandScore(int command);
-int         findLastReward();
-void        visuallyInterpretLevel0Route(Route* route);
-char*       visuallyInterpretEpisodesWME(EpisodeWME* ep);
-void        displayVisualizedEpisodeWME(EpisodeWME* ep);
-void        displayVisualizedAction(Action* action);
-void        displayVisualizedLevel0Sequence(Vector* seq, int isComplete);
 
 #endif //_SUPERVISOR_H_

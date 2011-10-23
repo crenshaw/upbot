@@ -1,5 +1,4 @@
 #include "supervisor.h"
-#include <math.h>
 
 /*
  * This file contains the code for the Supervisor. All the functions
@@ -64,83 +63,49 @@
  *
  */
 
-//This setting, if present, modifies the debug outputs to reflect the Eaters
-//environment
-//#define EATERS_MODE 1
-
-
 //Setting this turns on verbose output to aid debugging
-//#define DEBUGGING 1
+#define DEBUGGING 1
 
 
 //Particularly verbose debugging for specific methods
 #ifdef DEBUGGING
-#define DEBUGGING_UPDATEALL 1
-//#define DEBUGGING_UPDATEPLAN 1
-#define DEBUGGING_CHOOSECMD 1
-//#define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
-//#define DEBUGGING_INITPLAN 1
-//#define DEBUGGING_FINDINTERIMSTART 1
-#define DEBUGGING_NSIV 1        // nextStepIsValid()
-//#define DEBUGGING_FIND_REPL 1
+// #define DEBUGGING_UPDATEALL 1
+// #define DEBUGGING_UPDATEPLAN 1
+// #define DEBUGGING_CHOOSECMD 1
+// #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
+// #define DEBUGGING_INITPLAN 1
+// #define DEBUGGING_FINDINTERIMSTART 1
+// #define DEBUGGING_NSIV 1        // nextStepIsValid()
+// #define DEBUGGING_FIND_REPL 1
 // #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
 // #define DEBUGGING_KNN 1
-// #define DEBUGGING_EATERSVISUALS 1
 #endif
 
 // global strings for printing to console
-#ifndef EATERS_MODE
-char* g_no_op   = "no operation";
 char* g_forward = "forward";
-char* g_left    = "left";
 char* g_right   = "right";
-char* g_adjustL = "adjust left";
+char* g_left    = "left";
 char* g_adjustR = "adjust right";
+char* g_adjustL = "adjust left";
 char* g_blink   = "blink";
+char* g_no_op   = "no operation";
 char* g_song    = "song";
-char* g_sacc    = "saccade";
 char* g_unknown = "unknown";
 
-char* g_no_opS   = "NO";
 char* g_forwardS = "FW";
 char* g_rightS   = "RT";
 char* g_leftS    = "LT";
 char* g_adjustRS = "AR";
 char* g_adjustLS = "AL";
 char* g_blinkS   = "BL";
-char* g_songS    = "SO";
-char* g_unknownS = "$$";
-
-
-#else
-char* g_no_op   = "no operation";
-char* g_forward = "north";
-char* g_left    = "south";
-char* g_right   = "east";
-char* g_adjustL = "west";
-char* g_adjustR = "reset";
-char* g_blink   = "illegal blink";
-char* g_song    = "song";
-char* g_unknown = "unknown";
-
 char* g_no_opS   = "NO";
-char* g_forwardS = "N";
-char* g_leftS    = "S";
-char* g_rightS   = "E";
-char* g_adjustLS = "W";
-char* g_adjustRS = "R";
-char* g_blinkS   = "?";
 char* g_songS    = "SO";
 char* g_unknownS = "$$";
-
-
-#endif
 
 // Keep track of goals
 int g_goalCount = 0;              // Number of goals found so far
 int g_goalIdx[NUM_GOALS_TO_FIND];
 
-int g_CMD_COUNT = 0;
 
 /**
  * memTest
@@ -237,15 +202,9 @@ void memTest()
     {
         // Create new Episode
         printf("Creating and adding episode...\n");
-#if USE_WMES
-        EpisodeWME* ep = createEpisodeWME(roombaSensorsToWME(sensors[i]));
-        // Add new episode to the history
-        addEpisodeWME(ep);
-#else
-		Episode* ep = createEpisode(sensors[i]);
+        Episode* ep = createEpisode(sensors[i]);
         // Add new episode to the history
         addEpisode(ep);
-#endif
         printf("Episode created\n");
 
         updateAll(0);   //*** magic number whats up?
@@ -270,11 +229,7 @@ void memTest()
         // Print out the parsed episode if not in statsMode
         if(g_statsMode == 0)
         {
-#if USE_WMES
-            displayEpisodeWME(ep);
-#else
-			displayEpisode(ep);
-#endif
+            displayEpisode(ep);
         }
     }
 
@@ -382,15 +337,9 @@ void planTest()
     {
         // Create new Episode
         printf("Creating and adding episode...\n");
-#if USE_WMES
-        EpisodeWME* ep = createEpisodeWME(roombaSensorsToWME(sensors[i]));
-        // Add new episode to the history
-        addEpisodeWME(ep);
-#else
-		Episode* ep = createEpisode(sensors[i]);
+        Episode* ep = createEpisode(sensors[i]);
         // Add new episode to the history
         addEpisode(ep);
-#endif
         printf("Episode created\n");
 
         updateAll(0);
@@ -408,17 +357,12 @@ void planTest()
         }
         else
         {
-            //Artificially lower confidence to avoid replacements
-            g_selfConfidence = 0.0;
-            
             //issue the next command from the cmds array
             ep->cmd = chooseCommand();
 
             if (ep->cmd != cmds[i])
             {
-                printf("planTest ERROR:  plan failed at step %d\n", i);
-                printf("                 expected command: %d received command: %d\n",
-                       cmds[i], ep->cmd);
+                printf("ERROR:  plan failed at step %d\n", i);
                 exit(-1);
             }
         }
@@ -469,13 +413,8 @@ void replanTest()
               noHit, noHit, noHit, noHit, noHit, noHit, bothHit, noHit, noHit,
               noHit, noHit, noHit, noHit, bothHit, noHit, noHit, rightHit,
               noHit, rightHit, rightHit, rightHit, noHit, noHit, noHit,
-              /*rightHit*/ bothHit,  /*replan occurs here, yielding the following*/
-              noHit, noHit, noHit, noHit, noHit, noHit, bothHit, noHit, noHit,
-              rightHit, noHit, rightHit, rightHit, rightHit, noHit, noHit,
-              noHit, rightHit, noHit, noHit, noHit, noHit, noHit, noHit, goal};
-    
-              //          noHit, noHit, noHit, noHit, noHit, noHit,
-              // goal};
+              /*rightHit*/ bothHit , noHit, noHit, noHit, noHit, noHit, noHit,
+              goal};
    
     int cmds[] = {CMD_ADJUST_LEFT, CMD_ADJUST_LEFT, CMD_FORWARD,
               CMD_LEFT, CMD_NO_OP, CMD_LEFT, CMD_NO_OP, CMD_NO_OP, CMD_LEFT,
@@ -519,19 +458,8 @@ void replanTest()
               CMD_ADJUST_LEFT, CMD_NO_OP, CMD_ADJUST_LEFT, CMD_FORWARD,
               CMD_ADJUST_LEFT, CMD_RIGHT, CMD_FORWARD, CMD_NO_OP, CMD_FORWARD,
               CMD_FORWARD, CMD_FORWARD, CMD_LEFT, CMD_ADJUST_LEFT, CMD_RIGHT,
-              CMD_FORWARD, /*replan occurs here, yielding the following*/
-
-              CMD_RIGHT, CMD_NO_OP, CMD_ADJUST_LEFT, CMD_ADJUST_LEFT,
-              CMD_NO_OP, CMD_ADJUST_LEFT, CMD_FORWARD, CMD_ADJUST_LEFT,
-              CMD_RIGHT, CMD_FORWARD, CMD_NO_OP, CMD_FORWARD, CMD_FORWARD,
-              CMD_FORWARD, CMD_LEFT, CMD_ADJUST_LEFT, CMD_RIGHT, CMD_FORWARD,
-              CMD_RIGHT, CMD_NO_OP, CMD_RIGHT, CMD_NO_OP, CMD_LEFT, CMD_NO_OP,
-              CMD_FORWARD };
-
-
-                  
-              //     CMD_RIGHT, CMD_NO_OP, CMD_RIGHT, CMD_NO_OP, CMD_LEFT,
-              // CMD_NO_OP, CMD_FORWARD};
+              CMD_FORWARD, CMD_RIGHT, CMD_NO_OP, CMD_RIGHT, CMD_NO_OP, CMD_LEFT,
+              CMD_NO_OP, CMD_FORWARD};
     int i;
 
     //First call planTest to give it a solid plan
@@ -539,19 +467,14 @@ void replanTest()
 
     printf("\t\t\t\t\t\t\tBEGIN REPLANTEST\n");
 
-    for (i = 0; i < 232; i++)
+    for (i = 0; i < 214; i++)
     {
         // Create new Episode
         printf("Creating and adding episode...\n");
-#if USE_WMES
-        EpisodeWME* ep = createEpisodeWME(roombaSensorsToWME(sensors[i]));
-        // Add new episode to the history
-        addEpisodeWME(ep);
-#else
         Episode* ep = createEpisode(sensors[i]);
+       
         // Add new episode to the history
         addEpisode(ep);
-#endif
         printf("Episode created\n");
 
         updateAll(0);
@@ -560,8 +483,6 @@ void replanTest()
         // and if not then send ep to determine a valid command
         if(episodeContainsGoal(ep, FALSE))
         {
-            printf("reached goal\n");
-            
             ep->cmd = CMD_SONG;
             if (g_plan != NULL)
             {
@@ -571,18 +492,14 @@ void replanTest()
         }
         else
         {
-            //Artificially lower confidence to avoid replacements
-            g_selfConfidence = 0.0;
-            
             //issue the next command from the cmds array
             ep->cmd = chooseCommand();
 
             if (ep->cmd != cmds[i])
             {
-                printf("replanTest ERROR:  plan failed at step %d\n", i);
-                printf("                   expected command: %d received command: %d\n",
-                       cmds[i], ep->cmd);
+                printf("ERROR:  plan failed at step %d\n", i);
                 exit(-1);
+
             }
         }
 
@@ -591,118 +508,6 @@ void replanTest()
     printf("\t\t\t\t\t\t\tEND REPLANTEST: SUCCESS!\n");
 
 }//replanTest
-
-/**
- * tickWME
- *
- * This function is called at regular intervals and processes
- * the recent sensor data to determine the next action to take.
- * This version is designed to handle a Vector of WMEs rather
- * than Roomba sensor data.
- *
- * Precondition: The Vector of WMEs is alphabetically sorted by
- *               attribute name.
- *
- * @param wmes A Vector* of WMEs representing agent state
- * @return int a command for the Roomba (negative is error)
- */
-int tickWME(Vector* wmes)
-{
-    // Create new Episode
-    EpisodeWME* ep = createEpisodeWME(wmes);
-
-    // Add new episode to the history
-    addEpisodeWME(ep);
-
-    updateAll(0);
-#if DEBUGGING_UPDATEALL
-    printf("updateAll complete\n");
-    fflush(stdout);
-#endif
-   
-    // If we found a goal, send a song to inform the world of success
-    // and if not then send ep to determine a valid command
-    if(episodeContainsGoal(ep, FALSE))
-    {
-        ep->cmd = CMD_SONG;
-
-        // A goal was found
-        // Check if the next step is valid:
-        //  => If a plan exists, this checks to see if this
-        //     occurred on the final step, as expected.
-        if (nextStepIsValid())
-        {
-            g_numGoalsFromValidPlan++;
-            if(!g_statsMode) printf("Goal found via valid plan...\n");
-            if(!g_statsMode) printf("Applying Replacement rewards...\n");
-            rewardReplacements();
-            if(!g_statsMode) printf("Rewarding agent...\n");
-            rewardAgent();
-            if(!g_statsMode) printf("Goal from valid plan\n");
-        }
-        //  => If not valid, then check if the plan is NULL
-        //     If not, then the reward was found with an 
-        //     invalid plan, so skip the reward.
-        else if(g_plan != NULL)
-        {
-            g_numGoalsFromInvalidPlan++;
-            if(!g_statsMode) printf("Goal found via invalid plan...\n");
-            if(!g_statsMode) printf("Skipping Replacement rewards...\n");
-            if(!g_statsMode) printf("Skipping agent rewards...\n");
-            //rewardAgent();
-            if(!g_statsMode) printf("Goal from invalid plan\n");
-        }
-        //  => Finally, no plan exists and a goal was found,
-        //     so reward appropriately
-        else
-        {
-            g_numGoalsFromRandom++;
-            if(!g_statsMode) printf("Goal found via random move...\n");
-            if(!g_statsMode) printf("Rewarding agent...\n");
-            rewardAgent();
-            if(!g_statsMode) printf("Goal from random command\n");
-        }
-
-        //Current, presumably successful, plan no longer needed
-        if (g_plan != NULL)
-        {
-            freePlan(g_plan);
-            g_plan = NULL;
-        }
-    }
-    else
-    {
-        ep->cmd = chooseCommand();
-    }
-    if(!g_statsMode) printf("Episode command chosen\n");
-
-#if DEBUGGING
-    // Print out the parsed episode if not in statsMode
-    if(g_statsMode == 0)
-    {
-        displayEpisodeWME(ep);
-    }
-    fflush(stdout);
-#endif
-    
-    return ep->cmd;
-}//tickWME
-
-/**
- * addEpisodeWME
- *
- * Add new level 0 episode to episode history vector
- *
- * @arg episodes pointer to vector containing episodes
- * @arg item pointer to episode to be added
- * @return int status code (0 == success)
- */
-int addEpisodeWME(EpisodeWME* item)
-{
-    //Add the entry
-    Vector* episodes = (Vector *)g_epMem->array[0];
-    return addEntry(episodes, item);
-}//addEpisodeWME
 
 /**
  * tick
@@ -715,25 +520,20 @@ int addEpisodeWME(EpisodeWME* item)
  */
 int tick(char* sensorInput)
 {
-
-#if USE_WMES
-	return tickWME(roombaSensorsToWME(sensorInput));
-
-#else
-    int i; // Is this here for a reason?...
+    int i;
     // Create new Episode
     Episode* ep = createEpisode(sensorInput);
 
     // Add new episode to the history
     addEpisode(ep);
 
-    updateAll(0);
+        updateAll(0);
 #if DEBUGGING_UPDATEALL
     printf("updateAll complete\n");
     fflush(stdout);
 #endif
 
-   
+    
     // If we found a goal, send a song to inform the world of success
     // and if not then send ep to determine a valid command
     if(episodeContainsGoal(ep, FALSE))
@@ -772,8 +572,6 @@ int tick(char* sensorInput)
 #endif
 
     return ep->cmd;
-
-#endif
 }//tick
 
 /**
@@ -959,6 +757,7 @@ int updateAll(int level)
     newAction->epmem           = episodeList;
     newAction->outcome         = episodeList->size - 1;
     newAction->index           = episodeList->size - 2;
+    newAction->length          = 1;
     newAction->freq            = 1;
     newAction->overallFreq     = NULL;
     newAction->cousins         = NULL;
@@ -995,10 +794,11 @@ int updateAll(int level)
     //Iterate over every action in the list and compare it to our new
     //candidate action.  If the candidate is unique, it'll be added to
     //the action list.  If it's a partial match (same LHS , different
-    //RHS) it is a new indeterminate action.  If the candidate
+    //RHS) but can't be made unique without increasing size of LHS
+    //then create a pool of indeterminate actions.  If the candidate
     //matches an existing action, it'll be discarded and the existing
     //action's frequency will be updated
-    int i;
+    int i,j;
     int matchComplete = FALSE;
     int addNewAction = TRUE;
     Action* updateExistingAction = NULL;
@@ -1007,127 +807,324 @@ int updateAll(int level)
         //Compare the i-th action to the candidate action
         Action* curr = (Action*)actionList->array[i];
 
-        //Find out if the LHS matches
-        if (compareVecOrEp(episodeList, newAction->index, curr->index, level))
+        for(j = 0; j < newAction->length; j++)
         {
-            
-#if DEBUGGING_UPDATEALL
-            printf("found LHS match with action: ");
-            displayAction(curr);
-            printf(" and ");
-            displayAction(newAction);
-            printf("\n");
-            fflush(stdout);
-#endif
-
-            //If the candidate action has matched a percentage
-            //action then there may already be a matching cousin
-            //out there
-            if(curr->isIndeterminate)
+            //Find out if the j-th part of the LHS matches
+            if (compareActOrEp(episodeList, newAction->index - j, curr->index - j, level))
             {
 #if DEBUGGING_UPDATEALL
-                printf("comparing cousins: \n");
+                printf("found match between %i-th entries of: ", j);
+                displayAction(curr);
+                printf(" and ");
+                displayAction(newAction);
+                printf("\n");
                 fflush(stdout);
 #endif
-                int k;
-                //Iterate over cousins and find one with same outcome as candidate action
-                for(k = 0; k < curr->cousins->size; k++)
+
+                //If the LHS match so far but we haven't reached the end
+                //of either action then continue comparing them
+                if (newAction->length > j+1 && curr->length > j+1)
                 {
-                    Action* cousin = curr->cousins->array[k];
+                    continue;
+                }
 
-#if DEBUGGING_UPDATEALL
-                    printf("\t");
-                    displayAction(cousin);
-                    printf(" AND ");
-                    displayAction(newAction);
-                    printf("\n");
-                    fflush(stdout);
-#endif
-
-                    //If we find one with same outcome, increase
-                    //frequency and inform not to add action
-                    if (compareActOrEp(episodeList, newAction->outcome,
-                                       cousin->outcome, level))
+                //If we've matched to the end and they are the same
+                //length, then the LHS's match.
+                if(newAction->length == curr->length)
+                {
+                    //If the candidate action has matched a percentage
+                    //action then there may already be a matching cousin
+                    //out there
+                    if(curr->isIndeterminate)
                     {
+#if DEBUGGING_UPDATEALL
+                        printf("comparing cousins: \n");
+                        fflush(stdout);
+#endif
+                        int k;
+                        //Iterate over cousins and find one with same outcome as candidate action
+                        for(k = 0; k < curr->cousins->size; k++)
+                        {
+                            Action* cousin = curr->cousins->array[k];
+
+#if DEBUGGING_UPDATEALL
+                            printf("\t");
+                            displayAction(cousin);
+                            printf(" AND ");
+                            displayAction(newAction);
+                            printf("\n");
+                            fflush(stdout);
+#endif
+
+                            //If we find one with same outcome, increase
+                            //frequency and inform not to add action
+                            if (compareActOrEp(episodeList, newAction->outcome,
+                                        cousin->outcome, level))
+                            {
                                
-                        cousin->freq++;
-                        addNewAction = FALSE;
-                        updateExistingAction = cousin;
-                        break;
+                                cousin->freq++;
+                                addNewAction = FALSE;
+                                updateExistingAction = cousin;
+                                break;
+                            }
+                        }//for
+
+                        //If no cousins match candidate action, add it
+                        //as a new cousin
+                        if(addNewAction)
+                        {
+#if DEBUGGING_UPDATEALL
+                            printf("new cousin is unique.  Adding...\n");
+                            fflush(stdout);
+#endif
+                            newAction->isIndeterminate = TRUE;
+                            newAction->overallFreq = curr->overallFreq;
+                            newAction->cousins = curr->cousins;
+
+                            addAction(newAction->cousins, newAction, FALSE);
+                        }
+
+                        // Regardless of whether candidate action is
+                        // unique we need to increase overall
+                        // frequency for all cousins in the list and
+                        // end the matching process
+                        (*(curr->overallFreq))++;
+                        matchComplete = TRUE;
                     }
-                }//for
+                    else    //Found a LHS match to a non-indeterminate action
+                    {
+                        //Now see if the RHS of both actions match
+                        if (compareActOrEp(episodeList, newAction->outcome,
+                                    curr->outcome, level))
+                        {
+                            //We have a complete match between the
+                            //candidate and an existing action, so just
+                            //update the existing action
+                            curr->freq++;
 
-                //If no cousins match candidate action, add it
-                //as a new cousin
-                if(addNewAction)
-                {
+                            //Done with update
+                            matchComplete = TRUE;
+                            addNewAction = FALSE;
+                            updateExistingAction = curr;
+                        }
+                        else    //RHS does not match
+                        {
 #if DEBUGGING_UPDATEALL
-                    printf("new cousin is unique.  Adding...\n");
-                    fflush(stdout);
+                            printf("LHS match but RHS doesn't while comparing to %i...\n", i);
+                            fflush(stdout);
 #endif
-                    newAction->isIndeterminate = TRUE;
-                    newAction->overallFreq = curr->overallFreq;
-                    newAction->cousins = curr->cousins;
+                            // We want to expand the newAction and curr
+                            // to create (hopefully) distinct actions
+                            // There are 3 reasons this may not work.
 
-                    addAction(newAction->cousins, newAction, FALSE);
-                }
+                            // 1. Expanding curr/newAction would include
+                            //    a goal on LHS
+                            // 2. Expanding current action would
+                            //    overflow episodic memory
+                            // 3. Current action is already maximum length
 
-                // Regardless of whether candidate action is
-                // unique we need to increase overall
-                // frequency for all cousins in the list and
-                // end the matching process
-                (*(curr->overallFreq))++;
-                matchComplete = TRUE;
-            }
-            else    //Found a LHS match to a determinate action
-            {
-                //Now see if the RHS of both actions match
-                if (compareActOrEp(episodeList, newAction->outcome,
-                                   curr->outcome, level))
-                {
-                    //We have a complete match between the
-                    //candidate and an existing action, so just
-                    //update the existing action
-                    curr->freq++;
+                            //Check for reason #1:  Expansion creates
+                            //goal on LHS
+                            int newLHSEntryIndex = (newAction->index - newAction->length) - 1;
 
-                    //Done with update
-                    matchComplete = TRUE;
-                    addNewAction = FALSE;
-                    updateExistingAction = curr;
-                }
-                else    //RHS does not match
-                {
+                            if (episodeContainsGoal(episodeList->array[newLHSEntryIndex],
+                                             level))
+                            {
 #if DEBUGGING_UPDATEALL
-                    printf("LHS match but RHS doesn't while comparing to %i...\n", i);
-                    printf("Creating new cousins\n");
-                    fflush(stdout);
+                                printf("NewAction expands into goal at index: %i\n",
+                                       newLHSEntryIndex);
+                                fflush(stdout);
 #endif
 
-                    // We need to convert both the current action and
-                    // the candidate action into indeterminate actions
+                                //the new action can't be expanded so we
+                                //consider it degenerate so just abort
+                                //and create no new actions or updates
+                                matchComplete = TRUE;
+                                addNewAction = FALSE;
+                            }
 
-                    // allocate cousins list and add both peer
-                    // indetermiante actions into same cousins list
-                    curr->cousins = newVector();
-                    addAction(curr->cousins, curr, TRUE);
-                    addAction(curr->cousins, newAction, TRUE);
-                    newAction->cousins = curr->cousins;
+                            //Check for reason #2: no room to expand
+                            else if ((curr->length < MAX_LEN_LHS)
+                                     && (curr->index - curr->length < 0))
+                            {
+#if DEBUGGING_UPDATEALL
+                                printf("avail space: %i,  curr expands outside goal\n",
+                                       curr->index - curr->length);
+                                fflush(stdout);
+#endif
 
-                    //Update actions
-                    curr->isIndeterminate = TRUE;
-                    newAction->isIndeterminate = TRUE;
-                    curr->overallFreq = (int*) malloc(sizeof(int));
-                    newAction->overallFreq = curr->overallFreq;
-                    *(curr->overallFreq) = curr->freq + 1;
+                                //The current action can't be expanded so we
+                                //consider it degenerate and replace it with the
+                                //new action.
 
-                    //We're done with this match
-                    matchComplete = TRUE;
-                    addNewAction = TRUE;
+                                //AMN: We may need to handle this differently.
+                                //It's pretty kludgey.
+                                curr->index                             = newAction->index;
+                                curr->outcome               = newAction->outcome;
+                                curr->length                        = newAction->length;
+                                curr->freq                                  = 1;
+
+                                //done with update
+                                matchComplete = TRUE;
+                                addNewAction = FALSE;
+                            }
+
+                            //if the newAction is currently shorter than
+                            //the current action, then it can safely be
+                            //expanded
+                            else if (newAction->length < curr->length)
+                            {
+                                newAction->length++;
+
+#if DEBUGGING_UPDATEALL
+                                printf("partial match with curr, extending new action to %i\n",
+                                       newAction->length);
+                                fflush(stdout);
+                                printf("new candidate: ");
+                                displayAction(newAction);
+                                printf("\n");
+                                fflush(stdout);
+#endif
+                            }
+
+                            //If the current action can be expanded then
+                            //expand both the current and candidate actions
+                            else if(curr->length < MAX_LEN_LHS)
+                            {
+#if DEBUGGING_UPDATEALL
+                                printf("len of curr action (%i) = %i < %i so increasing to %i\n",
+                                       i, curr->length, MAX_LEN_LHS, curr->length+1);
+                                fflush(stdout);
+#endif
+
+                                //both current action and new action can
+                                //be expanded so do so in hopes that they will
+                                //end up different
+                                curr->length++;
+                                curr->freq = 1;
+                                newAction->length++;
+
+
+#if DEBUGGING_UPDATEALL
+                                printf("new curr:   ");
+                                displayAction(curr);
+                                printf("\n");
+
+                                printf("new cand: ");
+                                displayAction(newAction);
+                                printf("\n");
+                                fflush(stdout);
+#endif
+
+                            }
+                            else  //current action can't be expanded without
+                            //exceeding max length (reason #3)
+                            {
+#if DEBUGGING_UPDATEALL
+                                printf("cousins\n");
+                                fflush(stdout);
+#endif
+
+                                // We need to convert both the current action and
+                                // the candidate action into indeterminate actions
+
+                                // allocate cousins list and add both peer
+                                // indetermiante actions into same cousins list
+                                curr->cousins = newVector();
+                                addAction(curr->cousins, curr, TRUE);
+                                addAction(curr->cousins, newAction, TRUE);
+                                newAction->cousins = curr->cousins;
+
+                                //Update actions
+                                curr->isIndeterminate = TRUE;
+                                newAction->isIndeterminate = TRUE;
+                                curr->overallFreq = (int*) malloc(sizeof(int));
+                                newAction->overallFreq = curr->overallFreq;
+                                *(curr->overallFreq) = curr->freq + 1;
+
+                                //We're done with this match
+                                matchComplete = TRUE;
+                                addNewAction = TRUE;
+                            }// else
+                        }// else
+                    }// else
+                }// if
+                else // newAction and curr have different lengths
+                {
+                    //If we make it here, the candidate action and
+                    //current action are different lengths but they do
+                    //match up to the length of the shorter action.
+
+                    //If the candidate is longer then consider it a
+                    //degenerate action and stop
+                    if (newAction->length > curr->length)
+                    {
+                        matchComplete = TRUE;
+                        addNewAction = FALSE;
+#if DEBUGGING_UPDATEALL
+                        printf("newAction matches but is bigger than current action.  Aborting.\n");
+                        fflush(stdout);
+#endif
+                    }
+//===============================================================================
+// I think that this code needs to probably be expanded to prevent the newAction
+// from expanding beyond its limits, as above.
+                    //If the new action can be expanded, try doing so to
+                    //see if that makes it unique
+                    else if(newAction->length < MAX_LEN_LHS)
+                    {
+                        //-----This is the part that I added
+                        int newLHSEntryIndex = (newAction->index - newAction->length) - 1;
+
+                        if (episodeContainsGoal(episodeList->array[newLHSEntryIndex],
+                                         level))
+                        {
+#if DEBUGGING_UPDATEALL
+                            printf("2. NewAction expands into goal at index: %i\n",
+                                   newLHSEntryIndex);
+                            fflush(stdout);
+#endif
+
+                            //the new action can't be expanded so we
+                            //consider it degenerate so just abort
+                            //and create no new actions or updates
+                            matchComplete = TRUE;
+                            addNewAction = FALSE;
+                        }
+                        //----------------------------------
+                        else
+                        {
+                            newAction->length++;
+
+#if DEBUGGING_UPDATEALL
+                            printf("expanded new action to len %i\n",
+                                   newAction->length);
+                            printf("new candidate: ");
+                            displayAction(newAction);
+                            printf("\n");
+                            fflush(stdout);
+#endif
+                        }
+//============================================================================                                         
+                    }
+                    else
+                    {
+                        //Should never happen
+                        printf("Nux was wrong\n");
+                        fflush(stdout);
+                    }
                 }// else
-            }// else
-        }// if
+            }// if
+            else // j-th episodes in actions do not match
+            {
+                //The current action's nth entry doesn't match so we can
+                //abort the comparison even if the candidate action has
+                //more entries in its LHS
+                break;
+            }
+        }// for
 
-        // if we matched an action break out of loop and free memory
+        // if matched action break out of loop and free memory
         if(matchComplete == TRUE)
         {
             break;
@@ -1164,7 +1161,7 @@ int updateAll(int level)
     {
         // add most recently seen action to current sequence
         Vector* currSequence = sequenceList->array[sequenceList->size - 1];
-
+       
 #if DEBUGGING_UPDATEALL
         printf("Adding action #%d: ", findEntry(actionList, updateExistingAction));
         displayAction(updateExistingAction);
@@ -1184,41 +1181,35 @@ int updateAll(int level)
             || ( (updateExistingAction->isIndeterminate)
                 && (currSequence->size > 1) ) )
         {
-
-            
-            // if the sequence we just completed already exists then
-            // reset the vector's size to 0
-            // This will allow updateAll to reuse the same vector
-            // without needing to free memory
+                        // if the sequence we just completed already exists then
+                        // reset the vector's size to 0
+                        // This will allow updateAll to reuse the same vector
+                        // without needing to free memory
             Vector* duplicate = containsSequence(sequenceList, currSequence, TRUE);
             Vector *parentEpList = g_epMem->array[level + 1];
-            if(duplicate != NULL)
-            {
-                currSequence->size = 0;
+                        if(duplicate != NULL)
+                        {
+                                currSequence->size = 0;
                 // this duplicate sequence becomes the next episode in the
                 // next level's episodic memory
                 if (level + 1 < MAX_LEVEL_DEPTH)
                 {
                     addEntry(parentEpList, duplicate);
-
-                    //record meta info about this latest sequence
-                    addSeqInfo(duplicate, level);
-                    assert(parentEpList->size ==
-                           ((Vector *)g_seqInfo->array[level])->size);
                 }
-            }
-            else
-            {
+                        }
+                        else
+                        {
                 // this newly completed sequence becomes the next
                 // episode in the next level's episodic memory UNLESS:
                 // - the required level doesn't exist
                 // - the sequence only contains one entry (i.e., its
                 //   sole action contains a path from start to goal)
                 // We've removed this test because at this point we
+                //
                 // think it's reasonable to include an episode that is a
                 // sequence from start to goal in the next level's epMem.
                 // This is becuase, even though it is a complete path, it was
-                // still an event in our past as thus in our episodic memeory
+                // still an even in our past as thus in our episodic memeory
                 if (level + 1 < MAX_LEVEL_DEPTH)
                 {
 #if DEBUGGING_UPDATEALL
@@ -1228,17 +1219,12 @@ int updateAll(int level)
                     fflush(stdout);
 #endif
                     addEntry(parentEpList, currSequence);
-
-                    //record meta info about this latest sequence
-                    addSeqInfo(currSequence, level);
-                    assert(parentEpList->size ==
-                           ((Vector *)g_seqInfo->array[level])->size);
                 }
                 // create an vector to hold the next sequence
                 currSequence = newVector();
                 addEntry(sequenceList, currSequence);
 
-            }//else
+                        }//else
 
             // typically the next sequence starts with the action that
             // ended the last sequence.  (Exception:  last action
@@ -1392,7 +1378,7 @@ void displayEpisodeShort(Episode * ep)
         printf("<null episode!>");
         return;
     }
-
+   
     printf("%i%s", interpretSensorsShort(ep->sensors), interpretCommandShort(ep->cmd));
 }//displayEpisodeShort
 
@@ -1422,18 +1408,9 @@ void displayEpisodes(Vector *episodeList, int level)
 
         if (level == 0)
         {
-#if USE_WMES
-            EpisodeWME *ep = (EpisodeWME*)episodeList->array[i];
-#if EATERS_MODE
-            displayVisualizedEpisodeWME(ep);
-#else
-            displayEpisodeWMEShort(ep);
-#endif
-#else
             Episode *ep = (Episode*)episodeList->array[i];
             displayEpisodeShort(ep);
-#endif
-            if (i + 1 < episodeList->size) printf(",\n"); // delimiter
+            if (i + 1 < episodeList->size) printf(", "); // delimiter
         }
         else //episodeList contains sequences
         {
@@ -1571,13 +1548,7 @@ void displaySequences(Vector* sequences)
     for(i = 0; i < sequences->size; i++)
     {
         printf("%3i. ", i);
-#if EATERS_MODE
-        printf("\n");
-        if (i == sequences->size-1) continue;
-        displayVisualizedLevel0Sequence(sequences->array[i], TRUE);
-#else            
         displaySequenceShort(sequences->array[i]);
-#endif
         printf("\n");
     }
 }//displaySequences
@@ -1614,42 +1585,34 @@ void displayReplacement(Replacement *repl)
  */
 void displayAction(Action* action)
 {
-    //Use the special visualization code for level 0 actions
-#if EATERS_MODE
-    if (action->level == 0)
-    {
-        printf("\n");
-        displayVisualizedAction(action);
-        return;
-    }
-#endif
-            
+    int i,j;
+
     //Indicate if this is a start action
     if (action->containsStart) printf("s");
     else printf(" ");
 
     //Print the LHS
-    if (action->level == 0)
+    for(i = 0; i < action->length; i++)
     {
-#if USE_WMES
-        displayEpisodeWMEShort((EpisodeWME*)action->epmem->array[action->index]);
-#else
-        displayEpisodeShort((Episode*)action->epmem->array[action->index]);
-#endif
-    }
-    else //sequence
-    {
-        //Get the episode that corresponds to the LHS of this action
-        Vector *epSeq = (Vector *)action->epmem->array[action->index];
+        if (action->level == 0)
+        {
+            displayEpisodeShort((Episode*)action->epmem->array[action->index - i]);
+        }
+        else //sequence
+        {
+            //Get the episode that corresponds to the LHS of this action
+            Vector *epSeq = (Vector *)action->epmem->array[action->index - i];
                
-        //Lookup the index of this sequence in the list of all sequences at
-        //the next level down
-        Vector *seqList = (Vector *)g_sequences->array[action->level - 1];
-        int index = findEntry(seqList, epSeq);
+            //Lookup the index of this sequence in the list of all sequences at
+            //the next level down
+            Vector *seqList = (Vector *)g_sequences->array[action->level - 1];
+            int index = findEntry(seqList, epSeq);
 
-        //print the index
-        printf("%i", index);
-    }
+            //print the index
+            printf("%i", index);
+        }
+
+    }//for
 
     //Print the arrow
     if(action->isIndeterminate)
@@ -1665,14 +1628,9 @@ void displayAction(Action* action)
     if (action->level == 0)
     {
         Vector* episodeList = (Vector*)g_epMem->array[0];
-
-#if USE_WMES
-        EpisodeWME *outcomeEp = (EpisodeWME*)episodeList->array[action->outcome];
-        displayWMEListShort(outcomeEp->sensors);
-#else
         Episode *outcomeEp = (Episode*)episodeList->array[action->outcome];
+
         printf("%i", interpretSensorsShort(outcomeEp->sensors));
-#endif
 
         //Remove this (used to be used but is confusing)
         //displayEpisodeShort(outcomeEp);
@@ -1711,7 +1669,6 @@ void displayAction(Action* action)
  */
 int chooseCommand_SemiRandom()
 {
-    g_numRandom++;
     int i;                      // iterator
    
 #if DEBUGGING
@@ -1722,8 +1679,9 @@ int chooseCommand_SemiRandom()
     //Make an array of boolean values (one per command) and init them all to
     //TRUE. This array will eventually indicates whether the given command would
     //create a unique episode (TRUE) or not (FALSE).
-    int valid[g_CMD_COUNT];
-    for(i = 0; i < g_CMD_COUNT; i++)
+    int numCmds = LAST_MOBILE_CMD - CMD_NO_OP;       // number of commands
+    int valid[numCmds];
+    for(i = 0; i < numCmds; i++)
     {
         valid[i] = TRUE;        // innocent until proven guilty
     }
@@ -1731,22 +1689,13 @@ int chooseCommand_SemiRandom()
     //Find all the level 0 episodes whose sensor values match the most recent
     //sensing.  Mark the commands associated with those episodes as invalid
     Vector *epList = g_epMem->array[0];
-#if USE_WMES
-    EpisodeWME *lastEpisode = (EpisodeWME*)epList->array[epList->size - 1];
-#else
     Episode *lastEpisode = (Episode*)epList->array[epList->size - 1];
-#endif
     if (epList->size >= 2)
     {
         for(i = 0; i < (epList->size - 2); i++) // iterate over all but most recent
         {
-#if USE_WMES
-            EpisodeWME *currEpisode = (EpisodeWME*)epList->array[i];
-            if (compareEpisodesWME(currEpisode, lastEpisode, FALSE))
-#else
             Episode *currEpisode = (Episode *)epList->array[i];
             if (compareEpisodes(currEpisode, lastEpisode, FALSE))
-#endif
             {
                 int index = currEpisode->cmd - CMD_NO_OP;
                 valid[index] = FALSE; // guilty!  (episode already exists)
@@ -1754,169 +1703,36 @@ int chooseCommand_SemiRandom()
         }//for
     }//if
 
+   
     //Select a random starting position in the valid array.  This indicates our
     //default choice for a command.  NOTE: We start the search in a random
     //position so that the agent won't always default to the lowest numbered
     //command.
-    int start = (rand() % g_CMD_COUNT); // random start
+    int start = (rand() % numCmds); // random start
 
-    int holder;
-    int status = -1;            // did we find a matching episode for the
-                                // current command?
-    double topScore=0.0, tempScore=0.0;
     //Starting with the random position and treating "valid" as a circular array
     //scan until the first valid command is found.
-    if (!g_statsMode) printf("Determining scores for valid random commands\n");
-    for(i = 0; i < g_CMD_COUNT; i++)
+    for(i = 0; i < numCmds; i++)
     {
-        int index = (start + i) % g_CMD_COUNT;
-
-#ifdef EATERS_MODE        
-        //For each possible command
-        // Here we calculate the score for the current command
-        tempScore = findDiscountedCommandScore(index + CMD_NO_OP);
-
-        if(tempScore < 0)
-        {
-            if (!g_statsMode) printf("\t%s: no valid reward found\n", interpretCommandShort(index + CMD_NO_OP));
-        }//if
-        else
-        {
-            // if (!g_statsMode) printf("\t%s score= %lf\n", interpretCommandShort(index), tempScore);
-            if(!g_statsMode) printf("\t%s score= %lf ", interpretCommandShort(index + CMD_NO_OP), tempScore);
-
-            if(tempScore > topScore)
-            {
-                if(!g_statsMode) printf("; Saving as new top score.");
-                topScore = tempScore;
-                holder = index;
-                status = 1;
-            }//if
-            if(!g_statsMode) printf("\n");
-        }//else
-#else
+        int index = (start + i) % numCmds;
         if (valid[index])
         {
-            return index + CMD_NO_OP;
-        }//if
+#if DEBUGGING
+            printf("%d\n", index + CMD_NO_OP);
+            fflush(stdout);
 #endif
+            return index + CMD_NO_OP;
+        }
+    }
 
-        
-
-    }//for
-    
-    if(status != -1) return holder + CMD_NO_OP;
-    
     //if no valid command is found, then just use the randomly selected default
 #if DEBUGGING
     printf("%d\n", start + CMD_NO_OP);
     fflush(stdout);
 #endif
     return start + CMD_NO_OP;
+
 }//chooseCommand_SemiRandom
-
-/**
- * findDiscountedCommandScore
- *
- * This function takes a command and finds the reward
- * associated with it, applies the appropriate discount,
- * and returns the final score for the command.
- *
- * The initial score is determined by finding an episode where:
- *  1. The candidate command was chosen
- *  2. Episode occurred *before* most recent reward
- *  3. Episode sensing matches current sensing
- *
- * Then: Count the number of episodes to the subsequent reward
- *
- * The discount is applied by multiplying the reward times
- *  a discount factor raised to the power of the above number
- *
- * @param command An integer indicating the command to score
- * @return double The discounted score for the command
- */
-double findDiscountedCommandScore(int command)
-{
-    int i,j;
-    int lastRewardIdx = findLastReward();
-    Vector *level0Eps = ((Vector *)g_epMem->array[0]);
-    int currIndex = level0Eps->size - 1;
-
-    if(!g_statsMode) printf("Searching for command: %s\n", interpretCommand(command));
-    if(!g_statsMode) printf("\tCurrent index: %d\n", currIndex);
-    if(!g_statsMode) printf("\tLast reward index: %d\n", lastRewardIdx);
-#if FIND_LAST_REWARD
-    if(!g_statsMode) printf("\tSearching to last reward\n");
-#else
-    if(!g_statsMode) printf("\tSearching to current index\n");
-#endif
-    
-    EpisodeWME* curr = (EpisodeWME*)getEntry(level0Eps, level0Eps->size - 1);
-    curr->cmd = command;
-    
-    int topMatch = 0, tempMatch = 0, holder = -1;
-#if FIND_LAST_REWARD
-    for(i = 0; i < lastRewardIdx; i++)
-#else
-    for(i = 0; i < currIndex; i++)
-#endif
-    {
-        tempMatch = getNumMatches(getEntry(level0Eps, i), curr, TRUE);
-
-        if(tempMatch >= topMatch)
-        {
-            topMatch = tempMatch;
-            holder = i;
-        }//if
-    }//for
-
-    if(holder < 0) return -1.0;
-
-    if(!g_statsMode) printf("\tState best matched at index: %d\n", holder);
-#if LOOK_AHEAD_N
-    for(i = 1; i <= LOOK_AHEAD_N && i + holder <= lastRewardIdx; i++)
-#else
-    for(i = 1; i + holder <= lastRewardIdx; i++)
-#endif
-    {
-        EpisodeWME* ep = (EpisodeWME*)getEntry(level0Eps, i + holder);
-
-        if(ep == curr) 
-        {
-            if(!g_statsMode) printf("\tNo subsequent reward found\n");
-            return 0;
-        }
-
-        if(episodeContainsReward(ep))
-        {
-            int found;
-            if(!g_statsMode) printf("\tNondiscounted reward: %i at %i steps from match\n", getINTValWME(ep, "reward", &found), i);
-            if(!g_statsMode) printf("\tDiscount: %lf\n", pow(DISCOUNT, i));
-            return (((double)getINTValWME(ep, "reward", &found)) * (double)pow(DISCOUNT, i));
-        }//if
-    }//for
-    return -1.0;
-}//findDiscountedCommandScore
-
-
-/**
- * findLastReward
- *
- * This function returns the index of the last episode
- * containing a reward.
- *
- * @return int The index of the last episode with a reward
- *              Negative if none have been received
- */
-int findLastReward()
-{
-    int i;
-    Vector* episodeList = (Vector*)g_epMem->array[0];
-    for(i = episodeList->size - 1; i > 0; i--)
-        if(episodeContainsReward(getEntry(episodeList, i))) return i;
-
-    return -1;
-}//findLastReward
 
 /**
  * nextStepIsValid
@@ -1930,17 +1746,12 @@ int nextStepIsValid()
 {
     //If there is no plan then there is no next step
     if (g_plan == NULL) return FALSE;
-
+   
     //Get the current action that we are about to execute
     Route* level0Route = (Route *)g_plan->array[0];
-    assert(level0Route != NULL);
 
     // if this is a brand new route, then the next step is always valid
-    //UNLESS it was a 1 step plan.  In that case, we need to check
-    //that the final output matches the expecatation (see Special Case below)
-    if (level0Route->currActIndex == 0
-            && level0Route->currSeqIndex == 0
-            && !level0Route->needsRecalc)
+    if (level0Route->currActIndex == 0 && level0Route->currSeqIndex == 0)
     {
         return TRUE;
     }//if
@@ -1950,10 +1761,10 @@ int nextStepIsValid()
     fflush(stdout);
 #endif
 
-
+   
     //Retrieve the action we are about to execute
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
-
+   
 #if DEBUGGING_NSIV
     printf("Current Sequence:\n");
     fflush(stdout);
@@ -1966,88 +1777,27 @@ int nextStepIsValid()
 
 #if DEBUGGING_NSIV
     printf("Current Action at index %d of sequence at index %d: ",
-            level0Route->currActIndex, level0Route->currSeqIndex);
+           level0Route->currActIndex, level0Route->currSeqIndex);
     displayAction(currAction);
     printf("\n");
     fflush(stdout);
 #endif
 
-    //Save a convenient reference to the level 0 episode list
+    //Get the current sensing from the episode list
     Vector *episodeList = g_epMem->array[0];
-
-    //Special Case: We've just completed a plan we need to verify that we
-    //reached the goal as expected
-    if (level0Route->needsRecalc)
-    {
-#if DEBUGGING_NSIV
-        printf("We've just completed a plan so verify goal was reached.\n");
-        fflush(stdout);
-#endif
-
-
-#if USE_WMES
-        //See if we got the expected reward
-        EpisodeWME* currEp     = episodeList->array[episodeList->size - 1];
-        EpisodeWME* expectedEp = currAction->epmem->array[currAction->outcome];
-        int found;
-        int expectedReward = getINTValWME(expectedEp, "reward", &found);
-        int actualReward = getINTValWME(currEp, "reward", &found);
-
-#if DEBUGGING_NSIV
-        printf("Comparing rewards from:\n");
-        printf("\tcurrEp=");
-        displayEpisodeWMEShort(currEp);
-        printf("\texpectedEp=");
-        displayEpisodeWMEShort(expectedEp);
-#endif
-
-        return ( (expectedReward == actualReward)
-                 && (expectedReward > 0) );
-#else
-        //see if this is a goal
-        Episode* currEp = episodeList->array[episodeList->size - 1];
-        return currEp->sensors[SNSR_IR];
-#endif
-    }//
-
-
-    //Get the current sensing from the level 0 episode list
-#if USE_WMES
-    EpisodeWME* currEp     = episodeList->array[episodeList->size - 1];
-
-    // compare the current sensing to the sensing on the LHS of the
-    // to-be-executed action
-    EpisodeWME* nextStep = currAction->epmem->array[currAction->index];
-#else
     Episode* currEp     = episodeList->array[episodeList->size - 1];
-
+   
     // compare the current sensing to the sensing on the LHS of the
     // to-be-executed action
     Episode* nextStep = currAction->epmem->array[currAction->index];
-#endif
-
 
 #if DEBUGGING
     fflush(stdout);
     printf("comparing the current sensing:");
-#if USE_WMES
-    displayWMEListShort(currEp->sensors);
-#if EATERS_MODE
-    displayVisualizedEpisodeWME(currEp);
-#endif
-#else
     printf("%i ", interpretSensorsShort(currEp->sensors));
-#endif
     fflush(stdout);
     printf(" to the expected sensing: ");
-#if USE_WMES
-    displayEpisodeWMEShort(nextStep);
-#if EATERS_MODE
-    displayVisualizedEpisodeWME(nextStep);
-#endif
-#else
     displayEpisodeShort(nextStep);
-#endif
     printf("\n");
     fflush(stdout);
 #endif
@@ -2057,13 +1807,9 @@ int nextStepIsValid()
     displayRoute(level0Route, FALSE);
     printf("\n");
 #endif
-
-#if USE_WMES
-    return compareEpisodesWME(currEp, nextStep, FALSE);
-#else
+   
     return compareEpisodes(currEp, nextStep, FALSE);
-#endif
-
+   
 }//nextStepIsValid
 
 /**
@@ -2078,9 +1824,9 @@ void rewardAgent()
     printf("Overall confidence increased from %g to ", g_selfConfidence);
     fflush(stdout);
 #endif
-
+   
     g_selfConfidence += (1.0 - g_selfConfidence) / 2.0;
-
+   
 #if DEBUGGING
     printf("%g\n", g_selfConfidence);
     fflush(stdout);
@@ -2098,9 +1844,9 @@ void penalizeAgent()
     printf("Overall confidence decreased from %g to ", g_selfConfidence);
     fflush(stdout);
 #endif
-
+   
     g_selfConfidence /= 2.0;
-
+   
 #if DEBUGGING
     printf("%g\n", g_selfConfidence);
     fflush(stdout);
@@ -2127,7 +1873,7 @@ void rewardReplacements()
     {
         Replacement *repl = (Replacement *)g_activeRepls->array[i];
         repl->confidence += (1.0 - repl->confidence) / 2.0;
-
+       
 #if DEBUGGING
         printf("Replacement succeeded:  ");
         displayReplacement(repl);
@@ -2135,12 +1881,12 @@ void rewardReplacements()
         fflush(stdout);
 #endif
     }//for
-
+   
     //Reset the active replacements list
     //(no need to deallocate anything since a complete list of
     //replacements is in g_replacements)
     g_activeRepls->size = 0;
-
+   
 }//rewardReplacements
 
 /**
@@ -2172,93 +1918,15 @@ void penalizeReplacements()
         printf("\n");
         fflush(stdout);
 #endif
-
+       
     }//for
-
+   
     //Reset the active replacements list
     //(no need to deallocate anything since a complete list of
     //replacements is in g_replacements)
     g_activeRepls->size = 0;
 
 }//penalizeReplacements
-
-/**
- * addSeqInfo
- *
- * initializes a SeqInfo struct with a given sequence and inserts it into
- * the g_seqInfo vector.
- *
- * @arg seq     a valid sequence containing at least one action
- * @arg level   the level of this sequence
- *
- */
-void addSeqInfo(Vector *seq, int level)
-{
-    //This is the vector we'll be added the new SeqInfo into
-    Vector *subSeqList = (Vector *)g_seqInfo->array[level];
-
-    //Create a SeqInfo struct to store meta data about this sequence
-    SeqInfo *newSI = (SeqInfo *)malloc(sizeof(SeqInfo));
-
-    //init the easy parts first
-    newSI->index         = subSeqList->size;
-    newSI->seq           = seq;
-    newSI->level         = level;
-    newSI->valid         = TRUE;
-
-    //Use the first and last action in the sequence for reference to init the
-    //containsGoal and containsStart members of the struct
-    Action *firstAct = (Action *)seq->array[0];
-    Action *lastAct = (Action *)seq->array[seq->size - 1 ];
-    newSI->containsStart = firstAct->containsStart;
-    newSI->containsGoal  = lastAct->containsGoal; 
-
-    //The first episode in this sequence is USUALLY the last episode in the
-    //previous sequence with two exceptions:
-    // 1.  there is no previous sequence (this is the first one)
-    // 2.  the previous sequence contains a goal
-    if (subSeqList->size == 0)
-    {
-        newSI->firstIndex = 0;
-    }
-    else
-    {
-        SeqInfo *prevSI = (SeqInfo *)subSeqList->array[subSeqList->size - 1];
-        if (prevSI->containsGoal)
-        {
-            newSI->firstIndex = prevSI->lastIndex + 1;
-        }
-        else
-        {
-            newSI->firstIndex = prevSI->lastIndex;
-        }
-    }//else
-    
-    //The last episode in the sequence is the most recent one that exists
-    Vector *level0Eps = (Vector *)g_epMem->array[0];
-    newSI->lastIndex     = level0Eps->size - 1;
-
-#ifdef DEBUGGING
-    //sanity checks
-    assert(newSI->firstIndex >= 0);
-    assert(newSI->lastIndex >= newSI->firstIndex);
-
-
-    //%%%DELME
-    // if (newSI->containsGoal)
-    // {
-    //     assert(newSI->seq->size == newSI->lastIndex - newSI->firstIndex);
-    // }
-    // else
-    // {
-    //     assert(newSI->seq->size == 1 + newSI->lastIndex - newSI->firstIndex);
-    // }
-#endif
-    
-    //Insert the struct into the vector
-    addEntry(subSeqList, newSI);
-    
-}//addSeqInfo
 
 /**
  * initRouteFromParent
@@ -2277,12 +1945,12 @@ void addSeqInfo(Vector *seq, int level)
 void initRouteFromParent(int level, int LHS)
 {
     assert(level + 1 < MAX_LEVEL_DEPTH);
-
+   
 #if DEBUGGING_UPDATEPLAN
     printf("Entering initRouteFromParent() at level %d\n", level);
     fflush(stdout);
 #endif
-
+   
     //Extract the current action from the parent route. 
     Route *parentRoute = (Route *)g_plan->array[level + 1];
     Vector *parentSeq = (Vector *)parentRoute->sequences->array[parentRoute->currSeqIndex];
@@ -2295,7 +1963,7 @@ void initRouteFromParent(int level, int LHS)
     printf("\n");
     fflush(stdout);
 #endif
-
+   
     //Get the correct episode from that action based on the LHS parameter.  In
     //either case, it will always be a sequence since the parent action is at
     //least a level 1 action
@@ -2313,7 +1981,7 @@ void initRouteFromParent(int level, int LHS)
     Route *newRoute = (Route*)malloc(sizeof(Route));
     newRoute->sequences = newVector();
     initRouteFromSequence(newRoute, seq);
-
+   
     //replace the old route with the new
     Route *oldRoute = (Route *)g_plan->array[level];
     if (oldRoute != NULL)
@@ -2324,12 +1992,12 @@ void initRouteFromParent(int level, int LHS)
 
 #if DEBUGGING_UPDATEPLAN
     printf("Updated level %d route with help from parent at level %d\n",
-            level, level + 1);
+           level, level + 1);
     printf("Updated route: ");
     displayRoute(newRoute, FALSE);
     fflush(stdout);
 #endif
-
+   
 }//initRouteFromParent
 
 /**
@@ -2345,12 +2013,12 @@ void initRouteFromParent(int level, int LHS)
  */
 int updatePlan(int level)
 {
-
+   
 #if DEBUGGING_UPDATEPLAN
     printf("-----===== begin updatePlan at level %d =====-----\n", level);
     fflush(stdout);
 #endif
-
+   
     //If there is no route at this level, report this
     if (level+1 >=  MAX_LEVEL_DEPTH)
     {
@@ -2368,10 +2036,10 @@ int updatePlan(int level)
 
     //Make sure the route at this level is valid
     if ( (route == NULL)
-            || (route->needsRecalc)
-            || (route->sequences == NULL)
-            || (route->sequences->size == 0)
-            || (route->sequences->size < route->currSeqIndex) )
+         || (route->needsRecalc)
+         || (route->sequences == NULL)
+         || (route->sequences->size == 0)
+         || (route->sequences->size < route->currSeqIndex) )
     {
         route->needsRecalc = TRUE;
         return LEVEL_NOT_POPULATED;
@@ -2397,7 +2065,7 @@ int updatePlan(int level)
     printf("Reached the last action in this sequence at level %d\n", level);
     fflush(stdout);
 #endif
-
+   
     //======================================================================
     //If we reach this point, then we're ready to move to the next sequence if
     //possible. 
@@ -2416,10 +2084,10 @@ int updatePlan(int level)
         assert(currSequence->size > 0);
 
         printf("Moved to sequence #%d of %d at level %d.\n",
-                route->currSeqIndex + 1, (int)route->sequences->size, level);
+               route->currSeqIndex + 1, (int)route->sequences->size, level);
         fflush(stdout);
 #endif
-
+       
         return SUCCESS;
     }//if
 
@@ -2441,20 +2109,12 @@ int updatePlan(int level)
     //If there is one more action left on this last sequence, let it go 
     if (route->currActIndex == currSequence->size - 1)
     {
-#if DEBUGGING_UPDATEPLAN
-        printf("Setting current action to very last action.\n");
-        fflush(stdout);
-#endif
         return SUCCESS;
     }
-
+    
     //Since there is nothing left to execute, we must report that this level is
     //done.  The lower level should still perform the outcome sequence
     //associated with the last action at this level.  
-#if DEBUGGING_UPDATEPLAN
-    printf("Informing caller that plan needs recalc.\n");
-    fflush(stdout);
-#endif
     (route->currActIndex)--;    // make this a valid value, just for safety
     route->needsRecalc = TRUE;
     return PLAN_ON_OUTCOME;
@@ -2463,15 +2123,15 @@ int updatePlan(int level)
 }//updatePlan
 
 /**
- * compareReplacements
- *
- * Compare two distinct replacements and return TRUE if they are equivalent
- *
- * @arg repl1   replacement to compare
- * @arg repl2   replacement to compare
- *
- * @return TRUE if they are a match
- */
+* compareReplacements
+*
+* Compare two distinct replacements and return TRUE if they are equivalent
+*
+* @arg repl1   replacement to compare
+* @arg repl2   replacement to compare
+*
+* @return TRUE if they are a match
+*/
 int compareReplacements(Replacement* repl1, Replacement* repl2)
 {
     if (! compareSequences(repl1->original, repl2->original))
@@ -2480,7 +2140,7 @@ int compareReplacements(Replacement* repl1, Replacement* repl2)
     }
 
     return compareActions(repl1->replacement, repl2->replacement);
-
+   
 }//compareReplacements
 
 /**
@@ -2511,11 +2171,11 @@ int replacementExists(Replacement *repl)
         {
             return TRUE;
         }
-
+       
     }//for
 
     return FALSE;
-
+   
 }//replacementExists
 
 /**
@@ -2570,7 +2230,7 @@ Replacement *makeNewReplacement()
         printf("\n");
         fflush(stdout);
 #endif
-
+       
         //Preinit the return value
         result->level = i;
         result->original    = newVector();
@@ -2592,13 +2252,13 @@ Replacement *makeNewReplacement()
             Action *candAct = actList->array[index];
 
 #if DEBUGGING_FIND_REPL
-            printf("\ttrying ");
-            fflush(stdout);
-            displayAction(candAct);
-            printf("...");
-            fflush(stdout);
+        printf("\ttrying ");
+        fflush(stdout);
+        displayAction(candAct);
+        printf("...");
+        fflush(stdout);
 #endif
-
+       
             //See if the candidate is compatible with these to-be-replaced
             //actions.  This comparision is done differently at level 0 than
             //other levels
@@ -2606,35 +2266,23 @@ Replacement *makeNewReplacement()
             {
                 //The LHS sensors of candidate must match the LHS sensors of
                 //act1
-#if USE_WMES
-                EpisodeWME *candLHS = (EpisodeWME *)candAct->epmem->array[candAct->index];
-                EpisodeWME *act1LHS = (EpisodeWME *)act1->epmem->array[act1->index];
-                if (! compareEpisodesWME(candLHS, act1LHS, FALSE))
-#else
-                    Episode *candLHS = (Episode *)candAct->epmem->array[candAct->index];
+                Episode *candLHS = (Episode *)candAct->epmem->array[candAct->index];
                 Episode *act1LHS = (Episode *)act1->epmem->array[act1->index];
                 if (! compareEpisodes(candLHS, act1LHS, FALSE))
-#endif
                 {
 #if DEBUGGING_FIND_REPL
                     printf("LHS sensors don't match.\n");
                     fflush(stdout);
 #endif
-
+       
                     continue;   // bad match, try a different candidate
                 }
 
                 //the RHS sensors of the candidate must match the RHS sensors of
                 //act2.
-#if USE_WMES
-                EpisodeWME *candRHS = (EpisodeWME *)candAct->epmem->array[candAct->outcome];
-                EpisodeWME *act2RHS = (EpisodeWME *)act2->epmem->array[act2->outcome];
-                if (! compareEpisodesWME(candRHS, act2RHS, FALSE))
-#else
-                    Episode *candRHS = (Episode *)candAct->epmem->array[candAct->outcome];
+                Episode *candRHS = (Episode *)candAct->epmem->array[candAct->outcome];
                 Episode *act2RHS = (Episode *)act2->epmem->array[act2->outcome];
                 if (! compareEpisodes(candRHS, act2RHS, FALSE))
-#endif
                 {
 #if DEBUGGING_FIND_REPL
                     printf("RHS sensors don't match.\n");
@@ -2681,8 +2329,8 @@ Replacement *makeNewReplacement()
             if (replacementExists(result))
             {
 #if DEBUGGING_FIND_REPL
-                printf("Duplicate (already exists).\n");
-                fflush(stdout);
+                    printf("Duplicate (already exists).\n");
+                    fflush(stdout);
 #endif
                 continue;
             }
@@ -2691,7 +2339,7 @@ Replacement *makeNewReplacement()
             return result;
 
         }//for
-
+           
     }//for
 
     // No new replacement can be made.  This happens when replacmeents are only
@@ -2716,7 +2364,7 @@ void considerReplacement()
     printf("Entering considerReplacement...\n");
     fflush(stdout);
 #endif
-
+   
     //Avoid making more replacements per plan than allowed
     if (g_activeRepls->size >= MAX_REPLS) return;
 
@@ -2736,7 +2384,7 @@ void considerReplacement()
 
         return;
     }
-
+   
     /*----------------------------------------------------------------------
      * Find the best replacement that can be applied
      *----------------------------------------------------------------------
@@ -2766,7 +2414,7 @@ void considerReplacement()
         if (newRepl == NULL)
         {
 #if DEBUGGING
-            printf("No valid replacement found. Self-confidence: %lf\n", g_selfConfidence);
+            printf("No valid replacement found.\n", g_selfConfidence);
             fflush(stdout);
 #endif
             return;
@@ -2792,7 +2440,7 @@ void considerReplacement()
             repl = newRepl;
         }
     }//else
-
+        
 
     //Make sure the agent is confident enough to use the selected replacement
     if (g_selfConfidence < (1.0 - repl->confidence))
@@ -2811,10 +2459,10 @@ void considerReplacement()
      */
     //This guy does all the work
     applyReplacementToPlan(g_plan, repl);
-
+   
     //Log that the replacement is active
     addEntry(g_activeRepls, repl);
-
+   
 }//considerReplacement
 
 
@@ -2838,7 +2486,7 @@ int chooseCommand_WithPlan()
     printf("\n");
     fflush(stdout);
 #endif
-
+   
     //Before executing the next command in the plan, see if there is a
     //replacement rule that the agent is confident enough to apply to the
     //current plan and apply it.
@@ -2846,33 +2494,11 @@ int chooseCommand_WithPlan()
 
     //Get the level 0 route from from the plan
     Route* level0Route = (Route *)g_plan->array[0];
-    assert(level0Route != NULL);
 
-#if DEBUGGING
-    printf("Displaying the current route\n");
-    fflush(stdout);
-    //    displayRoute(level0Route, FALSE);
-    printf("\n");
-    fflush(stdout);
-    printf("Level: %d\n", level0Route->level);
-    assert(level0Route->sequences != NULL);
-    printf("NumSeqs: %d\n", (int)level0Route->sequences->size);
-    printf("FirstSeqLen: %d\n", (int)((Vector*)level0Route->sequences->array[0])->size);
-    printf("CurrSeqIdx: %d\n", level0Route->currSeqIndex);
-    printf("CurrActIdx: %d\n", level0Route->currActIndex);
-    printf("NeedsRecalc: %d\n", level0Route->needsRecalc);
-    printf("\n");
-    fflush(stdout);
-#endif
     //Extract the current action
     Vector *currSequence = (Vector *)level0Route->sequences->array[level0Route->currSeqIndex];
     Action* currAction = currSequence->array[level0Route->currActIndex];
-#if USE_WMES
-    assert(currAction != NULL);
-    EpisodeWME* nextStep = currAction->epmem->array[currAction->index];
-#else
     Episode* nextStep = currAction->epmem->array[currAction->index];
-#endif
 
     //move the "current action" pointer to the next action as a result
     //of taking this action
@@ -2899,32 +2525,17 @@ int chooseCommand()
     int i,j;                    // iterators
 
 #if DEBUGGING_CHOOSECMD
-    printf("Entering chooseCommand\n");
-    fflush(stdout);
+            printf("Entering chooseCommand\n");
+            fflush(stdout);
 #endif
-
-    //If agent confidence is too low, it takes a random actions
-    //before attempting to plan again
-    if(g_selfConfidence < MIN_SELF_CONFIDENCE)
-    {
-        freePlan(g_plan);
-        g_plan = NULL;
-        g_numRandomLowConfidence++;
-        
-#if DEBUGGING_CHOOSECMD
-        printf("Choosing a random command due to lack of confidence: %lf\n", g_selfConfidence);
-        fflush(stdout);
-#endif
-        return chooseCommand_SemiRandom();
-    }
-
+           
     //If the agent has taken a wrong step, then it loses confidence in itself
     //and in the recently applied replacements
     if (g_plan != NULL)
     {
 #if DEBUGGING_CHOOSECMD
-        printf("checking to see if plan is still valid\n");
-        fflush(stdout);
+            printf("checking to see if plan is still valid\n");
+            fflush(stdout);
 #endif
 
         if (! nextStepIsValid())
@@ -2938,15 +2549,15 @@ int chooseCommand()
             //failure.
             penalizeReplacements();
             penalizeAgent();
-
+           
             //Since the plan has failed, create a new one
             freePlan(g_plan);
             g_plan = initPlan(TRUE);
-
+       
 #if DEBUGGING
             if (g_plan != NULL)
             {
-                printf("RePlan:\n");
+                printf("Replan:\n");
                 fflush(stdout);
                 displayPlan();
                 printf("\n");
@@ -2960,45 +2571,6 @@ int chooseCommand()
             printf("Plan successful so far.\n");
             fflush(stdout);
 #endif
-            
-#if DEBUGGING_CHOOSECMD
-            printf("Double checking for a better plan...");
-            fflush(stdout);
-#endif
-            //Generate a new plan from this position to see if it's better than
-            //the current plan
-            Vector *newPlan = initPlan(TRUE);
-            Route* rNew = getTopRoute(newPlan);
-            Route* rCurr = getTopRoute(g_plan);
-            if (rNew != NULL)
-            {
-                int lenNew  = routeLength(rNew);
-                int lenCurr = remainingRouteLength(rCurr);
-                if (lenNew < lenCurr)
-                {
-                    freePlan(g_plan);
-                    g_plan = newPlan;
-                    
-#if DEBUGGING_CHOOSECMD
-                    printf("Found a new plan that's better than the current one.\n");
-                    fflush(stdout);
-                    printf("Replacement Plan:\n");
-                    fflush(stdout);
-                    displayPlan();
-                    printf("\n");
-                    fflush(stdout);
-#endif
-                }//if
-                else
-                {
-#if DEBUGGING_CHOOSECMD
-                    printf("\nnone found.\n");
-                    fflush(stdout);
-#endif
-                }
-            }//if
-
-            
             //If a sequence has been completed then the active replacements need
             //to be applied to the new current sequence
             Route *topRoute = getTopRoute(g_plan);
@@ -3008,10 +2580,6 @@ int chooseCommand()
                 Route *currRoute = (Route *)g_plan->array[0];
                 if ((currRoute->currSeqIndex > 0) && (currRoute->currActIndex <= 1))
                 {
-#if DEBUGGING_CHOOSECMD
-                    printf("Applying active replacements to next sequence in the plan...\n");
-                    fflush(stdout);
-#endif
                     //MEMORY LEAK: If currRoute->replSeq is set, it points to
                     //memory that needs to be deleted at some point.
                     //Unfortunately, it can't be deleted now *and* the pointer
@@ -3019,7 +2587,7 @@ int chooseCommand()
                     //hard problem to solve but not trivial either. I'm letting
                     //it go for the short term. -:AMN:, 23 Jan 2011
                     currRoute->replSeq = NULL;
-
+                   
                     //Reapply all active replacements at this level
                     for(j = 0; j < g_activeRepls->size; j++)
                     {
@@ -3031,11 +2599,7 @@ int chooseCommand()
                     }//for
                 }//if
             }//for
-
-#if DEBUGGING_CHOOSECMD
-            printf("Increasing agent confidence due to partial success with plan.\n");
-            fflush(stdout);
-#endif
+           
             //If a level 0 sequence has just completed then the agent's
             //confidence is increased due to the partial success
             //(Note: Index 1 rather than 0 is used due to overlap between
@@ -3047,18 +2611,18 @@ int chooseCommand()
             }
 
         }//else
-
+       
     }//if
 
     //If the current plan is invalid then we first need to make a new plan
-    else /* if ( (g_plan == NULL)
-            || planNeedsRecalc(g_plan) ) */
+    if ( (g_plan == NULL)
+         || planNeedsRecalc(g_plan) )
     {
         g_plan = initPlan(FALSE);
 #if DEBUGGING
         if (g_plan != NULL)
         {
-            printf("\nNew Plan:\n");
+            printf("New plan:\n");
             fflush(stdout);
             displayPlan();
             printf("\n");
@@ -3139,7 +2703,7 @@ void displayRoute(Route *route, int recurse)
     {
         //this is the sequence that will be printed
         Vector *seq = (Vector *)sequences->array[i];
-
+       
         //at level 0, print the index number of this sequence
         if (route->level == 0)
         {
@@ -3152,18 +2716,13 @@ void displayRoute(Route *route, int recurse)
         for(j = 0; j < seq->size; j++)
         {
             Action *action = seq->array[j];
-
+           
             //At level 0, we're dealing with actual Episode structs
             //So just print a short version of the sensor data
             if (route->level == 0)
             {
-#if USE_WMES
-                EpisodeWME* ep = (EpisodeWME*)action->epmem->array[action->index];
-                displayEpisodeWMEShort(ep);
-#else
                 Episode *ep = (Episode*)action->epmem->array[action->index];
                 displayEpisodeShort(ep);
-#endif
 
                 //If the command we just printed is the most recent
                 //command then append an asterisk to indicate that
@@ -3187,7 +2746,7 @@ void displayRoute(Route *route, int recurse)
                 //Get the episode at the next level down that corresponds to the
                 //LHS of this action
                 Vector *epSeq = (Vector *)action->epmem->array[action->index];
-
+               
                 //Lookup the index of this sequence in the global list of all
                 //sequences
                 Vector *seqList = (Vector *)g_sequences->array[route->level - 1];
@@ -3203,7 +2762,7 @@ void displayRoute(Route *route, int recurse)
                 //look right
                 if (route->level >= 2) printf("\n");
                 fflush(stdout);
-
+                   
                 //If the user has requested a recursive print, do that here
                 if (recurse)
                 {
@@ -3213,7 +2772,7 @@ void displayRoute(Route *route, int recurse)
                     //behavior (else clause) the output won't reflect any
                     //replacements that have been applied.  I've decided this is
                     //the lesser of two evils.  - 22 Jan 2011
-
+                   
                     //If this is the current sequence in the route and there
                     //really is an active plan, then the current sequence may
                     //have had replacements applied to it so we should print
@@ -3222,13 +2781,13 @@ void displayRoute(Route *route, int recurse)
                     // {
                     //     //print the actual route at the next level down
                     //     Route *toPrint = (Route *)g_plan->array[route->level - 1];
-
+                       
                     //     //Recursive call
                     //     displayRoute(toPrint, TRUE);
                     // }
                     // else
 
-
+                   
                     {
 
                         //construct a temporary Route that represents the next
@@ -3238,10 +2797,10 @@ void displayRoute(Route *route, int recurse)
                         initRouteFromSequence(tmpRoute, epSeq);
                         tmpRoute->currActIndex = -1; // prevent asterisk printf
                         tmpRoute->currSeqIndex = -1;
-
+                       
                         //Recursive call
                         displayRoute(tmpRoute, TRUE);
-
+                       
                         //Discard the temporary route once it's been printed
                         freeRoute(tmpRoute);
                     }//else
@@ -3257,7 +2816,7 @@ void displayRoute(Route *route, int recurse)
 
         }// for each action
 
-
+       
         //Also print the final outcome episode of the last action in the
         //sequence
         if (seq->size < 1) continue; //  (unless it's empty)
@@ -3265,20 +2824,15 @@ void displayRoute(Route *route, int recurse)
         if (route->level == 0)
         {
             //just print the sensors
-#if USE_WMES
-            EpisodeWME *ep = (EpisodeWME*)lastAction->epmem->array[lastAction->outcome];
-            displayWMEListShort(ep->sensors);
-#else
             Episode *ep = (Episode*)lastAction->epmem->array[lastAction->outcome];
             printf("-->%i; ", interpretSensorsShort(ep->sensors));
-#endif
         }
         else // level 1+
         {
             //Get the episode at the next level down that corresponds to the
             //RHS of this action
             Vector *epSeq = (Vector *)lastAction->epmem->array[lastAction->outcome];
-
+               
             //Lookup the index of this sequence in the global list of all
             //sequences
             Vector *seqList = (Vector *)g_sequences->array[route->level - 1];
@@ -3292,7 +2846,7 @@ void displayRoute(Route *route, int recurse)
             //for level 2+ we want a newline now to get the tree format to look
             //right
             if (route->level >= 2) printf("\n");
-
+                   
             //If the user has requested a recursive print, then we need to
             //construct a temporary Route that represents the next level down
             if (recurse)
@@ -3311,11 +2865,11 @@ void displayRoute(Route *route, int recurse)
             //for level 1 we want a newline now to get the tree format to
             //look right
             if (route->level == 1) printf("\n");
-
+           
         }//else (print outcome episode at level 1+)
 
     }//for each sequence
-
+   
 }//displayRoute
 
 /**
@@ -3334,7 +2888,7 @@ void displayPlan()
         printf("NO PLAN!\n");
         return;
     }
-
+   
     //Find the highest level route in the plan that's not empty
     Route* r = getTopRoute(g_plan);
 
@@ -3347,15 +2901,12 @@ void displayPlan()
 
     //Calculate and print the plan length
     int length = routeLength(r);
-    Vector *currSeq = (Vector *)r->sequences->array[r->currSeqIndex];
-    printf("(level %d; %d of %d actions in %d of %d seqs; %d total actions) \n",
-           r->level, r->currActIndex+1, (int)currSeq->size,
-           r->currSeqIndex+1, (int)r->sequences->size, length);
+    printf("(level %d; %d steps) \n", r->level, length);
     fflush(stdout);
-
+   
     displayRoute(r, TRUE);
 
-
+   
 }//displayPlan
 
 /**
@@ -3467,7 +3018,7 @@ int sequenceLength(Vector *seq, int level)
     {
         Action *action = (Action *)seq->array[i];
         Vector *subSeq = (Vector *)action->epmem->array[action->index];
-
+       
         result += sequenceLength(subSeq, level - 1);
     }//for
 
@@ -3506,53 +3057,6 @@ int routeLength(Route *r)
 }//routeLength
 
 /**
- * remainingRouteLength
- *
- * calculates the number of levle 0 steps remaining in a given route
- *
- * @arg r the route to calculate the length of
- *
- * @return result
- */
-int remainingRouteLength(Route *r)
-{
-    int i;                      // iterator
-    int result = 0;             // counter to sum the lengths of the sequences
-
-    //The current sequence needs special care
-    Vector *seq = (Vector *)r->sequences->array[r->currSeqIndex];
-    if (r->replSeq != NULL)
-    {
-        seq = r->replSeq;
-    }
-
-    //Count the level 0 actions
-    if (r->level == 0)
-    {
-        result += seq->size - r->currActIndex;
-    }
-    else
-    {
-        for(i = r->currActIndex; i < seq->size; i++)
-        {
-            Action *act = (Action *)seq->array[i];
-            Vector *subSeq = (Vector *)act->epmem->array[act->index];
-            result += sequenceLength(subSeq, r->level - 1);
-        }
-    }//else
-
-    //Add up the remaining sequences also
-    for(i = r->currSeqIndex + 1; i < r->sequences->size; i++)
-    {
-        seq = (Vector *)r->sequences->array[i];
-        result += sequenceLength(seq, r->level);
-    }//for
-
-    return result;
-}//remainingRouteLength
-
-
-/**
  * findRoute
  *
  * This method uses a breadth-first search to find a shortest path from a given
@@ -3570,17 +3074,17 @@ int findRoute(Route* newRoute, Vector *startSeq)
 {
     // instance variables
     Vector* route;      // the ordered list of sequences stored as
-    // int indices into actionList
+                        // int indices into actionList
     int i,j;            // counting variable
     Vector* sequences;  // pointer to sequences in level
     Vector* candRoutes = newVector();  //candidate Route structs to return to caller
 
 #if DEBUGGING_INITROUTE
-    //print the current shortest candidate
-    printf("Entering initRoute with start sequence: ");
-    displaySequenceShort(startSeq);
-    printf("\n");
-    fflush(stdout);
+        //print the current shortest candidate
+        printf("Entering initRoute with start sequence: ");
+        displaySequenceShort(startSeq);
+        printf("\n");
+        fflush(stdout);
 #endif
     /*--------------------------------------------------------------------------
      * Use the starting sequence to create a partial route.  This is the
@@ -3607,9 +3111,8 @@ int findRoute(Route* newRoute, Vector *startSeq)
      */
     //(Note: the size of the candRoutes vector will grow as the search
     //continues.  Each candidate is a partial route.)
+    int bSuccess = FALSE;
     int routeLen = -1;           // length of shortest route so far
-    double bestScore = -1.0;     // best route score so far
-    Route *bestRoute = NULL;     // best complete route seen so far
     for(i = 0; i < candRoutes->size; i++)
     {
 #ifdef DEBUGGING
@@ -3640,6 +3143,14 @@ int findRoute(Route* newRoute, Vector *startSeq)
         {
             break;
         }
+        
+        //%%%I tried this as an alternative to the above.  It seems to be worse!
+        //%%%This needs to be investigated.
+        // //To avoid long delays, give up on planning after examining N candidate routes
+        // if (i > MAX_ROUTE_CANDS)
+        // {
+        //     break;
+        // }
 
         //Move this shortest unexamined route to the current position in the
         //candRoutes vector via a swap
@@ -3653,46 +3164,25 @@ int findRoute(Route* newRoute, Vector *startSeq)
 #if DEBUGGING_INITROUTE
         //print the current shortest candidate
         printf("examining next shortest unexamined candidate %d at %ld of size %d:\n",
-                i, (long)route, routeLen);
+               i, (long)route, routeLen);
         fflush(stdout);
 #endif
-
-        //If the last sequence in this route contains the goal state, we have a
-        //complete route to evaluate to see if it's the best.
+       
+        //If the last sequence in this route contains the goal state, we're
+        //done.  Copy the details of this route to the newRoute struct we were
+        //given and exit the loop.
         Vector *lastSeq = (Vector *)route->sequences->array[route->sequences->size - 1];
         int actionIdx = getGoalAction(lastSeq);
         if (actionIdx >= 0)
         {
-#if USE_WMES
-            //Retrieve the value of the goal (discounted reward)
-            Action *goalAct = (Action *)lastSeq->array[actionIdx];
-            while(goalAct->level > 0)
-            {
-                printf("goalAct level=%d\n", goalAct->level);
-                Vector *vec = (Vector *)goalAct->epmem->array[goalAct->outcome];
-                goalAct = (Action *)vec->array[vec->size - 1];
-            }
-            EpisodeWME *goalEp = (EpisodeWME *)goalAct->epmem->array[goalAct->outcome];
-            int reward = getINTValWME(goalEp, "reward", NULL);
-            double score = (double)pow(ROUTE_DISCOUNT, routeLen) * reward;
-#else
-            double score = (double)pow(ROUTE_DISCOUNT, routeLen);
-#endif
-            if (score > bestScore)
-            {
-                bestScore = score;
-                bestRoute = route;
+            newRoute->level = route->level;
+            newRoute->sequences = cloneVector(route->sequences);
+            newRoute->currSeqIndex = 0;
+            newRoute->currActIndex = 0;
+            newRoute->needsRecalc = FALSE;
 
-#if USE_WMES
-#if DEBUGGING_INITROUTE
-                //print the current best candidate
-                printf("found new best route %ld of length %d that leads to reward %d (score=%g)\n",
-                       (long)route, routeLen, reward, score);
-                fflush(stdout);
-#endif
-#endif
-            }//if
-            
+            bSuccess = TRUE;
+            break;
         }//if
 
         /*----------------------------------------------------------------------
@@ -3729,7 +3219,7 @@ int findRoute(Route* newRoute, Vector *startSeq)
             printf("\n");
             fflush(stdout);
 #endif
-
+       
             //If we've reached this point, then we can create a new candidate
             //route that is an extension of the current one
             Route *newCand = (Route*)malloc(sizeof(Route));
@@ -3740,34 +3230,24 @@ int findRoute(Route* newRoute, Vector *startSeq)
             newCand->currSeqIndex = 0;
             newCand->currActIndex = 0;
             newCand->needsRecalc  = FALSE;     
-
+       
             //Add this new candidate route to the candRoutes array
             addEntry(candRoutes, newCand);
         }//for
-
+       
 #if DEBUGGING_INITROUTE
         //delimit the loop iteration with an update
         int lastSeqIndex = findEntry(g_sequences->array[route->level], lastSeq);
         printf("\tdone searching for ways to extend from episode: %d\n",
-                lastSeqIndex);
+               lastSeqIndex);
         fflush(stdout);
 #endif
-
+       
     }//for
-
+   
 #ifdef DEBUGGING
     printf("\n");
 #endif
- 
-    //Copy the details of the bestRoute to the newRoute struct we were given
-    if (bestRoute != NULL)
-    {
-        newRoute->level = bestRoute->level;
-        newRoute->sequences = cloneVector(bestRoute->sequences);
-        newRoute->currSeqIndex = 0;
-        newRoute->currActIndex = 0;
-        newRoute->needsRecalc = FALSE;
-    }
 
     //Clean up the RAM in the candRoutes list
     for(i = 0; i < candRoutes->size; i++)
@@ -3778,7 +3258,7 @@ int findRoute(Route* newRoute, Vector *startSeq)
     }
     freeVector(candRoutes);
 
-    if (bestRoute != NULL) return SUCCESS;
+    if (bSuccess) return SUCCESS;
 
     return PLAN_NOT_FOUND;
 }//findRoute
@@ -3798,29 +3278,31 @@ Vector* initPlan(int isReplan)
 {
     int i;                      // iterator
     int offset = -1;            // if I plan from a partial match, this will
-    // be the index of the starting action
+                                // be the index of the starting action
 
 #if DEBUGGING_INITPLAN
     printf("entering initPlan for %s\n", isReplan ? "replan" : "plan");
     fflush(stdout);
 #endif
-
+       
     //Try to figure out where I am.  I can't make plan without this.
     Vector *startSeq = (Vector *)findInterimStart_NO_KNN();
     if (startSeq == NULL)
     {
         //Try a partial match
-        startSeq = findInterimStartPartialMatch(&offset);
+        startSeq = findInterimStartPartialMatch_NO_KNN(&offset);
         if (startSeq == NULL)
         {
             return NULL;        // I give up
         }
     }//if
-    
+
+   
+
     //Figure out what level the startSeq is at
     Action *act = (Action *)startSeq->array[0];
     int level = act->level;
-
+   
     //Initialize an empty plan.  This will eventually be our return value.
     Vector *resultPlan = newPlan();
 
@@ -3833,20 +3315,20 @@ Vector* initPlan(int isReplan)
         displaySequenceShort(startSeq);
         fflush(stdout);
 #endif
-
+       
         //Give up if no route can be found
         freePlan(resultPlan);
         return NULL;
     }//if
 
 #if DEBUGGING_INITROUTE
-    printf("Success: found route to goal at level: %d.\n", level);
-    fflush(stdout);
-    displayRoute((Route *)resultPlan->array[level], TRUE);
-    printf("\n");
-    fflush(stdout);
+        printf("Success: found route to goal at level: %d.\n", level);
+        fflush(stdout);
+        displayRoute((Route *)resultPlan->array[level], TRUE);
+        printf("\n");
+        fflush(stdout);
 #endif
-
+       
     //Initialize the route at subsequent levels.  Each route is based on the
     //current sequence in the route at the previous level
     for(i = level - 1; i >= 0; i--)
@@ -3862,7 +3344,7 @@ Vector* initPlan(int isReplan)
         //least a level 1 action, this episode will always be a sequence
         //(Vector*) whose level is the current level.
         Vector *seq = (Vector *)parentAct->epmem->array[parentAct->index];
-
+       
         //initialize this route with the extracted sequence
         Route *currRoute = (Route *)resultPlan->array[i];
         initRouteFromSequence(currRoute, seq);
@@ -3888,23 +3370,7 @@ Vector* initPlan(int isReplan)
         }
     }//if
 
-#ifdef DEBUGGING
-    if(resultPlan->array[0] != NULL)
-    {
-        printf("\n\n===============\nValid plan created at level 0. Begin inspection.\n");
 
-#if EATERS_MODE
-        visuallyInterpretLevel0Route(resultPlan->array[0]);
-        printf("\n");
-#else
-        displayRoute(resultPlan->array[0], FALSE);
-#endif
-
-        // DEBUGGING: Pause to review plan visually
-        //getchar();
-    }//if
-#endif
-    
     return resultPlan;
 }// initPlan
 
@@ -3929,12 +3395,12 @@ Vector *newPlan()
         r->currSeqIndex = 0;
         r->currActIndex = 0;
         r->needsRecalc  = FALSE;       
-
+       
         addEntry(newPlan, r);
     }//for
 
     return newPlan;
-
+   
 }//newPlan
 
 /**
@@ -3999,7 +3465,7 @@ Route *getTopRoute(Vector *plan)
 {
     //Check for bad argument
     if (plan == NULL) return NULL;
-
+   
     //Find the highest level route in the plan that's not empty
     int i;
     Route* r = NULL;
@@ -4012,7 +3478,7 @@ Route *getTopRoute(Vector *plan)
         {
             break;
         }
-
+           
     }//for
 
     return r;
@@ -4020,27 +3486,27 @@ Route *getTopRoute(Vector *plan)
 
 /**
  * findTopMatch
- int findTopMatch(double* scoreTable, double* indvScore, int command)
- {
- int i, max;
- double maxVal = 0.0, tempVal = 0.0;
- Vector* episodeList = g_epMem->array[0];
- for(i = episodeList->size - 1; i >= 0; i--)
- {
- tempVal = scoreTable[i] + (((Episode*)(episodeList->array[i]))->cmd == command ? NUM_TO_MATCH : 0);
-
- if(tempVal > maxVal)
- {
- max = i;
- maxVal = tempVal;
- }
- }
-
- indvScore[command] = maxVal;
-
- return max;
- }//findTopMatch
  */
+int findTopMatch(double* scoreTable, double* indvScore, int command)
+{
+    int i, max;
+    double maxVal = 0.0, tempVal = 0.0;
+    Vector* episodeList = g_epMem->array[0];
+    for(i = episodeList->size - 1; i >= 0; i--)
+    {
+        tempVal = scoreTable[i] + (((Episode*)(episodeList->array[i]))->cmd == command ? NUM_TO_MATCH : 0);
+
+        if(tempVal > maxVal)
+        {
+            max = i;
+            maxVal = tempVal;
+        }
+    }
+
+    indvScore[command] = maxVal;
+
+    return max;
+}//findTopMatch
 
 /**
  * compareEpisodes
@@ -4098,67 +3564,102 @@ int compareActions(Action* r1, Action* r2)
     //Make sure that both actions have the same index
     if (r1->index != r2->index) return FALSE;
 
+    //Make sure that both actions have the same length
+    if (r1->length != r2->length) return FALSE;
+
     return TRUE;
 }//compareActions
 
 /**
- * containsSequence
- *
- * Check a list of sequences for a previous occurence of a particular
- * sequence
- *
- * @arg sequenceList A vector containing a series of sequences
- * @arg seq A vector containing our current sequence
- * @arg ignoreSelf If TRUE then if you find seq in sequenceList ignore
- *                 it (i.e., we are looking for duplicate not itself)
- * @return a pointer to the sequence if it is found, NULL otherwise
- */
+* containsEpisode
+*
+* Check a list of episodes for a previous occurence of a particular
+* episode
+*
+* @arg episodeList A vector containing a series of sequences
+* @arg ep  a pointer to the episode struct to search for
+* @arg ignoreSelf If TRUE then if you find ep in episodeList ignore
+*                 it (i.e., we are looking for a duplicate not itself)
+* @return a pointer to the matching episode if it is found, NULL otherwise
+*/
+Episode* containsEpisode(Vector* episodeList, Episode* ep, int ignoreSelf)
+{
+        int i;
+   
+        for(i = 0; i < episodeList->size; i++)
+        {
+        Episode *toCompare = (Episode*)episodeList->array[i];
+
+        //See if the episodes match
+                if(compareEpisodes(toCompare, ep, TRUE))
+        {
+            //Handle the ignoreSelf parameter
+            if (!ignoreSelf) return toCompare;
+            if (ep != toCompare) return toCompare;
+        }
+        }
+        // otherwise it's not there
+        return NULL;
+}//containsEpisode
+
+/**
+* containsSequence
+*
+* Check a list of sequences for a previous occurence of a particular
+* sequence
+*
+* @arg sequenceList A vector containing a series of sequences
+* @arg seq A vector containing our current sequence
+* @arg ignoreSelf If TRUE then if you find seq in sequenceList ignore
+*                 it (i.e., we are looking for duplicate not itself)
+* @return a pointer to the sequence if it is found, NULL otherwise
+*/
 Vector* containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf)
 {
-    int i;
-
-    // determine what the stopping point should be
-    for(i = 0; i < sequenceList->size; i++)
-    {
-        // if we come across the sequence in the list then return 'found'
+        int i;
+   
+        // determine what the stopping point should be
+        for(i = 0; i < sequenceList->size; i++)
+        {
+                // if we come across the sequence in the list then return 'found'
         Vector *toCompare = (Vector*)sequenceList->array[i];
-        if(compareSequences(toCompare, seq))
+                if(compareSequences(toCompare, seq))
         {
             if (!ignoreSelf) return toCompare;
 
             if (seq != toCompare) return toCompare;
         }
-    }
-    // otherwise it's not there
-    return NULL;
+        }
+        // otherwise it's not there
+        return NULL;
 }//containsSequence
 
 /**
- * compareSequences
- *
- * Compare two sequences and return TRUE if they contain the same
- * sequence of actions.
- *
- * @arg seq1 A vector containing the first sequence
- * @arg seq2 A vector containing the second sequence
- * @return TRUE if they are a match
- */
+* compareSequences
+*
+* Compare two sequences and return TRUE if they contain the same
+* sequence of actions.
+*
+* @arg seq1 A vector containing the first sequence
+* @arg seq2 A vector containing the second sequence
+* @return TRUE if they are a match
+*/
 int compareSequences(Vector* seq1, Vector* seq2)
 {
-    // make sure they contain the same number of actions
-    if(seq1->size != seq2->size) return FALSE;
-    // make sure they are at the same level
-    if(((Action*)seq1->array[0])->level != ((Action*)seq2->array[0])->level) return FALSE;
+        // make sure they contain the same number of actions
+        if(seq1->size != seq2->size) return FALSE;
+        // make sure they are at the same level
+        if(((Action*)seq1->array[0])->level != ((Action*)seq2->array[0])->level) return FALSE;
 
-    int i;
-    // iterate through and compare corresponding action
-    for(i = 0; i < seq1->size; i++)
-    {
-        // if the pointers are not the same then we have no match
-        if(seq1->array[i] != seq2->array[i]) return FALSE;
-    }
-    // success, we have a match
-    return TRUE;
+        int i;
+        // iterate through and compare corresponding action
+        for(i = 0; i < seq1->size; i++)
+        {
+                // if the pointers are not the same then we have no match
+                if(seq1->array[i] != seq2->array[i]) return FALSE;
+        }
+        // success, we have a match
+        return TRUE;
 }//compareSequences
 
 /**
@@ -4183,13 +3684,8 @@ int compareActOrEp(Vector *list, int i1, int i2, int level)
         int noRHS = (i1 == list->size - 1) || (i2 == list->size - 1);
 
         //Determine a match score
-#if USE_WMES
-        return compareEpisodesWME(list->array[i1],
-                list->array[i2], !noRHS);
-#else
         return compareEpisodes(list->array[i1],
-                list->array[i2], !noRHS);
-#endif
+                               list->array[i2], !noRHS);
     }
     else //sequence
     {
@@ -4223,12 +3719,8 @@ int compareVecOrEp(Vector *list, int i1, int i2, int level)
         }
 
         //Do comparison
-#if USE_WMES
-        return compareEpisodesWME(list->array[i1], list->array[i2], compCmd);
-#else
-        return compareEpisodes(list->array[i1], list->array[i2], compCmd);
-#endif
-        
+        return compareEpisodes(list->array[i1],
+                               list->array[i2], compCmd);
     }
     else //sequence
     {
@@ -4247,38 +3739,17 @@ int compareVecOrEp(Vector *list, int i1, int i2, int level)
  *
  * @arg entry      a pointer to an Episode or Action struct
  * @arg level      is TRUE if entry is an Episode (false for an action
- )
+)
  * @return TRUE if the entry is a goal and FALSE otherwise
  */
 int episodeContainsGoal(void *entry, int level)
 {
     if (level == 0)
     {
-
-#if USE_WMES
-        EpisodeWME* ep = (EpisodeWME*)entry;
-        return episodeContainsReward(ep);
-        /*
-           Vector* wmes = ep->sensors;
-           int i;
-           for(i = 0; i < wmes->size; i++)
-           {
-           WME* wme = (WME*)getEntry(wmes, i);
-           if(strcmp("reward", wme->attr) == 0 && wme->value.iVal > 0)
-           {
-           return TRUE;
-           }//if
-           else
-           {
-           return FALSE;
-           }//else
-           }//for
-         */
-#else
         Episode* ep = (Episode *)entry;
+
         //For base actions, a goal is indicated by the IR sensor on the episode
         return ep->sensors[SNSR_IR];
-#endif
     }
     else //sequence
     {
@@ -4297,15 +3768,8 @@ int episodeContainsGoal(void *entry, int level)
  * Initialize the Supervisor vectors
  *
  */
-void initSupervisor(int numCommands)
+void initSupervisor()
 {
-    g_numRandom = 0;
-    g_numRandomLowConfidence = 0;
-    g_numGoalsFromRandom = 0;
-    g_numGoalsFromInvalidPlan = 0;
-    g_numGoalsFromValidPlan = 0;
-
-    g_CMD_COUNT = numCommands;
 
     // member variables
     int     i;          // loop iterator
@@ -4319,10 +3783,9 @@ void initSupervisor(int numCommands)
     g_plan            = NULL;        // no plan can be made at this point
     g_activeRepls     = newVector();
     g_connectToRoomba = 0;
-    g_statsMode       = STATS_MODE;           // no output optimization
+    g_statsMode       = 0;           // no output optimization
     g_selfConfidence  = INIT_SELF_CONFIDENCE;
     g_lastUpdateLevel = -1;
-    g_seqInfo         = newVector();
 
     for(i = 0; i < MAX_LEVEL_DEPTH; i++)
     {
@@ -4340,18 +3803,15 @@ void initSupervisor(int numCommands)
 
         // pad sequence vector to avoid crash on first call of updateAll()
         addEntry(g_sequences->array[i], newVector());
-
-        temp = newVector();
-        addEntry(g_seqInfo, temp);
     }
 
     // seed rand (sow some wild oats)
     srand(time(NULL));
 
-    //<<<<<<< local
-
-    //=======
-    //>>>>>>> other
+//<<<<<<< local
+   
+//=======
+//>>>>>>> other
 }//initSupervisor
 
 /**
@@ -4370,7 +3830,7 @@ void endSupervisor()
     //%%%TODO:  Added for now to avoid crashing.  Remove this when this method
     //%%%       is fixed
     if (g_epMem != NULL) return;
-
+   
     // assume that the number of sequences,
     // actions and episodes is the same, level-wise
     for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
@@ -4380,7 +3840,7 @@ void endSupervisor()
         episodeList     =  g_epMem->array       [i];
         sequenceList    =  g_sequences->array   [i];
         //replacementList =  g_replacements->array[i];
-
+       
         // clean up sequences at the current level
         for(j = 0; j < sequenceList->size; j++)
         {
@@ -4430,8 +3890,6 @@ void endSupervisor()
                      * focus on the functionality right now.  -:AMN: 03 Nov 2010
                      */
                     //%%%FIXME: free(ep);
-
-                    //TODO: Also need to add code to handle EpWME
                 }
             }
 
@@ -4439,8 +3897,8 @@ void endSupervisor()
         }//for
         freeVector((Vector*)episodeList->array[j]);
 
-
-
+       
+       
     }//for
 
     //free the global list
@@ -4449,7 +3907,7 @@ void endSupervisor()
 
     //%%%TODO: free g_plan
     //%%%TODO: clean up g_replacements and g_activeRepls
-
+   
     printf("end of function\n");
 }//endSupervisor
 
@@ -4489,9 +3947,6 @@ char* interpretCommand(int cmd)
             break;
         case CMD_SONG:
             return g_song;
-            break;
-        case CMD_SACC:
-            return g_sacc;
             break;
         default:
             return g_unknown;
@@ -4583,16 +4038,16 @@ int interpretSensorsShort(int *sensors)
 int replacementPossible(int level)
 {
     if (g_plan == NULL) return FALSE;
-
+   
     // check that a route exists at this level
     if (g_plan->array[level] == NULL) return FALSE;
 
     //Verify the route is valid
     Route*  route   = (Route*)(g_plan->array[level]);
     if ((route == NULL)
-            || (route->needsRecalc)
-            || (route->sequences == NULL)
-            || (route->sequences->size == 0))
+        || (route->needsRecalc)
+        || (route->sequences == NULL)
+        || (route->sequences->size == 0))
     {
         return FALSE;
     }
@@ -4637,7 +4092,7 @@ Replacement* findBestReplacement()
     printf("Searching existing replacements...\n");
     fflush(stdout);
 #endif
-
+               
     // iterate through each level of replacements and routes, adding found
     // replacements to replacements as we go
     for(i = MAX_LEVEL_DEPTH - 1; i >= 0; i--)
@@ -4646,10 +4101,10 @@ Replacement* findBestReplacement()
         if (! replacementPossible(i)) continue;
 
 #ifdef DEBUGGING_FIND_REPL
-        printf("\treplacement possible at level %d...\n", i);
-        fflush(stdout);
+    printf("\treplacement possible at level %d...\n", i);
+    fflush(stdout);
 #endif
-
+               
         //Extract the current sequence from the route at this level
         Route*  route   = (Route*)(g_plan->array[i]);
         Vector *currSeq = ((Vector*)route->sequences->array[route->currSeqIndex]);
@@ -4663,12 +4118,10 @@ Replacement* findBestReplacement()
             Replacement *candRepl = (Replacement*)replacements->array[j];
 
             //%%%DEBUGGING
-#if DEBUGGING_FIND_REPL            
             printf("\tconsidering ");
             displayReplacement(candRepl);
             printf("...");
             fflush(stdout);
-#endif
 
             //Iterate over all remaining subsequences of the current sequence
             //that are the same lenght as the LHS of the replacment rule
@@ -4692,7 +4145,7 @@ Replacement* findBestReplacement()
 
                 //If a match was found we can stop searching
                 if (match != NULL) break;
-
+               
             }//for
 
 #ifdef DEBUGGING_FIND_REPL
@@ -4705,19 +4158,19 @@ Replacement* findBestReplacement()
                 printf("no match.\n");
             }
             fflush(stdout);
-
-
+                
+                
 #endif
-
+   
             //If we found a match, then log it if it's the best match so far
             if ( (match != NULL)
-                    && ((result == NULL)
-                        || (match->confidence >= result->confidence)) )
+                && ((result == NULL)
+                    || (match->confidence >= result->confidence)) )
             {
 
                 result = match;
             }
-
+                                     
         }//for
 
         //If a match has been found at this level then we're done
@@ -4726,7 +4179,7 @@ Replacement* findBestReplacement()
         //if-statement and the routine will return the replacement with the
         //highest confidence at any level.)
         if (result != NULL) break;
-
+       
     }//for (each level)
 
 #ifdef DEBUGGING_FIND_REPL
@@ -4735,7 +4188,7 @@ Replacement* findBestReplacement()
     printf("\n");
     fflush(stdout);
 #endif
-
+   
     //If a match was never found, then result will still be NULL at this point
     return result;
 }//findBestReplacement
@@ -4758,7 +4211,7 @@ Vector* applyReplacementToSequence(Vector* sequence, Replacement* replacement)
 {
     // instance variables
     Vector* withReplacement;  // will hold our sequence with the replacement
-    // applied
+                              // applied
     int i;                    // loop iterator
 
 
@@ -4770,7 +4223,7 @@ Vector* applyReplacementToSequence(Vector* sequence, Replacement* replacement)
     //Don't bother doing replacements on sequences with insufficient actions
     //(currently hardcoded to two)
     if (sequence->size < 2) return sequence;
-
+   
     // initialize instance variables;
     withReplacement = newVector();
 
@@ -4783,12 +4236,12 @@ Vector* applyReplacementToSequence(Vector* sequence, Replacement* replacement)
         // if the next two actions in sequence match the original
         // actions in replacement, then substitute the replacement
         if ( (i < sequence->size - 1)
-                && (sequence->array[i] == replacement->original->array[0])
-                && (sequence->array[i+1] == replacement->original->array[1]) )
+             && (sequence->array[i] == replacement->original->array[0])
+             && (sequence->array[i+1] == replacement->original->array[1]) )
         {
             addActionToSequence(withReplacement, replacement->replacement);
             i++;  // increment an extra space so we skip over these two when the
-            // loop repeats
+                  // loop repeats
             replCount++;        // count how many changes were made
         }
         else
@@ -4819,7 +4272,7 @@ Vector* applyReplacementToSequence(Vector* sequence, Replacement* replacement)
 void applyReplacementToPlan(Vector *plan, Replacement *repl)
 {
     int i;                      // loop iterator
-
+   
 #if DEBUGGING
     printf("Applying this level %d replacement to current plan:  ", repl->level);
     displayReplacement(repl);
@@ -4850,51 +4303,189 @@ void applyReplacementToPlan(Vector *plan, Replacement *repl)
     //Install the new route
     replRoute->replSeq = newSeq;
     replRoute->sequences->array[replRoute->currSeqIndex] = replRoute->replSeq;
-
+   
     //Adjust the agent's confidence based upon its confidence in this
     //replacement
-    //old code: penalizeAgent();
+    //%%%old code: penalizeAgent();
     if (g_selfConfidence > repl->confidence)
     {
 #if DEBUGGING
         printf("Overall confidence reduced from %g to ", g_selfConfidence);
         fflush(stdout);
 #endif
-
+       
         g_selfConfidence -= (g_selfConfidence - repl->confidence) / 2;
-
+   
 #if DEBUGGING
         printf("%g\n", g_selfConfidence);
         fflush(stdout);
 #endif
     }
 
-
+   
     //Now each lower level plan will need to be updated to reflect the
     //replacement that has been made here
     for(i = repl->level - 1; i >= 0; i--)
     {
         initRouteFromParent(i, TRUE);
     }
-
+   
 #if DEBUGGING
-    printf("Adjusted plan:\n");
-    fflush(stdout);
-    displayPlan();
-    printf("\n");
-    fflush(stdout);
+        printf("Adjusted plan:\n");
+        fflush(stdout);
+        displayPlan();
+        printf("\n");
+        fflush(stdout);
 #endif
 
 }//applyReplacementToPlan
 
-/*
- * displayNeighborhood
+/**
+ * convertEpMatchToSequence
  *
- * Print each member within the given KN_Neighborhood.
+ * this method takes a given subsequence of the level 0 episodes and finds a
+ * sequential set of level 1 episodes that best matches it.  When it finds this
+ * best match, it returns its immediate successor.
  *
- * @arg nbrHood a KN_Neighborhood* to the neighborhood being displayed
- * @arg bEps    whether this neighborhood contains episodes (TRUE) or vectors (FALSE)
+ * NOTE:  If the first entry in the subsequence is not indeterminate, there will
+ * be no match.  A good way to speed this method up is to add an explicit check
+ * for that case.
+ *
+ * @arg index is the index of the last entry in the level 0 subsequence
+ * @arg len   is the length of the subsequence
  */
+Vector *convertEpMatchToSequence(int index, int len)
+{
+    int i,j;                    // iterators
+    Vector *level0Eps = (Vector *)g_epMem->array[0];
+    Vector *level1Eps = (Vector *)g_epMem->array[1];
+    int bestMatchLen = 0;
+    int bestMatchIndex = -1;
+
+#ifdef DEBUGGING_FINDINTERIMSTART
+    printf("Entering convertEpMatchToSequence() index=%d len=%d\n",
+           index, len);
+    fflush(stdout);
+#endif
+   
+    //Examine all but the most recent episode at level 1.  This is done in
+    //reverse order so that ties will be broken by recency.  The most recent
+    //episode is not examined because we want to guarnatee that any match found
+    //will have a successor for this method to return.
+    for (i = level1Eps->size - 2; i >= 0; i--)
+    {
+#ifdef DEBUGGING_CONVERTEPMATCH
+    printf("\tstarting with level 1 episode %d\n", i);
+    fflush(stdout);
+#endif
+        int currEp1Index = i;   // level 1 episode we're currently examining
+        int matchLen = 0;       // length of the current match
+
+        //Starting at episode i, iterate backward looking for a match
+        while(matchLen < len)
+        {
+            //Get the level 0 sequence that comprises this episode
+            Vector *currSeq = (Vector *)level1Eps->array[currEp1Index];
+           
+#ifdef DEBUGGING_CONVERTEPMATCH
+            printf("\t\texamining episode %d:", currEp1Index);
+            displaySequenceShort(currSeq);
+            printf("\n");
+            fflush(stdout);
+#endif
+           
+            //Compare this sequence to the level 0 match
+            for(j = currSeq->size - 1; j >= 0; j--)
+            {
+                Episode *ep1 = (Episode *)level0Eps->array[index - matchLen];
+                Action  *act = (Action *)currSeq->array[j];
+#ifdef DEBUGGING_CONVERTEPMATCH
+            printf("\t\textracting action %d:", act->index);
+            displayAction(act);
+            printf("\n");
+            fflush(stdout);
+#endif
+                Episode *ep2 = (Episode *)act->epmem->array[act->index];
+
+#ifdef DEBUGGING_CONVERTEPMATCH
+    printf("\t\tcomparing level 0 episodes: ");
+    displayEpisodeShort(ep2);
+    printf(" to ");
+    displayEpisodeShort(ep1);
+    printf("\n");
+    fflush(stdout);
+#endif
+                if (! compareEpisodes(ep1, ep2, TRUE))
+                {
+                    //Mismatch.  See if this is the best partial match that
+                    //spans at least one entire level 1 episode
+                    //NOTE:  One alternative is to change the if-statement below
+                    //to:
+                    //     if ((currEp1Index != i) && (currOffset > bestMatchLen))
+                    //This would mean a lot less matches, but would encourage
+                    //more random exploration and may lead to better behavior in
+                    //the long run?
+                    if (matchLen > bestMatchLen)
+                    {
+                        bestMatchLen = matchLen;
+                        bestMatchIndex = i;
+                    }
+
+                    //Move on to the next episode at level 1
+                    matchLen = len; // just to get out of the outer for-loop
+                    break;
+                }
+
+                //Increment the level 0 offset
+                matchLen++;
+                if (matchLen >= len)
+                {
+                    break;
+                }
+            }//for
+
+            //Increment the index to continue the match
+            currEp1Index--;
+            if (currEp1Index < 0) break;
+           
+        }//while
+
+    }//for
+   
+
+    //If a match was found, return its successor
+    if (bestMatchIndex != -1)
+    {
+#ifdef DEBUGGING_FINDINTERIMSTART
+        printf("\tConversion yielded episode at index %d in level 1:  ", bestMatchIndex+1);
+        fflush(stdout);
+        displaySequenceShort(level1Eps->array[bestMatchIndex + 1]);
+        printf(" which matches %d of %d episodes in the level 0 match at index %d.\n",
+               bestMatchLen, len, index);
+        fflush(stdout);
+#endif
+       
+        return level1Eps->array[bestMatchIndex + 1];
+    }//if
+           
+       
+#ifdef DEBUGGING_FINDINTERIMSTART
+    printf("convertEpMatchToSequence failed: no corresponding sequence(s)\n");
+    fflush(stdout);
+#endif
+   
+   
+    return NULL;
+}//convertEpMatchToSequence
+
+/*
+* displayNeighborhood
+*
+* Print each member within the given KN_Neighborhood.
+*
+* @arg nbrHood a KN_Neighborhood* to the neighborhood being displayed
+* @arg bEps    whether this neighborhood contains episodes (TRUE) or vectors (FALSE)
+*/
 void displayNeighborhood(KN_Neighborhood* nbrHood, int bEps)
 {
     int i;
@@ -4904,11 +4495,7 @@ void displayNeighborhood(KN_Neighborhood* nbrHood, int bEps)
 
         if (bEps)
         {
-#if USE_WMES
-            displayEpisodeWMEShort((EpisodeWME*)nbrHood->neighbors[i]);
-#else
             displayEpisodeShort((Episode *)nbrHood->neighbors[i]);
-#endif
         }
         else
         {
@@ -4933,11 +4520,6 @@ void displayNeighborhood(KN_Neighborhood* nbrHood, int bEps)
  */
 int evaluateNeighborhood(KN_Neighborhood *hood, int bEps)
 {
-#ifdef USE_WMES
-    printf("ERROR:  WMEs not supported!");
-    exit(-1);
-#endif
-    
     //Create an array to store the frequency of each entry
     int* freqs = (int *)malloc(sizeof(int) * (hood->numNeighbors));
 
@@ -4969,7 +4551,7 @@ int evaluateNeighborhood(KN_Neighborhood *hood, int bEps)
                     (freqs[i])++;
                 }
             }
-
+                
         }//for
 
         //See if this entry is the new most frequent
@@ -4981,17 +4563,17 @@ int evaluateNeighborhood(KN_Neighborhood *hood, int bEps)
 
 #ifdef DEBUGGING_KNN
     printf("Evaluating %s hood: highest freq=%d Metric=%d index=%d of %d\n",
-            bEps ? "episode" : "sequence",
-            freqs[highestIndex],
-            hood->nValues[highestIndex],
-            highestIndex,
-            hood->numNeighbors);
+           bEps ? "episode" : "sequence",
+           freqs[highestIndex],
+           hood->nValues[highestIndex],
+           highestIndex,
+           hood->numNeighbors);
     displayNeighborhood(hood, bEps);
     printf("\n");
     fflush(stdout);
 #endif
-
-
+    
+    
     //Return the entity with the highest frequency
     return highestIndex;
 
@@ -5025,10 +4607,10 @@ Vector* findInterimStart_KNN()
     printf("Entering findInterimStart()\n");
     fflush(stdout);
 #endif
-
+    
     //Create a KNN pool for managing our best matches
     KN_Neighborhood* hood = KN_initNeighborhood(0, K_NEAREST);
-
+   
     //Iterate over all levels that are not the very top or bottom
     for(level = g_lastUpdateLevel; level >= 1; level--)
     {
@@ -5047,7 +4629,7 @@ Vector* findInterimStart_KNN()
             //Count the length of the match at this point
             matchLen = 0;
             while(currLevelEpMem->array[i - matchLen]
-                    == currLevelEpMem->array[lastIndex - matchLen])
+                  == currLevelEpMem->array[lastIndex - matchLen])
             {
                 matchLen++;
 
@@ -5057,7 +4639,7 @@ Vector* findInterimStart_KNN()
 
             //Add this match to the neighborhood if it's cool enough
             KN_addNeighbor(hood, currLevelEpMem->array[i + 1], matchLen);
-
+            
         }//for
 
         //If any match was found at this level, then stop searching
@@ -5086,19 +4668,19 @@ Vector* findInterimStart_KNN()
     KN_destroyNeighborhood(hood);
 
 #ifdef DEBUGGING_FINDINTERIMSTART
-    printf("\tSearch Result of length %d in level %d:  ",
-            hood->nValues[0], level);
-    fflush(stdout);
-    displaySequenceShort(result);
-    // printf(" which comes after: ");
-    // displaySequenceShort(currLevelEpMem->array[bestMatchIndex]);
-    // printf(" and which matches: ");
-    // displaySequenceShort(currLevelEpMem->array[currLevelEpMem->size - 1]);
-    printf("\n");
-    fflush(stdout);
+        printf("\tSearch Result of length %d in level %d:  ",
+               hood->nValues[0], level);
+        fflush(stdout);
+        displaySequenceShort(result);
+        // printf(" which comes after: ");
+        // displaySequenceShort(currLevelEpMem->array[bestMatchIndex]);
+        // printf(" and which matches: ");
+        // displaySequenceShort(currLevelEpMem->array[currLevelEpMem->size - 1]);
+        printf("\n");
+        fflush(stdout);
 #endif
-    return result;
-
+        return result;
+   
 }//findInterimStart_KNN
 
 /**
@@ -5124,14 +4706,9 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
     int lastIndex = level0Eps->size-1; // where the match begins
     int matchLen = 0;             // length of current match
 
-#ifdef USE_WMES
-    printf("ERROR:  WMEs not supported!");
-    exit(-1);
-#endif
-    
     //Must be at least two level 1 episodes to do a partial match
     if (level1Eps->size < 2) return NULL;
-
+   
 #ifdef DEBUGGING_FINDINTERIMSTART
     printf("Entering findInterimStartPartialMatch()\n");
     fflush(stdout);
@@ -5139,13 +4716,13 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
 
     //Create a KNN pool for managing our best matches
     KN_Neighborhood* hood = KN_initNeighborhood(0, K_NEAREST);
-
+   
     /*======================================================================
      * Step 1: Find the best match by comparing the level 0 episode sequence to
      *         itself
      *----------------------------------------------------------------------
      */
-
+    
     //We want to start the search at the second-to-last level 1 episode since
     //our return value will be the "next" episode.  Calculate what offset in the
     //level 0 episodes that correponds to.  This means skipping the
@@ -5166,8 +4743,8 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
     {
         startingOffset += 1;
     }
-
-
+    
+    
     //Iterate backwards over the level 0 episodes finding the longest
     //subsequence that matches the most recent episodes
     for(i = startingOffset; i >= MIN_LEVEL0_MATCH_LEN; i--)
@@ -5178,7 +4755,7 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
         {
             //don't fall off the end of the array
             if (i-matchLen < 0) break;
-
+           
             Episode *ep1 = (Episode *)level0Eps->array[(level0Eps->size - 1) - matchLen];
             Episode *ep2 = (Episode *)level0Eps->array[i-matchLen];
 
@@ -5191,13 +4768,13 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
                 break;          // end of match
             }
         }//while
-
+           
         //Add this match to the neighborhood if it's cool enough
         if (matchLen >= MIN_LEVEL0_MATCH_LEN)
         {
             KN_addNeighbor(hood, level0Eps->array[i+1], matchLen);
         }
-
+            
     }//for
 
 
@@ -5205,7 +4782,7 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
     printf("\tsearch complete\n");
     fflush(stdout);
 #endif
-
+   
     //Check for no acceptable match found
     if (hood->numNeighbors < MIN_NEIGHBORS)
     {
@@ -5221,14 +4798,14 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
     int resultIndex = evaluateNeighborhood(hood, TRUE);
     Episode *result = (Episode *)hood->neighbors[resultIndex];
     KN_destroyNeighborhood(hood);
-
+    
 
     /*======================================================================
      * Step 2: Iterate backwards over all the level 1 episodes to figure out
      *         which one corresponds to the partial match found at level 0.
      * ----------------------------------------------------------------------
      */
-
+    
     //Index into the level 0 episodes
     int zeroIndex = startingOffset - 1;
     //Special case:  if startingOffset is right before a goal, skip it now
@@ -5239,13 +4816,13 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
     }
 
     int bestMatchIndex = result->now;             // index of level 0 episode that is best match
-
+    
     //indexes into the level 1 episodes
     int currSeqIndex = level1Eps->size - 2;       // index of curr level 1 episode
     Vector *currSeq =
         (Vector *)level1Eps->array[currSeqIndex]; // curr level 1 episode
     int currActIndex = currSeq->size - 1;         // index of current action in
-    // level 1 episode
+                                                  // level 1 episode
 
     //Iteration ends when I've re-reached the best match position.  As I proceed
     //there I'm also decrementing the currSeqIndex and currActIndex appropriately.
@@ -5263,7 +4840,7 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
 
         //decrement current action index
         currActIndex--;
-
+       
         //If I fall off the edge of a sequence, proceed to the next sequence
         if (currActIndex < 0)
         {
@@ -5273,7 +4850,7 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
                 currActIndex = 0;
                 break;
             }
-
+            
             //Get next sequence
             currSeqIndex--;
             currSeq = (Vector *)level1Eps->array[currSeqIndex];
@@ -5290,27 +4867,22 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
                 currActIndex = currSeq->size-1;
             }
 
-
+                
         }//if
-
+       
     }//while
 
 #ifdef DEBUGGING_FINDINTERIMSTART
-    printf("\tPartial match result of length %d corresponds to level 1 episode %d and and action %d:  ",
-            matchLen, currSeqIndex, currActIndex);
+    printf("\tPartial match result of length %d corresponds to level 1 sequence %d and and action %d:  ",
+           matchLen, currSeqIndex, currActIndex);
     fflush(stdout);
     for(i = 0; i < currSeq->size; i++)
     {
         int bestMatchLen = hood->nValues[bestMatchIndex];
         if (i == currActIndex - bestMatchLen) printf("[*");
         Action *act = (Action *)currSeq->array[i];
-#if USE_WMES
-        EpisodeWME *ep = (EpisodeWME*)act->epmem->array[act->index];
-        displayEpisodeWMEShort(ep);
-#else
         Episode *ep = (Episode *)act->epmem->array[act->index];
         displayEpisodeShort(ep);
-#endif
         if (i == currActIndex) printf("*]");
         if (i != currSeq->size - 1) printf(",");
     }
@@ -5321,7 +4893,7 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
     //Report the result
     *offset = currActIndex;
     return currSeq;
-
+   
 }//findInterimStartPartialMatch_KNN
 
 /**
@@ -5353,15 +4925,15 @@ Vector* findInterimStart_NO_KNN()
     printf("Entering findInterimStart()\n");
     fflush(stdout);
 #endif
-
+   
     //Iterate over all levels that are not the very top or bottom
     for(level = g_lastUpdateLevel; level >= 1; level--)
     {
 #ifdef DEBUGGING_FINDINTERIMSTART
-        printf("\tsearching Level %d\n", level);
-        fflush(stdout);
+    printf("\tsearching Level %d\n", level);
+    fflush(stdout);
 #endif
-
+   
         //Set the current episode list and its size for this iteration
         currLevelEpMem = g_epMem->array[level];
         lastIndex = currLevelEpMem->size - 1;
@@ -5373,7 +4945,7 @@ Vector* findInterimStart_NO_KNN()
             //Count the length of the match at this point
             matchLen = 0;
             while(currLevelEpMem->array[i - matchLen]
-                    == currLevelEpMem->array[lastIndex - matchLen])
+                  == currLevelEpMem->array[lastIndex - matchLen])
             {
                 matchLen++;
 
@@ -5406,20 +4978,21 @@ Vector* findInterimStart_NO_KNN()
     //***If we reach this point, we've found a match.
 
 #ifdef DEBUGGING_FINDINTERIMSTART
-    printf("\tSearch Result of length %d at index %d in level %d:  ",
-            bestMatchLen, bestMatchIndex + 1, level);
-    fflush(stdout);
-    displaySequenceShort(currLevelEpMem->array[bestMatchIndex + 1]);
-    printf(" which comes after: ");
-    displaySequenceShort(currLevelEpMem->array[bestMatchIndex]);
-    printf(" and which matches: ");
-    displaySequenceShort(currLevelEpMem->array[currLevelEpMem->size - 1]);
-    printf("\n");
-    fflush(stdout);
+        printf("\tSearch Result of length %d at index %d in level %d:  ",
+               bestMatchLen, bestMatchIndex + 1, level);
+        fflush(stdout);
+        displaySequenceShort(currLevelEpMem->array[bestMatchIndex + 1]);
+        printf(" which comes after: ");
+        displaySequenceShort(currLevelEpMem->array[bestMatchIndex]);
+        printf(" and which matches: ");
+        displaySequenceShort(currLevelEpMem->array[currLevelEpMem->size - 1]);
+        printf("\n");
+        fflush(stdout);
 #endif
-    return currLevelEpMem->array[bestMatchIndex + 1];
-
+        return currLevelEpMem->array[bestMatchIndex + 1];
+   
 }//findInterimStart_NO_KNN
+
 
 /**
  * findInterimStartPartialMatch_NO_KNN
@@ -5438,7 +5011,6 @@ Vector* findInterimStart_NO_KNN()
  */
 Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
 {
-    static int oldMatchIdx = -1;
     int i,j,k;                    // iterators
     Vector *level0Eps = (Vector *)g_epMem->array[0];
     Vector *level1Eps = (Vector *)g_epMem->array[1];
@@ -5448,32 +5020,20 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
     int bestMatchIndex = -1;    // index of level 1 episode that is best match
     int bestMatchOffset = -1;   // index of first matching action in best match
 
+    //Must be at least two level 1 episodes to do a partial match
+    if (level1Eps->size < 2) return NULL;
+   
 #ifdef DEBUGGING_FINDINTERIMSTART
     printf("Entering findInterimStartPartialMatch()\n");
     fflush(stdout);
 #endif
-
-#ifdef USE_WMES
-    printf("ERROR:  WMEs not supported!");
-    exit(-1);
-#endif
-    
-    //Must be at least two level 1 episodes to do a partial match
-    if (level1Eps->size < 2) 
-    {
-#ifdef DEBUGGING_FINDINTERIMSTART
-        printf("Not enough Level 1 episodes for a partial match. Returning NULL...\n");
-        fflush(stdout);
-#endif
-        return NULL;
-    }//if
 
     /*======================================================================
      * Step 1: Find the best match by comparing the level 0 episode sequence to
      *         itself
      *----------------------------------------------------------------------
      */
-
+    
     //We want to start the search at the second-to-last level 1 episode since
     //our return value will be the "next" episode.  Calculate what offset in the
     //level 0 episodes that correponds to.  This means skipping the
@@ -5489,139 +5049,65 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
     //If there is overlap between the two last level 0 sequence and last level 1
     //episode, adjust them accordingly
     Action *lastAct = (Action *)lastLevel1Ep->array[lastLevel1Ep->size - 1];
-#if USE_WMES
-    EpisodeWME *lastEp = (EpisodeWME *)lastAct->epmem->array[lastAct->index];
-#else
     Episode *lastEp = (Episode *)lastAct->epmem->array[lastAct->index];
-#endif
     if (lastEp->cmd != CMD_SONG)
     {
-        if(!g_statsMode) printf("Incrementing startingOffset due to no final CMD_SONG.\n");
         startingOffset += 1;
     }
-
-    if (startingOffset >= level0Eps->size - 1)
-    {
-        if(!g_statsMode) printf("Decrementing startingOffset due to invalid indices.\n");
-        startingOffset = level0Eps->size - 2;
-    } 
-
-#ifdef DEBUGGING_FINDINTERIMSTART
-    printf("Num Level 0 eps: %d\n", (int)level0Eps->size);    
-    printf("Num Level 1 eps: %d\n", (int)level1Eps->size); 
-    printf("Last Level 0 Seq. size: %d\n", (int)lastLevel0Seq->size); 
-    printf("Last Level 1 Eps size: %d\n", (int)lastLevel1Ep->size); 
-    printf("Final starting offset: %d\n", startingOffset); 
-    fflush(stdout);
-#endif
-
+    
+    
     //Iterate backwards over the level 0 episodes finding the longest
     //subsequence that matches the most recent episodes
-    double totalMatch = 0;
-    double bestTotalMatch = 0;
-    int bestTotalMatchIdx = -1;
-    int matchCount;
-    double bestMatchLenMatchCount;
-    int bestTotalMatchLen;
-    double discount;
     for(i = startingOffset; i >= bestMatchLen; i--)
     {
         //Count the length of the match at this point
         matchLen = 0;
-        totalMatch = 0;
-        discount = 1.0;
         while(TRUE)
         {
             //don't fall off the end of the array
             if (i-matchLen < 0) break;
-#if USE_WMES
-            EpisodeWME *ep1 = (EpisodeWME *)level0Eps->array[(level0Eps->size - 1) - matchLen];
-            EpisodeWME *ep2 = (EpisodeWME *)level0Eps->array[i-matchLen];
-            //if (compareEpisodesWME(ep1, ep2, matchLen > 0))
-            if((matchCount = getNumMatches(ep1, ep2, matchLen > 0)) > 0)
-#else
+           
             Episode *ep1 = (Episode *)level0Eps->array[(level0Eps->size - 1) - matchLen];
             Episode *ep2 = (Episode *)level0Eps->array[i-matchLen];
+
             if (compareEpisodes(ep1, ep2, matchLen > 0))
-#endif
             {
-                totalMatch += (matchCount * discount);;
-                matchLen++;
-                discount *= MATCH_DISCOUNT;
+                matchLen++;    
             }
             else
             {
                 break;          // end of match
             }
         }//while
-
-        if(totalMatch > bestTotalMatch)
-        {
-            bestTotalMatch = totalMatch;
-            bestTotalMatchLen = matchLen;
-            bestTotalMatchIdx = i;
-#ifdef DEBUGGING_FINDINTERIMSTART
-            if(!g_statsMode)
-            {
-                printf("findInterimStartPartialMatch_NO_KNN:\n");
-                printf("\tNew best total match: %lf found at index: %d with len: %d\n", bestTotalMatch, bestTotalMatchIdx, bestTotalMatchLen);
-                printf("\tEpMem len: %d\n", (int)level0Eps->size);
-            }
-#endif
-        }
-
+           
         //See if we've found a new best match
         if (matchLen > bestMatchLen)
         {
-            bestMatchLenMatchCount = totalMatch;
             bestMatchLen    = matchLen;
             bestMatchIndex  = i;
-
+               
 #ifdef DEBUGGING_FINDINTERIMSTART
             printf("\tBest partial match so far length %d at index %d:  ",
-                    bestMatchLen, bestMatchIndex);
+                   bestMatchLen, bestMatchIndex);
             fflush(stdout);
             for(k = matchLen-1; k >= 0; k--)
             {
-#if USE_WMES
-                EpisodeWME *ep = level0Eps->array[i - k];
-                displayEpisodeWMEShort(ep);
-#else
                 Episode *ep = level0Eps->array[i - k];
                 displayEpisodeShort(ep);
-#endif
                 if (k != 0) printf(",");
             }
             printf("\n");
             fflush(stdout);
 #endif
-
         }//if
     }//for
 
-    //---------------------------------------------
-
-    if(oldMatchIdx == bestMatchIndex || 
-            (bestTotalMatch + bestTotalMatchLen > 
-             bestMatchLenMatchCount + bestMatchLen &&
-             oldMatchIdx != bestTotalMatchIdx))
-    {
-#ifdef DEBUGGING_FINDINTERIMSTART
-        printf("Swapping the best match index\n");
-#endif
-        bestMatchIndex = bestTotalMatchIdx;
-        bestMatchLen = bestTotalMatchLen;
-    }//if
-
-    // Store the bestMatch we're using to compare for
-    // next time around
-    oldMatchIdx = bestMatchIndex;
 
 #ifdef DEBUGGING_FINDINTERIMSTART
     printf("\tsearch complete\n");
     fflush(stdout);
 #endif
-
+   
     //Check for no acceptable match found
     if (bestMatchLen < MIN_LEVEL0_MATCH_LEN)
     {
@@ -5631,64 +5117,39 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
 #endif
         return NULL;
     }
-    
-    //---------------------------------------------
-#if DEBUGGING_FINDINTERIMSTART
-    printf("Best Match Len: %d at index: %d", bestMatchLen, bestMatchIndex);
-
-    for(i = bestMatchLen - 1; i >= 0; i--)
-    {
-        printf("\n\nEquivalent Matches %d Episodes From Current\n", i);
-        printf("Recent");
-        EpisodeWME *ep1 = (EpisodeWME *)level0Eps->array[level0Eps->size - 1 - i];
-        displayVisualizedEpisodeWME(ep1);
-        printf("\n\nMatch");
-        EpisodeWME *ep2 = (EpisodeWME *)level0Eps->array[bestMatchIndex - i];
-        displayVisualizedEpisodeWME(ep2);
-    }//for
-    printf("\n\n");
-#endif
 
     /*======================================================================
      * Step 2: Iterate backwards over all the level 1 episodes to figure out
      *         which one corresponds to the partial match found at level 0.
      * ----------------------------------------------------------------------
      */
-
+    
     //Index into the level 0 episodes
     int zeroIndex = startingOffset - 1;
     //Special case:  if startingOffset is right before a goal, skip it now
-#if USE_WMES
-    EpisodeWME *ep = (EpisodeWME *)level0Eps->array[zeroIndex - 1];
-#else
     Episode *ep = (Episode *)level0Eps->array[zeroIndex - 1];
-#endif
     if (ep->cmd == CMD_SONG)
     {
         zeroIndex -= 2;
     }
 
-
+    
     //indexes into the level 1 episodes
     int currSeqIndex = level1Eps->size - 2;       // index of curr level 1 episode
     Vector *currSeq =
         (Vector *)level1Eps->array[currSeqIndex]; // curr level 1 episode
     int currActIndex = currSeq->size - 1;         // index of current action in
-    // level 1 episode
+                                                  // level 1 episode
 
     //Iteration ends when I've re-reached the best match position.  As I proceed
     //there I'm also decrementing the currSeqIndex and currActIndex appropriately.
-    while(zeroIndex > bestMatchIndex + bestMatchLen)
+    while(zeroIndex > bestMatchIndex + matchLen)
     {
         //decrement the zeroIndex
         zeroIndex--;
 
         //Special case: 512SO episodes don't end up in sequences so skip
-#if USE_WMES
-        EpisodeWME *ep = (EpisodeWME *)level0Eps->array[zeroIndex];
-#else
         Episode *ep = (Episode *)level0Eps->array[zeroIndex];
-#endif
         if (ep->cmd == CMD_SONG)
         {
             zeroIndex--;
@@ -5696,8 +5157,7 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
 
         //decrement current action index
         currActIndex--;
-        
-
+       
         //If I fall off the edge of a sequence, proceed to the next sequence
         if (currActIndex < 0)
         {
@@ -5707,7 +5167,7 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
                 currActIndex = 0;
                 break;
             }
-
+            
             //Get next sequence
             currSeqIndex--;
             currSeq = (Vector *)level1Eps->array[currSeqIndex];
@@ -5723,761 +5183,36 @@ Vector *findInterimStartPartialMatch_NO_KNN(int *offset)
             {
                 currActIndex = currSeq->size-1;
             }
+
+                
         }//if
+       
     }//while
 
-    //KLUDGE:  if the currSequence is of length:1, sometimes
-    //         currActIndex == -1 which no good
-    if (currActIndex < 0) currActIndex = 0;
-
 #ifdef DEBUGGING_FINDINTERIMSTART
-    printf("\tPartial match result of length %d corresponds to level 1 episode %d and and action %d:  ",
-            bestMatchLen, currSeqIndex, currActIndex);
+    printf("\tPartial match result of length %d corresponds to level 1 sequence %d and and action %d:  ",
+           matchLen, currSeqIndex, currActIndex);
     fflush(stdout);
     for(i = 0; i < currSeq->size; i++)
     {
         if (i == currActIndex - bestMatchLen) printf("[*");
         Action *act = (Action *)currSeq->array[i];
-#if USE_WMES
-        EpisodeWME *ep = (EpisodeWME*)act->epmem->array[act->index];
-        displayEpisodeWMEShort(ep);
-#else
         Episode *ep = (Episode *)act->epmem->array[act->index];
         displayEpisodeShort(ep);
-#endif
         if (i == currActIndex) printf("*]");
         if (i != currSeq->size - 1) printf(",");
     }
     printf("\n");
     fflush(stdout);
 #endif
-    
-#ifdef DEBUGGING
-    printf("Best partial matched sequence to current state\n");
-    printf("Current State:\n");
-
-    for(i = currActIndex; i >= 0; i--)
-    {
-        printf("\n\n= %d =\n", i);
-        EpisodeWME *ep = (EpisodeWME *)level0Eps->array[level0Eps->size - 1 - i];
-        displayVisualizedEpisodeWME(ep);
-    }//for
-
-
-    printf("\n\nMatched Sequence:\n");
-    printf("Action index: %d\n", currActIndex);
-    displayVisualizedLevel0Sequence(currSeq, TRUE);
-#endif
 
     //Report the result
     *offset = currActIndex;
     return currSeq;
-
+   
 }//findInterimStartPartialMatch_NO_KNN
 
-/**
- * visuallyInterpretLevel0Route
- *
- * This function attempts to interpret a level 0
- * route and display what it implies about the agent's
- * current location in the environment.
- *
- * @param route A pointer to a level 0 route
- */
-void visuallyInterpretLevel0Route(Route* route)
-{
-    Vector* sequences = route->sequences;
-    int i,j;
 
-    //handle the empty case
-    if (sequences->size == 0) return;
 
-    printf("\n========================================\n");
-    printf("Confirm: Route is level %d\n", route->level);
-    printf("Level 0 route contains %d sequences\n\n", (int)sequences->size);
 
-    for(i = 0; i < sequences->size; i++) {
-        Vector *seq = (Vector *)sequences->array[i];
-        printf("Sequence %d contains %d actions\n", i, (int)seq->size);
-        displayVisualizedLevel0Sequence(seq, TRUE);
-        printf("\n");
-    }//for
-    printf("\n========================================\n");
-}//visuallyInterpretLevel0Route
-
-/**
- * visuallyInterpretEpisodesWME
- *
- * Turn a series of WMEs into a char array that
- * depicts the surrounding environment.
- * Caller is responsible for freeing retrieved memory.
- *
- * @param ep A pointer to an episode to interpret
- * @return char* An array representing the senses
- */
-char* visuallyInterpretEpisodesWME(EpisodeWME* ep)
-{
-    char* visualizedWMEs = (char*)malloc(sizeof(char) * 10);
-    int senses[9];
-
-    int found;
-    senses[0] = getINTValWME(ep, "NW", &found);
-    senses[1] = getINTValWME(ep, "N", &found);
-    senses[2] = getINTValWME(ep, "NE", &found);
-    senses[3] = getINTValWME(ep, "W", &found);
-    senses[4] = V_E_EMPTY;
-    senses[5] = getINTValWME(ep, "E", &found);
-    senses[6] = getINTValWME(ep, "SW", &found);
-    senses[7] = getINTValWME(ep, "S", &found);
-    senses[8] = getINTValWME(ep, "SE", &found);
-
-    int i;
-    char t;
-    for(i = 0; i < 9; i++) {
-        switch(senses[i]) {
-            case V_E_WALL:  t = 'W'; break;
-            case V_E_FOOD1: t = '-'; break;
-            case V_E_FOOD2: t = '+'; break;
-            case V_E_EMPTY: t = ' '; break;
-            case -1:        t = '.'; break;
-            default:        t = '?'; break; // should not happen
-        }//switch
-        visualizedWMEs[i] = t;
-    }//for
-
-    visualizedWMEs[9] = '\0'; // Insert NULL terminator jic
-    return visualizedWMEs;
-}//visuallyInterpretEpisodesWME
-
-/**
- * displayVisualizedEpisodeWME
- *
- * Display the episode senses in a viual manner,
- * as if viewing it within the environment map.
- *
- * @param ep A pointer to an EpisodeWME
- */
-void displayVisualizedEpisodeWME(EpisodeWME* ep)
-{
-    char* senses = visuallyInterpretEpisodesWME(ep);
-    int k;
-    for(k = 0; k < 9; k++) {
-        if(k % 3 == 0) printf("\n ");
-        printf("%c", senses[k]);
-    }//for
-    printf("\nCommand: %s\n", interpretCommand(ep->cmd));
-    free(senses);
-}//displayVisualizedEpisodeWME
-
-/**
- * displayVisualizedAction
- *
- * Display an action visually as though on a map.
- *
- * @param action A pointer to an action
- */
-void displayVisualizedAction(Action* action)
-{
-    int i,j,k,l,m;
-    char* senses;
-    int xl, yl, xInit, yInit;
-    int x,y;
-    EpisodeWME* begin = (EpisodeWME*)action->epmem->array[action->index];
-    EpisodeWME* outcome = (EpisodeWME*)action->epmem->array[action->outcome];
-
-    //only works on level 0 actions
-    if (action->level != 0)
-    {
-        displayAction(action);
-    }
-    
-    //-------------------------------------------------
-    switch(begin->cmd) {
-        case CMD_MOVE_N: xl = 5; yl = 6; xInit = 2; yInit = 3; break;
-        case CMD_MOVE_S: xl = 5; yl = 6; xInit = 2; yInit = 2; break;
-        case CMD_MOVE_E: xl = 6; yl = 5; xInit = 2; yInit = 2; break;
-        case CMD_MOVE_W: xl = 6; yl = 5; xInit = 3; yInit = 2; break;
-        case CMD_NO_OP:  xl = 5; yl = 5; xInit = 2; yInit = 2; break;
-    }//switch
-
-    // Set up current coords
-    x = xInit; y = yInit;  
-
-    //-------------------------------------------------
-    // Init the memory to use and fill with '*'
-    char** map = (char**)malloc(sizeof(char*) * xl);
-    for(i = 0; i < xl; i++) map[i] = (char*)malloc(sizeof(char) * yl);
-    for(i = 0; i < xl; i++) for(j = 0; j < yl; j++) map[i][j] = '*';
-
-    //-------------------------------------------------
-    // Apply initial senses to action map
-    senses = visuallyInterpretEpisodesWME(begin);
-    l = x - 1; m = y - 1;
-    for(k = 0; k < 9; k++) {
-        if(k > 0 && k % 3 == 0) { m++; l = x - 1; }
-        if (senses[k] != '.' || map[l][m] == '*')
-        {
-            map[l][m] = senses[k];
-        }
-        l++;
-    }//for
-    free(senses);
-
-    //-------------------------------------------------
-    // Determine if the next command can be completed
-    // If so, update the coords and set flag
-    switch(begin->cmd) {
-        case CMD_MOVE_N: if(map[x][y - 1] != 'W') y--; break;
-        case CMD_MOVE_S: if(map[x][y + 1] != 'W') y++; break;
-        case CMD_MOVE_E: if(map[x + 1][y] != 'W') x++; break;
-        case CMD_MOVE_W: if(map[x - 1][y] != 'W') x--; break;
-    }//switch
-
-    // Retrieve the final senses and update map accordingly
-    if(x != xInit || y != yInit) {
-        senses = visuallyInterpretEpisodesWME(outcome);
-        l = x - 1; m = y - 1;
-        for(k = 0; k < 9; k++) {
-            if(k > 0 && k % 3 == 0) {
-                m++;
-                l = x - 1;
-            }//if
-            if (senses[k] != '.' || map[l][m] == '*')
-            {
-                map[l][m] = senses[k];
-            }
-            l++;
-        }//for
-        free(senses);
-    }//if
-
-    //-------------------------------------------------
-    // Mark begin and end locations
-    map[xInit][yInit] = '1';
-    map[x][y]         = '2';
-
-    //-------------------------------------------------
-    // Display the visualized route
-    for(i = 0; i < yl; i++) {
-        for(j = 0; j < xl; j++) 
-            printf("%c", map[j][i]);
-        printf("\n");
-    }//for
-
-    //-------------------------------------------------
-    // Display the command queue for this sequence
-    printf("COMMAND: %s\n", interpretCommand(begin->cmd));
-    int found;
-    int reward = getINTValWME(outcome, "reward", &found);
-    printf("REWARD: %d\n", reward);
-    if(action->isIndeterminate)
-    {
-        printf("INDETERMINATE:  %2i \n", action->freq * 100 / *(action->overallFreq));
-    }
-    else
-    {
-        printf("DETERMINATE\n");
-    }
-
-    //-------------------------------------------------
-    // Free the memory used to hold the route
-    for(i = 0; i < xl; i++) 
-        free(map[i]);
-    free(map);
-}//displayVisualizedAction
-
-/**
- * displayVisualizedLevel0Sequence
- *
- * Display the episodes contained in a sequence as if
- * looking at a map. '1' marks start position of sequence
- * and '2' marks end position of sequence.
- *
- * @param seq A pointer to a vector containing a level 0 sequence
- * @param isComplete A boolean indicating if the sequence is complete
- */
-void displayVisualizedLevel0Sequence(Vector* seq, int isComplete)
-{
-#if DEBUGGING_EATERSVISUALS
-    printf("Displaying Level 0 Sequence\n");
-    printf("Sequence Length: %d\n", (int)seq->size);
-#endif
-
-    int i,j,k,l,m;
-    char* senses[seq->size];
-    int commands[seq->size];
-    char* currSense;
-    EpisodeWME* ep;
-    Action* action;
-    int currX = 0, currY = 0;;
-    int maxRight = 0, maxLeft = 0, maxUp = 0, maxDown = 0;
-
-    //only level 0 sequences can be printed
-    if ( ((Action *)seq->array[0])->level != 0) return;
-    
-    //-------------------------------------------------
-    // Determine the maximal dimensions necessary for visualization
-    for(i = 0; i < seq->size; i++)
-    {
-        action = seq->array[i];
-        ep = (EpisodeWME*)action->epmem->array[action->index];
-        senses[i] = currSense = visuallyInterpretEpisodesWME(ep);
-        commands[i] = ep->cmd;
-
-        switch(ep->cmd) {
-            case CMD_MOVE_N: if(currSense[1] != 'W') currY--; break;
-            case CMD_MOVE_S: if(currSense[7] != 'W') currY++; break;
-            case CMD_MOVE_E: if(currSense[5] != 'W') currX++; break;
-            case CMD_MOVE_W: if(currSense[3] != 'W') currX--; break;
-        }//switch
-
-        if(currX > maxRight) maxRight = currX;
-        if(currX < maxLeft)  maxLeft  = currX;
-        if(currY > maxDown)  maxDown  = currY;
-        if(currY < maxUp)    maxUp    = currY;
-    }//for
-
-    //-------------------------------------------------
-    // Set 5 for default square around one episode,
-    // Add the number needed to accomodate the commands
-    // within the sequence. mL and mU are negative, so negate
-    int xl = maxRight - maxLeft + 5;    // Map dimensions
-    int yl = maxDown - maxUp + 5;       // Map dimensions
-
-    // Set up initial coords [2,2] is default center
-    // for a 5x5 square. Offset from upper left [0,0]
-    // using maxLeft and maxUp respectively
-    int xInit = 2 - maxLeft, yInit = 2 - maxUp; // Init coords for agent
-
-    // Set up the rest of the variables used for tracking
-    int x = xInit, y = yInit;   // Current coords for agent
-    int moved = TRUE;           // Flag indicating successful action
-
-#if DEBUGGING_EATERSVISUALS
-    printf("MaxRight: %d\n", maxRight);
-    printf("MaxLeft: %d\n", maxLeft);
-    printf("MaxUp: %d\n", maxUp);
-    printf("MaxDown: %d\n", maxDown);
-    printf("X Len: %d\n", xl);
-    printf("Y Len: %d\n", yl);
-    printf("X Init: %d\n", xInit);
-    printf("Y Init: %d\n", yInit);
-#endif
-
-    //-------------------------------------------------
-    // Init the memory to use and fill with '*'
-    char** map = (char**)malloc(sizeof(char*) * xl);
-    for(i = 0; i < xl; i++) map[i] = (char*)malloc(sizeof(char) * yl);
-    for(i = 0; i < xl; i++) for(j = 0; j < yl; j++) map[i][j] = '*';
-
-    //-------------------------------------------------
-    // Iterate over the sequence to piece it together
-    for(i = 0; i < seq->size; i++)
-    {
-        currSense = senses[i];
-        // If the last move was successful, then integrate the new sensing.
-        if(moved) {
-            l = x - 1; m = y - 1;
-            for(k = 0; k < 9; k++) {
-                if(k > 0 && k % 3 == 0) {
-                    m++;
-                    l = x - 1;
-                }
-                if (currSense[k] != '.' || map[l][m] == '*')
-                {
-                    map[l][m] = currSense[k];
-                }
-                l++;
-            }//for
-            moved = FALSE; // reset flag
-        }//if
-
-        // Determine if the next command can be completed
-        // If so, update the coords and set flag
-        switch(commands[i]) {
-            case CMD_MOVE_N: if(map[x][y - 1] != 'W') { y--; moved = TRUE; } break;
-            case CMD_MOVE_S: if(map[x][y + 1] != 'W') { y++; moved = TRUE; } break;
-            case CMD_MOVE_E: if(map[x + 1][y] != 'W') { x++; moved = TRUE; } break;
-            case CMD_MOVE_W: if(map[x - 1][y] != 'W') { x--; moved = TRUE; } break;
-        }//switch
-    }//for
-
-    //-------------------------------------------------
-    // Only retrieve the final action's outcome if this
-    // is a complete sequence
-    if(isComplete && moved)
-    {
-        // Retrieve the final senses and update map accordingly
-        ep = (EpisodeWME*)action->epmem->array[action->outcome];
-        currSense = visuallyInterpretEpisodesWME(ep);
-        l = x - 1; m = y - 1;
-        for(k = 0; k < 9; k++) {
-            if(k > 0 && k % 3 == 0) {
-                m++;
-                l = x - 1;
-            }//if
-            if (currSense[k] != '.' || map[l][m] == '*')
-            {
-                map[l][m] = currSense[k];
-            }
-            l++;
-        }//for
-        free(currSense);
-    }//if
-    // Mark begin and end locations
-    map[xInit][yInit] = '1';
-    map[x][y]         = '2';
-
-    //-------------------------------------------------
-    // Display the visualized route
-    for(i = 0; i < yl; i++) {
-        for(j = 0; j < xl; j++) 
-            printf("%c", map[j][i]);
-        printf("\n");
-    }//for
-
-    //-------------------------------------------------
-    // Display the command queue for this sequence
-    // Take advantage of loop to free senses array
-    printf("BEGIN:");
-    for(i = 0; i < seq->size; i++) {
-        free(senses[i]);
-        printf("%s", interpretCommandShort(commands[i]));
-        if(i != seq->size - 1) printf(",");
-    }//for
-    // Display the final rewarded obtained
-    if(isComplete) {
-        int found;
-        int reward = getINTValWME(ep, "reward", &found);
-        printf("<%d>,SONG", reward);
-    }//if
-    printf(":END\n\n");
-
-    //-------------------------------------------------
-    // Free the memory used to hold the route
-    for(i = 0; i < xl; i++) 
-        free(map[i]);
-    free(map);
-}//displayVisualizedLevel0Sequence
-
-/**
- * evalLevel0Match
- *
- * examines two specified positions in the level 0 epmem vector and returns a
- * score indicating how well they match to each other.
- *
- * @arg pos1 - position of the most recent episode of the more recent sequence
- * @arg pos2 - position of the most recent episode of the less recent sequence
- *
- */
-double evalLevel0Match(int pos1, int pos2)
-{
-    int i;
-    int matchLen = 0;         // number of matching episodes so far
-    int matchCount = 0;       // stores result of calls to getNumMatches
-    double score = 0.0;       // match score so far
-    double discount = 1.0;    // current discount
-    
-    //get the level 0 episodes vector
-    Vector *level0Eps = (Vector *)g_epMem->array[0];
-
-    //SPECIAL CASE: pos2 may not refer to a goal episode because that will
-    //result in an invalid start state for a plan
-    if (episodeContainsGoal(level0Eps->array[pos2], FALSE))
-    {
-        return -1.0;
-    }
-    
-    for(i = 0; i <= pos2; i++)
-    {
-#if USE_WMES
-        EpisodeWME *ep1 = (EpisodeWME *)level0Eps->array[pos1 - i];
-        EpisodeWME *ep2 = (EpisodeWME *)level0Eps->array[pos2 - i];
-        if((matchCount = getNumMatches(ep1, ep2, matchLen > 0)) > 0)
-#else
-        Episode    *ep1 = (Episode *)level0Eps->array[pos1 - i];
-        Episode    *ep2 = (Episode *)level0Eps->array[pos2 - i];
-        if (compareEpisodes(ep1, ep2, matchLen > 0))
-#endif
-        {
-            score += ((double)matchCount * discount);
-            matchLen++;
-            discount *= MATCH_DISCOUNT;
-        }
-        else
-        {
-            break;          // end of match
-        }
-    }//for
-
-    //Verify this result is worth scoring
-    if (matchLen < MIN_LEVEL0_MATCH_LEN)
-    {
-        return -1.0;
-    }
-
-    return score;
-}//evalLevel0Match
-
-/**
- * getSeqInfoFromEp0Index
- *
- * @arg  ep0Index  - index of a level 0 episode
- *
- * @return a reference to the SeqInfo struct that corresponds to the level 0
- * episode 
- */
-SeqInfo *getSeqInfoFromEp0Index(int ep0Index)
-{
-    int i;
-    Vector *seqInfoList = (Vector *)g_seqInfo->array[0];
-    SeqInfo *retVal = NULL;
-
-    //Search backwards so the most recent one is returned if there are two
-    //sequence that contain this episode (due to sequence overlap)
-    for(i = seqInfoList->size - 1; i >= 0; i--)
-    {
-        SeqInfo *si = (SeqInfo *)seqInfoList->array[i];
-
-        if ( (si->firstIndex <= ep0Index)
-             && (si->lastIndex >= ep0Index) )
-        {
-            retVal = si;
-            break;
-        }
-    }
-
-    return retVal;
-
-}//getSeqInfoFromEp0Index
-
-
-/**
- * findInterimStartPartialMatch
- *
- * Like findInterimStart(), this method searches episodes for the best match to
- * the present.  However, it only searches level 0 and since the planning
- * routines need a sequences to build plans, it takes its best match and returns
- * it as a level 0 sequence and an offset into that sequence.  The plan is built
- * from the sequence but begins where the match left off
- *
- * @arg offset is the index of the action in the returned sequence that a new
- * plan should start with
- *
- * @return the "start" sequence that was found or NULL if there was no partial
- *         match
- */
-Vector *findInterimStartPartialMatch(int *offset)
-{
-    static int oldMatchIdx = -1;
-    Vector *level0Eps = (Vector *)g_epMem->array[0];
-    Vector *level1Eps = (Vector *)g_epMem->array[1];
-    int lastIndex = level0Eps->size-1; // where the match begins
-    int matchLen = 0;             // length of current match
-    int bestMatchLen = 0;         // length of the best match
-    int bestMatchIndex = -1;    // index of level 1 episode that is best match
-    int bestMatchOffset = -1;   // index of first matching action in best match
-
-
-    int i,j,k;                    // iterators
-    Vector *seqInfoList = (Vector *)g_seqInfo->array[0];
-    
-#ifdef DEBUGGING_FINDINTERIMSTART
-    printf("Entering findInterimStartPartialMatch()\n");
-    fflush(stdout);
-#endif
-
-    //Must be at least two level 1 episodes to do a partial match
-    if (level1Eps->size < 2) 
-    {
-#ifdef DEBUGGING_FINDINTERIMSTART
-        printf("Not enough Level 1 episodes for a partial match. Returning NULL...\n");
-        fflush(stdout);
-#endif
-        return NULL;
-    }//if
-
-    /*======================================================================
-     * Step 1: Initialize pos1 and pos2.  pos1 stays constant (pointing to the
-     * most recent episode) and pos2 starts in the most recent episode from the
-     * previous sequence.  Essentially, pos2 is initialized to the position
-     * of the most recent level 0 episode that could be a legitimate match.
-     * ----------------------------------------------------------------------
-     */
-
-    int pos1 = level0Eps->size - 1; // points to the most recent episode we are
-                                    // trying to find a match to this position
-    SeqInfo *lastSeqInfo  =         // info about the last complete sequence
-        (SeqInfo *)seqInfoList->array[seqInfoList->size - 1];
-    //Make sure that lastSeqInfo does not contain pos1 otherwise we'll
-    //end up with a match that's too recent
-    if (lastSeqInfo->lastIndex >= pos1)
-    {
-        lastSeqInfo = (SeqInfo *)seqInfoList->array[seqInfoList->size - 2];
-    }
-
-    int pos2 = lastSeqInfo->lastIndex; // reference to the last position
-                                       // that can contain a match.
-    //If the last sequence doesn't contain a goal, skip back one 1 because of
-    //sequence overlap
-    if (lastSeqInfo->containsGoal)
-    {
-        pos2 = lastSeqInfo->lastIndex - 1;
-    }
-
-    /*======================================================================
-     * Step 2: Find the best match by comparing the sequence starting at pos1 to
-     * that starting at pos2 (comparing backwards in time not forwards).
-     * ----------------------------------------------------------------------
-     */
-    
-    //Find the best match
-    double bestMatchScore = -1.0; // best match score seen so far
-    int bestMatchPos = -1;        // position of best match seen so far
-    for( ; pos2 >= 0; pos2--)
-    {
-        double score = evalLevel0Match(pos1, pos2);
-
-        if (score > bestMatchScore)
-        {
-            bestMatchScore = score;
-            bestMatchPos = pos2;
-            
-#ifdef DEBUGGING_FINDINTERIMSTART
-            printf("\tNew best total match: %lf found at index: %d of %d\n",
-                   bestMatchScore, bestMatchPos, (int)level0Eps->size);
-            fflush(stdout);
-#endif
-        }//if
-
-    }//for
-
-    //Check for no acceptable match found
-    if (bestMatchScore <= 0.0)
-    {
-#ifdef DEBUGGING_FINDINTERIMSTART
-        printf("findInterimStartPartialMatch found no match\n");
-        fflush(stdout);
-#endif
-        return NULL;
-    }
-    
-    /*======================================================================
-     * Step 3: Retrieve the level 1 episode corresponds to the position of the
-     * best match.  This is the episode that will begin the new route.
-     * ----------------------------------------------------------------------
-     */
-
-    SeqInfo *si = getSeqInfoFromEp0Index(bestMatchPos);
-
-    //sanity check:  should never happen
-    if (si == NULL)  return NULL;
-
-    /*======================================================================
-     * Step 4: Return the very next level 0 episode (after this best match) to
-     * the caller as a corresponding level 0 sequence and offset to the caller.  
-     * ----------------------------------------------------------------------
-     */
-
-    //This is easy since the SeqInfo struct shares the same index as the level 1
-    //episode that is our target sequence
-    *offset = (bestMatchPos - si->firstIndex);
-    Vector *retVal = (Vector *)level1Eps->array[si->index];
-
-#ifdef DEBUGGING
-    printf("Partial Match Found.\n");
-
-    printf("last 3 episodes of match:\n");
-    for(i = 2; i >= 0; i--)
-    {
-        if (bestMatchPos - i  < 0) continue;
-
-#if USE_WMES
-        EpisodeWME *ep1 = (EpisodeWME *)level0Eps->array[pos1 - i];
-        EpisodeWME *ep2 = (EpisodeWME *)level0Eps->array[bestMatchPos - i];
-
-#if EATERS_MODE
-        displayVisualizedEpisodeWME(ep1);
-        printf("\n<-- curr-%d /// bestMatch-%d -->", i, i);
-        fflush(stdout);
-        displayVisualizedEpisodeWME(ep2);
-        printf("\n---------------\n");
-#else
-        printf("\t");
-        displayEpisodeWMEShort(ep1);
-        printf("<-- curr-%d /// bestMatch-%d -->", i, i);
-        fflush(stdout);
-        displayEpisodeWMEShort(ep2);
-        printf("\n");
-#endif
-#else
-        printf("\t");
-        Episode    *ep1 = (Episode *)level0Eps->array[pos1 - i];
-        Episode    *ep2 = (Episode *)level0Eps->array[bestMatchPos - i];
-        displayEpisodeShort(ep1);
-        printf("<-- curr-%d /// bestMatch-%d -->", i, i);
-        fflush(stdout);
-        displayEpisodeShort(ep2);
-        printf("\n");
-#endif
-        fflush(stdout);
-    }//for
-
-    //Verify that the return value and offset correspond to the right thing
-    printf("\nresult episodes ");
-    fflush(stdout);
-#if USE_WMES
-
-    Action *act = (Action *)retVal->array[*offset];
-    if (act == NULL)         
-    {
-        printf("are of unknown match (return value specifies "
-               "an incomplete action).\n");
-    }
-    else if(bestMatchPos == act->index)
-    {
-        printf("match.\n");
-    }
-    else
-    {
-        EpisodeWME *nextWME = (EpisodeWME *)level0Eps->array[bestMatchPos];
-        EpisodeWME *alsoNextWME = (EpisodeWME *)level0Eps->array[act->index];
-        
-        printf("should match:\n");
-#if EATERS_MODE
-        displayVisualizedEpisodeWME(nextWME);
-        printf("\n");
-#else
-        displayEpisodeWMEShort(nextWME);
-#endif
-        fflush(stdout);
-        printf(" <-- from bestMatchPos(%d) /// from retVal(%d) -->",
-               bestMatchPos, act->index);
-        fflush(stdout);
-#if EATERS_MODE
-        displayVisualizedEpisodeWME(alsoNextWME);
-        printf("\n---------------");
-#else
-        displayEpisodeWMEShort(nextWME);
-#endif
-        printf("\n");
-    }
-    fflush(stdout);
-
-#if EATERS_MODE
-    printf("Returning index %d in this sequence:\n", *offset);
-    displayVisualizedLevel0Sequence(retVal, TRUE);
-#else
-    displaySequenceShort(retVal);
-#endif
-    
-#endif
-    
-#endif  // DEBUGGING
-
-
-    //Report the result
-    return retVal;
-
-}//findInterimStartPartialMatch
 
