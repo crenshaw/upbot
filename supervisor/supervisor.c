@@ -90,6 +90,7 @@ char* g_adjustL = "adjust left";
 char* g_blink   = "blink";
 char* g_no_op   = "no operation";
 char* g_song    = "song";
+char* g_sacc    = "saccade";
 char* g_unknown = "unknown";
 
 char* g_forwardS = "FW";
@@ -105,6 +106,8 @@ char* g_unknownS = "$$";
 // Keep track of goals
 int g_goalCount = 0;              // Number of goals found so far
 int g_goalIdx[NUM_GOALS_TO_FIND];
+
+int g_CMD_COUNT = 0;
 
 
 /**
@@ -617,6 +620,8 @@ Episode* createEpisode(char* sensorData)
  */
 int parseEpisode(Episode * parsedData, char* dataArr)
 {
+    printf("dataArr=%s\n", dataArr);
+    
     // temporary timestamp
     static int timeStamp = 0;
     int i; // index
@@ -1679,9 +1684,8 @@ int chooseCommand_SemiRandom()
     //Make an array of boolean values (one per command) and init them all to
     //TRUE. This array will eventually indicates whether the given command would
     //create a unique episode (TRUE) or not (FALSE).
-    int numCmds = LAST_MOBILE_CMD - CMD_NO_OP;       // number of commands
-    int valid[numCmds];
-    for(i = 0; i < numCmds; i++)
+    int valid[g_CMD_COUNT];
+    for(i = 0; i < g_CMD_COUNT; i++)
     {
         valid[i] = TRUE;        // innocent until proven guilty
     }
@@ -1708,13 +1712,13 @@ int chooseCommand_SemiRandom()
     //default choice for a command.  NOTE: We start the search in a random
     //position so that the agent won't always default to the lowest numbered
     //command.
-    int start = (rand() % numCmds); // random start
+    int start = (rand() % g_CMD_COUNT); // random start
 
     //Starting with the random position and treating "valid" as a circular array
     //scan until the first valid command is found.
-    for(i = 0; i < numCmds; i++)
+    for(i = 0; i < g_CMD_COUNT; i++)
     {
-        int index = (start + i) % numCmds;
+        int index = (start + i) % g_CMD_COUNT;
         if (valid[index])
         {
 #if DEBUGGING
@@ -3768,12 +3772,14 @@ int episodeContainsGoal(void *entry, int level)
  * Initialize the Supervisor vectors
  *
  */
-void initSupervisor()
+void initSupervisor(int numCommands)
 {
 
     // member variables
     int     i;          // loop iterator
     Vector* temp;       // used in init loop below
+
+    g_CMD_COUNT = numCommands;
 
     // initialize variables
     g_epMem           = newVector();
@@ -3944,6 +3950,9 @@ char* interpretCommand(int cmd)
             break;
         case CMD_ADJUST_RIGHT:
             return g_adjustR;
+            break;
+        case CMD_SACC:
+            return g_sacc;
             break;
         case CMD_SONG:
             return g_song;

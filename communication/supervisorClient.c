@@ -18,13 +18,13 @@
 //#define KNN_FILTER
 
 // //if RANDOMIZE is defined then the hallucinogen filter is applied
-//#define RANDOMIZE
+#define RANDOMIZE
 
 // //if KNN_FILTER is defined then then KNN filter is applied
 //#define KNN_FILTER
 
 //if we want to use the saccades filter, turn this on
-//#define SACC_FILTER 1
+#define SACC_FILTER 1
 
 
 #include "communication.h"
@@ -417,7 +417,7 @@ void processCommand(int* cmd, char* buf, FILE* log)
     // RANDOMIZE and KNN_FILTER
 #ifdef RANDOMIZE
     insertConfusion(buf); 
-#endif
+ #endif
 #ifdef KNN_FILTER
     char * rState = receiveState(buf);
     int tickAction = tick(rState);
@@ -425,7 +425,7 @@ void processCommand(int* cmd, char* buf, FILE* log)
 #elif SACC_FILTER
 
     //The saccades filter introduces internal commands that only modify the
-    //curernt sensing.  This loop continually responds to internals commands
+    //current sensing.  This loop continually responds to internal commands
     //until Ziggurat issues an external command.
     int lastCmd = CMD_SACC;     // last command issued (init'd to CMD_SACC)
     while( (lastCmd >= FIRST_SACC_CMD) && (lastCmd <= LAST_SACC_CMD) )
@@ -491,7 +491,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	initSupervisor();				// Initialize the Supervisor
+	initSupervisor(LAST_SACC_CMD);	// Initialize the Supervisor
 	parseArguments(argc, argv);		// Parse the arguments and set up global monitoring vars
 
 	// Socket stuff
