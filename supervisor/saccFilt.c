@@ -151,17 +151,15 @@ char * saccReceiveState(char * input)
         return; /* exception occurred */
     }
     
-    //this memory will need to be free'd somewhere else...
-    char* ret = (char*)malloc(SENSOR_LENGTH * sizeof(char));
-    
+    //modify the sensor array to reflect the result
     for(i=0; i<SENSOR_LENGTH; i++)
     {
-        ret[i] = (char)temp[i];
+        input[i] = (char)temp[i];
     }
     
     //prevent memory leak by telling java that we are done with this array.
     (*env)->ReleaseCharArrayElements(env, out, temp, 0);
-    return ret;
+    return input;
 }
 
 
@@ -213,6 +211,7 @@ void saccGetCurrSensing(char *buf)
     {
         buf[i] = (char)tempArray[i];
     }
+    buf[SENSOR_LENGTH] = '\0';
     
     //prevent memory leak by telling java that we are done with this array.
     (*env)->ReleaseCharArrayElements(env, out, tempArray, 0);
