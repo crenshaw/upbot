@@ -18,13 +18,13 @@
 //#define KNN_FILTER
 
 // //if RANDOMIZE is defined then the hallucinogen filter is applied
-#define RANDOMIZE
+//#define RANDOMIZE
 
 // //if KNN_FILTER is defined then then KNN filter is applied
 //#define KNN_FILTER
 
 //if we want to use the saccades filter, turn this on
-#define SACC_FILTER 1
+//#define SACC_FILTER 1
 
 
 #include "communication.h"

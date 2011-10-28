@@ -10,9 +10,11 @@
 public class SaccFilter
 {
 /***************************** DEBUG MODE **************************************
-***************/ public static final boolean DEBUG = false; /********************
+***************/ public static final boolean DEBUG = false; /*******************
 *******************************************************************************/
-    
+
+    private final boolean useWindowAdr = true;
+
     /**
      * Note about variables and constants with regard to style:
      *
@@ -274,8 +276,10 @@ public class SaccFilter
             currentWindow[i] = ((windowStart+i) < SENSOR_LENGTH) ? sensorArray[windowStart+i] : '0';
         }
         // put the peices together!
-        //adr[0] = '0';
-        //adr[1] = '0';
+        if(useWindowAdr)
+        {
+            for(char a: adr){a = '0';}
+        }
         char[] ret = new char[SENSOR_LENGTH];
         ret[0] = sensorArray[0]; //the goal bit is never changed and is never included in a window
         for(int i = 1; i<SENSOR_LENGTH; i++)
