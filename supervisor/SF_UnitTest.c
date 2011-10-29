@@ -1,6 +1,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "saccFilt.h"
+
+copy(char* target, char* source)
+{
+    int i;
+    for(i=0;i<10;i++)
+    {
+        target[i] = source[i];
+    }
+}
+
+
+
 int main(int argc, char* argv[])
 {
     char * temp = (char*)malloc(10 * sizeof(char));
@@ -15,7 +27,7 @@ int main(int argc, char* argv[])
     temp[8]='0';
     temp[9]='0';
     char * temp2 = (char*)malloc(10 * sizeof(char));
-    temp2 = saccReceiveState(temp);
+    copy(temp2,saccReceiveState(temp));
     int i;
     
     
@@ -29,10 +41,16 @@ int main(int argc, char* argv[])
     }
     printf("\n");
     
+    for(i=0; i < 10; i++)
+    {
+        printf("%c",temp[i]);
+    }
+    printf("\n");
+    
     //called 1x
     saccReceiveAction(0x7);
     printf("Saccades called once\n");
-    temp2 = saccReceiveState(temp);
+    copy(temp2,saccReceiveState(temp));
     printf("Calling saccReceiveState with 0101101100\n");
     printf("Expected result is: \n0000010101\nResult is:\n");
     for(i=0; i < 10; i++)
@@ -48,7 +66,7 @@ int main(int argc, char* argv[])
     //called 2x
     saccReceiveAction(0x7);
     printf("Saccades called twice\n");
-    temp2 = saccReceiveState(temp);
+    copy(temp2,saccReceiveState(temp));
     printf("Calling saccReceiveState with 1101101100\n");
     printf("Expected result is: \n1000001100\nResult is:\n");
     for(i=0; i < 10; i++)
@@ -60,7 +78,7 @@ int main(int argc, char* argv[])
     //called 3x
     saccReceiveAction(0x7);
     printf("Saccades called thrice\n");
-    temp2 = saccReceiveState(temp);
+    copy(temp2,saccReceiveState(temp));
     printf("Calling saccReceiveState with 1101101100\n");
     printf("Expected result is: \n1000011101\nResult is:\n");
     for(i=0; i < 10; i++)

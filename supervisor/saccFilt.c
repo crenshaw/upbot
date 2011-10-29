@@ -151,15 +151,17 @@ char * saccReceiveState(char * input)
         return; /* exception occurred */
     }
     
+    char* ret = (char*)malloc(SENSOR_LENGTH * sizeof(char));
+    
     //modify the sensor array to reflect the result
     for(i=0; i<SENSOR_LENGTH; i++)
     {
-        input[i] = (char)temp[i];
+        ret[i] = (char)temp[i];
     }
     
     //prevent memory leak by telling java that we are done with this array.
     (*env)->ReleaseCharArrayElements(env, out, temp, 0);
-    return input;
+    return ret;
 }
 
 

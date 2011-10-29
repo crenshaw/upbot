@@ -10,7 +10,7 @@
 public class SaccFilter
 {
 /***************************** DEBUG MODE **************************************
-***************/ public static final boolean DEBUG = false; /*******************
+***************/ public static final boolean DEBUG = true; /*******************
 *******************************************************************************/
 
     private final boolean useWindowAdr = true;
@@ -183,7 +183,10 @@ public class SaccFilter
         // put the peices together!
         if(!useWindowAdr)
         {
-            for(char a: adr){a = '0';}
+            for(int i=0;i<adrSize;i++)
+            {
+                adr[i] = '0';
+            }
         }
         char[] ret = new char[SENSOR_LENGTH];
         ret[0] = sensorArray[0]; //the goal bit is never changed and is never included in a window
