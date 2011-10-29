@@ -181,7 +181,7 @@ public class SaccFilter
             currentWindow[i] = ((windowStart+i) < SENSOR_LENGTH) ? sensorArray[windowStart+i] : '0';
         }
         // put the peices together!
-        if(useWindowAdr)
+        if(!useWindowAdr)
         {
             for(char a: adr){a = '0';}
         }
