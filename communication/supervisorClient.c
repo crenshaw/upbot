@@ -423,23 +423,19 @@ void processCommand(int* cmd, char* buf, FILE* log)
     int tickAction = tick(rState);
     *cmd = receiveAction(tickAction);
 #elif SACC_FILTER
-
     //The saccades filter introduces internal commands that only modify the
     //current sensing.  This loop continually responds to internal commands
     //until Ziggurat issues an external command.
-    int lastCmd = CMD_SACC;     // last command issued (init'd to CMD_SACC)
-    while( (lastCmd >= FIRST_SACC_CMD) && (lastCmd <= LAST_SACC_CMD) )
+    char* temp = saccReceiveState(buf); //temp now contains the most recent modified sensor data.
+    int tickAction = tick(temp); //send the most recent data and get an action
+    *cmd = saccReceiveAction(tickAction);
+    while((*cmd >= FIRST_SACC_CMD) && (*cmd <= LAST_SACC_CMD))
     {
-        char * rState = saccReceiveState(buf);
-        int tickAction = tick(rState);
-        lastCmd = saccReceiveAction(tickAction);
-        
-        if ( (lastCmd >= FIRST_SACC_CMD) && (lastCmd <= LAST_SACC_CMD))
-        {
-            saccGetCurrSensing(buf); // note:  buf is modified
-        }
+        temp = saccReceiveState(buf); //get new modified sensor data
+        tickAction = tick(temp); //send the most recent data and get an action        
+        *cmd = saccReceiveAction(tickAction); //saccade.
     }
-    *cmd = lastCmd;
+    buf = temp;
 #else
     *cmd = tick(buf);
 #endif
