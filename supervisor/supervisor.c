@@ -69,13 +69,13 @@
 
 //Particularly verbose debugging for specific methods
 #ifdef DEBUGGING
-// #define DEBUGGING_UPDATEALL 1
-// #define DEBUGGING_UPDATEPLAN 1
-// #define DEBUGGING_CHOOSECMD 1
+#define DEBUGGING_UPDATEALL 1
+#define DEBUGGING_UPDATEPLAN 1
+#define DEBUGGING_CHOOSECMD 1
 // #define DEBUGGING_INITROUTE 1    //Expensive. Avoid activating this.
 // #define DEBUGGING_INITPLAN 1
 // #define DEBUGGING_FINDINTERIMSTART 1
-// #define DEBUGGING_NSIV 1        // nextStepIsValid()
+#define DEBUGGING_NSIV 1        // nextStepIsValid()
 // #define DEBUGGING_FIND_REPL 1
 // #define DEBUGGING_CONVERTEPMATCH 1  //convertEpMatchToSequence()
 // #define DEBUGGING_KNN 1
@@ -100,6 +100,7 @@ char* g_adjustRS = "AR";
 char* g_adjustLS = "AL";
 char* g_blinkS   = "BL";
 char* g_no_opS   = "NO";
+char* g_saccadeS = "S ";
 char* g_songS    = "SO";
 char* g_unknownS = "$$";
 
@@ -3996,6 +3997,9 @@ char* interpretCommandShort(int cmd)
             break;
         case CMD_ADJUST_RIGHT:
             return g_adjustRS;
+            break;
+        case CMD_SACC:
+            return g_saccadeS;
             break;
         case CMD_SONG:
             return g_songS;
