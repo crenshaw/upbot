@@ -36,7 +36,7 @@
 
 // Matching defines
 #define NUM_TO_MATCH         (15)
-#define NUM_GOALS_TO_FIND    (500)
+#define NUM_GOALS_TO_FIND    (10)
 #define DISCOUNT             (1.0)
 #define MAX_LEN_LHS          (1)
 #define MAX_LEVEL_DEPTH      (4)
@@ -165,6 +165,7 @@ void         applyReplacementToPlan(Vector *plan, Replacement *repl);
 Vector*      applyReplacementToSequence(Vector* seq, Replacement* repl);
 int          chooseCommand();
 int          compareEpisodes(Episode* ep1, Episode* ep2, int compCmd);
+int          compareEpisodesLoose(Episode* ep1, Episode* ep2);
 Vector*      containsSequence(Vector* sequenceList, Vector* seq, int ignoreSelf);
 Episode*     createEpisode(char* sensorData);
 void         displayAction(Action* action);

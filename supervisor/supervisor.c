@@ -81,6 +81,9 @@
 // #define DEBUGGING_KNN 1
 #endif
 
+//the initial threshold value for the compareEpisodesLoose method.
+#define INIT_THRESHOLD .75
+#define looseCompring 1
 // global strings for printing to console
 char* g_forward = "forward";
 char* g_right   = "right";
@@ -1812,9 +1815,12 @@ int nextStepIsValid()
     displayRoute(level0Route, FALSE);
     printf("\n");
 #endif
-   
+#if looseComparing
+    return compareEpisodesLoose(currEp, nextStep);
+    //return compareEpisodes(currEp, nextStep, FALSE);
+#else
     return compareEpisodes(currEp, nextStep, FALSE);
-   
+#endif
 }//nextStepIsValid
 
 /**
@@ -3550,6 +3556,45 @@ int compareEpisodes(Episode* ep1, Episode* ep2, int compCmd)
 
     return TRUE;
 }//compareEpisodes
+
+
+/**
+ * compareEpisodes
+ *
+ * Compare the sensor arrays of two episodes and return if they are similar or not
+ *
+ * @arg ep1 a pointer to an episode
+ * @arg ep2 a pointer to another episode
+ * @return TRUE if the episodes match and FALSE otherwise
+ */
+int compareEpisodesLoose(Episode* ep1, Episode* ep2)
+{
+    static int thresholdAdj = 1; // is used to keep track of how many times 
+                                 // the threshold has been adjusted.
+    static double threshold = INIT_THRESHOLD; // determines the need percent similar 
+                                   //to accept the plan.
+    int i;
+    int counter;
+    
+    // Iterate through the episodes' sensor data and count the differences.
+    for(i = 0; i < NUM_SENSORS; i++)
+    {
+        if(ep1->sensors[i] == ep2->sensors[i])
+        {
+            ++counter;
+        }
+    }
+    // determine a new threshold value based on the number of differences.
+    double curThreshold = counter / NUM_SENSORS;
+    // average the new threshold with the threshold.
+    threshold = (thresholdAdj * threshold + curThreshold)/(thresholdAdj+1);
+    // increment the number of time that threshold has been adjusted.
+    thresholdAdj++;
+    
+    return (curThreshold >= threshold);
+}
+
+
 
 /**
  * compareActions
