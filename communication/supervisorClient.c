@@ -11,12 +11,6 @@
 * Usage: supervisorClient.out <ip_addr> -c <roomba/test> -m <stats/visual>
 */
 
-//if RANDOMIZE is defined then the hallucinogen filter is applied
-//#define RANDOMIZE
-
-//if KNN_FILTER is defined then then KNN filter is applied
-//#define KNN_FILTER
-
 // //if RANDOMIZE is defined then the hallucinogen filter is applied
 #define RANDOMIZE
 

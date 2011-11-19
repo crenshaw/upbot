@@ -10,7 +10,7 @@
 public class SaccFilter
 {
 /***************************** DEBUG MODE **************************************
-***************/ public static final boolean DEBUG = true; /*******************
+***************/ public static final boolean DEBUG = false; /*******************
 *******************************************************************************/
 
     private final boolean useWindowAdr = true;
@@ -26,6 +26,12 @@ public class SaccFilter
      *  should assist in readablity and debugging.
      */
     
+    /*
+    *
+    *CHANGES FOR TEST RUN: SET currentWindowAdr to 2 in the constructor and saccades
+    *           stays in window 2
+    *
+    */
     public static final int FIRST_SACC_CMD = 0x7;   //found in ../communication.h
     public static final int LAST_SACC_CMD = 0x7;    //found in ../communication.h
     public static final int CMD_SACC = 0x7;         //found in ../communication.h
@@ -52,7 +58,7 @@ public class SaccFilter
         for(char c:sensorArray) {c = '0';}
         char [] lastModified = sensorArray;
         
-        currentWindowAdr = 0; //the first window always starts with focus
+        currentWindowAdr = 2; //the first window always starts with focus
     }
 
     /**
@@ -138,9 +144,10 @@ public class SaccFilter
      */
     private void saccades()
     {
-        //should be 0, 1, 2, or 3. (in other words mod 4)
-        currentWindowAdr = (currentWindowAdr+1) % 
-            (int)(Math.ceil((SENSOR_LENGTH-1)/(double)windowSize));
+        //should be 0, 1, 2(in other words mod 3)
+        //currentWindowAdr = (currentWindowAdr+1) % 
+            //(int)(Math.ceil((SENSOR_LENGTH-1)/(double)windowSize));
+        currentWindowAdr = 2;
     }
     
     /**
