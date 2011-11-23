@@ -4816,8 +4816,8 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
            
             Episode *ep1 = (Episode *)level0Eps->array[(level0Eps->size - 1) - matchLen];
             Episode *ep2 = (Episode *)level0Eps->array[i-matchLen];
-
-            if (compareEpisodes(ep1, ep2, matchLen > 0))
+            //if (compareEpisodes(ep1, ep2, matchLen > 0))
+            if (compareEpisodesLoose(ep1, ep2))
             {
                 matchLen++;
             }
