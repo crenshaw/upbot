@@ -151,7 +151,6 @@ char * saccReceiveState(char * input)
         return; /* exception occurred */
     }
     
-//OLD:    char* ret = (char*)malloc(SENSOR_LENGTH * sizeof(char));
     char* ret = strdup(input);
     
     //modify the sensor array to reflect the result

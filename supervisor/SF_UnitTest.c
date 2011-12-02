@@ -2,90 +2,135 @@
 #include <stdio.h>
 #include "saccFilt.h"
 
-copy(char* target, char* source)
-{
-    int i;
-    for(i=0;i<10;i++)
-    {
-        target[i] = source[i];
-    }
-}
-
-
 
 int main(int argc, char* argv[])
 {
-    char * temp = (char*)malloc(10 * sizeof(char));
-    temp[0]='0';
-    temp[1]='1';
-    temp[2]='0';
-    temp[3]='1';
-    temp[4]='1';
-    temp[5]='0';
-    temp[6]='1';
-    temp[7]='1';
-    temp[8]='0';
-    temp[9]='0';
-    char * temp2 = (char*)malloc(10 * sizeof(char));
-    copy(temp2,saccReceiveState(temp));
+    char * sensorData = (char*)malloc(11 * sizeof(char));
+    sensorData[0]='x';
+    sensorData[1]='A';
+    sensorData[2]='B';
+    sensorData[3]='C';
+    sensorData[4]='D';
+    sensorData[5]='E';
+    sensorData[6]='F';
+    sensorData[7]='G';
+    sensorData[8]='H';
+    sensorData[9]='I';
+    sensorData[10]='\0';
     int i;
     
     
     
     //called 0x
-    printf("Calling saccReceiveState with 0101101100\n");
-    printf("Expected result is: \n0000011101\nResult is:\n");
-    for(i=0; i < 10; i++)
-    {
-        printf("%c",temp2[i]);
-    }
-    printf("\n");
+    printf("Called Saccades 0x\n");
     
-    for(i=0; i < 10; i++)
-    {
-        printf("%c",temp[i]);
-    }
+    printf("Calling saccReceiveState with: %s\n", sensorData);
+    char* temp = saccReceiveState(sensorData);
+    printf("Result is: %s\n", temp);
+    
     printf("\n");
     
     //called 1x
+    printf("Called Saccades 1x\n");
     saccReceiveAction(0x7);
-    printf("Saccades called once\n");
-    copy(temp2,saccReceiveState(temp));
-    printf("Calling saccReceiveState with 0101101100\n");
-    printf("Expected result is: \n0000010101\nResult is:\n");
-    for(i=0; i < 10; i++)
-    {
-        printf("%c",temp2[i]);
-    }
+    printf("Calling saccReceiveState with: %s\n", sensorData);
+    temp = saccReceiveState(sensorData);
+    printf("Result is: %s\n", temp);
+    
     printf("\n");
     
-    
     printf("set goalbit\n");
-    (*temp) = '1';
+    sensorData[0] = 'X';
+    
+    printf("\n");
     
     //called 2x
+    printf("Called Saccades 2x\n");
     saccReceiveAction(0x7);
-    printf("Saccades called twice\n");
-    copy(temp2,saccReceiveState(temp));
-    printf("Calling saccReceiveState with 1101101100\n");
-    printf("Expected result is: \n1000001100\nResult is:\n");
-    for(i=0; i < 10; i++)
-    {
-        printf("%c",temp2[i]);
-    }
+    printf("Calling saccReceiveState with: %s\n", sensorData);
+    temp = saccReceiveState(sensorData);
+    printf("Result is: %s\n", temp);
+    
     printf("\n");
     
     //called 3x
+    printf("Called Saccades 3x\n");
     saccReceiveAction(0x7);
-    printf("Saccades called thrice\n");
-    copy(temp2,saccReceiveState(temp));
-    printf("Calling saccReceiveState with 1101101100\n");
-    printf("Expected result is: \n1000011101\nResult is:\n");
-    for(i=0; i < 10; i++)
-    {
-        printf("%c",temp2[i]);
-    }
+    printf("Calling saccReceiveState with: %s\n", sensorData);
+    temp = saccReceiveState(sensorData);
+    printf("Result is: %s\n", temp);
+    
     printf("\n");
+    
+    //called 4x
+    printf("Called Saccades 4x\n");
+    saccReceiveAction(0x7);
+    printf("Calling saccReceiveState with: %s\n", sensorData);
+    temp = saccReceiveState(sensorData);
+    printf("Result is: %s\n", temp);
+    
+    printf("\n");
+    
+    //called 5x
+    printf("Called Saccades 5x\n");
+    saccReceiveAction(0x7);
+    printf("Calling saccReceiveState with: %s\n", sensorData);
+    temp = saccReceiveState(sensorData);
+    printf("Result is: %s\n", temp);
+    
+    printf("\n");
+    
+    //called 6x
+    printf("Called Saccades 6x\n");
+    saccReceiveAction(0x7);
+    printf("Calling saccReceiveState with: %s\n", sensorData);
+    temp = saccReceiveState(sensorData);
+    printf("Result is: %s\n", temp);
+    
+    printf("\n");
+    
+    //called 7x
+    printf("Called Saccades 7x\n");
+    saccReceiveAction(0x7);
+    printf("Calling saccReceiveState with: %s\n", sensorData);
+    temp = saccReceiveState(sensorData);
+    printf("Result is: %s\n", temp);
+    
+    printf("\n");
+    
+    //called 8x
+    printf("Called Saccades 8x\n");
+    saccReceiveAction(0x7);
+    printf("Calling saccReceiveState with: %s\n", sensorData);
+    temp = saccReceiveState(sensorData);
+    printf("Result is: %s\n", temp);
+    
+    printf("\n");
+    
+    //called 9x
+    printf("Called Saccades 9x\n");
+    saccReceiveAction(0x7);
+    printf("Calling saccReceiveState with: %s\n", sensorData);
+    temp = saccReceiveState(sensorData);
+    printf("Result is: %s\n", temp);
+    
+    printf("\n");
+    
+    //called 10x
+    printf("Called Saccades 10x\n");
+    saccReceiveAction(0x7);
+    printf("Calling saccReceiveState with: %s\n", sensorData);
+    temp = saccReceiveState(sensorData);
+    printf("Result is: %s\n", temp);
+    
+    printf("\n");
+    
+    //called 11x
+    printf("Called Saccades 11x\n");
+    saccReceiveAction(0x7);
+    printf("Calling saccReceiveState with: %s\n", sensorData);
+    temp = saccReceiveState(sensorData);
+    printf("Result is: %s\n", temp);
     
     return 0;
 }
