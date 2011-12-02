@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
     printf("\n");
     
     //called 1x
-    printf("Called Saccades 1x\n");
+    printf("Called Saccades 1x 0x7\n");
     saccReceiveAction(0x7);
     printf("Calling saccReceiveState with: %s\n", sensorData);
     temp = saccReceiveState(sensorData);
@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
     printf("\n");
     
     //called 2x
-    printf("Called Saccades 2x\n");
+    printf("Called Saccades 2x 0x7\n");
     saccReceiveAction(0x7);
     printf("Calling saccReceiveState with: %s\n", sensorData);
     temp = saccReceiveState(sensorData);
@@ -54,8 +54,8 @@ int main(int argc, char* argv[])
     printf("\n");
     
     //called 3x
-    printf("Called Saccades 3x\n");
-    saccReceiveAction(0x7);
+    printf("Called Saccades 3x 0x9\n");
+    saccReceiveAction(0x9);
     printf("Calling saccReceiveState with: %s\n", sensorData);
     temp = saccReceiveState(sensorData);
     printf("Result is: %s\n", temp);
@@ -63,8 +63,8 @@ int main(int argc, char* argv[])
     printf("\n");
     
     //called 4x
-    printf("Called Saccades 4x\n");
-    saccReceiveAction(0x7);
+    printf("Called Saccades 4x 0x8\n");
+    saccReceiveAction(0x8);
     printf("Calling saccReceiveState with: %s\n", sensorData);
     temp = saccReceiveState(sensorData);
     printf("Result is: %s\n", temp);
@@ -72,8 +72,8 @@ int main(int argc, char* argv[])
     printf("\n");
     
     //called 5x
-    printf("Called Saccades 5x\n");
-    saccReceiveAction(0x7);
+    printf("Called Saccades 5x 0xA\n");
+    saccReceiveAction(0xA);
     printf("Calling saccReceiveState with: %s\n", sensorData);
     temp = saccReceiveState(sensorData);
     printf("Result is: %s\n", temp);

@@ -83,7 +83,7 @@
 
 //the initial threshold value for the compareEpisodesLoose method.
 #define INIT_THRESHOLD .75
-#define looseCompring 1
+#define looseComparing 1
 // global strings for printing to console
 char* g_forward = "forward";
 char* g_right   = "right";
@@ -1815,10 +1815,13 @@ int nextStepIsValid()
     displayRoute(level0Route, FALSE);
     printf("\n");
 #endif
+
 #if looseComparing
+    //printf("!!!!!Loose Comparing!!!!!\n");
     return compareEpisodesLoose(currEp, nextStep);
     //return compareEpisodes(currEp, nextStep, FALSE);
 #else
+    //printf("!!!!!NOT Loose Comparing!!!!!\n");
     return compareEpisodes(currEp, nextStep, FALSE);
 #endif
 }//nextStepIsValid
@@ -3997,7 +4000,16 @@ char* interpretCommand(int cmd)
         case CMD_ADJUST_RIGHT:
             return g_adjustR;
             break;
-        case CMD_SACC:
+        case CMD_SACC_1:
+            return g_sacc;
+            break;
+        case CMD_SACC_2:
+            return g_sacc;
+            break;
+        case CMD_SACC_3:
+            return g_sacc;
+            break;
+        case CMD_SACC_4:
             return g_sacc;
             break;
         case CMD_SONG:
@@ -4043,7 +4055,16 @@ char* interpretCommandShort(int cmd)
         case CMD_ADJUST_RIGHT:
             return g_adjustRS;
             break;
-        case CMD_SACC:
+        case CMD_SACC_1:
+            return g_saccadeS;
+            break;
+        case CMD_SACC_2:
+            return g_saccadeS;
+            break;
+        case CMD_SACC_3:
+            return g_saccadeS;
+            break;
+        case CMD_SACC_4:
             return g_saccadeS;
             break;
         case CMD_SONG:
@@ -4816,6 +4837,12 @@ Vector *findInterimStartPartialMatch_KNN(int *offset)
            
             Episode *ep1 = (Episode *)level0Eps->array[(level0Eps->size - 1) - matchLen];
             Episode *ep2 = (Episode *)level0Eps->array[i-matchLen];
+            int comparison;
+#if looseComparing
+comparison = compareEpisodesLoose(ep1, ep2);
+#else
+comparison = compareEpisodes(ep1, ep2, matchLen > 0);
+#endif
             //if (compareEpisodes(ep1, ep2, matchLen > 0))
             if (compareEpisodesLoose(ep1, ep2))
             {

@@ -15,7 +15,7 @@ public class SaccFilter
 ***************/ public static final boolean DEBUG = false; /*******************
 *******************************************************************************/
 
-    private final boolean useWindowAdr = true;
+    private final boolean useWindowAdr = false;
 
     /**
      * Note about variables and constants with regard to style:
@@ -29,13 +29,15 @@ public class SaccFilter
      */
     
     public static final int FIRST_SACC_CMD = 0x7;   //found in ../communication.h
-    public static final int LAST_SACC_CMD = 0x7;    //found in ../communication.h
-    public static final int CMD_SACC = 0x7;         //found in ../communication.h
-    
+    public static final int LAST_SACC_CMD = 0xA;    //found in ../communication.h
+    public static final int CMD_SACC_1 = 0x7;         //found in ../communication.h
+    public static final int CMD_SACC_2 = 0x8;
+    public static final int CMD_SACC_3 = 0x9;
+    public static final int CMD_SACC_4 = 0xA;
     public static final int SENSOR_LENGTH = 10;     //
     
     // Window description is an array which indicates where and how large windows should be.
-    private final int[][] windowDescriptions = {{1},{2,3},{4,5},{6,7},{8,9}};
+    private final int[][] windowDescriptions = {{1,2,3},{4,5},{6,7},{8,9}};
     /*
      * >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> WARNING <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
      * the program makes no check for the validity of the windowDescriptions.
@@ -118,9 +120,29 @@ public class SaccFilter
      */
     public int filterCommand(int command)
     {
-        if(command == CMD_SACC)
+        int lastWindow = currentWindowAdr;
+        if(command == CMD_SACC_1)
         {
-            this.saccades();
+            currentWindowAdr = 0;
+        }
+        else if(command == CMD_SACC_2)
+        {
+            currentWindowAdr = 1;
+        }
+        else if(command == CMD_SACC_3)
+        {
+            currentWindowAdr = 2;
+        }
+        else if(command == CMD_SACC_4)
+        {
+            currentWindowAdr = 3;
+        }
+        if(DEBUG)
+        {
+            System.out.print("Window Adr: " + lastWindow);
+            System.out.print(" => ");
+            System.out.print(currentWindowAdr);
+            System.out.println();
         }
         return command;
     }
@@ -170,7 +192,7 @@ public class SaccFilter
         int adrSize = (int)Math.ceil(Math.log(windowDescriptions.length)/Math.log(2));
         char[] adr = new char[adrSize];
         // convert the address to binary
-        int temp = windowDescriptions[currentWindowAdr].length;
+        int temp = currentWindowAdr;
         for(int i = adrSize-1; i>=0; i--)
         {
             if(temp % 2 == 0) {adr[i] = '0';}

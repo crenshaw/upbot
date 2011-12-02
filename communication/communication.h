@@ -68,21 +68,24 @@ int checkArgName(int argc, char* argv[], char addresses[3][13]);
 #define CMD_RIGHT			0x4
 #define CMD_ADJUST_LEFT		0x5
 #define CMD_ADJUST_RIGHT	0x6
-#define CMD_SACC			0x7
-#define CMD_SONG			0x8
-#define CMD_BLINK			0x9
+#define CMD_SACC_1			0x7
+#define CMD_SACC_2			0x8
+#define CMD_SACC_3			0x9
+#define CMD_SACC_4			0xA
+#define CMD_SONG			0xB
+#define CMD_BLINK			0xC
 
 
-#define NUM_COMMANDS		0xA	// Always make sure this is at the end
+#define NUM_COMMANDS		0xD	// Always make sure this is at the end
                                 // The NUM_COMMANDS is the total number
                                 // of commands that can be issued by
                                 // the artificially intelligent
                                 // supervisor.
 
-#define LAST_MOBILE_CMD		0x7  //last command that is not generally used for
+#define LAST_MOBILE_CMD		0xA  //last command that is not generally used for
                                  //human debugging
 #define FIRST_SACC_CMD      0x7  //One or more saccade commands are
-#define LAST_SACC_CMD       0x7  //internal commands used by saccFilt.c
+#define LAST_SACC_CMD       0xA  //internal commands used by saccFilt.c
 
 
 // Sensor Data Indices
