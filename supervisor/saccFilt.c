@@ -49,8 +49,8 @@ JNIEnv* create_vm(JavaVM ** jvm)
     int ret = JNI_CreateJavaVM(jvm, (void**)&env, &vm_args);
     if(ret < 0)
     {
-        //If we failed to set up the JVM, abondonship the program is hopeless.
-        printf("--Unable to Launch JVM--\n");
+        //If we failed to set up the JVM, abondonship. The program is hopeless.
+        perror("--Unable to Launch JVM--\n");
         exit(EXIT_FAILURE);
     }
     return env;
@@ -67,7 +67,7 @@ int init_ids()
     {
         //if the class was not found, there is no point in continuing,
         //exit with a fauilure code.
-        printf("--failed to load class--\n");
+        perror("--failed to load class--\n");
         (*jvm)->DestroyJavaVM(jvm);
         return EXIT_FAILURE;
     }
@@ -90,13 +90,10 @@ int init_ids()
     {
         //if the methods were not found, there is no point in continuing,
         //exit with a fauilure code.
-        printf("--failed to load method(s): ");
-        if(mid_runFilter == NULL){printf(" runFilter");}
-        if(mid_initFilter == NULL){printf(" initFilter");}
-        if(mid_filterCommand == NULL){printf(" filterCommand");}
-        if(mid_getSensors == NULL){printf(" getSensors");}
-        printf("--\n");
-
+        if(mid_runFilter == NULL){perror("--failed to load method: runFilter--\n");}
+        if(mid_initFilter == NULL){perror("--failed to load method: initFilter--\n");}
+        if(mid_filterCommand == NULL){perror("--failed to load method: filterCommand--\n");}
+        if(mid_getSensors == NULL){perror("--failed to load method: getSensors--\n");}
         (*jvm)->DestroyJavaVM(jvm);
         return EXIT_FAILURE;
     }
@@ -114,6 +111,12 @@ int init_ids()
  */
 char * saccReceiveState(char * input)
 {
+    if(input == NULL)
+    {
+        perror("Null input: saccReceiveState\n");
+        return;
+    }
+    
     //Setup the JVM if it isn't already running.
     if (env == NULL)
     {
@@ -147,7 +150,9 @@ char * saccReceiveState(char * input)
     temp = (*env)->GetCharArrayElements(env, out, NULL);
     
     //check that the extraction was successful
-    if (temp == NULL) {
+    if (temp == NULL)
+    {
+        perror("Unable to extract from JcharArray\n");
         return; /* exception occurred */
     }
     
@@ -193,6 +198,11 @@ int saccReceiveAction(int command)
  */
 void saccGetCurrSensing(char *buf)
 {
+    if(buf == NULL)
+    {
+        perror("Null input: saccGetCurrSensing\n");
+        return;
+    }
     //Setup the JVM if it isn't already running.
     if (env == NULL)
     {
