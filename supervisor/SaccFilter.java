@@ -12,7 +12,7 @@ import java.util.Arrays;
 public class SaccFilter
 {
 /***************************** DEBUG MODE **************************************
-***************/ public static final boolean DEBUG = true ; /*******************
+***************/ public static final boolean DEBUG = false ; /*******************
 *******************************************************************************/
     
     private final boolean useWindowAdr = false;
