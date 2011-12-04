@@ -35,6 +35,7 @@ public class SaccFilter
     public static final int CMD_SACC_3 = 0x9;       //found in ../communication.h
     public static final int CMD_SACC_4 = 0xA;       //found in ../communication.h
     public static final int SENSOR_LENGTH = 10;     //
+    public static final int GOAL_FOUND = 0xB;
     
     // Window description is an array which indicates where and how large windows should be.
     private final int[][] windowDescriptions = {{1,2,3},{4,5},{6,7},{8,9}};
@@ -51,6 +52,7 @@ public class SaccFilter
      * >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> WARNING <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
      */
     private int currentWindowAdr; //indicates which window currently "has focus"
+    private int startWindow = 0;
     private char[] sensorArray; //contains a recent unmodified sensor array.
     private char[] lastModified; //contains a recent thinned sensor array.
     
@@ -67,7 +69,7 @@ public class SaccFilter
         char [] lastModified = new char[SENSOR_LENGTH];
         Arrays.fill(sensorArray, '0');
         Arrays.fill(lastModified, '0');
-        currentWindowAdr = 0;
+        currentWindowAdr = startWindow;
     }
     
     /**
@@ -127,6 +129,9 @@ public class SaccFilter
             currentWindowAdr = 2;
         else if(command == CMD_SACC_4)
             currentWindowAdr = 3;
+        else if(command == GOAL_FOUND)
+            currentWindowAdr=startWindow;
+        
         //currentWindowAdr = (currentWindowAdr+1)%windowDescriptions.length;
         if(DEBUG)
         {
