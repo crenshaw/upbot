@@ -23,11 +23,7 @@ char gold[] = "1000000011";                 //1's indicate an important bit in
  */
 char chaos()
 {
-    int num = 10*rand();
-	if(num < 5)
-		return '0';
-	else 
-		return '1';    
+    return rand() % 2 + '0';
 }
 
 /**
