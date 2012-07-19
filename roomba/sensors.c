@@ -19,7 +19,7 @@
 void receiveSensorData(int packet, char* x, int numBytes, int numIter)
 {
   
-  byteTx(CmdSensors);
+  byteTx(RCMD_SENSORS);
   byteTx(packet);
   byteRx(x, numBytes, numIter);
 }

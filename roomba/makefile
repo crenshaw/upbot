@@ -1,11 +1,8 @@
-# makefile for communication 
+# makefile for roomba directory
 CC=arm-linux-gcc
 CFLAGS= -static  
 
-all: appSimple appHardy appStop
-
-appSimple:	appSimple.c utility.c led.c move.c song.c sensors.c ../communication/commandQueue.c 
-	$(CC) $(CFLAGS) -o appSimple.out appSimple.c utility.c led.c move.c song.c sensors.c ../communication/commandQueue.c
+all: appHardy appStop
 
 appHardy:	appHardy.c utility.c led.c move.c song.c sensors.c ../communication/commandQueue.c
 	$(CC) $(CFLAGS) -o appHardy.out appHardy.c utility.c led.c move.c song.c sensors.c ../communication/commandQueue.c

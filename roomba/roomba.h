@@ -56,7 +56,14 @@ void song();
 
 #define ACTIVE_SENSOR 1
 
-//Command Values
+/* 
+ * iRobot Open Interface Command Values
+ * Taken from the "iRobot Create Open Interface v.2" manual,
+ * Commands Quick Reference, page 22.
+ *
+ * TODO: Replace all CmdXxx with fully-capitalized equivalents to
+ * indicate they are preprocessor commands.
+ */
 #define CmdStart    128
 #define CmdBaud	    129
 #define CmdControl  130
@@ -66,12 +73,12 @@ void song();
 #define CmdSpot     134
 #define CmdClean    135
 #define CmdMax      136
-#define CmdDrive    137
+#define RCMD_DRIVE   137
 #define CmdMotors   138
 #define CmdLeds     139
-#define CmdSong     140
-#define CmdPlay     141
-#define CmdSensors  142
+#define RCMD_SONG    140
+#define RCMD_PLAY    141
+#define RCMD_SENSORS 142
 #define CmdStream   148
 #define CmdToggleStream    150
 
@@ -157,15 +164,26 @@ void song();
 #define SP_CLIFF_F_RIGHT_SIGNAL 30
 #define SP_CLIFF_RIGHT_SIGNAL 31
 
-// Timing values
-#define HALF_SECOND 500000
-#define QUARTER_SECOND 250000
-#define EIGHTH_SECOND 125000
-#define DEGREES_45 540000
-#define DEGREES_90 1080000
-#define ADJUST_AMOUNT 166666
+#ifdef CONNEX
+  // Turning radius timing values for the gumstix connex
+  #define HALF_SECOND 500000
+  #define QUARTER_SECOND 250000
+  #define EIGHTH_SECOND 125000
+  #define DEGREES_45 540000
+  #define DEGREES_90 1080000
+  #define ADJUST_AMOUNT 166666
+#else
+  // Turning radius timing values for the gumstix verdex
+  #define HALF_SECOND 500000
+  #define QUARTER_SECOND 250000
+  #define EIGHTH_SECOND 125000
+  #define DEGREES_45 540000
+  #define DEGREES_90 1080000
+  #define ADJUST_AMOUNT 166666
+#endif
 
-#define STOP_MACRO {byteTx(CmdDrive); byteTx(0x00); byteTx(0x00); byteTx(STRAIGHT >> 8); byteTx(STRAIGHT & 0x00FF);}
+
+#define STOP_MACRO {byteTx(RCMD_DRIVE); byteTx(0x00); byteTx(0x00); byteTx(STRAIGHT >> 8); byteTx(STRAIGHT & 0x00FF);}
 #define PAUSE_STREAM_MACRO {byteTx(CmdToggleStream); byteTx(0);}
 #define RESUME_STREAM_MACRO {byteTx(CmdToggleStream); byteTx(1);}
 

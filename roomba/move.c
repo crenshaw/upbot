@@ -102,7 +102,7 @@ void driveStraight(int velocity)
   // Send the 5-byte drive command to the iRobot:
 
   // Begin by issuing a drive command to the iRobot.
-  byteTx(CmdDrive);
+  byteTx(RCMD_DRIVE);
 
   // Send the high byte, then the low byte of
   // the desired velocity value.
@@ -124,7 +124,7 @@ void driveStraight(int velocity)
  */
 void turnCounterClockwise(int degrees)
 {
-  byteTx(CmdDrive);
+  byteTx(RCMD_DRIVE);
   byteTx(0);
   byteTx(200);
   byteTx(0);
@@ -140,7 +140,7 @@ void turnCounterClockwise(int degrees)
  */
 void turnClockwise(int degrees)
 {
-  byteTx(CmdDrive);
+  byteTx(RCMD_DRIVE);
   byteTx(0);
   byteTx(200);
   byteTx(255);
@@ -194,7 +194,7 @@ void driveBackwardsUntil(int sec, int speed)
 void driveBackwards(int velocity)
 {
   unsigned int velocityWord = 0;
-  byteTx(CmdDrive);
+  byteTx(RCMD_DRIVE);
   if (velocity == HIGH)
     {
       velocityWord = HIGH_SPEED_BACK;
@@ -218,7 +218,7 @@ void driveBackwards(int velocity)
 
 void stop()
 {
-  byteTx(CmdDrive);
+  byteTx(RCMD_DRIVE);
   byteTx(0x00);
   byteTx(0x00);
   byteTx(STRAIGHT & 0x00FF);

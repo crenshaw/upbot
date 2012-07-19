@@ -1,16 +1,17 @@
 /**
  * appSimple
  *
- * Simple program for iRobot Create Roomba
+ * Simple example program for iRobot Create Roomba.  
  *
  * @author Steven M. Beyer
  * @since  24 February 2010
+ * 
  *
  */
 
 #include <stdio.h>
-#include "roomba.h"
-#include "../communication/communication.h"
+#include "../roomba.h"
+#include "../../communication/communication.h"
 
 /** 
  * main()
@@ -55,6 +56,9 @@ int main()
       printf("appSimple fopen\n");
       return -1;
     }
+
+  song();
+
   driveStraight(MED);
 
   printf("   driving...\n");
@@ -75,7 +79,7 @@ int main()
       if((x[0] & SENSOR_BUMP_BOTH) == SENSOR_BUMP_RIGHT)
 	{
 	  //turn left
-	  turnCounterClockwise(90);
+	  turnCounterClockwise(DEGREES_90);
 	  driveStraight(MED);
 	}
       
@@ -83,14 +87,14 @@ int main()
 	{
 	  driveBackwardsUntil(1, MED);
 	  //turn right
-	  turnClockwise(90);
+	  turnClockwise(DEGREES_90);
 	  driveStraight(MED);
 	}
       
       if((x[0] & SENSOR_BUMP_BOTH) == SENSOR_BUMP_LEFT)
 	{
 	  //turn right
-	  turnClockwise(90);
+	  turnClockwise(DEGREES_90);
 	  driveStraight(MED);
 	}
 
