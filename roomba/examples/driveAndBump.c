@@ -1,5 +1,5 @@
 /**
- * appSimple
+ * driveAndBump.c
  *
  * Simple example program for iRobot Create Roomba.  
  *
@@ -26,12 +26,12 @@
  * an iRobot Create.
  *
  */
-int main()
+int main(int argc, char * argv[])
 {
   int c = -1;
   char x[10];
 
-  printf("appSimple running ... \n");
+  printf("%s running ... \n", argv[0]);
 
   if (openPort() == 0)
     {
