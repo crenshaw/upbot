@@ -17,25 +17,27 @@
  * main()
  *
  * Initialize the iRobot and turn on all LEDs with the Play at Red at
- * full intensity.
+ * full intensity.  So, from left-to-right on the iRobot, the LEDs
+ * should be RED, GREEN, GREEN.
  */
-
-int main()
+int main(int argc, char * argv[])
 {
-	if (openPort() == 0)
-	{
-		printf("Port failed to open \n");
-		return -1;
-	}
+  printf("%s running ... \n", argv[0]);
 
-	initialize();
-
-	setLED(RED, PLAY_ON, ADVANCE_ON);
-
-	if (closePort() == -1)
-	{
-		printf("Port failed to close \n");
-		return -1;
-	}
-	return 0;
+  if (openPort() == 0)
+    {
+      perror("Port failed to open \n");
+      return -1;
+    }
+  
+  initialize();
+  
+  setLED(RED, PLAY_ON, ADVANCE_ON);
+  
+  if (closePort() == -1)
+    {
+      perror("Port failed to close \n");
+      return -1;
+    }
+  return 0;
 }

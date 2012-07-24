@@ -16,9 +16,10 @@
 /** 
  * main()
  *
- * This program just stops the iRobot. Sometimes a program has crashed
- * and the iRobot is off and running, mashing itself into the wall.
- * Stop it remotely instead of running across the room to pick it up.
+ * This program stops the iRobot and turns off all LEDs on the
+ * chassis. Sometimes a program has crashed and the iRobot is off and
+ * running, mashing itself into the wall.  Use this program to stop it
+ * remotely instead of running across the room to pick it up.
  */
 
 int main(int argc, char * argv[])

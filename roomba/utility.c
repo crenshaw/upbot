@@ -64,9 +64,12 @@ int closePort()
 {
   if(!close(fd))
     {
-    printf("file successfully closed \n");
-    return 1;
+#ifdef DEBUG
+      printf("file successfully closed \n");
+#endif
+      return 1;
     }
+
   else
     return -1;
 }
