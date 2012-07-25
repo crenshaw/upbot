@@ -13,7 +13,10 @@ VPATH=../
 # $^ is the make automatic variable that lists all the prerequisites of a rule, including their vpath directories.
 # $@ is the make automatic variable for the target name.
 
-all:	driveAndBump.out initLed.out stop.out
+all:	drive.out driveAndBump.out initLed.out stop.out
+
+drive.out:	drive.c $(CORE_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@ 
 
 driveAndBump.out:	driveAndBump.c $(CORE_OBJS) 
 	$(CC) $(CFLAGS) $^ -o $@ 

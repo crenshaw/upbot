@@ -69,7 +69,7 @@ int driveStraightWithFeedback(int velocity)
 void driveStraightUntil(int sec, int speed)
 {
   driveStraight(speed);
-  usleep(sec);
+  sleep(sec);
 }
 
 /**
@@ -181,7 +181,7 @@ void turn(int direction, int degrees)
 void driveBackwardsUntil(int sec, int speed)
 {
   driveBackwards(speed);
-  usleep(sec);
+  sleep(sec);
   stop();
 }
 
