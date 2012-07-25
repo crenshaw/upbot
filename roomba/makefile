@@ -2,10 +2,10 @@
 CC=arm-linux-gcc
 CFLAGS= -static  
 
-all: appHardy 
+all:  controller.out
 
-appHardy:	appHardy.c utility.c led.c move.c song.c sensors.c ../communication/commandQueue.c
-	$(CC) $(CFLAGS) -o appHardy.out appHardy.c utility.c led.c move.c song.c sensors.c ../communication/commandQueue.c
+controller.out:	main.c utility.c led.c move.c song.c sensors.c ../communication/commandQueue.c
+	$(CC) $(CFLAGS) -o controller.out main.c utility.c led.c move.c song.c sensors.c ../communication/commandQueue.c
 
 clean:
 	rm *.o *.out

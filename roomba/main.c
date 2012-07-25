@@ -1,7 +1,9 @@
 /**
- * driveAndBump.c
+ * main.c
  *
- * Simple example program for iRobot Create Roomba.  
+ * The main testbed function for the iRobot Create.  This program
+ * executes on the gumstix and executes any commands received from
+ * external devices and placed in cmdFile.txt by brainstem.out.
  *
  * @author Steven M. Beyer
  * @since  24 February 2010
@@ -10,8 +12,8 @@
  */
 
 #include <stdio.h>
-#include "../roomba.h"
-#include "../../communication/communication.h"
+#include "roomba.h"
+#include "../communication/communication.h"
 
 /** 
  * main()
@@ -21,9 +23,6 @@
  * activated. Upon bump sensor activation, the iRobot Create turns and
  * continues driving. All the while, the program looks for external
  * commands to execute in cmdFile.txt.
- * 
- * Useful for initial debugging of new gumstix hardware interfaced to
- * an iRobot Create.
  *
  */
 int main(int argc, char * argv[])
