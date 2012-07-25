@@ -56,8 +56,8 @@ unittest: unitTestServer.c serverUtility.c ../supervisor/unitTest.h commandQueue
 eaters: eatersServer.c communication.h serverUtility.c ../supervisor/eaters.h commandQueue.c
 	gcc $(DEBUG_OPT)-o eaters.out eatersServer.c serverUtility.c ../supervisor/eaters.c commandQueue.c
 
-brainstem: brainstem.c communication.h serverUtility.c commandQueue.c tell.c compass.o nerves.o move.o sensors.o led.o song.o utility.o ../roomba/roomba.h
-	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c commandQueue.c tell.c compass.o nerves.o move.o sensors.o led.o song.o utility.o
+brainstem: brainstem.c communication.h serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o ../roomba/roomba.h
+	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o
 
 # Make sure that object files are built in the appropriate order; if
 # anything in roomba.h changes, the accompanying nerves, move, sensor,

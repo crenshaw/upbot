@@ -1,20 +1,24 @@
-// compass.c
-//   Device driver created for the Devantech Electronic Compass.
-//   Created By: Cole Mercer and Tanya L. Crenshaw
-//   Date: July 21, 2010
-//   Description: This driver allows one to initialize the compass
-//   hardware using the initializeCompass() function and then 
-//   subsequently obtain the compass heading using getHeading().
-//   The initialization function need only be invoked once while
-//   getHeading() may be invoked as often as allowed by the I2C
-//   bus.  When compass use is complete, the device may be closed
-//   using closeCompass().
-
+/**
+ * compass.c
+ *
+ * Device driver created for the Devantech Electronic Compass.  This
+ * driver allows one to initialize the compass hardware using the
+ * initializeCompass() function and then subsequently obtain the
+ * compass heading using getHeading(). The initialization function
+ * need only be invoked once while getHeading() may be invoked as
+ * often as allowed by the I2C bus.  When compass use is complete,
+ * the device may be closed using closeCompass().
+ *
+ * @author Cole Mercer and Tanya L. Crenshaw
+ * @since  21 July 2010
+ * 
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/i2c.h>
+#include <linux/i2c-dev.h>
 
 
 /* Intended to allow the reading of I2C packets to arbitrary addresses */
@@ -79,7 +83,6 @@ int getHeading(void)
   if (ioctl(file,I2C_SLAVE,0x60) < 0) {
     printf("ictl ERR: %s\n",strerror(errno));
     return -1;
-    //exit(1);
   }
 
 
