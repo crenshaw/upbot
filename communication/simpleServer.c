@@ -1,3 +1,20 @@
+/*
+ * simpleServer.c -- a stream socket server demo
+ *
+ * Description: This server program awaits connections on port PORT.
+ * Upon connection, it delivers a brief snippet from "The Love Song
+ * of J. Alfred Prufrock."
+ *
+ * This simple program is largely based on Beej's Socket Programming
+ * Tutorial.  Thanks Brian Hall!
+ *
+ * NOTE: Though not part of the iRobot testbed functionality, it is
+ * included in the repository as a nice working example of a simple
+ * socket server.
+ * 
+ */
+
+// Header files
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -13,22 +30,31 @@
 #include <signal.h>
 
 
+// Constant definitions
+#define PORT "8080"       // Source port
+#define BACKLOG 10        // The number of allowed backlog requests to come into the server
 
-#define BACKLOG 10
+#define BIND_ERROR (-2)   // Possible error value from createListener()
+#define SOCKET_ERROR (-1) // Possible error value from createListener()
+
 #define MSG "And indeed there will be time\nTo wonder, 'Do I dare?' and, 'Do I dare?'\n"
-#define PORT "8080"
+
+
 // Function prototypes.
 int createListener(const char * name);
 void *get_in_addr(struct sockaddr *sa);
 void sigchld_handler(int s);
 
-// main()
-//  
 
+
+// main() entrypoint of the program.
 int main(void)
 {
 
-  struct sockaddr_storage theirAddr; // connector's address information
+  // connector's address information
+  struct sockaddr_storage theirAddr; 
+  
+
   socklen_t size;
   struct sigaction sa;
   char p[INET6_ADDRSTRLEN];
@@ -36,20 +62,22 @@ int main(void)
   int s;
   int newSock;
 
-  // Create a socket to listen on port 22.  
+  // Create a socket to listen on the port.  
   s = createListener(PORT);
 
+
   // Handle any problems raised by createListener().
-  if(s == -2)
+  if(s == BIND_ERROR)
     {
       perror("bind");
       exit(1);
     }
 
-  else if(s == -1)
+  else if(s == SOCKET_ERROR)
     {
       perror("socket");
     }
+
 
   // Listen to the socket, wait for incoming requests.  Allow 
   // a BACKLOG of requests to come in.
@@ -64,6 +92,7 @@ int main(void)
   sa.sa_handler = sigchld_handler; 
   sigemptyset(&sa.sa_mask);
   sa.sa_flags = SA_RESTART;
+
   
   if (sigaction(SIGCHLD, &sa, NULL) == -1) 
     {
@@ -73,45 +102,67 @@ int main(void)
 
   printf("server: waiting for connections...\n");
 
+  // Wait forever to get connections from clients.  Yes, to quit this program
+  // one must use Ctrl+C.
   while(1)
     {
       size = sizeof(theirAddr);
+
+      // A new connection coming in. 
       newSock = accept(s, (struct sockaddr *)&theirAddr, &size);
+
       if (newSock == -1)
 	{
 	  perror("accept");
 	  continue;
 	}
 
+      // Convert the IP address to a textual IP address that
+      // can be printed to the console. 
       inet_ntop(theirAddr.ss_family, get_in_addr((struct sockaddr *)&theirAddr), p, sizeof(p));
       
+
+      // Print the client's IP address to the console.
       printf("server: got connection from %s.\n", p);
 
+
       // Make a child process to handle the request.  The server will continue
-      // to listen on s.
+      // to listen on s for new connections while the child will deliver the message
+      // unto the client. 
       if(!fork()) 
 	{
-	  close(s);   // child process doesn't need the listener.
+	  // The child process does not need the original socket.  The parent
+	  // process will continue to use it to listen for new connections.
+	  close(s);   
+
+	  // Send the message to the client.
 	  if(send(newSock, MSG, sizeof(MSG), 0) == -1)
 	    perror("send");
-	  
+
+	  // All done.  Close the socket used to send the message
+	  // to the client.
 	  close(newSock);
+
+	  // The child function is done.
 	  exit(0);
 	     
 	}
 
-      close(newSock);  // parent process doesn't need the new socket created to handle request.
+      // The parent process doesn't need the new socket created to
+      // handle request.
+      close(newSock);  
    
     }
 
-  return 0;  
+  return EXIT_SUCCESS;  
 
 }
 
 
-// get_in_addr()
-//   Get sockaddr, IPv4 or IPv6:
 //
+// Function: get_in_addr()
+// Description: Get an IPv4 or IPv6 socket address
+// 
 void *get_in_addr(struct sockaddr *sa)
 {
   if (sa->sa_family == AF_INET) {
@@ -126,17 +177,18 @@ void *get_in_addr(struct sockaddr *sa)
 //   Create a server endpoint of communication.
 //   Adapted from: "Advance Programming in the UNIX Environment."  page 501
 //   as well as "Beej's Guide to Network Programming."
-
 int createListener(const char * name)
 {
   int status;
   int s;
   int yes = 1;
  
-  // Defining the fields for socket structs is challenging.  The fields depend of the
-  // address, type of socket, and communication protocol.  This function uses getaddrinfo()
-  // to aid in defining the struct socket fields.  This function fills a struct of
-  // type addrinfo.
+  /* Defining the fields for socket structs is challenging.  The
+   * fields depend of the address, type of socket, and communication
+   * protocol.  This function uses getaddrinfo() to aid in defining
+   * the struct socket fields.  This function fills a struct of type
+   * addrinfo.
+   */
   struct addrinfo hints;
   struct addrinfo * servinfo, *p; 
   

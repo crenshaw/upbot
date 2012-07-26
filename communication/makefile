@@ -18,7 +18,7 @@ client:	client.c communication.h serverUtility.c commandQueue.c
 	gcc -o client.out client.c serverUtility.c commandQueue.c
 
 sserver:	simpleServer.c
-	$(CC) $(CFLAGS) -o sserver.out simpleServer.c
+	$(CC) -o sserver.out simpleServer.c
 
 sclient:	simpleClient.c communication.h
 	gcc -o sclient.out simpleClient.c

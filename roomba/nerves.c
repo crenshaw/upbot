@@ -1,11 +1,15 @@
 /** 
  * nerves.c
  * 
- * Simple program for iRobot Create Roomba
- * Created By:	 Tanya L. Crenshaw
- * Date:	 14 April 2010
+ * NOTE: This is not a fully working source file yet.  It is a
+ * stepping stone towards creating a multi-threaded implementation for
+ * the iRobot control.  TLC.  July 26, 2012.
+ *
+ * @author Tanya L. Crenshaw
+ * @since 14 April 2010
  * 
  */
+
 #include <stdio.h>
 #include "roomba.h"
 #include "../communication/communication.h"

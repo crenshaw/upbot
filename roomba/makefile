@@ -8,4 +8,4 @@ controller.out:	main.c utility.c led.c move.c song.c sensors.c ../communication/
 	$(CC) $(CFLAGS) -o controller.out main.c utility.c led.c move.c song.c sensors.c ../communication/commandQueue.c
 
 clean:
-	rm *.o *.out
+	rm *.out
