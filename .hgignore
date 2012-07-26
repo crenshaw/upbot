@@ -8,6 +8,7 @@ syntax: glob
 *.gnumeric
 *.zip
 *.log
+*.class
 communication/client2.c
 
 syntax: regexp

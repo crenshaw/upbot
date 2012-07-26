@@ -3593,7 +3593,8 @@ int compareEpisodesLoose(Episode* ep1, Episode* ep2)
     threshold = (thresholdAdj * threshold + curThreshold)/(thresholdAdj+1);
     // increment the number of time that threshold has been adjusted.
     thresholdAdj++;
-    printf("Loose Compare:\n\tthreshold: %d\n\tthresholdAdj: %d\n\tSimilarities in current: %d", threshold, thresholdAdj, counter);
+    printf("Loose Compare:\n\tthreshold: %g\n\tthresholdAdj: %d\n\tSimilarities in current: %d",
+           threshold, thresholdAdj, counter);
     return (curThreshold >= threshold);
 }
 

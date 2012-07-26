@@ -36,11 +36,7 @@
 
 // Matching defines
 #define NUM_TO_MATCH         (15)
-<<<<<<< local
-#define NUM_GOALS_TO_FIND    (250)
-=======
 #define NUM_GOALS_TO_FIND    (10)
->>>>>>> other
 #define DISCOUNT             (1.0)
 #define MAX_LEN_LHS          (1)
 #define MAX_LEVEL_DEPTH      (4)
