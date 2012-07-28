@@ -258,6 +258,7 @@ int main(int argc, char* argv[])
 	    {
 	      commandToRobot[0] = readFromSharedMemoryAndExecute(cmdArea);
 	    }
+
 	  printf("%s, %d, commandToRobot: %c\n", __FILE__, __LINE__, commandToRobot[0]);
 	  //------------------------------------------------------------------------
 	  // Added Code to implement client
@@ -367,6 +368,8 @@ int main(int argc, char* argv[])
 
 	  // Wait until parent has written sensor data.
 	  WAIT_PARENT();
+
+	  printf("%s %d \n", __FILE__, __LINE__);
 
 	  // If there is sensor data available, send it to the
 	  // supervisor-client.

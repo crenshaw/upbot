@@ -85,7 +85,8 @@ int main(int argc, char * argv[])
       
       if((x[0] & SENSOR_BUMP_BOTH) == SENSOR_BUMP_BOTH)
 	{
-	  driveBackwardsUntil(1, MED);
+	  driveBackwardsUntil(1000000, MED);
+	 
 	  //turn right
 	  turnClockwise(DEGREES_90);
 	  driveStraight(MED);

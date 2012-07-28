@@ -64,12 +64,12 @@ int driveStraightWithFeedback(int velocity)
  *  driveStraightUntil()
  *
  *  Issue a drive forward command to the iRobot for given number of
- *  seconds.  Velocity given by LOW, MED, or HIGH
+ *  microseconds.  Velocity given by LOW, MED, or HIGH
  */
-void driveStraightUntil(int sec, int speed)
+void driveStraightUntil(int usec, int speed)
 {
   driveStraight(speed);
-  sleep(sec);
+  usleep(usec);
 }
 
 /**
@@ -175,13 +175,13 @@ void turn(int direction, int degrees)
 /**
  * driveBackwardsUntil()
  *
- * Drive backwards for given seconds speed given by LOW, MED, HIGH
+ * Drive backwards for given microseconds speed given by LOW, MED, HIGH
  
  */
-void driveBackwardsUntil(int sec, int speed)
+void driveBackwardsUntil(int usec, int speed)
 {
   driveBackwards(speed);
-  sleep(sec);
+  usleep(usec);
   stop();
 }
 

@@ -1,0 +1,34 @@
+~/upbot/demo/README
+
+This file contains three binaries, brainstem_xx_xx_xx.out,
+stop_xx_xx_xx.out and client_xx_xx_xx.out, where the x's indicate
+build date.  These three files have been sequestered into this directory
+for the sole purpose of quickly demonstrating the upbot testbed code.
+
+To execute the demo:
+
+1. Place brainstem.out on the gumstix using scp.
+
+2. Place stop.out on the gumstix using scp.  This is nice to have on
+hand in case the roomba gets confused and starts ramming things
+uncontrollably.
+
+3. Execute brainstem.out from the gumstix using ssh.
+
+$ ./brainstem.out &
+
+4. Execute client.out from the development desktop.  It requires the
+IP address of the gumstix.
+
+$ ./client.out 10.81.3.48
+
+5. From the client, issue commands to the roomba:
+
+w - forward
+a - left
+d - right
+x - backwards
+s - stop
+
+Tanya L. Crenshaw
+July 28, 2012

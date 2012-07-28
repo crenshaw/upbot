@@ -31,13 +31,13 @@ int main(int argc, char * argv[])
 
   sleep(1);
 
-  driveStraightUntil(2, MED);
+  driveStraightUntil(2000000, MED);
 
   turnCounterClockwise(DEGREES_45);
-  driveBackwardsUntil(2, MED);
+  driveBackwardsUntil(2000000, MED);
 
   turnClockwise(DEGREES_90);
-  driveStraightUntil(2, MED);
+  driveStraightUntil(2000000, MED);
 
   stop();
   
