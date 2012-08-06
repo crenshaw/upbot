@@ -140,7 +140,7 @@ int createCommandQueue(caddr_t ptr, int size)
  */
 int writeCommandToQueue(caddr_t q, command_t * cmd)
 {
-  fprintf(stdout, "%s : cmd: %d", __FILE__, cmd->command);
+
   // Get the writer's position and queue size
   int writerPos =   *((int *)(q + CQ_WPOS_OFFSET));
   int qSize = *((int *)(q + CQ_SIZE_OFFSET));
@@ -323,9 +323,8 @@ void printCommandQueueEntry(caddr_t q, int entry)
 
 #ifdef DEBUG
   printf("\nSource %s, Line %d:  command address = 0x%x\n", __FILE__, __LINE__, command);
-#endif
-
   printf("   command queue entry %d == %c at %d seconds\n", entry, *command, (int)(*timestamp));
+#endif
 
   return;
 

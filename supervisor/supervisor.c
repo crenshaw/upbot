@@ -1,3 +1,6 @@
+//if we want to use the saccades filter, turn this on
+#define SACC_FILTER 0
+
 #include "supervisor.h"
 
 /*
@@ -65,6 +68,14 @@
 
 //Setting this turns on verbose output to aid debugging
 //#define DEBUGGING 1
+
+// The saccades filter was a glorious though failed attempt at 
+// implementing the ability to discern useless noise from 
+// important sensor data.  The performance of the implementation
+// was very poor, and so SACC_FILTER has been all but abandoned,
+// but evidence of it remains in the codebase as reference for
+// Dr. Nuxoll. For now.  Dr. Crenshaw will teach him about
+// labels and rolling back the code repository soon enough.
 
 
 //Particularly verbose debugging for specific methods
@@ -4001,6 +4012,7 @@ char* interpretCommand(int cmd)
         case CMD_ADJUST_RIGHT:
             return g_adjustR;
             break;
+#if SACC_FILTER
         case CMD_SACC_1:
             return g_sacc;
             break;
@@ -4013,6 +4025,7 @@ char* interpretCommand(int cmd)
         case CMD_SACC_4:
             return g_sacc;
             break;
+#endif
         case CMD_SONG:
             return g_song;
             break;
@@ -4056,6 +4069,7 @@ char* interpretCommandShort(int cmd)
         case CMD_ADJUST_RIGHT:
             return g_adjustRS;
             break;
+#if SACC_FILTER
         case CMD_SACC_1:
             return g_saccadeS;
             break;
@@ -4068,6 +4082,7 @@ char* interpretCommandShort(int cmd)
         case CMD_SACC_4:
             return g_saccadeS;
             break;
+#endif
         case CMD_SONG:
             return g_songS;
             break;

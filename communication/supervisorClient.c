@@ -17,16 +17,27 @@
 // //if KNN_FILTER is defined then then KNN filter is applied
 //#define KNN_FILTER
 
+// The saccades filter was a glorious though failed attempt at 
+// implementing the ability to discern useless noise from 
+// important sensor data.  The performance of the implementation
+// was very poor, and so SACC_FILTER has been all but abandoned,
+// but evidence of it remains in the codebase as reference for
+// Dr. Nuxoll. For now.  Dr. Crenshaw will teach him about
+// labels and rolling back the code repository soon enough.
+
 //if we want to use the saccades filter, turn this on
-#define SACC_FILTER 1
+#define SACC_FILTER 0
 
 
 #include "communication.h"
 #include "../supervisor/supervisor.h"
-#ifdef KNN_FILTER
+
+#if KNN_FILTER
 #include "../supervisor/filter_KNN.h"
 #include "../supervisor/hallucinogen.h"
-#elif SACC_FILTER
+#endif
+
+#if SACC_FILTER
 #include "../supervisor/saccFilt.h"
 #endif
 
@@ -481,7 +492,18 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	initSupervisor(LAST_SACC_CMD);	// Initialize the Supervisor
+	// The numver of total robot commands varies depending on whether
+	// the SACC_FILTER is used.  Invoke the initSupervisor() routine
+	// with the correct number of total possible commands.
+#if SACC_FILTER
+	printf("Saccade filter on: %d\n", SACC_FILTER);
+	printf("Initializing saccade-supervisor with %d total commands\n", LAST_SACC_CMD);
+	initSupervisor(LAST_SACC_CMD);	
+#else
+	printf("Initializing supervisor with %d total commands\n", LAST_MOBILE_CMD);
+	initSupervisor(LAST_MOBILE_CMD);
+#endif
+
 	parseArguments(argc, argv);		// Parse the arguments and set up global monitoring vars
 
 	// Socket stuff

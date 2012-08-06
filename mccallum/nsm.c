@@ -397,6 +397,7 @@ int populateNeighborhoods()
 {
     // We want to make sure the neighborhood vector was created correctly.
     // These two values should be equal if that is the case
+  printf("Size: %d\n", g_neighborhoods->size);
     assert(g_neighborhoods->size == LAST_MOBILE_CMD);
 
     // Iterate through each neighborhood and recalculate the data

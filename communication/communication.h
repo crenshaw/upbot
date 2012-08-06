@@ -59,7 +59,6 @@ int checkArgName(int argc, char* argv[], char addresses[3][13]);
 //#define MAXDATASIZE 100 // max number of bytes we can get at once 
 #define SEMAPHORE_OFFSET 0x400
 
-
 // Command definitions
 #define CMD_ILLEGAL			0x0
 #define CMD_NO_OP 			0x1
@@ -68,25 +67,52 @@ int checkArgName(int argc, char* argv[], char addresses[3][13]);
 #define CMD_RIGHT			0x4
 #define CMD_ADJUST_LEFT		0x5
 #define CMD_ADJUST_RIGHT	0x6
-#define CMD_SACC_1			0x7
-#define CMD_SACC_2			0x8
-#define CMD_SACC_3			0x9
-#define CMD_SACC_4			0xA
-#define CMD_SONG			0xB
-#define CMD_BLINK			0xC
 
+// The total number of possible commands increases if
+// the SACC_FILTER feature is used.  As noted elsewhere, the SACC_FILTER
+// implementation has been all but abandoned, but evidence of it
+// remains in the codebase as reference for Dr. Nuxoll.  For now.
+// Dr. Crenshaw will teach him about labels and rolling back the
+// code repository soon enough.
+#if SACC_FILTER
 
-#define NUM_COMMANDS		0xD	// Always make sure this is at the end
-                                // The NUM_COMMANDS is the total number
-                                // of commands that can be issued by
-                                // the artificially intelligent
-                                // supervisor.
+  #define CMD_SACC_1  0x07
+  #define CMD_SACC_2  0x08
+  #define CMD_SACC_3  0x09
+  #define CMD_SACC_4  0x0A
+  #define CMD_SONG    0x0B
+  #define CMD_BLINK   0x0C
 
-#define LAST_MOBILE_CMD		0xA  //last command that is not generally used for
-                                 //human debugging
-#define FIRST_SACC_CMD      0x7  //One or more saccade commands are
-#define LAST_SACC_CMD       0xA  //internal commands used by saccFilt.c
+/* The NUM_COMMANDS is the total number of commands that can be issued
+ * by the artificially intelligent supervisor.
+ */
+  #define NUM_COMMANDS  0x0D
 
+/* LAST_MOBILE_CMD indicates the last command that is not generally
+ * used for human debugging.  That is, a unitTest program or AI cannot
+ * usually determine if a light blinked or a song sounded.
+ */
+  #define LAST_MOBILE_CMD 0x0A
+  #define FIRST_SACC_CMD  0x07
+  #define LAST_SACC_CMD   0x0A
+
+#else
+
+  #define CMD_SONG			0x7
+  #define CMD_BLINK			0x8
+
+/* The NUM_COMMANDS is the total number of commands that can be issued
+ * by the artificially intelligent supervisor.
+ */
+  #define NUM_COMMANDS		0x9     
+
+/* LAST_MOBILE_CMD indicates the last command that is not generally
+ * used for human debugging.  That is, a unitTest program or AI cannot
+ * usually determine if a light blinked or a song sounded.
+ */
+  #define LAST_MOBILE_CMD   0x6  
+
+#endif
 
 // Sensor Data Indices
 #define SNSR_IR			0x0

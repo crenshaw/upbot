@@ -463,7 +463,7 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	initNSM(5);						// Initialize the Supervisor
+	initNSM(LAST_MOBILE_CMD);		// Initialize the Supervisor
 	parseArguments(argc, argv);		// Parse the arguments and set up global monitoring vars
 
 	// Socket stuff

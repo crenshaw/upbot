@@ -302,7 +302,11 @@ int readFromSharedMemoryAndExecute(caddr_t shm)
   default:
     return 'z';
   }
-  printf("Command: %c\n", cmd);
+
+#ifdef DEBUG
+  printf("Command: %d\n", cmd);
+#endif
+
   return cmd;
 }
 

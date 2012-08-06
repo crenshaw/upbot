@@ -9,6 +9,15 @@
  * @author Steven Beyer & Tanya L. Crenshaw
  * @since May 2010
  *
+ * NOTE: When compiling with the arm-linux-gnueabi-gcc compiler, the
+ * compiler issues this warning when compiling with the -static flag:
+ * 
+ * "brainstem.c:(.text+0x2dc): warning: Using 'getaddrinfo' in
+ *  statically linked applications requires at runtime the shared
+ *  libraries from the glibc version used for linking."
+ *
+ * These libraries must be available at runtime on the gumstix verdex
+ * pro.
  */
 
 #include "tell.h"
@@ -195,7 +204,9 @@ int main(int argc, char* argv[])
       //------------------------------------------------------------------------
       if(check == 1)
 	{
+#ifdef DEBUG
 	  printf("%s %d \n", __FILE__, __LINE__);
+#endif
       
 	  memset(&hints, 0, sizeof hints);
 	  hints.ai_family = AF_UNSPEC;
@@ -243,7 +254,6 @@ int main(int argc, char* argv[])
 	      perror("recv");
 	      exit(1);
 	    }
-	  printf("%s %d \n", __FILE__, __LINE__);
 	}
 
       //------------------------------------------------------------------------
@@ -259,7 +269,7 @@ int main(int argc, char* argv[])
 	      commandToRobot[0] = readFromSharedMemoryAndExecute(cmdArea);
 	    }
 
-	  printf("%s, %d, commandToRobot: %c\n", __FILE__, __LINE__, commandToRobot[0]);
+	  printf("commandToRobot: %d\n", commandToRobot[0]);
 	  //------------------------------------------------------------------------
 	  // Added Code to implement client
 	  //------------------------------------------------------------------------
@@ -267,7 +277,7 @@ int main(int argc, char* argv[])
 	    {
 	      if(send(sockfd, &commandToRobot[0], 1, 0) == -1)
 		perror("send");
-	      printf("      the command code sent was: %c\n", commandToRobot[0]);
+	      printf("      the command code sent was: %d\n", commandToRobot[0]);
 	    }
 	  //------------------------------------------------------------------------
 	  // End of added section
@@ -283,16 +293,23 @@ int main(int argc, char* argv[])
 
 	  // Check sensor data first to stop ramming into wall.
 	  sensData = checkSensorData(sensDataFromRobot);
+
+#ifdef DEBUG
 	  printf("%s %d \n", __FILE__, __LINE__);
+#endif
 	  // Wait until child has sent previous sensor data.
 	  WAIT_CHILD();
 
+#ifdef DEBUG
 	  printf("%s %d \n", __FILE__, __LINE__);
 	  printf("%d \n", sensData);
+#endif
 
 	  if(sensData)
 	    {
+#ifdef DEBUG
 	      printf("%s %d \n", __FILE__, __LINE__);	     	      
+#endif
 	      // Drive backwards and then stop.
 	      driveBackwardsUntil(EIGHTH_SECOND, MED);
 	      STOP_MACRO;	      
@@ -369,7 +386,9 @@ int main(int argc, char* argv[])
 	  // Wait until parent has written sensor data.
 	  WAIT_PARENT();
 
+#ifdef DEBUG
 	  printf("%s %d \n", __FILE__, __LINE__);
+#endif
 
 	  // If there is sensor data available, send it to the
 	  // supervisor-client.
