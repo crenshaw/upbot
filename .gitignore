@@ -1,4 +1,3 @@
-syntax: glob
 *.o
 *~
 *.out
@@ -10,6 +9,4 @@ syntax: glob
 *.log
 *.class
 communication/client2.c
-
-syntax: regexp
-.*\#.*\#$
+\#*#
