@@ -1,0 +1,19 @@
+Author: Tanya L. Crenshaw.
+Date:  June 12, 2013.
+
+This directory contains interface designs for the next generation of
+UPBOT.  The code and documentation in this directory attempts to answer
+some of the following design decisions:
+
+1. What is an appropriate abstraction of a robot, from the perspective
+of software?
+
+2. What are the data types necessary to proxy a robot in software?
+
+3. What is the interface between a robot proxy and the local software?
+
+4. What is the architecture of the local software controlling the
+robot via the robot proxy?
+
+5. What is the interface between the local software and the remote
+system?
