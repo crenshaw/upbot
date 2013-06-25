@@ -1,8 +1,9 @@
-/* Strawman interface definition for a robot in the UPBOT source */
+/* Strawman interface definitions in the UPBOT source */
+
 
 
 // ************************************************************************
-// PART 1: ROBOT-RELATED
+// PART 1: ROBOT
 // ************************************************************************
 
 /** 
@@ -28,7 +29,7 @@ typedef struct robot
 
 
 /**
- * initializeRobot()
+ * robotInitialize()
  *
  * Perform the necessary software initialization to proxy a robot.  
  * - Lookup the robot's IP based on the given name.
@@ -51,14 +52,14 @@ typedef struct robot
  * pointer.
  * 
  */
-robot * initializeRobot(const char * name)
+robot * robotInitialize(const char * name)
 {
 
 }
 
 
 /**
- * driveStraight()
+ * robotDriveStraight()
  *
  * Issue a "drive" command to the given robot with velocity of
  * LOW, MED, or HIGH.
@@ -68,13 +69,13 @@ robot * initializeRobot(const char * name)
  *
  * @return none
  */
-void driveStraight(robot * robot, int velocity)
+void robotDriveStraight(robot * robot, int velocity)
 {
 
 }
 
 /**
- * stop()
+ * robotStop()
  * 
  * Issue a "stop" command to the given robot.
  * 
@@ -87,14 +88,14 @@ void driveStraight(robot * robot, int velocity)
  * roomba can stop, the better.
  *
  */
-void stop(robot * robot)
+void robotStop(robot * robot)
 {
 
 }
 
 
 // ************************************************************************
-// PART 2: RESPONDERS
+// PART 2: EVENT:RESPONDERS
 // ************************************************************************
 
 /**
@@ -117,11 +118,14 @@ typedef struct state state;
 typedef void responder(state * currentState);
 
 
+evreCreateEventResponder()
+
+
 /**
  * setResponder()
  *
  * Set the responder for the robot.  Software considers the robot a
- * single-threaded state maching.  If this function is called when a
+ * single-threaded state machine.  If this function is called when a
  * robot already has a responder, the function will block until the
  * current responder is cleared.  This function will not block if it
  * is called from within the current responder.
@@ -159,19 +163,191 @@ void onBumpEvent(state * state) {
 
 
 // ************************************************************************
-// PART 3: SERVICE-RELATED
+// PART 3: ACCEPTOR.  Provides location transparency to service-level
+// components. As noted by Schmidt in "Applying Design Patterns to
+// Flexibly Configure Network Services, acceptors "initialize
+// endpoints of communication at a particular address and wait
+// passively for the other endpoints to connect with it."  That said,
+// the acceptor also allows for the flexibility for application-level
+// to passively wait for services to initiate the connection.
 // ************************************************************************
 
+
 /**
- * connectToRobot()
+ * accCreateConnection
  *
- * Connect a remote entity to a robot with a given name.  Details on
- * this are not yet clear to me.
+ * Create a passive-mode socket, bind it to a particular port number
+ * on the calling host's IP address and listen passively for the
+ * arrival of connection requests.  Since listening passively can be a
+ * blocking call (i.e. accept()), it may be worthwhile to use this
+ * function in a separate thread.
+ *
+ * NOTE: Similar to "createServer()" in serverUtility.c
+ *
+ * @param[in] port the port number to listen to.
+ * 
+ * @returns a handler for the endpoint.
  */
-robot * connectToRobot(const char * name)
+int accCreateConnection(int port)
 {
 
 }
+
+
+/**
+ * accCompleteConnection
+ *
+ * Based on D. Schmidt's "Acceptor-Connector" design pattern.
+ *
+ * 1. Use the passive-mode endpoint, endpointHandler, to create a
+ * connected endpoint with a remote peer.
+ *
+ * 2. Create a service handler to process data requests arriving from
+ * the remote peer.
+ * 
+ * 3. "Invoke the service handler's activation hook method which
+ * allows the service handler to finish initializing itself."
+ *
+ * NOTE: Similar to "establishConnection()" in serverUtility.c 
+ *
+ * @param[in] endpointHandler a handler for the connection endpoint.
+ * @param[in] type of service (see serviceType enum for possible
+ * values).
+ *
+ * @returns a handler for the service connection.  Subsequent read and write
+ * operations on this connection are parameterized by this handler 
+*/
+serviceHandler * accCompleteConnection(int endpointHandler, serviceType type)
+{
+
+}
+
+
+// ************************************************************************
+// PART 4: CONNECTOR.  
+// ************************************************************************
+
+
+
+// ************************************************************************
+// PART 5: SUPERVISOR.  A supervisor is a process executing on a
+// remote machine that may do any of the following:
+//
+//  a. Connect to a data service and subscribe to any robot's sensor data.
+//  b. Connect to a event:responder service and push new event:responders
+//     to any connected robots.
+// ************************************************************************
+
+
+void supervisorInitialize()
+{
+
+}
+
+
+
+// ************************************************************************
+// PART X: SERVICES.  There are multiple types of services executing
+// on the system that allow flexible connections between robots and
+// supervisors.  There are some concepts that are generic to all
+// services.  
+// ************************************************************************
+
+#define SERV_DATA_SERVICE_COLLATOR 0
+#define SERV_DATA_SERVICE_COLLECTOR 1
+#define SERV_EVENT_RESPONDER_SERVICE 2
+
+// What are the types of services available?
+typedef enum serviceType {
+  SERV_DATA_SERVICE_COLLATOR, 
+  SERV_DATA_SERVICE_COLLECTOR, 
+  SERV_EVENT_RESPONDER_SERVICE
+} serviceType;
+
+// Entities in the system access services via a service handler.  
+typedef struct serviceHandler {  
+  serviceType typeOfService;
+  int handler;   
+} serviceHandler;
+
+
+// ************************************************************************
+// PART X: DATA SERVICE.  The data service accepts sensor data
+// collected by the robots in the physical world and delivers the data
+// to other software entities, e.g. the system supervisor.
+// 
+// The data service is implemented in two halves.  
+// 
+// a. The Collector.  The data service collector collects sensor data
+// locally at a given sensor data collection point, i.e., a robot.
+// The Collector is responsible for forwarding data to a collator.
+//
+// b. The Collator.  The data service collator is a repository for one
+// or many sensor data collectors.  It also allows remote entities to
+// subscribe to sensor data.
+// 
+// ************************************************************************
+
+/**
+ * dsCreateCollector
+ *
+ * The Collector half of the data service collects sensor data locally
+ * at a given robot.  
+ */
+void dsCreateCollector(void)
+{
+}
+
+
+/**
+ * dsCreateCollator
+ * 
+ * The Collator half of the data service gathers sensor data from
+ * collectors and forwards it to interested entities
+ */
+void dsCreateCollator(void)
+{
+
+}
+
+
+/**
+ * dsConnectToRobot()
+ * 
+ * Allow a remote entity to subscribe to the data of a particular
+ * robot via a Data Service Collator.
+ */
+serviceHandler * dsConnectToRobot(const char * name)
+{
+
+}
+
+/**
+ * dsGetData()
+ * 
+ * Allow a remote entity to get the data to which it has subscribed
+ * from the data service.
+ * 
+ * @param[in] sh the serviceHandler for the service from which data will
+ * be read.
+ *
+ * @param[in] control a tuner for how much data will be read.  
+ *
+ * @returns an integer value describe success or failure of the
+ * operation.
+ */
+int dsGetData(  dsTuner control)
+{
+
+}
+
+
+/**
+ * dsWrite()
+ *
+ * Allow an entity to 
+ */
+int 
 
 // ************************************************************************
 // PART 4: EXAMPLE USAGE
