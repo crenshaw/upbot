@@ -11,20 +11,23 @@
  * "robot" is a single-threaded state machine that is controlled over
  * a given "handle" or serial port.  A robot has a character string
  * representing its unique "name" as well as a unique IP "address".  A
- * robot's "responder" describes how it will transition from its
- * current state to its next state.  Every robot is associated with a
- * "commandService" which provides it with remotely issued responders.
- * Every robot is associated with a "dataService" into which it
- * reports its sensor data.
+ * robot's "evre", or event:responder, describes how it will
+ * transition from its current state to its next state.  Every robot
+ * is associated with a "dsCollector" which collects the sensor data
+ * to be provided to other entities.  Every robot is associated with a
+ * "evreX" through which other entities may update this robot's
+ * event:responder function.
+ *
+ * TODO: Think of a better name than evreX.
  */
 typedef struct robot 
 {
   FILE * handle;   /**< The handle of the serial port */
   char * name;     /**< The name of the robot, i.e. "Webby" or "Frank" */
   char * address;  /**< The IP address of the robot */
-  void * responder; /**< The robot's currently executing event-responder */
-  char * commandService;  /**< The command service to which this robot is currently connected */
-  char * dataService;     /**< The sensor data service to which this robot is currently connected */
+  void * evre;     /**< The robot's currently executing event-responder */
+  serviceHandler * dsCollector;     /**< The sensor data collector service to which this robot is currently connected */
+  serviceHandler * evreX;  /**< The event:responder service to which this robot is currently connected */
 } robot;
 
 
@@ -39,9 +42,9 @@ typedef struct robot
  * - Populate the robot structure and return it.
  *
  * This function may only be called by the hardware directly
- * controlling the robot.  It may not be called by a remote service.
- * Remote services interested in connecting to a robot should use
- * connectToRobot().
+ * controlling the robot.  It may not be called by a remote entity.
+ * Remote entities interested in connecting to a robot should use
+ * alternative services.
  *  
  * @param[in] name a string representing the robot's name,
  * i.e. "Webby" or "Frank".
@@ -96,12 +99,15 @@ void robotStop(robot * robot)
 
 // ************************************************************************
 // PART 2: EVENT:RESPONDERS
+//
+// TODO: Need to separate the notions of events, responses, and clocks.
+// Right now, this is all wadded up in a single "responder" function.
 // ************************************************************************
 
 /**
- * A type to represent state.  Empty for now.
+ * A type to represent events, i.e., sensor data.  Empty for now.
  */
-typedef struct state state;
+typedef struct event event;
 
 /**
  * A type to represent a responder. A responder is a function that
@@ -110,8 +116,7 @@ typedef struct state state;
  * return no value.  Defining this function as a type allows us to 
  * pass responder functions to other functions.
  *
- * @param[in] currentState the sensor data representing the current
- * state of the robot.
+ * @param[in] current the sensor data representing the most recently  of the robot.
  *
  * @return none.
  */
@@ -161,15 +166,23 @@ void onBumpEvent(state * state) {
     }
 }
 
+// ************************************************************************
+// PART 3: CLOCKS.
+//
+// ************************************************************************
 
 // ************************************************************************
-// PART 3: ACCEPTOR.  Provides location transparency to service-level
+// PART 4: ACCEPTOR.  Provides location transparency to service-level
 // components. As noted by Schmidt in "Applying Design Patterns to
 // Flexibly Configure Network Services, acceptors "initialize
 // endpoints of communication at a particular address and wait
 // passively for the other endpoints to connect with it."  That said,
 // the acceptor also allows for the flexibility for application-level
 // to passively wait for services to initiate the connection.
+//
+// Once a connection is established, neither the application nor the
+// service utilize the acceptor until another connection must be
+// established.
 // ************************************************************************
 
 
@@ -200,10 +213,10 @@ int accCreateConnection(int port)
  * Based on D. Schmidt's "Acceptor-Connector" design pattern.
  *
  * 1. Use the passive-mode endpoint, endpointHandler, to create a
- * connected endpoint with a remote peer.
+ * connected endpoint with a peer.
  *
  * 2. Create a service handler to process data requests arriving from
- * the remote peer.
+ * the peer.
  * 
  * 3. "Invoke the service handler's activation hook method which
  * allows the service handler to finish initializing itself."
@@ -224,19 +237,43 @@ serviceHandler * accCompleteConnection(int endpointHandler, serviceType type)
 
 
 // ************************************************************************
-// PART 4: CONNECTOR.  
-// ************************************************************************
-
-
-
-// ************************************************************************
-// PART 5: SUPERVISOR.  A supervisor is a process executing on a
-// remote machine that may do any of the following:
+// PART 5: CONNECTOR.  Provides location transparency to
+// application-level components. As noted by Schmidt in "Applying
+// Design Patterns to Flexibly Configure Network
+// Services, the connector initiates a connection with a passive-mode
+// endpoint and activates the appropriate serviceHandler.
 //
-//  a. Connect to a data service and subscribe to any robot's sensor data.
-//  b. Connect to a event:responder service and push new event:responders
-//     to any connected robots.
+// Once a connection is established, neither the application nor the
+// service utilize the acceptor until another connection must be
+// established.
 // ************************************************************************
+
+/**
+ * conInitiateConnection
+ *
+ * Based on D. Schmidt's "Acceptor-Connector" design pattern.
+ * 
+ * 1. Establish a connection with a passive-mode endpoint.
+ * 
+ * 2. Activate a service handler for this connection and return it.
+ * 
+ */
+serviceHandler * conInitiateConnection(char * wellKnownIP, int port, serviceType type)
+{
+}
+
+
+// ************************************************************************
+// PART 6: SUPERVISOR.  A supervisor is a process executing on a that
+// may do any of the following:
+//
+//  a. Connect to a data service collator and subscribe to any robot's
+//  sensor data.  
+//
+//  b. Connect to a event:responder service and push new
+//  event:responders to any connected robots.
+//
+//************************************************************************
 
 
 void supervisorInitialize()
@@ -245,9 +282,8 @@ void supervisorInitialize()
 }
 
 
-
 // ************************************************************************
-// PART X: SERVICES.  There are multiple types of services executing
+// PART 7: SERVICES.  There are multiple types of services executing
 // on the system that allow flexible connections between robots and
 // supervisors.  There are some concepts that are generic to all
 // services.  
@@ -266,13 +302,13 @@ typedef enum serviceType {
 
 // Entities in the system access services via a service handler.  
 typedef struct serviceHandler {  
-  serviceType typeOfService;
-  int handler;   
+  serviceType typeOfService; /**< The type of service (see serviceType enum) */
+  int handler;               /**< The handle of the established connection. */
 } serviceHandler;
 
 
 // ************************************************************************
-// PART X: DATA SERVICE.  The data service accepts sensor data
+// PART 7: DATA SERVICE.  The data service accepts sensor data
 // collected by the robots in the physical world and delivers the data
 // to other software entities, e.g. the system supervisor.
 // 
@@ -283,7 +319,7 @@ typedef struct serviceHandler {
 // The Collector is responsible for forwarding data to a collator.
 //
 // b. The Collator.  The data service collator is a repository for one
-// or many sensor data collectors.  It also allows remote entities to
+// or many sensor data collectors.  It also allows entities to
 // subscribe to sensor data.
 // 
 // ************************************************************************
@@ -314,7 +350,7 @@ void dsCreateCollator(void)
 /**
  * dsConnectToRobot()
  * 
- * Allow a remote entity to subscribe to the data of a particular
+ * Allow an entity to subscribe to the data of a particular
  * robot via a Data Service Collator.
  */
 serviceHandler * dsConnectToRobot(const char * name)
@@ -325,18 +361,21 @@ serviceHandler * dsConnectToRobot(const char * name)
 /**
  * dsGetData()
  * 
- * Allow a remote entity to get the data to which it has subscribed
+ * Allow an entity to get the data to which it has subscribed
  * from the data service.
  * 
  * @param[in] sh the serviceHandler for the service from which data will
  * be read.
  *
- * @param[in] control a tuner for how much data will be read.  
+ * @param[in] control a tuner for how much data will be read, 1 sensor
+ * report or all available sensor reports.
  *
- * @returns an integer value describe success or failure of the
+ * @param[out] dest a pointer to where the data shall be placed.
+ *
+ * @returns an integer value describing the success or failure of the
  * operation.
  */
-int dsGetData(  dsTuner control)
+int dsGetData(serviceHandler * sh, dsTuner control, void * dest)
 {
 
 }
@@ -345,12 +384,25 @@ int dsGetData(  dsTuner control)
 /**
  * dsWrite()
  *
- * Allow an entity to 
+ * Allow an entity to write sensor data or control commands to a
+ * data service.
+ *
+ * @param[in] sh the serviceHandler for the service to which data will
+ * be written.
+ *
+ * @param[in] src a pointer to the data to be written
+ *
+ * @returns an integer value describing the success or failure of the
+ * operation.
  */
-int 
+int dsWrite(serviceHandler * sh, void * src)
+{
+
+}
+
 
 // ************************************************************************
-// PART 4: EXAMPLE USAGE
+// EXAMPLE USAGE
 // ************************************************************************
 
 void doStuff() {
