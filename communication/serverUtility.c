@@ -9,6 +9,18 @@
 
 #include "communication.h"
 
+#include <stdio.h>
+#include <stddef.h>
+#include <stdlib.h>
+
+#include <fcntl.h>
+#include <mqueue.h>
+
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/stat.h>
+
 #define SIZE 40
 
 static int true = 1;
@@ -141,14 +153,31 @@ void writeCommandToFile(char* cmd, FILE* fp)
  *
  * @return int 1 if wrote something and 0 otherwise
  */
-int writeCommandToSharedMemory(char* cmd, caddr_t shm)
+int writeCommandToSharedMemory(char* cmd, caddr_t shm, mqd_t qd)
 {
+
+  //TODO: clean up
+  //Rename the function,
+  //remove shared memory arguement
+  //find how to support format of shared memory commands (includes timestamp)
+  //remove commented out code
+
   if((cmd[0] != '\0' || cmd[0] == CQ_COMMAND_CANARY_VALUE))
     {
-      command_t * newCommand = NULL;
-      constructCommand(&newCommand, cmd);
-      writeCommandToQueue(shm, newCommand);
-      free(newCommand);
+      //command_t * newCommand = NULL;
+      //constructCommand(&newCommand, cmd);
+            
+      if(mq_send(qd, cmd, sizeof(cmd), 0) != 0)
+      {
+         perror("failed to write cmd to message queue");
+         exit(-1);
+       }
+
+       printf("Wrote %c to message queue.\n",*cmd);
+
+	//delete me!
+      //writeCommandToQueue(shm, newCommand);
+      //free(newCommand);
 
       return 1;
     }
@@ -306,7 +335,8 @@ int receiveDataAndStore(int newSock, char* cmdBuf, char* sensData, FILE* cmdFile
       // Write command to the cmdFile.txt
       writeCommandToFile(cmdBuf, cmdFile);
       
-      writeCommandToSharedMemory(cmdBuf, cmdArea);
+      //MH - This is sketchy
+      //writeCommandToSharedMemory(cmdBuf, cmdArea);
       
       // Send command to parent process
       write(fd[1], cmdBuf, 1);

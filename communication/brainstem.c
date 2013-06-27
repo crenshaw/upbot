@@ -25,8 +25,28 @@
 #include "../roomba/roomba.h"
 
 
+#include <stdio.h>
+#include <stddef.h>
+#include <stdlib.h>
+
+#include <fcntl.h>
+#include <mqueue.h>
+
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/stat.h>
+
+
 #define SIZE_OF_EMPTY_DATA 11
 //#define DEBUG 1
+
+
+typedef struct msgbuf {
+  long mtype;
+  char mtext[3];
+} msgbuf;
+
 
 
 /** 
@@ -43,6 +63,34 @@
  */
 int main(int argc, char* argv[])
 {
+
+  /* Create a message queue using O_CREAT so that if the queue doesn't
+   * already exist, it will be created.  When using mq_open with
+   * O_CREAT, one must supply four arguments.  The first "name"
+   * argument must begin with a slash.  The third "mode" argument is
+   * derived from the symbolic constants is <sys/stat.h>.
+   */
+  mqd_t mqd = mq_open("/q1", 
+		    O_RDWR | O_CREAT , 
+		    S_IRWXU | S_IRWXG | S_IRWXO, 
+		    NULL);
+
+
+  printf("The message queue id is: %d\n", mqd);
+
+  /* Determine the size of messages for this message queue
+   */
+  struct mq_attr a;
+  mq_getattr(mqd,&a);  
+
+  printf("The default message size is: %d\n", a.mq_msgsize);
+
+  if( mqd == -1)
+    {
+      perror("mq_open():");
+      return -1;
+    }
+
   int check = 0;
   char addresses[3][13];
   if ((check = checkArgName(argc, argv, addresses)) == -1)
@@ -266,7 +314,7 @@ int main(int argc, char* argv[])
 	  // Wait until a valid command is received.
 	  while(commandToRobot[0] == 'z')
 	    {
-	      commandToRobot[0] = readFromSharedMemoryAndExecute(cmdArea);
+	      commandToRobot[0] = readFromSharedMemoryAndExecute(cmdArea,mqd);
 	    }
 
 	  printf("commandToRobot: %d\n", commandToRobot[0]);
@@ -337,7 +385,8 @@ int main(int argc, char* argv[])
       send(sockfd, &input, 1, 0);
       close(sockfd);
       kill(0, SIGTERM);
-      
+      mq_close(mqd);
+
       exit(0);
     }
 
@@ -381,7 +430,7 @@ int main(int argc, char* argv[])
 	    }
 	  // Write the read command into shared memory so that the
 	  // parent (nerves) may read and execute it.
-	  writeCommandToSharedMemory(commandFromSupervisor, cmdArea);	      
+	  writeCommandToSharedMemory(commandFromSupervisor, cmdArea,mqd);	      
 
 	  // Wait until parent has written sensor data.
 	  WAIT_PARENT();
@@ -426,6 +475,7 @@ int main(int argc, char* argv[])
       printf("Closing socket and terminating processes.\nHave a nice day!\n");
       kill(pid, SIGTERM);
       close(clientSock);
+      mq_close(mqd);
 
       exit(0);
     }

@@ -9,6 +9,14 @@
 #include "roomba.h"
 #include "../communication/communication.h"
 
+#include <fcntl.h>
+#include <mqueue.h>
+
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/stat.h>
+
 int count = 0;
 
 //#define DEBUG 1
@@ -239,12 +247,27 @@ char readAndExecute(FILE *fp)
   return c;
 }
 
-int readFromSharedMemoryAndExecute(caddr_t shm)
+int readFromSharedMemoryAndExecute(caddr_t shm, mqd_t qd)
 {
+
+  //TODO: clean up
+  //remove shared memory argument
+  //make it look less like it was just slapped on top.
   char cmd = '\0';
 
 
-  cmd = getCommandCodeFromQueue(shm);
+  char c[9001];
+  if (mq_receive(qd,c,9001,NULL) == -1) {
+    perror("mq_receive(): nerves");
+    //pthread_exit(NULL);
+  }
+
+  if (c != '\0') {
+    printf("Recieved %c from message queue.\n",*c);
+  }
+  
+ cmd = *c;
+  //cmd = getCommandCodeFromQueue(shm);
   switch (cmd){
   case ssDriveLow:
     driveStraight(LOW);
