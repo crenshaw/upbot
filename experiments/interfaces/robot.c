@@ -96,75 +96,8 @@ void robotStop(robot * robot)
 
 }
 
+/* event:responder interfaces moved to eventresponder.c */
 
-// ************************************************************************
-// PART 2: EVENT:RESPONDERS
-//
-// TODO: Need to separate the notions of events, responses, and clocks.
-// Right now, this is all wadded up in a single "responder" function.
-// ************************************************************************
-
-/**
- * A type to represent events, i.e., sensor data.  Empty for now.
- */
-typedef struct event event;
-
-/**
- * A type to represent a responder. A responder is a function that
- * examines the robot's current state, i.e. the sensor data and issues
- * an appropriate command to react to the state.  Responder functions
- * return no value.  Defining this function as a type allows us to 
- * pass responder functions to other functions.
- *
- * @param[in] current the sensor data representing the most recently  of the robot.
- *
- * @return none.
- */
-typedef void responder(state * currentState);
-
-
-evreCreateEventResponder()
-
-
-/**
- * setResponder()
- *
- * Set the responder for the robot.  Software considers the robot a
- * single-threaded state machine.  If this function is called when a
- * robot already has a responder, the function will block until the
- * current responder is cleared.  This function will not block if it
- * is called from within the current responder.
- *
- * @param[in] robot a handle representing the robot to command.
- * @param[in] responder 
- * 
- * @return none.
- */
-void setResponder(robot * robot, responder responder)
-{
-
-}
-
-
-/**
- * onBumpEvent
- * 
- * Example responder for responding to bump events.  That is, if any
- * of the bump sensor data is set, this responder stops the robot
- * and clears the current itself as the robot's responder.
- * 
- */
-void onBumpEvent(state * state) {
-
-  // Check bump sensors.
-  if(((state[BUMP_STATE] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
-     ((state[BUMP_STATE] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
-    {
-      stop(robot);
-      printf("Robot bumped!\n");
-      setResponder(robot, NULL);  
-    }
-}
 
 // ************************************************************************
 // PART 3: CLOCKS.
