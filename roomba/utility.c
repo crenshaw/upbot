@@ -247,11 +247,12 @@ char readAndExecute(FILE *fp)
   return c;
 }
 
-int readFromSharedMemoryAndExecute(caddr_t shm, mqd_t qd)
+int readFromMessageQueueAndExecute(mqd_t qd)
+//Formerly: readFromSharedMemoryAndExecute(caddr_t shm)
 {
 
   //TODO: clean up
-  //remove shared memory argument
+  //handle time stamps
   //make it look less like it was just slapped on top.
   char cmd = '\0';
 
@@ -267,7 +268,6 @@ int readFromSharedMemoryAndExecute(caddr_t shm, mqd_t qd)
   }
   
  cmd = *c;
-  //cmd = getCommandCodeFromQueue(shm);
   switch (cmd){
   case ssDriveLow:
     driveStraight(LOW);

@@ -153,20 +153,20 @@ void writeCommandToFile(char* cmd, FILE* fp)
  *
  * @return int 1 if wrote something and 0 otherwise
  */
-int writeCommandToSharedMemory(char* cmd, caddr_t shm, mqd_t qd)
+int writeCommandToSharedMemory(char* cmd, mqd_t qd)
+//int writeCommandToSharedMemory(char* cmd, caddr_t shm, mqd_t qd)
 {
 
-  //TODO: clean up
-  //Rename the function,
-  //remove shared memory arguement
-  //find how to support format of shared memory commands (includes timestamp)
-  //remove commented out code
+  char * timestamp = gettime();
 
+  char * msg;
+
+
+  //TODO: find how to support format of shared memory commands (includes timestamp)
+  
   if((cmd[0] != '\0' || cmd[0] == CQ_COMMAND_CANARY_VALUE))
     {
-      //command_t * newCommand = NULL;
-      //constructCommand(&newCommand, cmd);
-            
+      
       if(mq_send(qd, cmd, sizeof(cmd), 0) != 0)
       {
          perror("failed to write cmd to message queue");
@@ -174,10 +174,6 @@ int writeCommandToSharedMemory(char* cmd, caddr_t shm, mqd_t qd)
        }
 
        printf("Wrote %c to message queue.\n",*cmd);
-
-	//delete me!
-      //writeCommandToQueue(shm, newCommand);
-      //free(newCommand);
 
       return 1;
     }
@@ -335,9 +331,14 @@ int receiveDataAndStore(int newSock, char* cmdBuf, char* sensData, FILE* cmdFile
       // Write command to the cmdFile.txt
       writeCommandToFile(cmdBuf, cmdFile);
       
-      //MH - This is sketchy
-      //writeCommandToSharedMemory(cmdBuf, cmdArea);
-      
+      /*
+       Currently unused code so modified.
+       if future self or other needs to retrofit the new function is
+        writeCommandToMessageQueue
+
+      writeCommandToSharedMemory(cmdBuf, cmdArea);
+      */
+
       // Send command to parent process
       write(fd[1], cmdBuf, 1);
       
