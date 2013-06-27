@@ -435,7 +435,7 @@ int main(int argc, char* argv[])
 	  // Write the read command into shared memory so that the
 	  // parent (nerves) may read and execute it.
 	  //writeCommandToSharedMemory(commandFromSupervisor, cmdArea,mqd_cmd);
-      writeCommandToSharedMemory(commandFromSupervisor,mqd_cmd);
+      writeCommandToMessageQueue(commandFromSupervisor,mqd_cmd);
 
 	  // Wait until parent has written sensor data.
 	  WAIT_PARENT();

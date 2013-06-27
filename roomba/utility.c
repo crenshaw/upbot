@@ -252,7 +252,8 @@ int readFromMessageQueueAndExecute(mqd_t qd)
 {
 
   //TODO: clean up
-  //handle time stamps
+  //we are sending timestamps... but we don't do anything with them
+  //once they get here, I should probally fix that
   //make it look less like it was just slapped on top.
   char cmd = '\0';
 
@@ -264,7 +265,7 @@ int readFromMessageQueueAndExecute(mqd_t qd)
   }
 
   if (c != '\0') {
-    printf("Recieved %c from message queue.\n",*c);
+    printf("Recieved %s from message queue.\n",c);
   }
   
  cmd = *c;

@@ -153,28 +153,30 @@ void writeCommandToFile(char* cmd, FILE* fp)
  *
  * @return int 1 if wrote something and 0 otherwise
  */
-int writeCommandToSharedMemory(char* cmd, mqd_t qd)
-//int writeCommandToSharedMemory(char* cmd, caddr_t shm, mqd_t qd)
+int writeCommandToMessageQueue(char* cmd, mqd_t qd)
 {
+  
+  char * timestamp = getTime();
 
-    //I WAS HERE
-  //char * timestamp = gettime();
+  char msg[strlen(timestamp)+2];
 
-  char * msg;
+  msg[0] = *cmd;
+  strcat(msg," ");
+  strcat(msg,timestamp);
+  msg[strlen(msg)-1] = '\0';
+  printf("size %d\n",strlen(msg));
 
-
-  //TODO: find how to support format of shared memory commands (includes timestamp)
   
   if((cmd[0] != '\0' || cmd[0] == CQ_COMMAND_CANARY_VALUE))
     {
       
-      if(mq_send(qd, cmd, sizeof(cmd), 0) != 0)
+      if(mq_send(qd, msg, strlen(msg), 0) != 0)
       {
          perror("failed to write cmd to message queue");
          exit(-1);
        }
 
-       printf("Wrote %c to message queue.\n",*cmd);
+       printf("Wrote %s to message queue.\n",msg);
 
       return 1;
     }
