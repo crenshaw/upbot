@@ -157,7 +157,8 @@ int writeCommandToSharedMemory(char* cmd, mqd_t qd)
 //int writeCommandToSharedMemory(char* cmd, caddr_t shm, mqd_t qd)
 {
 
-  char * timestamp = gettime();
+    //I WAS HERE
+  //char * timestamp = gettime();
 
   char * msg;
 
