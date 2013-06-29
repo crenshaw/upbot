@@ -184,6 +184,7 @@ int main(int argc, char* argv[])
   if(( pid = fork()) < 0)
     {
       perror("fork error");
+
     }
 
 
@@ -327,7 +328,7 @@ int main(int argc, char* argv[])
 	  printf("%s %d \n", __FILE__, __LINE__);
 #endif
 	  // Wait until child has sent previous sensor data.
-	  WAIT_CHILD();
+	  //WAIT_CHILD();
 
 #ifdef DEBUG
 
@@ -381,7 +382,7 @@ int main(int argc, char* argv[])
       close(serverID);
 
       // Initially tell the parent to proceed and write sensor data.
-      TELL_PARENT(getppid());
+      //TELL_PARENT(getppid());
 
       // Send the client the initial connection message.
       if(send(clientSock, MSG, sizeof(MSG), 0) == -1)
