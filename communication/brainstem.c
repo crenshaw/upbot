@@ -23,7 +23,11 @@
 #include "tell.h"
 #include "communication.h"
 #include "../roomba/roomba.h"
+#include <sys/time.h>
+#include <sys/timeb.h>
+#include <time.h>
 
+#include <omp.h>
 
 #define SIZE_OF_EMPTY_DATA 11
 //#define DEBUG 1
@@ -43,6 +47,31 @@
  */
 int main(int argc, char* argv[])
 {
+  
+  struct timespec starts, stops;
+  
+  //sanity check, these should show different numbers
+  int ii;
+  
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&starts);  
+  for (ii=0;ii<1000000;++ii) {
+    int aa = ii * ii;
+  }
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&stops);
+  printf("Sanity Check1:  %u\n",stops.tv_nsec-starts.tv_nsec);
+  
+
+
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&starts);  
+  for (ii=0;ii<100;++ii) {
+    int aa = ii * ii;
+  }
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&stops);
+  printf("Sanity Check2  %u\n",stops.tv_nsec-starts.tv_nsec);
+
+
+  //Back to our regularly sheduled programing
+
   int check = 0;
   char addresses[3][13];
   if ((check = checkArgName(argc, argv, addresses)) == -1)
@@ -100,13 +129,26 @@ int main(int argc, char* argv[])
   // Create a small piece of shared memory for the child
   // (brain) to communicate commands received from the client
   // to the parent (nervous system).
-  if(createSharedMem("/dev/zero", &cmdArea) == -1)
-    {
+  
+  
+  //for (ii=0;ii<1000;++ii) {
+
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&starts);
+   
+  if(createSharedMem("/dev/zero", &cmdArea) == -1) {
       perror("createSharedMem()");
       return -1;
     }
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&stops);
+  
+  printf("Create Time %lu\n",stops.tv_nsec - starts.tv_nsec);
 
-  // Initialize shared memory for commands as a command queue
+  
+
+  //}
+  //return -1;
+
+// Initialize shared memory for commands as a command queue
   // data structure, maximum number of commands, 10.
   createCommandQueue(cmdArea, 10);
 
@@ -266,10 +308,17 @@ int main(int argc, char* argv[])
 	  // Wait until a valid command is received.
 	  while(commandToRobot[0] == 'z')
 	    {
+              
+	      //this guy is in roomba/utility.c, he has what we measure for time
 	      commandToRobot[0] = readFromSharedMemoryAndExecute(cmdArea);
+	      	    
+
 	    }
 
-	  printf("commandToRobot: %d\n", commandToRobot[0]);
+      int rep;
+      //for (rep=0;rep < 100; ++rep) {
+
+	  //printf("commandToRobot: %d\n", commandToRobot[0]);
 	  //------------------------------------------------------------------------
 	  // Added Code to implement client
 	  //------------------------------------------------------------------------
@@ -298,7 +347,18 @@ int main(int argc, char* argv[])
 	  printf("%s %d \n", __FILE__, __LINE__);
 #endif
 	  // Wait until child has sent previous sensor data.
+	//gettimeofday(&start,NULL);
+	 
+      clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&starts); 
 	  WAIT_CHILD();
+      clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&stops);
+
+      printf("WAIT_CHILD: %lu\n",stops.tv_nsec-starts.tv_nsec);
+
+
+	  	//gettimeofday(&stop,NULL);    
+        //printf("WAIT_CHILD Time %lu\n",stop.tv_usec - start.tv_usec);
+	  
 
 #ifdef DEBUG
 	  printf("%s %d \n", __FILE__, __LINE__);
@@ -313,10 +373,13 @@ int main(int argc, char* argv[])
 	      // Drive backwards and then stop.
 	      driveBackwardsUntil(EIGHTH_SECOND, MED);
 	      STOP_MACRO;	      
-
-	      // Convey sensorData back to the child.
+		
+	 
+	          
+              // Convey sensorData back to the child.
 	      writeSensorDataToSharedMemory(sensDataFromRobot, sensArea, getTime(), getRawTime());
 
+	      
 	    }  
 	  // Done writing sensor data, tell child to proceed reading sensor data.
 	  TELL_CHILD(pid);
@@ -326,6 +389,7 @@ int main(int argc, char* argv[])
 	    {
 	      sensDataFromRobot[i]= FALSE;
 	    }
+      //}
 	}
 
 
@@ -374,25 +438,67 @@ int main(int argc, char* argv[])
 	{
 	  // Wait to receive command from supervisor-client; read the command
 	  // into cmdBuf.
-	  if ((numBytes = recv(clientSock, commandFromSupervisor, MAXDATASIZE-1, 0)) == -1)
+      if ((numBytes = recv(clientSock, commandFromSupervisor, MAXDATASIZE-1, 0)) == -1)
 	    {
 	      perror("recv");
 	      return -1;
 	    }
+      
 	  // Write the read command into shared memory so that the
 	  // parent (nerves) may read and execute it.
-	  writeCommandToSharedMemory(commandFromSupervisor, cmdArea);	      
+  
 
-	  // Wait until parent has written sensor data.
-	  WAIT_PARENT();
+	//  for (ii=0;ii<1000;++ii) {
+	         //gettimeofday(&start,NULL);
+	//        commandFromSupervisor[0] = 'a';
+    //        commandFromSupervisor[1] = '\0';  
+    //clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&starts);
+	writeCommandToSharedMemory(commandFromSupervisor, cmdArea);	      
+    //clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&stops);
 
+    //printf("Write Time: %lu\n", stops.tv_nsec - starts.tv_nsec);
+
+	  	//gettimeofday(&stop,NULL);    
+          	//printf("Write Command Time %lu\n",stop.tv_usec - start.tv_usec);
+	 //}
+
+		 
+
+  // Wait until parent has written sensor data.
+ 		//gettimeofday(&start,NULL);
+	  
+	  	    clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&starts);
+	        WAIT_PARENT();
+            clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&stops);
+
+            printf("WAIT_PARENT: %lu\n",stops.tv_nsec-starts.tv_nsec);
+
+	  	//gettimeofday(&stop,NULL);    
+          	//printf("WAIT_PARENT Time %lu\n",stop.tv_usec - start.tv_usec);
 #ifdef DEBUG
 	  printf("%s %d \n", __FILE__, __LINE__);
 #endif
 
 	  // If there is sensor data available, send it to the
 	  // supervisor-client.
-	  if(readSensorDataFromSharedMemory(sensDataToSupervisor, sensArea))
+	    //struct timeval stop, start;
+
+		int i_can_read = 0;
+
+	    //int i1 = 0;
+	//for (;i1<1000;++i1) {
+
+  	    //gettimeofday(&start,NULL);
+	    
+	    i_can_read = readSensorDataFromSharedMemory(sensDataToSupervisor, sensArea);
+
+	    //gettimeofday(&stop,NULL);    
+            //printf("Read Sensor Time %lu\n",stop.tv_usec - start.tv_usec);
+
+	//}
+
+	    if (i_can_read)
+	 // if(readSensorDataFromSharedMemory(sensDataToSupervisor, sensArea))
 	    {
 	      printf("\nsensDataToSupervisor: %s \n", sensDataToSupervisor);
 	      if(send(clientSock, sensDataToSupervisor, strlen(sensDataToSupervisor)-1 , 0) == -1)
@@ -410,7 +516,7 @@ int main(int argc, char* argv[])
 	      strncat(emptyDataToSupervisor, rawTimeString, MAXDATASIZE-SIZE_OF_EMPTY_DATA);
 	      strncat(emptyDataToSupervisor, " ", 1);
 	      strncat(emptyDataToSupervisor, getTime(), MAXDATASIZE-SIZE_OF_EMPTY_DATA);
-	      printf("\nemptySensDataToSupervisor: %s \n", emptyDataToSupervisor);
+	      //printf("\nemptySensDataToSupervisor: %s \n", emptyDataToSupervisor);
 	      if(send(clientSock, emptyDataToSupervisor, MAXDATASIZE-1, 0) == -1)
 		perror("send");
 

@@ -8,6 +8,8 @@
  */
 
 #include "communication.h"
+#include <time.h>
+
 
 #define SIZE 40
 
@@ -147,7 +149,18 @@ int writeCommandToSharedMemory(char* cmd, caddr_t shm)
     {
       command_t * newCommand = NULL;
       constructCommand(&newCommand, cmd);
+     
+      int i=0;
+      //for (i=0;i<1000;++i) {
+      
+      struct timespec starts, stops;
+      clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&starts);
       writeCommandToQueue(shm, newCommand);
+      clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&stops);
+      //printf("Write Queue: %lu\n",stops.tv_nsec-starts.tv_nsec);
+      
+      //}
+
       free(newCommand);
 
       return 1;

@@ -244,7 +244,15 @@ int readFromSharedMemoryAndExecute(caddr_t shm)
   char cmd = '\0';
 
 
+  struct timespec start, stops;
+
+  //clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&start);
   cmd = getCommandCodeFromQueue(shm);
+  //clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&stops);
+
+
+  //printf("Read Time: %lu\n", stops.tv_nsec-start.tv_nsec);
+
   switch (cmd){
   case ssDriveLow:
     driveStraight(LOW);
@@ -302,6 +310,9 @@ int readFromSharedMemoryAndExecute(caddr_t shm)
   default:
     return 'z';
   }
+
+  
+  //printf("Read Time: %lu\n", stops.tv_nsec-start.tv_nsec);
 
 #ifdef DEBUG
   printf("Command: %d\n", cmd);

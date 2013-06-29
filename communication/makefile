@@ -77,7 +77,7 @@ eaters: eatersServer.c communication.h serverUtility.c ../supervisor/eaters.h co
 	gcc $(DEBUG_OPT)-o eaters.out eatersServer.c serverUtility.c ../supervisor/eaters.c commandQueue.c
 
 brainstem: brainstem.c communication.h serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o ../roomba/roomba.h
-	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o
+	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o -lrt
 
 # Make sure that object files are built in the appropriate order; if
 # anything in roomba.h changes, the accompanying nerves, move, sensor,
