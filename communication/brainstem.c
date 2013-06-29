@@ -70,12 +70,16 @@ int main(int argc, char* argv[])
    * argument must begin with a slash.  The third "mode" argument is
    * derived from the symbolic constants is <sys/stat.h>.
    */
-  mqd_t mqd_cmd = mq_open("/q1", 
+   mqd_t mqd_cmd = mq_open("/q_cmd", 
 		    O_RDWR | O_CREAT , 
 		    S_IRWXU | S_IRWXG | S_IRWXO, 
 		    NULL);
 
-
+   mqd_t mqd_sns = mq_open("/q_sns", 
+		    O_RDWR | O_CREAT, 
+		    S_IRWXU | S_IRWXG | S_IRWXO, 
+		    NULL);
+ 
   printf("The message queue id is: %d\n", mqd_cmd);
 
   /* Determine the size of messages for this message queue
@@ -84,12 +88,21 @@ int main(int argc, char* argv[])
   mq_getattr(mqd_cmd,&a);  
 
   printf("The default message size is: %d\n", a.mq_msgsize);
-
-  if( mqd_cmd == -1)
+   
+   if( mqd_cmd == -1)
     {
       perror("mq_open():");
       return -1;
     }
+
+
+   if( mqd_sns == -1)
+    {
+      perror("mq_open():");
+      return -1;
+    }
+
+  
 
   int check = 0;
   char addresses[3][13];
@@ -100,11 +113,6 @@ int main(int argc, char* argv[])
     }
   int i, counter, serverID, clientSock, numBytes;
   pid_t pid, pid2;
-
-  // A pointer to shared memory for conveying commands across
-  // processes and conveying sensor data across processes.
-  //caddr_t cmdArea;
-  caddr_t sensArea;
 
   // Arrays to hold most recent command sent by the
   // supervisor-client and the most recent command sent to the iRobot.
@@ -143,38 +151,7 @@ int main(int argc, char* argv[])
   char input = '\0';
   //------------------------------------------------------------------------
   // End of added section
-  //------------------------------------------------------------------------
-
-  // Create a small piece of shared memory for the child
-  // (brain) to communicate commands received from the client
-  // to the parent (nervous system).
-  /*
-  if(createSharedMem("/dev/zero", &cmdArea) == -1)
-    {
-      perror("createSharedMem()");
-      return -1;
-    }
-  */
-
-  // Initialize shared memory for commands as a command queue
-  // data structure, maximum number of commands, 10.
-  //createCommandQueue(cmdArea, 10);
-
-
-  // Create a small piece of shared memory for the parent (nervous
-  // system) to communicate sensor information to the child (brain).
-  if(createSharedMem("/dev/zero", &sensArea) == -1)
-    {
-      perror("createSharedMem()");
-      return -1;
-    }
-
-#ifdef DEBUG  
-  printf("Successfully created shared memory at location 0x%x and 0x%x. \n", 
-	 NULL,
-     //cmdArea, 
-	 sensArea);
-#endif
+  //------------------------------------------------------------------------ 
 
   // Create a socket-based server
   if((serverID = createServer()) == -1)
@@ -353,6 +330,7 @@ int main(int argc, char* argv[])
 	  WAIT_CHILD();
 
 #ifdef DEBUG
+
 	  printf("%s %d \n", __FILE__, __LINE__);
 	  printf("%d \n", sensData);
 #endif
@@ -367,7 +345,7 @@ int main(int argc, char* argv[])
 	      STOP_MACRO;	      
 
 	      // Convey sensorData back to the child.
-	      writeSensorDataToSharedMemory(sensDataFromRobot, sensArea, getTime(), getRawTime());
+	      writeSensorDataToMessageQueue(sensDataFromRobot, mqd_sns, getTime(), getRawTime());
 
 	    }  
 	  // Done writing sensor data, tell child to proceed reading sensor data.
@@ -446,7 +424,7 @@ int main(int argc, char* argv[])
 
 	  // If there is sensor data available, send it to the
 	  // supervisor-client.
-	  if(readSensorDataFromSharedMemory(sensDataToSupervisor, sensArea))
+	  if(readSensorDataFromMessageQueue(sensDataToSupervisor, mqd_sns))
 	    {
 	      printf("\nsensDataToSupervisor: %s \n", sensDataToSupervisor);
 	      if(send(clientSock, sensDataToSupervisor, strlen(sensDataToSupervisor)-1 , 0) == -1)

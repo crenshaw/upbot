@@ -225,7 +225,7 @@ int readSensorDataFromFile(char* data, FILE* fp)
 }
 
 /**
- * readSensorDataFromSharedMemory()
+ * readSensorDataFromMessageQueuey()
  *
  * copy sensor data from shared memory into memory pointed
  * to by data
@@ -235,20 +235,42 @@ int readSensorDataFromFile(char* data, FILE* fp)
  *
  * @return int 
  */
-int readSensorDataFromSharedMemory(char* data, caddr_t shm)
+int readSensorDataFromMessageQueue(char* data, mqd_t qd)
 {
+ 
+  char recv_buffer[9001]; 
+  struct mq_attr a;
+  mq_getattr(qd,&a);
+
+  if (a.mq_curmsgs > 0) {
+    if (mq_receive(qd,recv_buffer,9001,NULL) == -1) {
+        perror("mq_recieve(): sns");
+    }
+    
+    int msgLen = strlen(recv_buffer);
+
+    strncpy(data, recv_buffer, msgLen);
+    strncpy(lastDataSent, recv_buffer, msgLen);
+   
+    printf("MQ Recieved: %s\n",recv_buffer);
+       
+    return 1;
+  }
+  return 0;
+
+/*
   int shmLength = strlen((char*)shm);
 
   if (strncmp(lastDataSent, (char *)(shm), shmLength) != 0)
     {
-      strncpy(data, (char *)(shm), shmLength);
-      strncpy(lastDataSent, (char *)shm, shmLength);
+      //strncpy(data, (char *)(shm), shmLength);
+      //strncpy(lastDataSent, (char *)shm, shmLength);
 
       return 1;
     }
 
   return 0;
-  
+  */
 }
   
 
@@ -344,13 +366,18 @@ int receiveDataAndStore(int newSock, char* cmdBuf, char* sensData, FILE* cmdFile
 
       // Send command to parent process
       write(fd[1], cmdBuf, 1);
-      
+      /*
+      currently unused code that has been commented out because
+      readSensorDataFromSharedMemory has been replaced with message queues
+
+
       if(readSensorDataFromSharedMemory(sensData, sensArea))
       {
 	printf("sensData: %s \n", sensData);
 	if(send(newSock, sensData, strlen(sensData), 0) == -1)
 	  perror("send");
       }
+      */
     }
   return 0;
 }

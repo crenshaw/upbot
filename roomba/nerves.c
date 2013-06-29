@@ -104,8 +104,13 @@ int nerves(caddr_t cmdArea, caddr_t sensArea, pid_t pid)
 	  currTime = getTime();
 	  // writeSensorDataToFile(x, sensorFile, currTime);
 	  
-	  writeSensorDataToSharedMemory(x, sensArea, currTime, getRawTime());
+      /*
+      I am chaning this function to writeSesnsorDataToMessageQueue
+      This line has been commented out because I am to lazy to fix this
+      function which is currently unused
 
+	  writeSensorDataToSharedMemory(x, sensArea, currTime, getRawTime());
+      */
 	}
       int i;
       for(i = 0; i <= 6; i++)

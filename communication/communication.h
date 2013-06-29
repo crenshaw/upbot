@@ -28,7 +28,7 @@ int receiveDataAndStore(int newSock, char* cmdBuf, char* sensData, FILE* cmdFile
 int createSharedMem(char * deviceName, caddr_t* area);
 int createServer(void);
 int establishConnection(int s);
-int readSensorDataFromSharedMemory(char* data, caddr_t shm);
+//int readSensorDataFromSharedMemory(char* data, caddr_t shm);
 int checkArgName(int argc, char* argv[], char addresses[3][13]);
 
 

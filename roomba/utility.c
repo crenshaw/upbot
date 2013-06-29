@@ -370,11 +370,15 @@ void calcFileLoc(char c)
 }
 
 /**
- * writeSensorDataToSharedMemory()
+ * writeSensorDataToMessageQueue()
  * 
  */
-void writeSensorDataToSharedMemory(char* sensorArray, caddr_t shm, char* currTime, time_t rawTime)
+void writeSensorDataToMessageQueue(char* sensorArray, mqd_t qd, char* currTime, time_t rawTime)
 {
+
+  //TODO: actually figure out how big the array needs to be
+  //char msg[strlen(currTime)+strlen(sensorArray)];
+  char msg[50];
 
   int sensorData = 0x00;
   int i, j;
@@ -395,31 +399,34 @@ void writeSensorDataToSharedMemory(char* sensorArray, caddr_t shm, char* currTim
   {
     if ((sensorData & bitMask) == bitMask )
       {
-	*(char *)(shm + j) = '1';
+         msg[j] = '1'; 
       }
     else
       {
-	*(char *)(shm + j) = '0';
+         msg[j] = '0'; 
       }
     bitMask = bitMask << 1;
   }
   
   //add space to end of sensor data
-  *(char *)(shm + 10) = ' ';
+  msg[10] = ' ';
+  
 
   itoa((int)rawTime, rawTimeString);
 
   strncat(rawTimeString, " ", 1);
 
   strncat(rawTimeString, currTime, sizeof(rawTimeString));
-  
+ 
   //copy timestamp to end of sensor data
-  strncpy((char*)(shm + 11), rawTimeString, strlen(rawTimeString));
-
- 
- 
+  strncpy(msg+11, rawTimeString, strlen(rawTimeString));
+  msg[strlen(msg)-1] = '\0'; 
 
   
+  if (mq_send(qd,msg,strlen(msg),0) != 0) {
+      perror("mq_send sns");
+  }
+  printf("MQ Sent: %s\n",msg);
 
   return;
 }
