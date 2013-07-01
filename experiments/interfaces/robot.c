@@ -17,17 +17,15 @@
  * to be provided to other entities.  Every robot is associated with a
  * "evreX" through which other entities may update this robot's
  * event:responder function.
- *
- * TODO: Think of a better name than evreX.
  */
 typedef struct robot 
 {
   FILE * handle;   /**< The handle of the serial port */
   char * name;     /**< The name of the robot, i.e. "Webby" or "Frank" */
   char * address;  /**< The IP address of the robot */
-  void * evre;     /**< The robot's currently executing event-responder */
+  eventresponder * er;         /**< The robot's currently executing event-responder */
   serviceHandler * dsCollector;     /**< The sensor data collector service to which this robot is currently connected */
-  serviceHandler * evreX;  /**< The event:responder service to which this robot is currently connected */
+  serviceHandler * erService;  /**< The event:responder service to which this robot is currently connected */
 } robot;
 
 
@@ -96,7 +94,27 @@ void robotStop(robot * robot)
 
 }
 
-/* event:responder interfaces moved to eventresponder.c */
+
+/**
+ * setResponder()
+ *
+ * Set the responder for the robot.  Software considers the robot a
+ * single-threaded state machine.  If this function is called when a
+ * robot already has a responder, the function will block until the
+ * current responder is cleared.  This function will not block if it
+ * is called from within the current responder.
+ *
+ * @param[in] robot a handle representing the robot to command.
+ * @param[in] responder 
+ * 
+ * @return none.
+ */
+
+
+void setResponder(robot * robot, eventresponder * er)
+{
+
+}
 
 
 // ************************************************************************
@@ -215,29 +233,7 @@ void supervisorInitialize()
 }
 
 
-// ************************************************************************
-// PART 7: SERVICES.  There are multiple types of services executing
-// on the system that allow flexible connections between robots and
-// supervisors.  There are some concepts that are generic to all
-// services.  
-// ************************************************************************
 
-#define SERV_DATA_SERVICE_COLLATOR 0
-#define SERV_DATA_SERVICE_COLLECTOR 1
-#define SERV_EVENT_RESPONDER_SERVICE 2
-
-// What are the types of services available?
-typedef enum serviceType {
-  SERV_DATA_SERVICE_COLLATOR, 
-  SERV_DATA_SERVICE_COLLECTOR, 
-  SERV_EVENT_RESPONDER_SERVICE
-} serviceType;
-
-// Entities in the system access services via a service handler.  
-typedef struct serviceHandler {  
-  serviceType typeOfService; /**< The type of service (see serviceType enum) */
-  int handler;               /**< The handle of the established connection. */
-} serviceHandler;
 
 
 // ************************************************************************
