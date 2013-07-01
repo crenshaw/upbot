@@ -54,7 +54,7 @@ displayTimes(const char *msg, Boolean includeTimer)
 }
 
 static void
-sigalrmHandler(int sig)
+signalrmHandler(int sig)
 {
     gotAlarm = 1;
 }
@@ -62,7 +62,7 @@ sigalrmHandler(int sig)
 int
 main(int argc, char *argv[])
 {
-    struct itimerval itv;
+    struct itimerval itv;       /* Specify when a timer should expire */
     clock_t prevClock;
     int maxSigs;                /* Number of signals to catch before exiting */
     int sigCnt;                 /* Number of signals so far caught */
@@ -73,16 +73,24 @@ main(int argc, char *argv[])
 
     sigCnt = 0;
 
+    /* Initialize and empty a signal set*/
+
     sigemptyset(&sa.sa_mask);
+
     sa.sa_flags = 0;
-    sa.sa_handler = sigalrmHandler;
+    sa.sa_handler = signalrmHandler;
+
+    /* Update the signal set with the new flags and handler. */
     if (sigaction(SIGALRM, &sa, NULL) == -1)
         errExit("sigaction");
 
-    /* Set timer from the command-line arguments */
+    /* Set timer's initial time and period from the command-line arguments */
 
-    itv.it_value.tv_sec = (argc > 1) ? getLong(argv[1], 0, "secs") : 2;
+    /* The period between now and the first timer interrupt */
+    itv.it_value.tv_sec = (argc > 1) ? getLong(argv[1], 0, "secs") : 2;  
     itv.it_value.tv_usec = (argc > 2) ? getLong(argv[2], 0, "usecs") : 0;
+
+    /* The intervals between successive timer interrupts */
     itv.it_interval.tv_sec = (argc > 3) ? getLong(argv[3], 0, "int-secs") : 0;
     itv.it_interval.tv_usec = (argc > 4) ? getLong(argv[4], 0, "int-usecs") : 0;
 

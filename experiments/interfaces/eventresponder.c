@@ -28,10 +28,19 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <sys/time.h>
+#include <time.h>
+
+
 #include "../../roomba/roomba.h"
 #include "eventresponder.h"
 #include "robot.h"
 #include "services.h"
+
+static volatile sig_atomic_t gotAlarm = 0;
+/* Set nonzero on receipt of SIGALRM */
 
 
 // ************************************************************************
@@ -90,11 +99,30 @@ int eventBump(int * data) {
 
 
 // ************************************************************************
-// EXAMPLE MAIN
+// EXAMPLE CLOCK HANDLER
+//
+// ************************************************************************
+
+static void
+signalrmHandler(int sig)
+{
+  gotAlarm = 1;
+}
+
+
+// ************************************************************************
+// EXAMPLE MAIN.
+// Create timer-based interrupts and an event:responder to handle a set
+// of clocks and sensor data events in a faked up system.
 // ************************************************************************
 
 int main(void)
 {
+
+  // Declare the variables necessary to support timer-based interrupts.
+  struct itimerval itv;       // Specify when a timer should expire 
+  struct sigaction sa;        // A signal set
+
 
   // Create some fake data to treat as sensor data, i.e., events.
   int fakeData[11] = {0};
@@ -103,6 +131,33 @@ int main(void)
   // generation of random data.
   srand(time(NULL));  
 
+
+  // Initialize and empty a signal set
+  sigemptyset(&sa.sa_mask);
+
+  // Set the signal set.
+  sa.sa_flags = 0;
+  sa.sa_handler = signalrmHandler;
+
+  // Update the signal set with the new flags and handler.
+  if (sigaction(SIGALRM, &sa, NULL) == -1)
+    {
+      exit(EXIT_FAILURE);
+    }
+
+
+  // Initialize timer start time and period:
+  // First, the period between now and the first timer interrupt 
+  itv.it_value.tv_sec = 2;  // seconds
+  itv.it_value.tv_usec = 0; // microseconds
+
+  // Second, the intervals between successive timer interrupts 
+  itv.it_interval.tv_sec = 1; // seconds
+  itv.it_interval.tv_usec = 0; // microseconds
+
+
+
+  // Create and initialize an event:responder
   eventresponder myEventResponder = {eventOne, respondOne};
 
   // Create an event loop
