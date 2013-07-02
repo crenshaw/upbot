@@ -39,8 +39,11 @@
 #include "robot.h"
 #include "services.h"
 
-static volatile sig_atomic_t gotAlarm = 0;
-/* Set nonzero on receipt of SIGALRM */
+
+// Global value to keep track of the alarm occurrence 
+// Set nonzero on receipt of SIGALRM 
+// TODO: Global?  Really?  Can this be better?
+static volatile sig_atomic_t gotAlarm = 0; 
 
 
 // ************************************************************************
@@ -121,8 +124,9 @@ int main(void)
 
   // Declare the variables necessary to support timer-based interrupts.
   struct itimerval itv;       // Specify when a timer should expire 
-  struct sigaction sa;        // A signal set
 
+  struct sigaction sa;        // Signal sets
+  struct sigaction toggledsa;   
 
   // Create some fake data to treat as sensor data, i.e., events.
   int fakeData[11] = {0};
@@ -148,14 +152,17 @@ int main(void)
 
   // Initialize timer start time and period:
   // First, the period between now and the first timer interrupt 
-  itv.it_value.tv_sec = 2;  // seconds
+  itv.it_value.tv_sec = 1;  // seconds
   itv.it_value.tv_usec = 0; // microseconds
 
   // Second, the intervals between successive timer interrupts 
-  itv.it_interval.tv_sec = 1; // seconds
+  itv.it_interval.tv_sec = 10; // seconds
   itv.it_interval.tv_usec = 0; // microseconds
 
-
+  if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
+    {
+      exit(EXIT_FAILURE);
+    }
 
   // Create and initialize an event:responder
   eventresponder myEventResponder = {eventOne, respondOne};
@@ -169,16 +176,37 @@ int main(void)
       fakeData[0] = rand()% (3);
       printf("The fake data value is %d \n", fakeData[0]);
 
-//
+      // Sleep for one second just to make output of prototype manageable.
       sleep(1);
 
+      // Mask signals ?
+      //   Kernel maintains a _signal mask_ for each process
+      //   The signal mask is actually a per-thread attribute!
+
+      //  Note that, "The pthread_sigmask() function is just like
+      //  sigprocmask(2), with the difference that its use in
+      //  multithreaded programs is explicitly specified by
+      //  POSIX.1-2001."
+      
+      printf("    masking....\n");
+
+      sigprocmask(SIG_BLOCK, &sa.sa_mask, NULL);
 
       if((myEventResponder.e)(fakeData))
 	{
 	  (myEventResponder.r)();
 	}
-     
+
+      sigprocmask(SIG_UNBLOCK, &sa.sa_mask, NULL);     
+
+      printf("    unmasking....\n");
     
+      if(gotAlarm)
+	{
+	  gotAlarm = 0;
+	  printf("**The british are coming!**\n");
+	}
+
     }
 
   return 0;
