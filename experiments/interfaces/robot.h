@@ -35,4 +35,4 @@ typedef struct robot
   serviceHandler * erService;  /**< The event:responder service to which this robot is currently connected */
 } robot;
 
-#endif _ROBOT_H_
+#endif
