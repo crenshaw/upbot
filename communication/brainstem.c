@@ -37,6 +37,10 @@
 #include <sys/msg.h>
 #include <sys/stat.h>
 
+#include <sys/time.h>
+#include <sys/timeb.h>
+#include <time.h>
+#include <omp.h>
 
 #define SIZE_OF_EMPTY_DATA 11
 //#define DEBUG 1
@@ -70,10 +74,20 @@ int main(int argc, char* argv[])
    * argument must begin with a slash.  The third "mode" argument is
    * derived from the symbolic constants is <sys/stat.h>.
    */
+
+   struct timespec starts, stops;
+   
+   clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&starts);
    mqd_t mqd_cmd = mq_open("/q_cmd", 
 		    O_RDWR | O_CREAT , 
 		    S_IRWXU | S_IRWXG | S_IRWXO, 
 		    NULL);
+   clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&stops);
+
+   printf("Create Time %lu\n",stops.tv_nsec - starts.tv_nsec);
+
+   //mq_close(mqd_cmd);
+   //return 0;
 
    mqd_t mqd_sns = mq_open("/q_sns", 
 		    O_RDWR | O_CREAT, 
@@ -293,6 +307,9 @@ int main(int argc, char* argv[])
 	{
 	  commandToRobot[0] = 'z';
 	  // Wait until a valid command is received.
+      
+      
+      //TODO: check and see if we can remove this loop now
 	  while(commandToRobot[0] == 'z')
 	    {
           commandToRobot[0] = readFromMessageQueueAndExecute(mqd_cmd);
@@ -417,7 +434,7 @@ int main(int argc, char* argv[])
       writeCommandToMessageQueue(commandFromSupervisor,mqd_cmd);
 
 	  // Wait until parent has written sensor data.
-	  WAIT_PARENT();
+	  //WAIT_PARENT();
 
 #ifdef DEBUG
 	  printf("%s %d \n", __FILE__, __LINE__);

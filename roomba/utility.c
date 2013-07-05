@@ -251,24 +251,26 @@ int readFromMessageQueueAndExecute(mqd_t qd)
 //Formerly: readFromSharedMemoryAndExecute(caddr_t shm)
 {
 
-  //TODO: clean up
-  //we are sending timestamps... but we don't do anything with them
-  //once they get here, I should probally fix that
-  //make it look less like it was just slapped on top.
   char cmd = '\0';
 
 
   char c[9001];
+  struct timespec starts, stops;
+  usleep(1000);
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&starts);
   if (mq_receive(qd,c,9001,NULL) == -1) {
     perror("mq_receive(): nerves");
     //pthread_exit(NULL);
   }
+  clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&stops);
 
+  printf("Read Time: %lu\n",stops.tv_nsec-starts.tv_nsec);
+  fflush(stdout);
   if (c != '\0') {
     printf("Recieved %s from message queue.\n",c);
   }
   
- cmd = *c;
+ //cmd = *c;
   switch (cmd){
   case ssDriveLow:
     driveStraight(LOW);

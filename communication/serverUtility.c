@@ -21,6 +21,8 @@
 #include <sys/msg.h>
 #include <sys/stat.h>
 
+#include <time.h>
+
 #define SIZE 40
 
 static int true = 1;
@@ -155,7 +157,8 @@ void writeCommandToFile(char* cmd, FILE* fp)
  */
 int writeCommandToMessageQueue(char* cmd, mqd_t qd)
 {
-  
+  struct timespec starts, stops;
+
   char * timestamp = getTime();
 
   char msg[strlen(timestamp)+2];
@@ -169,13 +172,23 @@ int writeCommandToMessageQueue(char* cmd, mqd_t qd)
   
   if((cmd[0] != '\0' || cmd[0] == CQ_COMMAND_CANARY_VALUE))
     {
-      
-      if(mq_send(qd, msg, strlen(msg), 0) != 0)
-      {
-         perror("failed to write cmd to message queue");
-         exit(-1);
+      int i=0;
+      char in[1000];
+      for (i=0;i<1000;++i) {
+        clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&starts);
+        if(mq_send(qd, msg, strlen(msg), 0) != 0)
+        {
+           perror("failed to write cmd to message queue");
+           exit(-1);
+        }
+        clock_gettime(CLOCK_PROCESS_CPUTIME_ID,&stops);
+        printf("Write Queue: %lu\n",stops.tv_nsec-starts.tv_nsec);
+        fflush(stdout);
+       usleep(1); 
+       // if (i<999) {
+       //     mq_recieve(qd,in,1000,0);
+       // }
        }
-
        printf("Wrote %s to message queue.\n",msg);
 
       return 1;
