@@ -1,17 +1,23 @@
-
-// ************************************************************************
-// PART 4: ACCEPTOR.  Provides location transparency to service-level
-// components. As noted by Schmidt in "Applying Design Patterns to
-// Flexibly Configure Network Services, acceptors "initialize
-// endpoints of communication at a particular address and wait
-// passively for the other endpoints to connect with it."  That said,
-// the acceptor also allows for the flexibility for application-level
-// to passively wait for services to initiate the connection.
-//
-// Once a connection is established, neither the application nor the
-// service utilize the acceptor until another connection must be
-// established.
-// ************************************************************************
+/**
+ * acceptor.c
+ *
+ *
+ * Provides location transparency to service-level components. As
+ * noted by Schmidt in "Applying Design Patterns to Flexibly Configure
+ * Network Services, acceptors "initialize endpoints of communication
+ * at a particular address and wait passively for the other endpoints
+ * to connect with it."  That said, the acceptor also allows for the
+ * flexibility for application-level to passively wait for services to
+ * initiate the connection.
+ * 
+ * Once a connection is established, neither the application nor the
+ * service utilize the acceptor until another connection must be
+ * established.
+ *
+ * @author Tanya L. Crenshaw
+ * @since July 2013
+ *
+ */
 
 
 /**
