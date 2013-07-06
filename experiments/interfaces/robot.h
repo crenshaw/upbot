@@ -35,11 +35,10 @@ typedef struct robot
   serviceHandler * erService;  /**< The event:responder service to which this robot is currently connected */
 } robot;
 
-
 /**
  * Function prototypes.  See robot.c for details on this/these
  * functions.
  */
 robot * robotInitialize(const char * name);
 
-#endif _ROBOT_H_
+#endif
