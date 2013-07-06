@@ -1,7 +1,28 @@
 /**
  * eventresponder.h
+ * 
+ * The UPBOT System treats a robot as a single-threaded state machine
+ * that is programmed using an event:responder.
  *
- * Types and function prototypes for an event:responder.
+ * Events are the sensor data provided by the robot.  The UPBOT system
+ * considers the following subset of sensor data: Wheeldrop caster,
+ * wheeldrop left, wheeldrop right, bump left, bump right, cliff left,
+ * cliff front left, cliff front right, cliff right, and the virtual
+ * wall.  
+ *
+ * Checking for a particular event is done by an eventPredicate
+ * function.
+ *
+ * Responses are the commands that may be issued to the iRobot Create
+ * that alter its behaviour in the physical world, such as drive or 
+ * blink LEDs.
+ *
+ * Issuing a response is done by a response function.
+ *
+ * An event:responder is a set of eventPredicate() and response()
+ * function pairs.
+ *
+ * This file contains the types and function prototypes for an event:responder.
  * 
  * @author Tanya L. Crenshaw
  * @since June 29, 2013
@@ -9,6 +30,18 @@
 
 #ifndef _EVENT_RESPONDER_H_
 #define _EVENT_RESPONDER_H_
+
+
+/**
+ *  CONSTANT DEFINITIONS.  All constants in this file should begin
+ *  with 'ER' to indicate their membership in eventresponder.h  
+ */
+#define ER_ARRAY_MISMATCH (-1)
+#define ER_NULL_ARRAY (-2)
+#define ER_NULL_ER (-3)
+#define ER_SUCCESS (0)
+
+#define ER_DEFAULT_SIZE 2
 
 /**
  * A type to represent events, i.e., sensor data.  Empty for now.
@@ -56,8 +89,35 @@ typedef void responder(void);
  * 
  */
 typedef struct eventresponderTag {
-  eventPredicate * e;
-  responder * r;
+  eventPredicate ** e;  /**< An array of eventPredicate functions */
+  responder ** r;       /**< An array of responder functions */
+  int length;          /**< The total number of pairs */
 } eventresponder;
+
+
+
+/**
+ * Function prototypes.  See eventresponder.c for details on
+ * this/these functions.
+ */
+
+int createResponder(eventPredicate * e[], responder * r[], eventresponder * er);
+//int createResponder(eventPredicate * e, responder * r, eventresponder * er);
+
+int eventTrue(int * data);
+void respondStop(void);
+
+
+
+// A global, default, event:responder, in case something bad happens or an
+// application developer just wants a boring default.  This default
+// event:responder is:
+//
+//  if  true  then
+//    stop robot
+//
+static eventPredicate * eDefault[ER_DEFAULT_SIZE] = {eventTrue, NULL};
+static responder * rDefault[ER_DEFAULT_SIZE] = {respondStop, NULL}; 
+static eventresponder erDefault = {eDefault, rDefault};
 
 #endif

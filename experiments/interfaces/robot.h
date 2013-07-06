@@ -22,7 +22,7 @@
  * transition from its current state to its next state.  Every robot
  * is associated with a "dsCollector" which collects the sensor data
  * to be provided to other entities.  Every robot is associated with a
- * "evreX" through which other entities may update this robot's
+ * "er" through which other entities may update this robot's
  * event:responder function.
  */
 typedef struct robot 
@@ -34,5 +34,12 @@ typedef struct robot
   serviceHandler * dsCollector;     /**< The sensor data collector service to which this robot is currently connected */
   serviceHandler * erService;  /**< The event:responder service to which this robot is currently connected */
 } robot;
+
+
+/**
+ * Function prototypes.  See robot.c for details on this/these
+ * functions.
+ */
+robot * robotInitialize(const char * name);
 
 #endif _ROBOT_H_

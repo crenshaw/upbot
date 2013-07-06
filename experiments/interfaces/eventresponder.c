@@ -22,6 +22,7 @@
  * An event:responder is a set of eventPredicate() and response()
  * function pairs.  
  * 
+ * 
  * @author: Tanya L. Crenshaw
  * @since: June 2013
  * 
@@ -45,16 +46,109 @@
 // TODO: Global?  Really?  Can this be better?
 static volatile sig_atomic_t gotAlarm = 0; 
 
+/**
+ * createResponder
+ *
+ * Given e, an array of eventPredicate functions and r, an array of
+ * responder functions, populate an eventresponder struct with 
+ * e, r, and the length of the arrays.  
+ *
+ * Each array must be terminated by NULL.  Here is an example
+ * definition of an eventPredicate array:
+ *
+ *   eventPredicate * eArray[3] = {eventOne, eventTwo, NULL};
+ * 
+ * The array lengths must match.  If they do not, then we do not have
+ * a well-formed event:responder and the function returns
+ * ER_ARRAY_MISMATCH (-1) to indicate an error.
+ *
+ * Each array must exist.  If either array is NULL, then we do not
+ * have a well-formed event:responder and the function returns
+ * ER_NULL_ARRAY (-2) to indicate an error.
+ *
+ * The eventresponder, er, must already be allocated before calling
+ * this function.  If er is NULL, then we cannot populate the
+ * event:responder and the function returns ER_NULL_ER (-3) to
+ * indicate an error.
+ *
+ * If both arrays and er are not NULL, and the two arrays are the same
+ * length, the function returns ER_SUCCESS (0) to indicate success.
+ *
+ * @param[in] e an array of eventPredicate functions.
+ * @param[in] r an array of responder functions.
+ * @param[out] the newly populated eventresponder.
+ * 
+ */
+
+int createResponder(eventPredicate * e[], responder * r[], eventresponder * er)
+{
+  int eSize = 0;
+  int rSize = 0;
+  int i = 0;
+
+  // If either array is NULL, bail with an error.
+  if (e == NULL || r == NULL )
+    {
+      return ER_NULL_ARRAY;
+    }
+
+  // If the event:responder to populate is NULL, bail with an error.
+  if (er == NULL)
+    {
+      return ER_NULL_ER;
+    }
+  
+  // How long is each array?
+  while (e[i] != NULL)
+    {
+      eSize++;
+      i++;
+    }
+
+  i = 0;
+
+  while (r[i] != NULL)
+    {
+      rSize++;
+      i++;
+    }
+
+  // If the array sizes differ, bail with an error.
+  if(eSize != rSize)
+    {
+      return ER_ARRAY_MISMATCH;
+    }
+
+  // OTHERWISE, populate the event:responder and return success.
+  er->e = e;
+  er->r = r;
+  er->length = rSize;
+
+  return ER_SUCCESS;
+  
+
+}
+
+
 
 // ************************************************************************
-// Usage
+// EVENTPREDICATES, WRITTEN BY USER
 // ************************************************************************
 
+/**
+ * eventTrue
+ * 
+ * Default eventPredicate function.  Always returns true.
+ */
+int eventTrue(int * data)
+{
+  return 1;
+}
 
 /**
  * eventOne
  *
- * Example eventPredicate function, as written by an application developer
+ * Example eventPredicate function, as written by an application developer.
  */
 int eventOne(int * data)
 {
@@ -66,19 +160,20 @@ int eventOne(int * data)
     return 0;
 }
 
-
 /**
- * respondOne
+ * eventTwo
  *
- * Example responder function 
+ * Example eventPredicate function, as written by an application developer.
  */
-void respondOne(void)
+int eventTwo(int * data)
 {
-  printf("      Got a 1!\n");
+  printf("   Calling eventTwo\n");
 
-  return;
+  if(data[0] == 2)
+    return 1;
+  else
+    return 0;
 }
-
 
 /**
  * eventBump
@@ -100,6 +195,48 @@ int eventBump(int * data) {
     return 0;
 }
 
+// ************************************************************************
+// RESPONDERS, WRITTEN BY USER
+// ************************************************************************
+
+/**
+ * respondStop
+ * 
+ * Default responder function.  Stop the robot.
+ */ 
+void respondStop(void)
+{
+  // TODO: Add code to stop the robot.
+  printf("Reminder: add code to actually stop the robot\n");
+
+  return;
+}
+
+
+/**
+ * respondOne
+ *
+ * Example responder function, as written by an application developer.
+ */
+void respondOne(void)
+{
+  printf("      Got a 1!\n");
+
+  return;
+}
+
+/**
+ * respondTwo
+ *
+ * Example responder function, as written by an application developer. 
+ */
+void respondTwo(void)
+{
+  printf("      Got a 2!\n");
+
+  return;
+}
+
 
 // ************************************************************************
 // EXAMPLE CLOCK HANDLER
@@ -117,6 +254,9 @@ signalrmHandler(int sig)
 // EXAMPLE MAIN.
 // Create timer-based interrupts and an event:responder to handle a set
 // of clocks and sensor data events in a faked up system.
+//
+// This example main should eventually evolve into the new "nerves"
+// portion of the UPBOT robotics system.
 // ************************************************************************
 
 int main(void)
@@ -134,6 +274,7 @@ int main(void)
   // Initialize a random number generator to help with the
   // generation of random data.
   srand(time(NULL));  
+
 
 
   // Initialize and empty a signal set
@@ -164,12 +305,47 @@ int main(void)
       exit(EXIT_FAILURE);
     }
 
-  // Create and initialize an event:responder
-  eventresponder myEventResponder = {eventOne, respondOne};
+
+  // Create arrays of eventPredicate and responder functions
+  eventPredicate * eArray[3] = {eventOne, eventTwo, NULL};
+  responder * rArray[3] = {respondOne, respondTwo, NULL};
+
+  // Manually create and initialize an event:responder
+  eventresponder myEventResponder = {eArray, rArray, 2};
+
+  // Create and initialize a robot.
+  robot myRobot = {NULL, 
+		   "Webby", 
+		   "10.81.3.181", 
+		   &myEventResponder, 
+		   NULL, 
+		   NULL};
+
+
+  // Issues that the event:responder loop must be able to handle.
+  // 1. The event:responder is accessed via a robot variable.
+  // 2. The event:responder may update itself at any response.
+  // x done x 3. The event:responder is a set of pairs of eventPredicate
+  //    and response functions.
+  // 4. Clocks must be masked whenever they aren't being checked.
+  //    (I am not sure if this is true).
+  // 5. A small library should be created to hide the complexity of clocks
+  //    from the application programmer.
+
+
+  // Access the event:responder via the robot variable.  (I am doing
+  // this to make sure I understand the types.  I know that I can
+  // access the event:responder via myEventResponder, declared above).
+  eventresponder * er = myRobot.er;
+
+  // Need a pointer for the e's and a pointer for the r's.
+  eventPredicate * e = (er->e)[0]; 
+  responder * r = (er->r)[0];
 
   // Create an event loop
   while(1)
     {
+
       // Make the fake data change at index 0.  Choose a random number
       // between 0 and 2.  This would be equivalent to asking the
       // robot for some sensor data.
@@ -179,6 +355,10 @@ int main(void)
       // Sleep for one second just to make output of prototype manageable.
       sleep(1);
 
+      // ***********************************************************
+      // I leave this here because I may need to know about masking
+      // signals among threads later. -- TLC
+      // 
       // Mask signals ?
       //   Kernel maintains a _signal mask_ for each process
       //   The signal mask is actually a per-thread attribute!
@@ -187,20 +367,42 @@ int main(void)
       //  sigprocmask(2), with the difference that its use in
       //  multithreaded programs is explicitly specified by
       //  POSIX.1-2001."
-      
+      // ***********************************************************
+   
+
+#ifdef DONOTCOMPILE
+      // Masking the signal interrupt.
       printf("    masking....\n");
-
       sigprocmask(SIG_BLOCK, &sa.sa_mask, NULL);
+#endif
 
-      if((myEventResponder.e)(fakeData))
+
+      // Loop over all of the eventPredicate and responder pairs
+      // in the robot's event:responder.
+      int i = 0;
+      int length = er->length;
+
+      for(i = 0; i < length; i++)
 	{
-	  (myEventResponder.r)();
+	  e = (er->e)[i];  // Get the i'th eventPredicate function.
+	  r = (er->r)[i];  // Get the i'th responder function.
+
+	  if((e)(fakeData))
+	    {
+	      r();
+	    }
 	}
 
-      sigprocmask(SIG_UNBLOCK, &sa.sa_mask, NULL);     
 
+#ifdef DONOTCOMPILE
+      // Unmasking the signal interrupt.
+      sigprocmask(SIG_UNBLOCK, &sa.sa_mask, NULL);     
       printf("    unmasking....\n");
-    
+#endif
+
+      // I am checking for the signal interrupt, just once, here.
+      // That's not my favorite, but I'm not using signals in a
+      // meaningful way yet. 
       if(gotAlarm)
 	{
 	  gotAlarm = 0;
