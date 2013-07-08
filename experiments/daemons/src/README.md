@@ -4,8 +4,8 @@ Daemon Demo
 Quickstart
 ----------
 1. `make all`
-2. `sudo ./tbd 9191`
-3. `./tc localhost 9191`
+2. `sudo ./tbd.out 9191`
+3. `./tc.out localhost 9191`
 
 Overview
 --------
@@ -39,11 +39,13 @@ severity of the request). A complete list of facilities and levels can be found 
 Usage
 -----
 1. First begin by compiling the sources into executable binaries. This can be done with a simple `make`.
-2. Then, as a priveleged user, run the server with the desired port: `sudo ./tbd 9191`.
+2. Then, as a priveleged user, run the server with the desired port: `sudo ./tbd.out 9191`.
     * The server should now be listening for connections on port 9191
-3. Start the client with the port defined above: `./tc 9191`
+3. Start the client with the port defined above: `./tc.out localhost 9191`
     * You should now see a prompt ("Send>"), at this point you may begin sending messages to the server.
 4. When finished, simply send a Ctrl-C to the process to terminate`
+QUESTION::::5. What should one expect to see in /var/log/system.log?
+
 
 Next Steps
 ----------

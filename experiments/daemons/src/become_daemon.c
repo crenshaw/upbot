@@ -31,6 +31,9 @@ int becomeDaemon() {
     umask(0);                       /* Clear file mode creation mask */
     chdir("/");                     /* Change to root directory */
 
+    /* Ask the system for the maximum number of files that a process
+     * can have open at any time.
+     */
     maxfd = sysconf(_SC_OPEN_MAX);
     if (maxfd == -1)                /* Limit is indeterminate... */
         maxfd = BD_MAX_CLOSE;       /* so take a guess */

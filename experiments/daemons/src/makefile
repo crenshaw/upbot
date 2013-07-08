@@ -1,15 +1,18 @@
 # Filename: Makefile (for daemon demo)
-# Author: Tanya L. Crenshaw
-# Date created: 7/6/2013
-# 
-# Note: One may want to change the compiler CC based on if they are
-# compiling for a desktop or an embedded system.
-CC = gcc
+# Author: Fernando Freire
+# Date created: 7/7/2013
+BIN = tbd.out tc.out
 
-# Compile the server
-server:	become_daemon.c become_daemon.h test_become_daemon.c
-	$(CC) -o server.out -lrt become_daemon.c test_become_daemon.c
+all: daemon client
 
-# Compile the client
-client:	test_client.c
-	$(CC) -o client.out test_client.c
+clean:
+	-@rm -rf *.o $(BIN) 2> /dev/null || true
+
+daemon: daemon_objects
+	@gcc -pthread -o tbd.out become_daemon.o test_become_daemon.c
+
+client:
+	@gcc -o tc.out test_client.c
+
+daemon_objects:
+	@gcc -c become_daemon.c
