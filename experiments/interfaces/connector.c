@@ -15,6 +15,7 @@
  * @since July 2013
  */
 
+#include "services.h"
 
 /**
  * conInitiateConnection
