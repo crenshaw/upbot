@@ -19,6 +19,7 @@
  *
  */
 
+#include "acceptor.h"
 #include "services.h"
 
 /**
@@ -33,10 +34,14 @@
  * NOTE: Similar to "createServer()" in serverUtility.c
  *
  * @param[in] port the port number to listen to.
+ *
+ * @param[out] sh the serviceHandler that will be partially populated
+ * by this call; if successful, its ep field is the handler for the
+ * endpoint.
  * 
- * @returns a handler for the endpoint.
+ * @returns an indication of success or failure.
  */
-int accCreateConnection(int port)
+int accCreateConnection(int port, serviceHandler * sh)
 {
 
 }
@@ -61,11 +66,15 @@ int accCreateConnection(int port)
  * @param[in] endpointHandler a handler for the connection endpoint.
  * @param[in] type of service (see serviceType enum for possible
  * values).
+ * 
+ * @param[out] sh the serviceHandler that will be fully populated by
+ * this call.  Subsequent read and write operations on this connection
+ * are parameterized by this handler.
  *
- * @returns a handler for the service connection.  Subsequent read and write
- * operations on this connection are parameterized by this handler 
-*/
-serviceHandler * accCompleteConnection(int endpointHandler, serviceType type)
+ * @returns an indication of success or failure.
+ *
+ */
+int accCompleteConnection(int endpointHandler, serviceType type, serviceHandler * sh)
 {
 
 }

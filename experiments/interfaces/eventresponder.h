@@ -105,16 +105,18 @@ int eventTrue(int * data);
 void respondStop(void);
 
 
-
-// A global, default, event:responder, in case something bad happens or an
-// application developer just wants a boring default.  This default
-// event:responder is:
-//
-//  if  true  then
-//    stop robot
-//
+/**
+ * erDefault.
+ * 
+ *  A global, default, event:responder, in case something bad happens
+ *  or an application developer just wants a boring default.  This
+ *  default event:responder is:
+ *
+ *  if  true  then
+ *    stop robot
+ */
 static eventPredicate * eDefault[ER_DEFAULT_SIZE] = {eventTrue, NULL};
 static responder * rDefault[ER_DEFAULT_SIZE] = {respondStop, NULL}; 
-static eventresponder erDefault = {eDefault, rDefault};
+static eventresponder erDefault = {eDefault, rDefault, 1};
 
 #endif

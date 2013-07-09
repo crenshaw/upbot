@@ -17,6 +17,9 @@
  *  CONSTANT DEFINITIONS.  All constants in this file should begin
  *  with 'ER' to indicate their membership in eventresponder.h  
  */
+#define SERV_MAX_PORT_LENGTH 6 // e.g., "10005"
+#define SERV_MAX_IP_LENGTH 12  // e.g., "10.81.3.131"
+
 #define SERV_LOCAL_FAILURE (-1)
 #define SERV_REMOTE_FAILURE (-2)
 #define SERV_NULL_SH (-3)
@@ -44,7 +47,16 @@ typedef enum serviceTypeTag serviceType;
 // service handler type.
 typedef struct serviceHandler {  
   serviceType typeOfService; /**< The type of service (see serviceType enum) */
+  int eh;                    /**< The endpoint handler of the created connection.
+				  This is unused once the connection is established.
+				  It may be worthwhile to keep in case the connection
+				  is dropped and restablishment is necessary. */
   int handler;               /**< The handle of the established connection. */
+
+  char port[SERV_MAX_PORT_LENGTH];  /**< The original port number for the connection 
+				     TODO: Determine if this is necessary....  */
+  char ip[SERV_MAX_IP_LENGTH];      /**< The original IP for the connection.
+       	 		             TODO: Determine if this is necessary....  */
 } serviceHandler;
 
 

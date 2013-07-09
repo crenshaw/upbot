@@ -15,7 +15,9 @@
  * @since July 2013
  */
 
+#include "connector.h"
 #include "services.h"
+
 
 /**
  * conInitiateConnection
@@ -24,9 +26,23 @@
  * 
  * 1. Establish a connection with a passive-mode endpoint.
  * 
- * 2. Activate a service handler for this connection and return it.
+ * 2. Activate a service handler for this connection and populate the parameter sh.
+ *
+ * @param[in] wellKnownIP a well-known IP for the passive-mode
+ * endpoint (i.e., we are not implementing a discovery mechanism at
+ * this time).
+ *
+ * @param[in] port the port number to connect to.
+ * 
+ * @param[in] type the type of service at the passive-mode endpoint.
+ * 
+ * @param[out] sh the serviceHandler that will be fully populated by
+ * this call.  Subsequent read and write operations on this connection
+ * are parameterized by this handler.
+ *
+ * @returns an indication of success or failure.
  * 
  */
-serviceHandler * conInitiateConnection(char * wellKnownIP, int port, serviceType type)
+int conInitiateConnection(char * wellKnownIP, int port, serviceType type, serviceHandler * sh)
 {
 }
