@@ -65,7 +65,7 @@ typedef struct event event;
  * @returns true (1) or false (0) indicating whether or not an event
  * or set of events have occured.
  */
-typedef int eventPredicate(int * data);
+typedef int eventPredicate(char * data);
 
 
 /**
@@ -104,7 +104,7 @@ typedef struct eventresponderTag {
 int createResponder(eventPredicate * e[], responder * r[], eventresponder * er);
 //int createResponder(eventPredicate * e, responder * r, eventresponder * er);
 
-int eventTrue(int * data);
+int eventTrue(char * data);
 void respondStop(void);
 
 

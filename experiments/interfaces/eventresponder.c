@@ -34,12 +34,14 @@
 #include <sys/time.h>
 #include <time.h>
 
-
 #include "../../roomba/roomba.h"
 #include "eventresponder.h"
 #include "robot.h"
 #include "services.h"
 
+#include "roomba/sensors.c"
+#include "roomba/utility.c"
+#include "roomba/commands.c"
 
 // Global value to keep track of the alarm occurrence 
 // Set nonzero on receipt of SIGALRM 
@@ -140,7 +142,7 @@ int createResponder(eventPredicate * e[], responder * r[], eventresponder * er)
  * 
  * Default eventPredicate function.  Always returns true.
  */
-int eventTrue(int * data)
+int eventTrue(char * data)
 {
   return 1;
 }
@@ -150,7 +152,7 @@ int eventTrue(int * data)
  *
  * Example eventPredicate function, as written by an application developer.
  */
-int eventOne(int * data)
+int eventOne(char * data)
 {
   printf("   Calling eventOne\n");
 
@@ -165,7 +167,7 @@ int eventOne(int * data)
  *
  * Example eventPredicate function, as written by an application developer.
  */
-int eventTwo(int * data)
+int eventTwo(char * data)
 {
   printf("   Calling eventTwo\n");
 
@@ -180,7 +182,7 @@ int eventTwo(int * data)
  * 
  * Example eventPredicate function for checking for bump events.
  */
-int eventBump(int * data) {
+int eventBump(char * data) {
 
   // Check bump sensors.
 
@@ -194,6 +196,27 @@ int eventBump(int * data) {
   else
     return 0;
 }
+
+/**
+ * eventNotBump
+ * 
+ * Example eventPredicate function for checking for bump events.
+ */
+int eventNotBump(char * data) {
+
+  // Check bump sensors.
+
+  // TODO: Need to correct the use of literal 0 when checking
+  // the state of the bump sensors.
+  if(((data[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
+     ((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
+    {
+      return 0;
+    }
+  else
+    return 1;
+}
+
 
 // ************************************************************************
 // RESPONDERS, WRITTEN BY USER
@@ -210,6 +233,11 @@ void respondStop(void)
   printf("Reminder: add code to actually stop the robot\n");
 
   return;
+}
+
+void respondDrive(void) {
+      printf("Drive!"); 
+      driveStraightUntil(1,LOW);
 }
 
 
@@ -237,6 +265,15 @@ void respondTwo(void)
   return;
 }
 
+/**
+ * respondTurn
+ *
+ * Turns the robot a random amount
+ */
+void respondTurn(void) {
+    //turnClockwise(90);
+    turnRandom(300000,1800000);
+}
 
 // ************************************************************************
 // EXAMPLE CLOCK HANDLER
@@ -267,9 +304,6 @@ int main(void)
 
   struct sigaction sa;        // Signal sets
   struct sigaction toggledsa;   
-
-  // Create some fake data to treat as sensor data, i.e., events.
-  int fakeData[11] = {0};
 
   // Initialize a random number generator to help with the
   // generation of random data.
@@ -307,8 +341,8 @@ int main(void)
 
 
   // Create arrays of eventPredicate and responder functions
-  eventPredicate * eArray[3] = {eventOne, eventTwo, NULL};
-  responder * rArray[3] = {respondOne, respondTwo, NULL};
+  eventPredicate * eArray[3] = {eventNotBump, eventBump, NULL};
+  responder * rArray[3] = {respondDrive, respondTurn, NULL};
 
   // Manually create and initialize an event:responder
   eventresponder myEventResponder = {eArray, rArray, 2};
@@ -321,6 +355,13 @@ int main(void)
 		   NULL, 
 		   NULL};
 
+  //Start up robotly things
+  if (openPort() == 0) {
+      printf("Port failed to open");
+      exit(-1);
+  }
+  initialize();
+  sleep(1);
 
   // Issues that the event:responder loop must be able to handle.
   // 1. The event:responder is accessed via a robot variable.
@@ -342,15 +383,23 @@ int main(void)
   eventPredicate * e = (er->e)[0]; 
   responder * r = (er->r)[0];
 
+  //turnClockwise(90000000);
+
   // Create an event loop
   while(1)
     {
+      
+      char sensDataFromRobot[150] = {'\0'};
+      receiveGroupOneSensorData(sensDataFromRobot);
+      int a = checkSensorData(sensDataFromRobot);
+
+      printf("data in: %d\n",a);
 
       // Make the fake data change at index 0.  Choose a random number
       // between 0 and 2.  This would be equivalent to asking the
       // robot for some sensor data.
-      fakeData[0] = rand()% (3);
-      printf("The fake data value is %d \n", fakeData[0]);
+      //fakeData[0] = rand()% (3);
+      //printf("The fake data value is %d \n", fakeData[0]);
 
       // Sleep for one second just to make output of prototype manageable.
       sleep(1);
@@ -387,7 +436,8 @@ int main(void)
 	  e = (er->e)[i];  // Get the i'th eventPredicate function.
 	  r = (er->r)[i];  // Get the i'th responder function.
 
-	  if((e)(fakeData))
+	  if((e)(sensDataFromRobot))
+	  //if((e)(fakeData))
 	    {
 	      r();
 	    }
