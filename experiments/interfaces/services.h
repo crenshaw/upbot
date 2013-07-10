@@ -13,6 +13,22 @@
 #ifndef _SERVICES_H_
 #define _SERVICES_H_
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+#include <sys/wait.h>
+#include <signal.h>
+
 /**
  *  CONSTANT DEFINITIONS.  All constants in this file should begin
  *  with 'ER' to indicate their membership in eventresponder.h  
@@ -32,14 +48,29 @@
 #define SERV_NO_REMOTE_CONTINUE (1)
 #define SERV_NO_REMOTE_FAIL (0)
 
-// Enumerate the different possible service types.  Note that the compiler
-// shall assign integer values to the terms 'SERV_DATA_SERVICE_COLLATOR'
-// and so on.
+
+// Enumerate the different possible service types.  Note that the
+// compiler shall assign integer values to the terms
+// 'SERV_DATA_SERVICE_NOT_SET', 'SERV_DATA_SERVICE_AGGREGATOR' and so
+// on.
 enum serviceTypeTag {
-  SERV_DATA_SERVICE_COLLATOR, 
+  SERV_DATA_SERVICE_NOT_SET,
+  SERV_DATA_SERVICE_AGGREGATOR, 
   SERV_DATA_SERVICE_COLLECTOR, 
-  SERV_EVENT_RESPONDER_SERVICE
+  SERV_EVENT_RESPONDER_SERVICE,
+  SERV_NUMBER_OF_SERVICES        // Keep this value at the end of the
+                                 // list, and we can automatically
+                                 // account for how many services
+                                 // there are available.
 };
+
+// Make a list of strings so that pretty-printing the service types is
+// easy.  Note that serviceNames and serviceTypeTag need to be carefully
+// coordinated in terms of order.  
+//
+// TODO: Find a more maintable way of doing this.
+static char * serviceNames[4] = {"No service set", "Data Aggregator", "Data Collector", "Event:Responder"};
+
 
 typedef enum serviceTypeTag serviceType;
 
@@ -64,6 +95,11 @@ typedef struct serviceHandler {
  * Function prototypes.  See services.c for details on
  * this/these functions.
  */
+int servHandlerSetDefaults(serviceHandler * sh);
+int servHandlerSetPort(serviceHandler * sh, char * port);
+int servHandlerSetEndpoint(serviceHandler * sh, int eh);
+int servHandlerPrint(serviceHandler * sh);
+
 int dsCreateCollector(int connectRemote, int continueLocally, serviceHandler * sh);
 
 #endif

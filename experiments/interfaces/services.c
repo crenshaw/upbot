@@ -19,6 +19,116 @@
 
 #include "services.h"
 
+
+// ************************************************************************
+// FUNCTIONS GENERIC TO SERVICE HANDLERS
+// ************************************************************************
+
+/**
+ * servHandlerSetDefaults
+ *
+ * Given a serviceHandler, sh, set its default values.
+ * 
+ * @param[in] sh the serviceHandler to populate with default values.
+ * 
+ * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
+ * Otherwise, return SERV_SUCCESS.
+ *
+ */
+int servHandlerSetDefaults(serviceHandler * sh)
+{
+  if(sh == NULL) return SERV_NULL_SH;
+
+  sh->typeOfService = SERV_DATA_SERVICE_NOT_SET;
+  sh->handler = -1;
+  sh->port[0] = '\0';
+  sh->ip[0] = '\0';
+
+  return SERV_SUCCESS;
+}
+
+/**
+ * servHandlerSetPort
+ *
+ * Given a serviceHandler, sh, set its port field.
+ *
+ * @param[in] sh the serviceHandler to whose port field is to be set.
+ * @param[in] port the port value.
+ * 
+ * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
+ * Otherwise, return SERV_SUCCESS.  
+ *
+ */
+int servHandlerSetPort(serviceHandler * sh, char * port)
+{
+  if(sh == NULL) return SERV_NULL_SH;
+
+  // Copy the stringified port number into the port field.
+  strncpy(sh->port, port, SERV_MAX_PORT_LENGTH);
+
+  // Assure that the stringified port number is null-terminated
+  sh->port[SERV_MAX_PORT_LENGTH - 1] = '\0';
+
+  return SERV_SUCCESS;
+}
+
+/**
+ * servHandlerSetEndpoint
+ *
+ * Given a serviceHandler, sh, set its endpointHandler field.
+ *
+ * @param[in] sh the serviceHandler to whose port field is to be set.
+ * @param[in] eh the endpointHandler (i.e., socket) value.
+ * 
+ * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
+ * Otherwise, return SERV_SUCCESS.  
+ *
+ */
+int servHandlerSetEndpoint(serviceHandler * sh, int eh)
+{
+  if(sh == NULL) return SERV_NULL_SH;
+
+  sh->eh = eh;
+
+  return SERV_SUCCESS;
+}
+
+/**
+ * servHandlerPrint
+ *
+ * Given a serviceHandler, sh, pretty-print its contents to 
+ * the screen.
+ *
+ * @param[in] sh the serviceHandler to be printed. 
+ * 
+ * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
+ * Otherwise, return SERV_SUCCESS.  
+ *
+ */
+int servHandlerPrint(serviceHandler * sh)
+{
+  if(sh == NULL) return SERV_NULL_SH;
+  
+  printf("Service Handler\n");
+  printf("   Service type:       %s.\n", serviceNames[sh->typeOfService]);
+  printf("   Endpoint handler:   %d.\n", sh->eh); 
+
+  if(sh->handler == -1)
+    {
+      printf("   Connection handler: Unset.\n");
+    }
+  else
+    {
+      printf("   Connection handler: %d.\n", sh->handler);
+    }
+
+  printf("   Port number:        %s.\n", sh->port);    
+
+  return SERV_SUCCESS;   
+}
+
+
+
 // ************************************************************************
 //
 // DATA SERVICE.  The data service accepts sensor data collected by

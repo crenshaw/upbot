@@ -10,6 +10,9 @@
  * @since July 2013
  */
 
+#ifndef _CONNECTOR_H_
+#define _CONNECTOR_H_
+
 #include "services.h"
 
 
@@ -18,3 +21,5 @@
  * this/these functions.
  */
 int conInitiateConnection(char * wellKnownIP, int port, serviceType type, serviceHandler * sh);
+
+#endif

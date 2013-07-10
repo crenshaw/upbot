@@ -37,6 +37,9 @@ void *get_in_addr(struct sockaddr *sa)
  * Create a server endpoint of communication.
  * Adapted from: "Advance Programming in the UNIX Environment."  page 501
  * as well as "Beej's Guide to Network Programming."
+ *
+ * DEPRECATION WARNING: This function will soon be retired.  To be replaced
+ * by the acceptor/connector functionality.
  */
 int createListener(const char * name)
 {
@@ -359,6 +362,9 @@ int createSharedMem(char * deviceName, caddr_t* area)
  * Create a server to listen on a socket
  *
  * @return s, the socket, if success and -1 if fail.
+ * 
+ * DEPRECATION WARNING: This function will soon be retired.  To be replaced
+ * by the acceptor/connector functionality.
  *
  */
 int createServer(void)
@@ -414,6 +420,9 @@ int createServer(void)
  * @arg s the socket on which the connection should be established.
  *
  * @return the socket id.
+ *
+ * DEPRECATION WARNING: This function will soon be retired.  To be replaced
+ * by the acceptor/connector functionality.
  */
 int establishConnection(int s)
 {
@@ -436,6 +445,10 @@ int establishConnection(int s)
   return newSock;
 }
 
+/**
+ * DEPRECATION WARNING: This function will soon be retired.  To be
+ * replaced by the dynamic IP support.
+ */
 int checkArgName(int argc, char* argv[], char addresses[3][13])
 {
   int i = 0;
