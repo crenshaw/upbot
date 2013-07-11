@@ -43,6 +43,9 @@
 #include "roomba/utility.c"
 #include "roomba/commands.c"
 
+#include "events.c"
+#include "responders.c"
+
 // Global value to keep track of the alarm occurrence 
 // Set nonzero on receipt of SIGALRM 
 // TODO: Global?  Really?  Can this be better?
@@ -132,149 +135,6 @@ int createResponder(eventPredicate * e[], responder * r[], eventresponder * er)
 }
 
 
-
-// ************************************************************************
-// EVENTPREDICATES, WRITTEN BY USER
-// ************************************************************************
-
-/**
- * eventTrue
- * 
- * Default eventPredicate function.  Always returns true.
- */
-int eventTrue(char * data)
-{
-  return 1;
-}
-
-/**
- * eventOne
- *
- * Example eventPredicate function, as written by an application developer.
- */
-int eventOne(char * data)
-{
-  printf("   Calling eventOne\n");
-
-  if(data[0] == 1)
-    return 1;
-  else
-    return 0;
-}
-
-/**
- * eventTwo
- *
- * Example eventPredicate function, as written by an application developer.
- */
-int eventTwo(char * data)
-{
-  printf("   Calling eventTwo\n");
-
-  if(data[0] == 2)
-    return 1;
-  else
-    return 0;
-}
-
-/**
- * eventBump
- * 
- * Example eventPredicate function for checking for bump events.
- */
-int eventBump(char * data) {
-
-  // Check bump sensors.
-
-  // TODO: Need to correct the use of literal 0 when checking
-  // the state of the bump sensors.
-  if(((data[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
-     ((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
-    {
-      return 1;
-    }
-  else
-    return 0;
-}
-
-/**
- * eventNotBump
- * 
- * Example eventPredicate function for checking for bump events.
- */
-int eventNotBump(char * data) {
-
-  // Check bump sensors.
-
-  // TODO: Need to correct the use of literal 0 when checking
-  // the state of the bump sensors.
-  if(((data[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
-     ((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
-    {
-      return 0;
-    }
-  else
-    return 1;
-}
-
-
-// ************************************************************************
-// RESPONDERS, WRITTEN BY USER
-// ************************************************************************
-
-/**
- * respondStop
- * 
- * Default responder function.  Stop the robot.
- */ 
-void respondStop(void)
-{
-  // TODO: Add code to stop the robot.
-  printf("Reminder: add code to actually stop the robot\n");
-
-  return;
-}
-
-void respondDrive(void) {
-      printf("Drive!"); 
-      driveStraightUntil(1,LOW);
-}
-
-
-/**
- * respondOne
- *
- * Example responder function, as written by an application developer.
- */
-void respondOne(void)
-{
-  printf("      Got a 1!\n");
-
-  return;
-}
-
-/**
- * respondTwo
- *
- * Example responder function, as written by an application developer. 
- */
-void respondTwo(void)
-{
-  printf("      Got a 2!\n");
-
-  return;
-}
-
-/**
- * respondTurn
- *
- * Turns the robot a random amount
- */
-void respondTurn(void) {
-    //turnClockwise(90);
-    turnRandom(300000,1800000);
-}
-
 // ************************************************************************
 // EXAMPLE CLOCK HANDLER
 //
@@ -339,13 +199,17 @@ int main(void)
       exit(EXIT_FAILURE);
     }
 
+  //initalize the state value
+  int state = 0;
 
   // Create arrays of eventPredicate and responder functions
-  eventPredicate * eArray[3] = {eventNotBump, eventBump, NULL};
-  responder * rArray[3] = {respondDrive, respondTurn, NULL};
-
+  initialState iArray[5] = {0, 0, 1, 1, -1};
+  eventPredicate * eArray[5] = {eventNotBump, eventBump, eventNotBump, eventBump, NULL};
+  responder * rArray[5] = {respondDriveLow, respondTurn, respondDriveMed, respondTurn,  NULL};
+  statePointer pArray[5] = {0, 1, 1, 0, -1};
+   
   // Manually create and initialize an event:responder
-  eventresponder myEventResponder = {eArray, rArray, 2};
+  eventresponder myEventResponder = {iArray, eArray, rArray, pArray, 4, 0};
 
   // Create and initialize a robot.
   robot myRobot = {NULL, 
@@ -382,8 +246,8 @@ int main(void)
   // Need a pointer for the e's and a pointer for the r's.
   eventPredicate * e = (er->e)[0]; 
   responder * r = (er->r)[0];
-
-  //turnClockwise(90000000);
+  initialState is = (er->i[0]);
+  statePointer p = (er->p[0]);
 
   // Create an event loop
   while(1)
@@ -430,17 +294,32 @@ int main(void)
       // in the robot's event:responder.
       int i = 0;
       int length = er->length;
-
+      
+      //TODO: check if length check actually needs to be there? 
+      //I don't think it does -Matt
+     
+      int eventOccured = 0;  
       for(i = 0; i < length; i++)
 	{
-	  e = (er->e)[i];  // Get the i'th eventPredicate function.
-	  r = (er->r)[i];  // Get the i'th responder function.
+	  is = (er->i)[i];  //get the i'th state requirment
+      //TODO: o right I made state part of an event responder fix later
+      if (eventOccured == 0 && is == state) 
+      {
+        e = (er->e)[i];  // Get the i'th eventPredicate function.
+      
 
-	  if((e)(sensDataFromRobot))
-	  //if((e)(fakeData))
-	    {
-	      r();
-	    }
+	    if((e)(sensDataFromRobot))
+	      {
+	        r = (er->r)[i];  // Get the i'th responder function.
+            p = (er->p)[i];
+            r();
+            if (state != p) {
+                printf("State changing from %d to %d\n",state,p);
+            }
+            state = p;
+            eventOccured = 1;
+	      }
+      }
 	}
 
 

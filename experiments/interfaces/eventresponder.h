@@ -80,6 +80,18 @@ typedef void responder(void);
 
 
 /**
+ * A type to point to the next state after a event responder has
+ * been executed.
+ */
+typedef int statePointer;
+
+/**
+ * A type to represent the state a required for an event to be 
+ * triggered
+ */
+typedef int initialState;
+
+/**
  * A type to represent an event:responder pair.  An event:responder is
  * an array of eventPredicate and responder function pairs.  Each pair
  * {e, r} can be interpreted as:
@@ -89,9 +101,12 @@ typedef void responder(void);
  * 
  */
 typedef struct eventresponderTag {
+  initialState * i;     /**< An array of startState pointers >**/
   eventPredicate ** e;  /**< An array of eventPredicate functions */
   responder ** r;       /**< An array of responder functions */
-  int length;          /**< The total number of pairs */
+  statePointer * p;     /**< An array of statePointers >**/
+  int length;           /**< The total number of pairs */
+  int state;
 } eventresponder;
 
 
@@ -118,6 +133,6 @@ void respondStop(void);
 //
 static eventPredicate * eDefault[ER_DEFAULT_SIZE] = {eventTrue, NULL};
 static responder * rDefault[ER_DEFAULT_SIZE] = {respondStop, NULL}; 
-static eventresponder erDefault = {eDefault, rDefault};
+static eventresponder erDefault = {NULL,eDefault, rDefault,NULL,1,0};
 
 #endif
