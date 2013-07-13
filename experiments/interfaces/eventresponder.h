@@ -91,6 +91,8 @@ typedef int statePointer;
  */
 typedef int initialState;
 
+typedef int alarmTime;
+
 /**
  * A type to represent an event:responder pair.  An event:responder is
  * an array of eventPredicate and responder function pairs.  Each pair
@@ -105,6 +107,7 @@ typedef struct eventresponderTag {
   eventPredicate ** e;  /**< An array of eventPredicate functions */
   responder ** r;       /**< An array of responder functions */
   statePointer * p;     /**< An array of statePointers >**/
+  alarmTime * a;
   int length;           /**< The total number of pairs */
   int state;
 } eventresponder;
@@ -132,7 +135,9 @@ void respondStop(void);
 //    stop robot
 //
 static eventPredicate * eDefault[ER_DEFAULT_SIZE] = {eventTrue, NULL};
-static responder * rDefault[ER_DEFAULT_SIZE] = {respondStop, NULL}; 
-static eventresponder erDefault = {NULL,eDefault, rDefault,NULL,1,0};
+static responder * rDefault[ER_DEFAULT_SIZE] = {respondStop, NULL};
+
+//TODO: fix defualt responder 
+static eventresponder erDefault = {NULL,eDefault, rDefault,NULL,NULL,1,0};
 
 #endif

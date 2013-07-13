@@ -68,3 +68,14 @@ int eventNotBump(char * data) {
     return 1;
 }
 
+/**
+ * eventAlarm
+ */
+int eventAlarm(char * data) {
+  if (data[15] != '0') {
+   return 1;
+   printf("got alarm 2\n");
+  }
+  return 0;
+}
+

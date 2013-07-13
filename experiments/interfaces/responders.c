@@ -22,31 +22,7 @@ void respondDriveMed(void) {
 }
 
 void respondDriveHigh(void) { 
-      driveStraightUntil(1,HIGH);
-}
-
-/**
- * respondOne
- *
- * Example responder function, as written by an application developer.
- */
-void respondOne(void)
-{
-  printf("      Got a 1!\n");
-
-  return;
-}
-
-/**
- * respondTwo
- *
- * Example responder function, as written by an application developer. 
- */
-void respondTwo(void)
-{
-  printf("      Got a 2!\n");
-
-  return;
+   driveStraightUntil(1,HIGH);
 }
 
 /**
@@ -55,7 +31,6 @@ void respondTwo(void)
  * Turns the robot a random amount
  */
 void respondTurn(void) {
-    //turnClockwise(90);
-    turnRandom(300000,1800000);
+   turnRandom(300000,1800000);
 }
 

@@ -159,6 +159,25 @@ signalrmHandler(int sig)
 int main(void)
 {
 
+  //initalize the state value
+  int state = 0;
+
+  // Create arrays of eventPredicate and responder functions
+  //IMPORTANT REMINDER: Events must be ordered in priority you
+  //want them to be chosen in, this means alarms must be the
+  //first event per state
+  initialState iArray[6] = {0, 0, 0, 1, 1, -1};
+  eventPredicate * eArray[6] = {eventAlarm, eventNotBump, eventBump, eventNotBump, eventBump, NULL};
+  responder * rArray[6] = {respondDriveMed, respondDriveLow, respondTurn, respondDriveMed, respondTurn,  NULL};
+  statePointer pArray[6] = {1, 0, 0, 1, 0, -1};
+  
+  alarmTime aArray[3] = {5,0,-1};
+   
+  // Manually create and initialize an event:responder
+  eventresponder myEventResponder = {iArray, eArray, rArray, pArray,aArray, 5, 0};
+
+
+
   // Declare the variables necessary to support timer-based interrupts.
   struct itimerval itv;       // Specify when a timer should expire 
 
@@ -187,29 +206,20 @@ int main(void)
 
   // Initialize timer start time and period:
   // First, the period between now and the first timer interrupt 
-  itv.it_value.tv_sec = 1;  // seconds
+  itv.it_value.tv_sec = aArray[state];  // seconds
   itv.it_value.tv_usec = 0; // microseconds
 
   // Second, the intervals between successive timer interrupts 
-  itv.it_interval.tv_sec = 10; // seconds
+  itv.it_interval.tv_sec = 0; // seconds
   itv.it_interval.tv_usec = 0; // microseconds
-
-  if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
+  
+  if (aArray[state] > 0) 
+  {
+    if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
     {
       exit(EXIT_FAILURE);
     }
-
-  //initalize the state value
-  int state = 0;
-
-  // Create arrays of eventPredicate and responder functions
-  initialState iArray[5] = {0, 0, 1, 1, -1};
-  eventPredicate * eArray[5] = {eventNotBump, eventBump, eventNotBump, eventBump, NULL};
-  responder * rArray[5] = {respondDriveLow, respondTurn, respondDriveMed, respondTurn,  NULL};
-  statePointer pArray[5] = {0, 1, 1, 0, -1};
-   
-  // Manually create and initialize an event:responder
-  eventresponder myEventResponder = {iArray, eArray, rArray, pArray, 4, 0};
+  }
 
   // Create and initialize a robot.
   robot myRobot = {NULL, 
@@ -248,16 +258,20 @@ int main(void)
   responder * r = (er->r)[0];
   initialState is = (er->i[0]);
   statePointer p = (er->p[0]);
-
+  
   // Create an event loop
   while(1)
     {
       
       char sensDataFromRobot[150] = {'\0'};
       receiveGroupOneSensorData(sensDataFromRobot);
-      int a = checkSensorData(sensDataFromRobot);
-
-      printf("data in: %d\n",a);
+      sensDataFromRobot[15] = '0'+gotAlarm; 
+      if (gotAlarm == 1) {
+         printf("Got Alarm 1");
+      }
+      gotAlarm = 0;
+      //int a = checkSensorData(sensDataFromRobot);
+      //printf("data in: %d\n",a);
 
       // Make the fake data change at index 0.  Choose a random number
       // between 0 and 2.  This would be equivalent to asking the
@@ -266,7 +280,7 @@ int main(void)
       //printf("The fake data value is %d \n", fakeData[0]);
 
       // Sleep for one second just to make output of prototype manageable.
-      sleep(1);
+      //sleep(1);
 
       // ***********************************************************
       // I leave this here because I may need to know about masking
@@ -315,8 +329,22 @@ int main(void)
             r();
             if (state != p) {
                 printf("State changing from %d to %d\n",state,p);
+                state = p;
+                if (aArray[state] > 0) 
+                {
+                    itv.it_value.tv_sec = aArray[state];  // seconds
+                    if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
+                    {
+                        exit(EXIT_FAILURE);
+                    }
+                }/*
+                if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
+                {
+                    printf("EXIT_FAILURE\n");
+                    exit(EXIT_FAILURE);
+                }
+                //*/
             }
-            state = p;
             eventOccured = 1;
 	      }
       }
@@ -328,18 +356,7 @@ int main(void)
       sigprocmask(SIG_UNBLOCK, &sa.sa_mask, NULL);     
       printf("    unmasking....\n");
 #endif
-
-      // I am checking for the signal interrupt, just once, here.
-      // That's not my favorite, but I'm not using signals in a
-      // meaningful way yet. 
-      if(gotAlarm)
-	{
-	  gotAlarm = 0;
-	  printf("**The british are coming!**\n");
-	}
-
-    }
-
+  }
   return 0;
 
 }
