@@ -16,30 +16,41 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
+
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
+#include <netdb.h>
+#include <signal.h>
+#include <ifaddrs.h>
+
+#include <fcntl.h>
+
+#include <arpa/inet.h>
+
+#include <net/if.h>
+#include <netinet/in.h>
+
 #include <sys/types.h>
+#include <sys/wait.h>
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/mman.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <sys/wait.h>
-#include <signal.h>
 
 /**
  *  CONSTANT DEFINITIONS.  All constants in this file should begin
  *  with 'ER' to indicate their membership in eventresponder.h  
  */
 #define SERV_MAX_PORT_LENGTH 6 // e.g., "10005"
-#define SERV_MAX_IP_LENGTH 12  // e.g., "10.81.3.131"
+#define SERV_MAX_IP_LENGTH 17  // e.g., "10.81.3.131"
+#define SERV_MAX_INTERFACE_LENGTH 10 // e.g., "en1" or "wlan0"
 
 #define SERV_LOCAL_FAILURE (-1)
 #define SERV_REMOTE_FAILURE (-2)
 #define SERV_NULL_SH (-3)
 #define SERV_NO_CONNECTION (-4)
+#define SERV_NO_DEVICE_IP (-5)
+#define SERV_NO_DEVICE (-6)
 #define SERV_SUCCESS (0)
 
 #define SERV_CONNECT_REMOTE (1)
@@ -49,12 +60,16 @@
 #define SERV_NO_REMOTE_FAIL (0)
 
 
+#define SERV_HANDLER_NOT_SET (-1)  // A failed socket call returns -1.  Thus, use -1 to
+                                   // indicate that the socket field has not yet been set
+                                   // for a service handler.
+
 // Enumerate the different possible service types.  Note that the
 // compiler shall assign integer values to the terms
-// 'SERV_DATA_SERVICE_NOT_SET', 'SERV_DATA_SERVICE_AGGREGATOR' and so
+// 'SERV_SERVICE_NOT_SET', 'SERV_DATA_SERVICE_AGGREGATOR' and so
 // on.
 enum serviceTypeTag {
-  SERV_DATA_SERVICE_NOT_SET,
+  SERV_SERVICE_NOT_SET,
   SERV_DATA_SERVICE_AGGREGATOR, 
   SERV_DATA_SERVICE_COLLECTOR, 
   SERV_EVENT_RESPONDER_SERVICE,
@@ -84,10 +99,12 @@ typedef struct serviceHandler {
 				  is dropped and restablishment is necessary. */
   int handler;               /**< The handle of the established connection. */
 
-  char port[SERV_MAX_PORT_LENGTH];  /**< The original port number for the connection 
-				     TODO: Determine if this is necessary....  */
-  char ip[SERV_MAX_IP_LENGTH];      /**< The original IP for the connection.
-       	 		             TODO: Determine if this is necessary....  */
+  char port[SERV_MAX_PORT_LENGTH];  /**< The original port number for the connection */
+
+  char ip[SERV_MAX_IP_LENGTH];      /**< The original IP for the connection. */
+
+  char interface[SERV_MAX_INTERFACE_LENGTH]; /**< The interface name of the connection, (e.g. en1 or wlan0); */
+
 } serviceHandler;
 
 
@@ -99,6 +116,7 @@ int servHandlerSetDefaults(serviceHandler * sh);
 int servHandlerSetPort(serviceHandler * sh, char * port);
 int servHandlerSetEndpoint(serviceHandler * sh, int eh);
 int servHandlerPrint(serviceHandler * sh);
+int servQueryIP(serviceHandler * sh);
 
 int dsCreateCollector(int connectRemote, int continueLocally, serviceHandler * sh);
 

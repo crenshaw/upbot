@@ -21,7 +21,7 @@
 
 
 // ************************************************************************
-// FUNCTIONS GENERIC TO SERVICE HANDLERS
+// FUNCTIONS GENERIC TO ALL SERVICE HANDLERS
 // ************************************************************************
 
 /**
@@ -39,10 +39,13 @@ int servHandlerSetDefaults(serviceHandler * sh)
 {
   if(sh == NULL) return SERV_NULL_SH;
 
-  sh->typeOfService = SERV_DATA_SERVICE_NOT_SET;
-  sh->handler = -1;
+  sh->typeOfService = SERV_SERVICE_NOT_SET;
+  sh->handler = SERV_HANDLER_NOT_SET;
+
+  // Make some empty strings 
   sh->port[0] = '\0';
   sh->ip[0] = '\0';
+  sh->interface[0] = '\0';
 
   return SERV_SUCCESS;
 }
@@ -122,12 +125,92 @@ int servHandlerPrint(serviceHandler * sh)
       printf("   Connection handler: %d.\n", sh->handler);
     }
 
+  printf("   IP:                 %s.\n", sh->ip);
   printf("   Port number:        %s.\n", sh->port);    
+  printf("   Interface:          %s.\n", sh->interface);
 
   return SERV_SUCCESS;   
 }
 
+/**
+ * servQueryIP
+ *
+ * Get the IP address attached to a particular network device.  The
+ * value is returned via the caller-allocated serviceHandler passed
+ * into the function.
+ *
+ * @param[out] sh the serviceHandler whose IP field will be populated
+ * by this call.
+ *
+ * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
+ * If the particular interface name for the target platform cannot be
+ * located, or it has no IP address, return SERV_NO_DEVICE_IP to
+ * indicate an error.  Otherwise, return SERV_SUCCESS.
+ * 
+ */
+int servQueryIP(serviceHandler * sh)
+{
 
+  if(sh == NULL) return SERV_NULL_SH;
+
+  struct ifaddrs * interfaces = NULL;
+  struct ifaddrs * current = NULL;
+
+  // Get a linked-list of interfaces on this machine.
+  if (!getifaddrs(&interfaces)) {
+
+    // Use a pointer to loop through linked list of interfaces
+    current = interfaces;
+
+    while(current != NULL) {
+
+      // If this interface is an Internet interface....
+      if(current->ifa_addr->sa_family == AF_INET) {
+
+	// Check if interface is en1.
+	//
+	// TODO: The interface name is going to be predicated on the
+	// target device that is being used.  I might add a compiler
+	// flag to indicate the target and conditionally compile this
+	// section of code based of target.  It may also be necessary
+	// to pass the interface name to this function.  Not sure
+	// yet....
+	if(!(strcmp(current->ifa_name, "en1"))){
+	  strncpy(sh->ip, inet_ntoa(((struct sockaddr_in*)current->ifa_addr)->sin_addr), SERV_MAX_IP_LENGTH);
+	  sh->ip[SERV_MAX_IP_LENGTH - 1] = '\0';  // I don't trust strncpy.
+
+	  // Check if the IP is actually an empty string.  If so,
+	  // return error.  Otherwise free memory and return success.
+	  if(sh->ip[0] == '\0') return SERV_NO_DEVICE_IP;
+
+	  else
+	    {
+	      printf("Setting acceptor IP to: %s\n", sh->ip);
+	      strncpy(sh->interface, current->ifa_name, SERV_MAX_INTERFACE_LENGTH);
+	      sh->interface[SERV_MAX_INTERFACE_LENGTH - 1] = '\0';  // I don't trust strncpy.
+
+	      // Free memory
+	      freeifaddrs(interfaces);
+  
+	      return SERV_SUCCESS;
+	      
+	    }
+	}
+      }
+      
+      /// Advance to the next in the list.
+      current = current->ifa_next;
+    }
+  }
+
+  // Free memory
+  freeifaddrs(interfaces);
+
+  // If we reached this point, it means we looped through all the interfaces
+  // without finding the specific name.
+  return SERV_NO_DEVICE;
+
+}
 
 // ************************************************************************
 //

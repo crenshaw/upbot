@@ -42,7 +42,7 @@
  * Function prototypes.  See acceptor.c for details on
  * this/these functions.
  */
-int accCreateConnection(char * port, serviceHandler * sh);
-int accCompleteConnection(int endpointHandler, serviceType type, serviceHandler * sh);
+int accCreateConnection(char * port, serviceType type, serviceHandler * sh);
+int accCompleteConnection(serviceHandler * sh);
 
 #endif

@@ -97,6 +97,9 @@ void * accGetInAddr(struct sockaddr *sa)
  * sets errno subsequent to its calls.
  *
  * @param[in] port the port number to listen to.
+ * 
+ * @param[in] type of service (see serviceType enum for possible
+ * values).
  *
  * @param[out] sh the serviceHandler that will be partially populated
  * by this call; if successful, its ep field is the handler for the
@@ -104,7 +107,7 @@ void * accGetInAddr(struct sockaddr *sa)
  * 
  * @returns an indication of success or failure.
  */
-int accCreateConnection(char * port, serviceHandler * sh)
+int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
 {
   int s;           // socket handler
   int optval = 1;  // boolean option value for the SO_REUSEADDR option.
@@ -162,15 +165,22 @@ int accCreateConnection(char * port, serviceHandler * sh)
       }
     
     break; // Success.  A socket has been successfully created, optioned, and bound.
-
   }
 
   if (p == NULL)  {
     return ACC_SOCK_BIND_FAILURE;  // Socket failed to bind.
   }
 
+  // Populate sh with the IP of this device.  Note that the IP bound
+  // to the socket was likely 0.0.0.0 or 127.0.0.0 since NULL was the
+  // first parameter in the getaddrinfo() call.  Instead, we want the
+  // IP of the ethernet or wireless interface on this machine.  
+  servQueryIP(sh);
+
   // Don't need servinfo anymore
   freeaddrinfo(servinfo);
+
+  return 0;
 
   servHandlerSetEndpoint(sh, s);
 
@@ -196,6 +206,13 @@ int accCreateConnection(char * port, serviceHandler * sh)
   // accept their connection.
   if (listen(s, ACC_BACKLOG) == -1) return ACC_SOCK_LISTEN_FAILURE;  // listen() call failed.
 
+
+  // TODO: At this point, we can broadcast our existence to the world,
+  // so that others may know about our fantastic service.  Start the
+  // thread that will perform broadcasting.
+
+
+
   char pee[INET6_ADDRSTRLEN];
   struct sockaddr_storage theirAddr; // connector's address information
   int newSock = -1;
@@ -220,6 +237,18 @@ int accCreateConnection(char * port, serviceHandler * sh)
 
 
 /**
+ * accBroadcastConnection
+ *
+ * Broadcast the service on the network; the service's type and IP are
+ * described by sh.
+ */
+int accBroadcastConnection(serviceHandler * sh)
+{
+
+}
+
+
+/**
  * accCompleteConnection
  *
  * Based on D. Schmidt's "Acceptor-Connector" design pattern.
@@ -235,18 +264,15 @@ int accCreateConnection(char * port, serviceHandler * sh)
  *
  * NOTE: Similar to "establishConnection()" in serverUtility.c 
  *
- * @param[in] endpointHandler a handler for the connection endpoint.
- * @param[in] type of service (see serviceType enum for possible
- * values).
- * 
- * @param[out] sh the serviceHandler that will be fully populated by
- * this call.  Subsequent read and write operations on this connection
- * are parameterized by this handler.
+ * @param[in/out] sh the serviceHandler partially populated by a call
+ * to accCreateConnection() that will be fully populated by this call.
+ * Subsequent read and write operations on this connection are
+ * parameterized by this handler.
  *
  * @returns an indication of success or failure.
  *
  */
-int accCompleteConnection(int endpointHandler, serviceType type, serviceHandler * sh)
+int accCompleteConnection(serviceHandler * sh)
 {
 
   
