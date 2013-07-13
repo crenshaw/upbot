@@ -109,6 +109,15 @@ void * accGetInAddr(struct sockaddr *sa)
  */
 int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
 {
+
+  // Set the default values for the serviceHandler.
+  servHandlerSetDefaults(sh);
+
+  // Attempting to refactor this code by removing all the endpoint creating code and turning
+  // it into a function call.
+  servCreateEndpoint(SERV_TCP_ENDPOINT, port, sh);
+
+#ifdef DONOTCOMPILE
   int s;           // socket handler
   int optval = 1;  // boolean option value for the SO_REUSEADDR option.
 
@@ -116,10 +125,6 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
   // handler?  If not, leave and indicate an error.
   if(port == NULL) return ACC_BAD_PORT;
   if(sh == NULL) return ACC_NULL_SH;
-
-  // Set the default values for the serviceHandler.
-  servHandlerSetDefaults(sh);
-  servHandlerSetPort(sh, port);
 
   // Defining the fields for socket structs is challenging.  The fields depend on the
   // address, type of socket, and communication protocol.  This function uses getaddrinfo()
@@ -171,18 +176,22 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
     return ACC_SOCK_BIND_FAILURE;  // Socket failed to bind.
   }
 
+  // Don't need servinfo anymore
+  freeaddrinfo(servinfo);
+#endif
+
+
+
+  servHandlerSetPort(sh, port);
+
   // Populate sh with the IP of this device.  Note that the IP bound
   // to the socket was likely 0.0.0.0 or 127.0.0.0 since NULL was the
   // first parameter in the getaddrinfo() call.  Instead, we want the
   // IP of the ethernet or wireless interface on this machine.  
   servQueryIP(sh);
 
-  // Don't need servinfo anymore
-  freeaddrinfo(servinfo);
 
   return 0;
-
-  servHandlerSetEndpoint(sh, s);
 
   // TODO: The sig-handler setup only needs to happen once, not once
   // per call to accCreateConnection!
@@ -204,7 +213,7 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
   // The passive-mode endpoint has successfully been created.  Now it
   // is time to listen and wait for another entity to approach and
   // accept their connection.
-  if (listen(s, ACC_BACKLOG) == -1) return ACC_SOCK_LISTEN_FAILURE;  // listen() call failed.
+  if (listen(sh->eh, ACC_BACKLOG) == -1) return ACC_SOCK_LISTEN_FAILURE;  // listen() call failed.
 
 
   // TODO: At this point, we can broadcast our existence to the world,
@@ -223,7 +232,7 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
   while (newSock == -1) 
     {      
       size = sizeof(theirAddr);
-      newSock = accept(s, (struct sockaddr *)&theirAddr, &size);
+      newSock = accept(sh->eh, (struct sockaddr *)&theirAddr, &size);
       if (newSock == -1)
 	{
 	  return ACC_SOCK_ACCEPT_FAILURE;

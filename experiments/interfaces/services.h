@@ -51,6 +51,12 @@
 #define SERV_NO_CONNECTION (-4)
 #define SERV_NO_DEVICE_IP (-5)
 #define SERV_NO_DEVICE (-6)
+#define SERV_BAD_PORT (-7)
+
+#define SERV_CANNOT_GET_ADDRESS (-8)
+#define SERV_SOCK_OPT_FAILURE (-9)
+#define SERV_SOCK_BIND_FAILURE (-10)
+
 #define SERV_SUCCESS (0)
 
 #define SERV_CONNECT_REMOTE (1)
@@ -59,6 +65,13 @@
 #define SERV_NO_REMOTE_CONTINUE (1)
 #define SERV_NO_REMOTE_FAIL (0)
 
+
+
+
+
+// Types of endpoints of communication.
+#define SERV_TCP_ENDPOINT 0
+#define SERV_UDP_ENDPOINT 1
 
 #define SERV_HANDLER_NOT_SET (-1)  // A failed socket call returns -1.  Thus, use -1 to
                                    // indicate that the socket field has not yet been set
@@ -117,6 +130,7 @@ int servHandlerSetPort(serviceHandler * sh, char * port);
 int servHandlerSetEndpoint(serviceHandler * sh, int eh);
 int servHandlerPrint(serviceHandler * sh);
 int servQueryIP(serviceHandler * sh);
+int servCreateEndpoint(int type, char * port, serviceHandler * sh);
 
 int dsCreateCollector(int connectRemote, int continueLocally, serviceHandler * sh);
 

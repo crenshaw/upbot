@@ -65,6 +65,7 @@ int servHandlerSetDefaults(serviceHandler * sh)
 int servHandlerSetPort(serviceHandler * sh, char * port)
 {
   if(sh == NULL) return SERV_NULL_SH;
+  if(port == NULL) return SERV_BAD_PORT;
 
   // Copy the stringified port number into the port field.
   strncpy(sh->port, port, SERV_MAX_PORT_LENGTH);
@@ -151,7 +152,6 @@ int servHandlerPrint(serviceHandler * sh)
 int servQueryIP(serviceHandler * sh)
 {
 
-
   // The name of the interface of interest is dependent on the target platform 
   // for which this software has been compiled.  Use a compiler flag
   // -DGUMSTIX or -DMAC (as seen in makefile) to indicate the target platform
@@ -180,7 +180,7 @@ int servQueryIP(serviceHandler * sh)
       // If this interface is an Internet interface....
       if(current->ifa_addr->sa_family == AF_INET) {
 
-	if(!(strcmp(current->ifa_name, "wlan0"))){
+	if(!(strcmp(current->ifa_name, interfaceName))){
 	  strncpy(sh->ip, inet_ntoa(((struct sockaddr_in*)current->ifa_addr)->sin_addr), SERV_MAX_IP_LENGTH);
 	  sh->ip[SERV_MAX_IP_LENGTH - 1] = '\0';  // I don't trust strncpy.
 
@@ -215,6 +215,103 @@ int servQueryIP(serviceHandler * sh)
   // without finding the specific name.
   return SERV_NO_DEVICE;
 
+}
+
+/**
+ * servCreateEndpoint
+ *
+ * Create an endpoint of communication (i.e., a socket).  
+ *
+ * @param[in] type the type of communication: SERV_TCP_ENDPOINT or
+ * SERV_UDP_ENDPOINT.
+ *
+ * @param[in] port the port to use, e.g. "10005" or "22".
+ *
+ * @param[out] sh the serviceHandler whose xx field will be populated
+ * by this call.
+ *
+ * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
+ * If port is NULL, return SERV_BAD_PORT to indicate an error.  If an
+ * attempt to get an Internet address to bind to the socket fails,
+ * return SERV_CANNOT_GET_ADDRESS.  If an attempt to set the socket
+ * options fails, return SERV_SOCK_OPT_FAILURE.  If an attempt to bind
+ * the socket fails, return SERV_SOCK_BIND_FAILURE.  Callers may use
+ * perror() to get more information on why the particular failures
+ * occurred.
+ * 
+ *  Otherwise, return SERV_SUCCESS.
+ * 
+ */
+
+int servCreateEndpoint(int type, char * port, serviceHandler * sh) 
+{
+
+  int s;           // socket handler
+  int optval = 1;  // boolean option value for the SO_REUSEADDR option.
+
+  // Defining the fields for socket structs is challenging.  The fields depend on the
+  // address, type of socket, and communication protocol.  This function uses getaddrinfo()
+  // to aid in defining the struct socket fields.  This function fills a struct of
+  // type addrinfo.
+  struct addrinfo hints;
+  struct addrinfo * servinfo, *p; 
+
+  // Perform error-checking on the input.
+  if(port == NULL) return SERV_BAD_PORT;
+  if(sh == NULL) return SERV_NULL_SH;
+  
+  // Initialize the hints structure based on what little we care about
+  // in terms of the socket.  The goal is to listen in on host's IP
+  // address on the port provided by the 'port' parameter.
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;          // don't care if its IPv4 or IPv6.
+  hints.ai_socktype = SOCK_STREAM;    // stream-style sockets.
+  hints.ai_flags = AI_PASSIVE;        // fill in my IP automatically.
+
+  // Get an Internet address that can be bound to a socket.
+  if((getaddrinfo(NULL, port, &hints, &servinfo)) != 0)
+    {
+      return SERV_CANNOT_GET_ADDRESS;
+    }
+
+  // As a result of the previous call to getaddrinfo(), servinfo now
+  // points to a linked list of 1 or more struct addrinfos.  Note that
+  // they may not all be valid.  Scan through the servinfo until
+  // something makes sense.
+  for(p = servinfo; p != NULL; p = p->ai_next) {
+    if ((s = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+      continue;   // On error, try next address in servinfo
+    }
+    
+    // Set the socket options so that local addresses may be reused.
+    // For the AF_INET family, this means that the subsequent bind
+    // call should succeed except in cases when there is already an
+    // active listening socket bound to the address.
+    if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) == -1) {
+      return SERV_SOCK_OPT_FAILURE;  // Attempt to set socket options on this socket failed.
+    }
+    
+    if (bind(s, p->ai_addr, p->ai_addrlen) == -1) {
+      close(s);  // bind() failed.  Close this socket and try next address in servinfo.
+      continue;
+      }
+    
+    break; // Success.  A socket has been successfully created, optioned, and bound.
+  }
+
+  if (p == NULL)  {
+    return SERV_SOCK_BIND_FAILURE;  // Socket failed to bind.
+  }
+
+  // Now that we have a successfully bound socket, set the endpoint handler
+  // field of the serviceHandler that was passed to this function.
+  servHandlerSetEndpoint(sh, s);
+  
+  // Don't need servinfo anymore
+  freeaddrinfo(servinfo);
+
+  return SERV_SUCCESS;
+  
 }
 
 // ************************************************************************
