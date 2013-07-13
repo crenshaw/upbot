@@ -27,6 +27,14 @@ void threadAccCreateConnection(void);
 int main(void)
 {
 
+#ifdef GUMSTIX
+  printf("\n\nIt is my belief that this demo is running on a gumstix.\n\n");
+#endif
+
+#ifdef MAC
+  printf("\n\nIt is my belief that this demo is running on a mac.\n");
+#endif
+
   threadAccCreateConnection();
 
   // Print the resulting service handler

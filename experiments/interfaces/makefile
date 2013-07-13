@@ -8,11 +8,11 @@ CC = gcc
 
 # Compile the demo for the gumstix, "gumstix service".
 gs.out:	genericServiceDemo.c acceptor.c services.c services.h
-	arm-linux-gcc  -o gs.out genericServiceDemo.c acceptor.c services.c
+	arm-linux-gcc  -o gs.out -DGUMSTIX genericServiceDemo.c acceptor.c services.c
 
 # Compile the demo
 service.out:	genericServiceDemo.c acceptor.c services.c services.h
-	$(CC)  -o service.out genericServiceDemo.c acceptor.c services.c
+	$(CC)  -o service.out -DMAC genericServiceDemo.c acceptor.c services.c
 
 clean:
 	rm *.out

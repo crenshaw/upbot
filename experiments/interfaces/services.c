@@ -151,6 +151,19 @@ int servHandlerPrint(serviceHandler * sh)
 int servQueryIP(serviceHandler * sh)
 {
 
+
+  // The name of the interface of interest is dependent on the target platform 
+  // for which this software has been compiled.  Use a compiler flag
+  // -DGUMSTIX or -DMAC (as seen in makefile) to indicate the target platform
+  // and thereby get the correct interface name.
+#ifdef GUMSTIX
+  char * interfaceName = "wlan0";
+#endif
+
+#ifdef MAC
+  char * interfaceName = "en1";
+#endif
+
   if(sh == NULL) return SERV_NULL_SH;
 
   struct ifaddrs * interfaces = NULL;
@@ -167,15 +180,7 @@ int servQueryIP(serviceHandler * sh)
       // If this interface is an Internet interface....
       if(current->ifa_addr->sa_family == AF_INET) {
 
-	// Check if interface is en1.
-	//
-	// TODO: The interface name is going to be predicated on the
-	// target device that is being used.  I might add a compiler
-	// flag to indicate the target and conditionally compile this
-	// section of code based of target.  It may also be necessary
-	// to pass the interface name to this function.  Not sure
-	// yet....
-	if(!(strcmp(current->ifa_name, "en1"))){
+	if(!(strcmp(current->ifa_name, "wlan0"))){
 	  strncpy(sh->ip, inet_ntoa(((struct sockaddr_in*)current->ifa_addr)->sin_addr), SERV_MAX_IP_LENGTH);
 	  sh->ip[SERV_MAX_IP_LENGTH - 1] = '\0';  // I don't trust strncpy.
 
