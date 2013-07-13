@@ -6,6 +6,10 @@
 # compiling for a desktop or an embedded system.
 CC = gcc
 
+# Compile the demo for the gumstix, "gumstix service".
+gs.out:	genericServiceDemo.c acceptor.c services.c services.h
+	arm-linux-gcc  -o gs.out genericServiceDemo.c acceptor.c services.c
+
 # Compile the demo
 service.out:	genericServiceDemo.c acceptor.c services.c services.h
 	$(CC)  -o service.out genericServiceDemo.c acceptor.c services.c
