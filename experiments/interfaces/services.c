@@ -161,7 +161,7 @@ int servQueryIP(serviceHandler * sh)
 #endif
 
 #ifdef MAC
-  char * interfaceName = "en1";
+  char * interfaceName = "en0";
 #endif
 
   if(sh == NULL) return SERV_NULL_SH;

@@ -32,7 +32,7 @@ int main(void)
 #endif
 
 #ifdef MAC
-  printf("\n\nIt is my belief that this demo is running on a mac.\n");
+  printf("\n\nIt is my belief that this demo is running on a mac.\n\n");
 #endif
 
   threadAccCreateConnection();
@@ -64,13 +64,17 @@ void threadAccCreateConnection(void)
       printf("Status = %d\n", status);
     }
 
+  // At this point, we can broadcast our existence to the world, so
+  // that others may know about our fantastic service.  Start the
+  // thread that will perform broadcasting.
+  accBroadcastService(&sh);
+
   /*
     From POSIX Thread tutorial:
 
     "All threads within a process share the same address
     space. Inter-thread communication is more efficient and in many
     cases, easier to use than inter-process communication."
-
   */
 
 }

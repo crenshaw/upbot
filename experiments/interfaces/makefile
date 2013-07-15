@@ -6,13 +6,13 @@
 # compiling for a desktop or an embedded system.
 CC = gcc
 
-# Compile the demo for the gumstix, "gumstix service".
-gs.out:	genericServiceDemo.c acceptor.c services.c services.h
-	arm-linux-gcc  -o gs.out -DGUMSTIX genericServiceDemo.c acceptor.c services.c
-
 # Compile the demo
-service.out:	genericServiceDemo.c acceptor.c services.c services.h
-	$(CC)  -o service.out -DMAC genericServiceDemo.c acceptor.c services.c
+service.out:	genericServiceDemo.c acceptor.c services.c services.h mkaddr.c
+	$(CC)  -o service.out -DMAC genericServiceDemo.c acceptor.c services.c mkaddr.c
+
+# Compile the demo for the gumstix, "gumstix service".
+gs.out:	genericServiceDemo.c acceptor.c services.c services.h mkaddr.c
+	arm-linux-gcc  -o gs.out -DGUMSTIX genericServiceDemo.c acceptor.c services.c mkaddr.c
 
 clean:
 	rm *.out

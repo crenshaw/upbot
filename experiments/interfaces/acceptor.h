@@ -43,6 +43,8 @@
  * this/these functions.
  */
 int accCreateConnection(char * port, serviceType type, serviceHandler * sh);
+int accAcceptConnection(serviceHandler * sh);
+int accBroadcastService(serviceHandler * sh);
 int accCompleteConnection(serviceHandler * sh);
 
 #endif

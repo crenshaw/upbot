@@ -110,78 +110,16 @@ void * accGetInAddr(struct sockaddr *sa)
 int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
 {
 
+  int result = -1;
+
   // Set the default values for the serviceHandler.
   servHandlerSetDefaults(sh);
 
-  // Attempting to refactor this code by removing all the endpoint creating code and turning
-  // it into a function call.
-  servCreateEndpoint(SERV_TCP_ENDPOINT, port, sh);
+  // Create an endpoint of communication.
+  if((result = servCreateEndpoint(SERV_TCP_ENDPOINT, port, sh)) != SERV_SUCCESS) return result;
 
-#ifdef DONOTCOMPILE
-  int s;           // socket handler
-  int optval = 1;  // boolean option value for the SO_REUSEADDR option.
-
-  // Was this function handed a well-formed string and service
-  // handler?  If not, leave and indicate an error.
-  if(port == NULL) return ACC_BAD_PORT;
-  if(sh == NULL) return ACC_NULL_SH;
-
-  // Defining the fields for socket structs is challenging.  The fields depend on the
-  // address, type of socket, and communication protocol.  This function uses getaddrinfo()
-  // to aid in defining the struct socket fields.  This function fills a struct of
-  // type addrinfo.
-  struct addrinfo hints;
-  struct addrinfo * servinfo, *p; 
-  
-  // Initialize the hints structure based on what little we care about
-  // in terms of the socket.  The goal is to listen in on host's IP
-  // address on the port provided by the 'port' parameter.
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_INET;          // don't care if its IPv4 or IPv6.
-  hints.ai_socktype = SOCK_STREAM;    // stream-style sockets.
-  hints.ai_flags = AI_PASSIVE;        // fill in my IP automatically.
-
-  // Get an Internet address that can be bound to a socket.
-  if((getaddrinfo(NULL, port, &hints, &servinfo)) != 0)
-    {
-      return -1;
-    }
-
-  // As a result of the previous call to getaddrinfo(), servinfo now
-  // points to a linked list of 1 or more struct addrinfos.  Note that
-  // they may not all be valid.  Scan through the servinfo until
-  // something makes sense.
-  for(p = servinfo; p != NULL; p = p->ai_next) {
-    if ((s = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
-      continue;   // On error, try next address in servinfo
-    }
-    
-    // Set the socket options so that local addresses may be reused.
-    // For the AF_INET family, this means that the subsequent bind
-    // call should succeed except in cases when there is already an
-    // active listening socket bound to the address.
-    if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) == -1) {
-      return ACC_SOCK_OPT_FAILURE;  // Attempt to set socket options on this socket failed.
-    }
-    
-    if (bind(s, p->ai_addr, p->ai_addrlen) == -1) {
-      close(s);  // bind() failed.  Close this socket and try next address in servinfo.
-      continue;
-      }
-    
-    break; // Success.  A socket has been successfully created, optioned, and bound.
-  }
-
-  if (p == NULL)  {
-    return ACC_SOCK_BIND_FAILURE;  // Socket failed to bind.
-  }
-
-  // Don't need servinfo anymore
-  freeaddrinfo(servinfo);
-#endif
-
-
-
+  // Endpoint of communication has been successfully created, so we can set the port
+  // field in the serviceHandler.
   servHandlerSetPort(sh, port);
 
   // Populate sh with the IP of this device.  Note that the IP bound
@@ -190,11 +128,12 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
   // IP of the ethernet or wireless interface on this machine.  
   servQueryIP(sh);
 
-
-  return 0;
-
+#ifdef DONOTCOMPILE
   // TODO: The sig-handler setup only needs to happen once, not once
-  // per call to accCreateConnection!
+  // per call to accCreateConnection!  In fact, as this code becomes
+  // multi-threaded instead of multi-processed, I'm not even certain
+  // if it is necessary.  For now, I will conditionally compile it out
+  // of the source until I determine its proper need and place. -TLC
 
   // When the SIGCHLD signal occurs, the status of a child process has
   // changed and we need to call one of the wait functions to
@@ -209,19 +148,28 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
   
   // Set the action.
   if (sigaction(SIGCHLD, &sa, NULL) == -1) return ACC_SIGACTION_FAILURE;  // The action could not be set.
+#endif
 
   // The passive-mode endpoint has successfully been created.  Now it
   // is time to listen and wait for another entity to approach and
   // accept their connection.
   if (listen(sh->eh, ACC_BACKLOG) == -1) return ACC_SOCK_LISTEN_FAILURE;  // listen() call failed.
 
+  return ACC_SUCCESS;
+}
 
-  // TODO: At this point, we can broadcast our existence to the world,
-  // so that others may know about our fantastic service.  Start the
-  // thread that will perform broadcasting.
-
-
-
+/**
+ * accAcceptConnection
+ *
+ * Given a fully-populated serviceHandler, sh, wait for an approach on
+ * the endpoint handler (i.e., socket) prescribed by sh.
+ *
+ * @returns ACC_SOCK_ACCEPT_FAILURE if the accept() call fails.  Otherwise,
+ * ACC_SUCCESS to indicate a succesfully established connection.
+ * 
+ */
+int accAcceptConnection(serviceHandler * sh)
+{
   char pee[INET6_ADDRSTRLEN];
   struct sockaddr_storage theirAddr; // connector's address information
   int newSock = -1;
@@ -246,14 +194,83 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
 
 
 /**
- * accBroadcastConnection
+ * accBroadcastService
  *
- * Broadcast the service on the network; the service's type and IP are
- * described by sh.
+ * Broadcast the service on the network; the service's type, IP, and
+ * port are described by sh.
  */
-int accBroadcastConnection(serviceHandler * sh)
+int accBroadcastService(serviceHandler * sh)
 {
+  
+  int result = -1;  
+ 
+  int s;      /* Socket */  
 
+  struct sockaddr_in adr_bc;  /* AF_INET */  
+  int len_bc;
+  static char * bc_addr = "10.12.19.255:20";
+  static int so_broadcast = 1;  
+  char * bcbuf = "Broadcasting excellent services since 2013!";
+
+  len_bc = sizeof adr_bc;  
+  
+  result = mkaddr(  
+		  &adr_bc, /* Returned address */  
+		  &len_bc, /* Returned length */  
+		  bc_addr, /* Input string addr */  
+		  "udp"); /* UDP protocol */  
+  
+  if ( result == -1 )  
+    {
+      printf("Bad broadcast address");  
+      return -1;
+    }
+
+  // Create a UDP socket for broadcasting.
+  s = socket(AF_INET,SOCK_DGRAM,0);  
+  
+  if ( s == -1 )  
+    return -1;
+  
+  // Set options to broadcast
+  result = setsockopt(s,  
+		      SOL_SOCKET,  
+		      SO_BROADCAST,  
+		      &so_broadcast,  
+		      sizeof so_broadcast);  
+  
+  if ( result == -1 )  return -1;
+  
+#ifdef DONOTCOMPILE
+  // Bind
+  result = bind(s, (struct sockaddr *)&adr_srvr, len_srvr);  
+  
+  if ( result == -1 )  
+    displayError("bind()");  
+#endif
+  
+  while(1)
+    {
+      
+      /* 
+       * Broadcast the info
+       */  
+      result = sendto(s,  
+		      bcbuf,  
+		      strlen(bcbuf),  
+		      0,  
+		      (struct sockaddr *)&adr_bc,  
+		      len_bc);   
+      
+      if ( result == -1 )  
+	{
+	  printf("sendto\n");
+	  return -1;
+	}
+      
+      sleep(2);
+    }
+  
 }
 
 
