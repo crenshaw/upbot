@@ -161,7 +161,7 @@ int servQueryIP(serviceHandler * sh)
 #endif
 
 #ifdef MAC
-  char * interfaceName = "en0";
+  char * interfaceName = "en1";
 #endif
 
   if(sh == NULL) return SERV_NULL_SH;
@@ -222,8 +222,19 @@ int servQueryIP(serviceHandler * sh)
  *
  * Create an endpoint of communication (i.e., a socket).  
  *
+ * The purpose of this function is to abstract away all the socket
+ * programming details that individual functions shouldn't have to
+ * worry about.  For the UPBOT system, there are two kinds of sockets
+ * of interest:
+ *
+ * 1. A TCP socket for fully-connected network communication between
+ *    two entities.
+ * 
+ * 2. A UDP socket for broadcasting a service or listening for
+ *    broadcasts.
+ *
  * @param[in] type the type of communication: SERV_TCP_ENDPOINT or
- * SERV_UDP_ENDPOINT.
+ * SERV_UDP_ENDPOINT.  
  *
  * @param[in] port the port to use, e.g. "10005" or "22".
  *
@@ -257,23 +268,35 @@ int servCreateEndpoint(int type, char * port, serviceHandler * sh)
   struct addrinfo * servinfo, *p; 
 
   // Perform error-checking on the input.
+  if(!(type == SERV_TCP_ENDPOINT || type == SERV_UDP_ENDPOINT)) return SERV_BAD_TYPE;
   if(port == NULL) return SERV_BAD_PORT;
   if(sh == NULL) return SERV_NULL_SH;
+  
+  // Set the hints.  The hints vary based on whether or not we want a
+  // TCP or UDP endpoint.
+  memset(&hints, 0, sizeof(hints));
   
   // Initialize the hints structure based on what little we care about
   // in terms of the socket.  The goal is to listen in on host's IP
   // address on the port provided by the 'port' parameter.
-  memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;          // don't care if its IPv4 or IPv6.
-  hints.ai_socktype = SOCK_STREAM;    // stream-style sockets.
   hints.ai_flags = AI_PASSIVE;        // fill in my IP automatically.
+
+  if (type == SERV_UDP_ENDPOINT) {
+    hints.ai_socktype = SOCK_DGRAM;    // datagram-style sockets.
+  }
+  
+  else {
+    hints.ai_socktype = SOCK_STREAM;    // stream-style sockets.  
+  }
+  
 
   // Get an Internet address that can be bound to a socket.
   if((getaddrinfo(NULL, port, &hints, &servinfo)) != 0)
     {
       return SERV_CANNOT_GET_ADDRESS;
     }
-
+    
   // As a result of the previous call to getaddrinfo(), servinfo now
   // points to a linked list of 1 or more struct addrinfos.  Note that
   // they may not all be valid.  Scan through the servinfo until
@@ -282,19 +305,30 @@ int servCreateEndpoint(int type, char * port, serviceHandler * sh)
     if ((s = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
       continue;   // On error, try next address in servinfo
     }
-    
+      
     // Set the socket options so that local addresses may be reused.
     // For the AF_INET family, this means that the subsequent bind
     // call should succeed except in cases when there is already an
     // active listening socket bound to the address.
-    if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) == -1) {
-      return SERV_SOCK_OPT_FAILURE;  // Attempt to set socket options on this socket failed.
+    
+    // The socket options vary based on whether or not we want a
+    // TCP or UDP endpoint.
+    if (type == SERV_TCP_ENDPOINT) {
+      if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) == -1) {
+	return SERV_SOCK_OPT_FAILURE;  // Attempt to set socket options on this socket failed.
+      }
+    }
+
+    if (type == SERV_UDP_ENDPOINT) {
+      if (setsockopt(s, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int)) == -1) {
+	return SERV_SOCK_OPT_FAILURE;  // Attempt to set socket options on this socket failed.
+      }
     }
     
     if (bind(s, p->ai_addr, p->ai_addrlen) == -1) {
       close(s);  // bind() failed.  Close this socket and try next address in servinfo.
       continue;
-      }
+    }
     
     break; // Success.  A socket has been successfully created, optioned, and bound.
   }

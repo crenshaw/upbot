@@ -208,12 +208,14 @@ int accBroadcastService(serviceHandler * sh)
 
   struct sockaddr_in adr_bc;  /* AF_INET */  
   int len_bc;
-  static char * bc_addr = "10.12.19.255:20";
+
+  static char * bc_addr = "255.255.255.255:20";
   static int so_broadcast = 1;  
   char * bcbuf = "Broadcasting excellent services since 2013!";
 
   len_bc = sizeof adr_bc;  
-  
+
+  // Manually create a broadcast address?
   result = mkaddr(  
 		  &adr_bc, /* Returned address */  
 		  &len_bc, /* Returned length */  
@@ -226,6 +228,9 @@ int accBroadcastService(serviceHandler * sh)
       return -1;
     }
 
+  servCreateEndpoint(SERV_UDP_ENDPOINT, "20", sh);
+
+#ifdef DONOTCOMPILE
   // Create a UDP socket for broadcasting.
   s = socket(AF_INET,SOCK_DGRAM,0);  
   
@@ -240,6 +245,7 @@ int accBroadcastService(serviceHandler * sh)
 		      sizeof so_broadcast);  
   
   if ( result == -1 )  return -1;
+#endif
   
 #ifdef DONOTCOMPILE
   // Bind
@@ -255,7 +261,7 @@ int accBroadcastService(serviceHandler * sh)
       /* 
        * Broadcast the info
        */  
-      result = sendto(s,  
+      result = sendto(sh->eh,  
 		      bcbuf,  
 		      strlen(bcbuf),  
 		      0,  

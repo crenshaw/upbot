@@ -56,6 +56,7 @@
 #define SERV_CANNOT_GET_ADDRESS (-8)
 #define SERV_SOCK_OPT_FAILURE (-9)
 #define SERV_SOCK_BIND_FAILURE (-10)
+#define SERV_BAD_TYPE (-11)
 
 #define SERV_SUCCESS (0)
 
