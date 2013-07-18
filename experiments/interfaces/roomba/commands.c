@@ -71,8 +71,10 @@ int driveStraightWithFeedback(int velocity)
  */
 void driveStraightUntil(int usec, int speed)
 {
-  driveStraight(speed);
-  usleep(usec);
+  driveStraight(speed);  
+  usleep(usec*500000);
+  //stop();
+  //usleep(30);
 }
 
 /**

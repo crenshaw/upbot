@@ -168,7 +168,7 @@ int main(void)
   //first event per state
   initialState iArray[6] = {0, 0, 0, 1, 1, -1};
   eventPredicate * eArray[6] = {eventAlarm, eventNotBump, eventBump, eventNotBump, eventBump, NULL};
-  responder * rArray[6] = {respondDriveMed, respondDriveLow, respondTurn, respondDriveMed, respondTurn,  NULL};
+  responder * rArray[6] = {respondLedBlink, respondLedRed, respondLedBlink, respondLedGreen, respondLedRed,  NULL};
   statePointer pArray[6] = {1, 0, 0, 1, 0, -1};
   
   alarmTime aArray[3] = {5,0,-1};
@@ -203,7 +203,7 @@ int main(void)
       exit(EXIT_FAILURE);
     }
 
-  
+
   // Initialize timer start time and period:
   // First, the period between now and the first timer interrupt 
   itv.it_value.tv_sec = aArray[state];  // seconds
@@ -258,35 +258,17 @@ int main(void)
   responder * r = (er->r)[0];
   initialState is = (er->i[0]);
   statePointer p = (er->p[0]);
- 
-  //byteTx(0);
   
   // Create an event loop
   while(1)
     {
       
-      //usleep(200000);
       char sensDataFromRobot[150] = {'\0'};
       receiveGroupOneSensorData(sensDataFromRobot);
-      
-      printf("bump right: %d\n",(sensDataFromRobot[0] & SENSOR_BUMP_RIGHT));
-      printf("bump left: %d\n",(sensDataFromRobot[0] & SENSOR_BUMP_LEFT));
-      printf("wheeldrops: %d\n",(sensDataFromRobot[0] & SENSOR_WHEELDROP_BOTH));
-     
-      printf("vwall: %d\n",sensDataFromRobot[0]);
-      /*
-      byteTx(148);
-      byteTx(1);
-      byteTx(13);
-      
-      char a[3] = {'\0'};
-      byteRx(a,1,1);   
-      //*/
-      //printf("%s\n",sensDataFromRobot);
       sensDataFromRobot[15] = '0'+gotAlarm; 
-      //if (gotAlarm == 1) {
-      //   printf("Got Alarm 1\n");
-      //}
+      if (gotAlarm == 1) {
+         printf("Got Alarm 1");
+      }
       gotAlarm = 0;
       //int a = checkSensorData(sensDataFromRobot);
       //printf("data in: %d\n",a);

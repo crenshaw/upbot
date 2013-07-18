@@ -21,7 +21,7 @@ int eventTrue(char * data)
 /**
  * eventFalse
  * 
- * Default eventPredicate function.  Always returns true.
+ * Default eventPredicate function.  Always returns false.
  */
 int eventFalse(char * data)
 {
@@ -49,6 +49,33 @@ int eventBump(char * data) {
 }
 
 /**
+ * eventBumpRight
+ * 
+ * Example eventPredicate function for checking if the right bumper 
+ * has been hit.
+ */
+int eventBumpRight(char * data) {
+  if((data[0] & SENSOR_BUMP_RIGHT ) == SENSOR_BUMP_RIGHT)
+      return 1;
+  else
+    return 0;
+}
+
+/**
+ * eventBumpLeft
+ * 
+ * Example eventPredicate function for checking if the left bumper 
+ * has been hit.
+ */
+int eventBumpLeft(char * data) {
+  if((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT)
+      return 1;
+  else
+    return 0;
+}
+
+
+/**
  * eventNotBump
  * 
  * Example eventPredicate function for checking for bump events.
@@ -62,10 +89,12 @@ int eventNotBump(char * data) {
   if(((data[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
      ((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
     {
+      setLED(1,0,0);
       return 0;
     }
   else
-    return 1;
+      setLED(2,0,0);
+      return 1;
 }
 
 /**
@@ -74,7 +103,6 @@ int eventNotBump(char * data) {
 int eventAlarm(char * data) {
   if (data[15] != '0') {
    return 1;
-   printf("got alarm 2\n");
   }
   return 0;
 }

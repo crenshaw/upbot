@@ -10,7 +10,7 @@
 #include <termios.h>
 #include <time.h>
 #include <stdlib.h>
-
+#include "led.c"
 
 // This global file descriptor, once initialized,
 // keeps track of the serial port opened to the iRobot
@@ -72,6 +72,7 @@ int closePort()
  *
  * @arg value the 8-bit value to be transmitted.
  * 
+
  * @return void
  */
 void byteTx(char value)
@@ -79,6 +80,7 @@ void byteTx(char value)
 	char* buffer;
 	buffer = &value;
 	write(fd, buffer, 1);
+    //usleep(50);
 }
 
 /**
@@ -102,6 +104,7 @@ void byteRx(char* buffer, int nbytes, int iter)
   if(iter == 1)
     {
       data = read(fd, buffer, nbytes);
+      usleep(10000);
       return;
     }
   else
