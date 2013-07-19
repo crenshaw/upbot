@@ -93,6 +93,26 @@ typedef int initialState;
 
 typedef int alarmTime;
 
+
+typedef struct erPairTag {
+   eventPredicate * e;
+   responder * r;
+   statePointer p;
+} erPair;
+
+typedef struct stateTag {
+  int alarmTime;
+  erPair * erPairs;
+  int count;
+} state;
+
+typedef struct erTag {
+  state * states;
+  int curState;
+  int stateCount;
+} er;
+
+
 /**
  * A type to represent an event:responder pair.  An event:responder is
  * an array of eventPredicate and responder function pairs.  Each pair

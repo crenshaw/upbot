@@ -159,8 +159,71 @@ signalrmHandler(int sig)
 int main(void)
 {
 
-  //initalize the state value
-  int state = 0;
+
+ //*
+ erPair erS0[3] = {
+    {eventAlarm, respondDriveMed, 1},
+    {eventNotBump, respondDriveLow, 0},
+    {eventBump, respondTurn, 0}    
+ }; 
+
+ state S0 = {
+    5, //alarm time
+    erS0,
+    3  //number of events
+ };
+
+ erPair erS1[2] = {
+    {eventNotBump, respondDriveMed, 1},
+    {eventBump, respondTurn, 0}
+ };
+ 
+ state S1 = {
+    0, //alarm time
+    erS1,
+    2  //number of events
+ };
+
+
+ state states[2] = {S0,S1};
+
+ er myER[2] = {
+    states,//list of states
+    0,   //default state
+    2    //number of states
+ };
+
+  //*/
+
+ //int state = 0;
+ /*
+ :( this format doesn't work, I miss you Lua.
+ It's so pretty I think i'll keep it for a while
+  
+  er myER[2] = {
+      { //states
+        { //state 0
+            5,  //alarm time
+            {
+                {eventAlarm, respondDriveMed, 1},
+                {eventNotBump, respondDriveLow, 0},
+                {eventBump, respondTurn, 0}
+            },
+            3   //number of events
+        },
+        { //state 1
+            0,  //alarm time
+            {
+                {eventNotBump, respondDriveMed, 1},
+                {eventBump, respondTurn, 0}
+            },
+            2   //number of events
+        }
+      },
+      0,    //default state
+      2     //number of states
+  }
+  //*/
 
   // Create arrays of eventPredicate and responder functions
   //IMPORTANT REMINDER: Events must be ordered in priority you
@@ -206,14 +269,15 @@ int main(void)
   
   // Initialize timer start time and period:
   // First, the period between now and the first timer interrupt 
-  itv.it_value.tv_sec = aArray[state];  // seconds
+  itv.it_value.tv_sec = myER->states[myER->curState].alarmTime;
+  //itv.it_value.tv_sec = aArray[myER->curState];  // seconds
   itv.it_value.tv_usec = 0; // microseconds
 
   // Second, the intervals between successive timer interrupts 
   itv.it_interval.tv_sec = 0; // seconds
   itv.it_interval.tv_usec = 0; // microseconds
   
-  if (aArray[state] > 0) 
+  if (myER->states[myER->curState].alarmTime > 0)
   {
     if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
     {
@@ -254,13 +318,14 @@ int main(void)
   eventresponder * er = myRobot.er;
 
   // Need a pointer for the e's and a pointer for the r's.
-  eventPredicate * e = (er->e)[0]; 
-  responder * r = (er->r)[0];
-  initialState is = (er->i[0]);
-  statePointer p = (er->p[0]);
- 
-  //byteTx(0);
-  
+  eventPredicate * e;
+  responder * r;
+  statePointer p;
+
+
+  erPair * pairs= myER->states[myER->curState].erPairs;
+  int pairsCount = myER->states[myER->curState].count;
+   
   // Create an event loop
   while(1)
     {
@@ -274,32 +339,10 @@ int main(void)
       printf("wheeldrops: %d\n",(sensDataFromRobot[0] & SENSOR_WHEELDROP_BOTH));
      
       printf("vwall: %d\n",sensDataFromRobot[0]);
-      /*
-      byteTx(148);
-      byteTx(1);
-      byteTx(13);
       
-      char a[3] = {'\0'};
-      byteRx(a,1,1);   
-      //*/
-      //printf("%s\n",sensDataFromRobot);
       sensDataFromRobot[15] = '0'+gotAlarm; 
-      //if (gotAlarm == 1) {
-      //   printf("Got Alarm 1\n");
-      //}
       gotAlarm = 0;
-      //int a = checkSensorData(sensDataFromRobot);
-      //printf("data in: %d\n",a);
-
-      // Make the fake data change at index 0.  Choose a random number
-      // between 0 and 2.  This would be equivalent to asking the
-      // robot for some sensor data.
-      //fakeData[0] = rand()% (3);
-      //printf("The fake data value is %d \n", fakeData[0]);
-
-      // Sleep for one second just to make output of prototype manageable.
-      //sleep(1);
-
+      
       // ***********************************************************
       // I leave this here because I may need to know about masking
       // signals among threads later. -- TLC
@@ -325,44 +368,47 @@ int main(void)
       // Loop over all of the eventPredicate and responder pairs
       // in the robot's event:responder.
       int i = 0;
-      int length = er->length;
       
-      //TODO: check if length check actually needs to be there? 
-      //I don't think it does -Matt
-     
+      //int length = er->length;
+                 
       int eventOccured = 0;  
-      for(i = 0; i < length; i++)
+      for(i = 0; i < pairsCount; i++)
 	{
-	  is = (er->i)[i];  //get the i'th state requirment
-      //TODO: o right I made state part of an event responder fix later
-      if (eventOccured == 0 && is == state) 
+	  //is = (er->i)[i];  //get the i'th state requirment
+      if (eventOccured == 0) 
       {
-        e = (er->e)[i];  // Get the i'th eventPredicate function.
-      
+        //e = (er->e)[i];  // Get the i'th eventPredicate function.
+        e = pairs[i].e;
 
 	    if((e)(sensDataFromRobot))
 	      {
-	        r = (er->r)[i];  // Get the i'th responder function.
-            p = (er->p)[i];
+	        r = pairs[i].r;
+            //r = (er->r)[i];  // Get the i'th responder function.
+            //p = (er->p)[i];
+            p = pairs[i].p;
             r();
-            if (state != p) {
-                printf("State changing from %d to %d\n",state,p);
-                state = p;
-                if (aArray[state] > 0) 
-                {
-                    itv.it_value.tv_sec = aArray[state];  // seconds
-                    if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
-                    {
-                        exit(EXIT_FAILURE);
-                    }
-                }/*
+            if (myER->curState != p) {
+                printf("State changing from %d to %d\n",myER->curState,p);
+                myER->curState = p;
+                pairs = myER->states[p].erPairs;
+                pairsCount = myER->states[p].count;
+
+            }
+
+
+            //BUG: when going from event occurs but state doesn't change
+            //      alarm isn't reset. Probable that this occurs
+            //      across states. Investigate further.
+            int nextAlarm =  myER->states[myER->curState].alarmTime;
+            if (nextAlarm > 0) 
+            { 
+                itv.it_value.tv_sec = nextAlarm;
                 if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
                 {
-                    printf("EXIT_FAILURE\n");
                     exit(EXIT_FAILURE);
                 }
-                //*/
             }
+
             eventOccured = 1;
 	      }
       }
