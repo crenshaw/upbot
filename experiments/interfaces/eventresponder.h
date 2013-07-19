@@ -80,21 +80,39 @@ typedef void responder(void);
  */
 typedef int statePointer;
 
+
+/**
+ * A type to indicate when an alarm should go off for a given state
+ */
 typedef int alarmTime;
 
-
+/**
+ * A type to contain an eventPredicate, a responder if the event
+ * passes, and a statePointer to direct it to the next state
+ */
 typedef struct erPairTag {
    eventPredicate * e;
    responder * r;
    statePointer p;
 } erPair;
 
+/**
+ * A type that contains the duration until an alarm should go off
+ * a list of event responder pairs, and a count of how many pairs
+ * are in the list
+ */
 typedef struct stateTag {
   int alarmTime;
   erPair * erPairs;
   int count;
 } state;
 
+
+/**
+ * A type that containts a list of states the robot can be in,
+ * an indicator as to which state it is currently in, and
+ * a count of how many states are within the event responder
+ */
 typedef struct eventResponderTag {
   state * states;
   int curState;
@@ -102,6 +120,7 @@ typedef struct eventResponderTag {
 } eventResponder;
 
 
-eventResponder erDefault = {};
 //TODO:create a new default responder
+eventResponder erDefault = {};
+
 #endif

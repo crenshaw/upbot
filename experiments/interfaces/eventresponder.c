@@ -78,8 +78,13 @@ static void signalrmHandler(int sig)
 int main(void)
 {
 
+    //setup a event responder
+    //this one drives forward until it hits something
+    //and then turns a random direction. Aftew a few
+    //seconds without hitting anything it speeds up
+
     //*
-    erPair erS0[3] = {
+    erPair erS0[3] = {//event responders pairs for state 0
         {eventAlarm, respondDriveMed, 1},
         {eventNotBump, respondDriveLow, 0},
         {eventBump, respondTurn, 0}    
@@ -90,7 +95,7 @@ int main(void)
         3  //number of events
     };
 
-    erPair erS1[2] = {
+    erPair erS1[2] = {//event responder pairs for state 1
         {eventNotBump, respondDriveMed, 1},
         {eventBump, respondTurn, 0}
     };
@@ -151,7 +156,9 @@ int main(void)
     srand(time(NULL));  
 
 
-
+    //TODO: move timer setup to a seperate function
+    //with the intent of reducing clutter
+    
     // Initialize and empty a signal set
     sigemptyset(&sa.sa_mask);
 
@@ -229,17 +236,21 @@ int main(void)
     {
 
         //usleep(200000);
-        char sensDataFromRobot[150] = {'\0'};
-        receiveGroupOneSensorData(sensDataFromRobot);
 
+        //read sensor data
+        char sensDataFromRobot[150] = {'\0'};   //TODO: this array can be smaller
+        receiveGroupOneSensorData(sensDataFromRobot);
+        sensDataFromRobot[15] = '0'+gotAlarm; 
+        gotAlarm = 0;
+
+
+
+        //Debug printing
         printf("bump right: %d\n",(sensDataFromRobot[0] & SENSOR_BUMP_RIGHT));
         printf("bump left: %d\n",(sensDataFromRobot[0] & SENSOR_BUMP_LEFT));
         printf("wheeldrops: %d\n",(sensDataFromRobot[0] & SENSOR_WHEELDROP_BOTH));
 
         printf("vwall: %d\n",sensDataFromRobot[0]);
-
-        sensDataFromRobot[15] = '0'+gotAlarm; 
-        gotAlarm = 0;
 
         // ***********************************************************
         // I leave this here because I may need to know about masking
@@ -262,26 +273,28 @@ int main(void)
         sigprocmask(SIG_BLOCK, &sa.sa_mask, NULL);
 #endif
 
+        int eventOccured = 0;  
 
         // Loop over all of the eventPredicate and responder pairs
-        // in the robot's event:responder.
+        // in the current state.
         int i = 0;
-
-        int eventOccured = 0;  
         for(i = 0; i < pairsCount; i++)
         {
 
             if (eventOccured == 0) 
             {
-                e = pairs[i].e;
+                e = pairs[i].e; //event to check against
 
                 if((e)(sensDataFromRobot))
                 {
-                    r = pairs[i].r;
-                    p = pairs[i].p;
+                    r = pairs[i].r; //the responder to execute
                     r();
+
+
+                    p = pairs[i].p; //the next state that we need to be in
                     if (myER.curState != p) {
                         printf("State changing from %d to %d\n",myER.curState,p);
+                        
                         myER.curState = p;
                         pairs = myER.states[p].erPairs;
                         pairsCount = myER.states[p].count;
@@ -292,6 +305,8 @@ int main(void)
                     //BUG: when going from event occurs but state doesn't change
                     //      alarm isn't reset. Probable that this occurs
                     //      across states. Investigate further.
+                    
+                    //if the next state uses a timer then set it
                     int nextAlarm =  myER.states[myER.curState].alarmTime;
                     if (nextAlarm > 0) 
                     { 
@@ -301,7 +316,8 @@ int main(void)
                             exit(EXIT_FAILURE);
                         }
                     }
-
+                    
+                    //event occured, we don't want to check anymore
                     eventOccured = 1;
                 }
             }
