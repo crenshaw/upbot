@@ -36,11 +36,6 @@
  *  CONSTANT DEFINITIONS.  All constants in this file should begin
  *  with 'ER' to indicate their membership in eventresponder.h  
  */
-#define ER_ARRAY_MISMATCH (-1)
-#define ER_NULL_ARRAY (-2)
-#define ER_NULL_ER (-3)
-#define ER_SUCCESS (0)
-
 #define ER_DEFAULT_SIZE 2
 
 /**
@@ -85,12 +80,6 @@ typedef void responder(void);
  */
 typedef int statePointer;
 
-/**
- * A type to represent the state a required for an event to be 
- * triggered
- */
-typedef int initialState;
-
 typedef int alarmTime;
 
 
@@ -106,58 +95,13 @@ typedef struct stateTag {
   int count;
 } state;
 
-typedef struct erTag {
+typedef struct eventResponderTag {
   state * states;
   int curState;
   int stateCount;
-} er;
+} eventResponder;
 
 
-/**
- * A type to represent an event:responder pair.  An event:responder is
- * an array of eventPredicate and responder function pairs.  Each pair
- * {e, r} can be interpreted as:
- *
- * if the eventPredicate function, e, returns true then
- *    execute the responder, r.
- * 
- */
-typedef struct eventresponderTag {
-  initialState * i;     /**< An array of startState pointers >**/
-  eventPredicate ** e;  /**< An array of eventPredicate functions */
-  responder ** r;       /**< An array of responder functions */
-  statePointer * p;     /**< An array of statePointers >**/
-  alarmTime * a;
-  int length;           /**< The total number of pairs */
-  int state;
-} eventresponder;
-
-
-
-/**
- * Function prototypes.  See eventresponder.c for details on
- * this/these functions.
- */
-
-int createResponder(eventPredicate * e[], responder * r[], eventresponder * er);
-//int createResponder(eventPredicate * e, responder * r, eventresponder * er);
-
-int eventTrue(char * data);
-void respondStop(void);
-
-
-
-// A global, default, event:responder, in case something bad happens or an
-// application developer just wants a boring default.  This default
-// event:responder is:
-//
-//  if  true  then
-//    stop robot
-//
-static eventPredicate * eDefault[ER_DEFAULT_SIZE] = {eventTrue, NULL};
-static responder * rDefault[ER_DEFAULT_SIZE] = {respondStop, NULL};
-
-//TODO: fix defualt responder 
-static eventresponder erDefault = {NULL,eDefault, rDefault,NULL,NULL,1,0};
-
+eventResponder erDefault = {};
+//TODO:create a new default responder
 #endif
