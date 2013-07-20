@@ -19,13 +19,13 @@
  *
  * Issuing a response is done by a response function.
  *
- * An event:responder is a set of eventPredicate() and response()
- * function pairs.
+ * An event:responder is a set of states, each with a set of 
+ * transitions to other states
  *
  * This file contains the types and function prototypes for an event:responder.
  * 
- * @author Tanya L. Crenshaw
- * @since June 29, 2013
+ * @author Tanya L. Crenshaw, Matthew Holland
+ * @since July 20, 2013
  */
 
 #ifndef _EVENT_RESPONDER_H_
@@ -37,13 +37,11 @@
  *  with 'ER' to indicate their membership in eventresponder.h  
  */
 #define ER_DEFAULT_SIZE 2
+#define ER_SENS_BUFFER_SIZE (150)
 
 /**
  * A type to represent events, i.e., sensor data.  Empty for now.
  *
- * TODO: I'm not sure if this is even necessary, since "events" are
- * sensor data which can be most easily represented as an array
- * of integers. -tlc-
  */
 typedef struct event event;
 
@@ -78,33 +76,27 @@ typedef void responder(void);
  * A type to point to the next state after a event responder has
  * been executed.
  */
-typedef int statePointer;
-
-
-/**
- * A type to indicate when an alarm should go off for a given state
- */
-typedef int alarmTime;
+typedef int nextState;
 
 /**
  * A type to contain an eventPredicate, a responder if the event
- * passes, and a statePointer to direct it to the next state
+ * passes, and a nextState identifier to direct it to the next state
  */
-typedef struct erPairTag {
-   eventPredicate * e;
-   responder * r;
-   statePointer p;
-} erPair;
+typedef struct transitionTag {
+   eventPredicate * e;  /**< An event predicate function  */
+   responder * r;       /**< A responder function */
+   nextState n;         /**< The state to go to after this function*/
+} transition;
 
 /**
  * A type that contains the duration until an alarm should go off
- * a list of event responder pairs, and a count of how many pairs
+ * a list of transitions, and a count of how many transitionss
  * are in the list
  */
 typedef struct stateTag {
-  int alarmTime;
-  erPair * erPairs;
-  int count;
+  int clockTime;            /**< Time for the clock to go off */ 
+  transition * transitions; /**< List of transitions from the state*/
+  int count;                /**< The number of transitions from state */
 } state;
 
 
@@ -114,9 +106,9 @@ typedef struct stateTag {
  * a count of how many states are within the event responder
  */
 typedef struct eventResponderTag {
-  state * states;
-  int curState;
-  int stateCount;
+  state * states;       /**< A list of states within the event responder */
+  int curState;         /**< The current state of the event responder */
+  int stateCount;       /**< The number of states within the event responder */
 } eventResponder;
 
 

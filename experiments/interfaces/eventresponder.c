@@ -19,12 +19,13 @@
  *
  * Issuing a response is done by a response function.
  *
- * An event:responder is a set of eventPredicate() and response()
- * function pairs.  
+ * An event:responder is a set of states. Each state has a set
+ * of transitions which include an conitional event and a
+ * reactionary responder
  * 
  * 
- * @author: Tanya L. Crenshaw
- * @since: June 2013
+ * @author: Tanya L. Crenshaw, Matthew Holland
+ * @since: July 20, 2013
  * 
  */
 
@@ -66,6 +67,56 @@ static void signalrmHandler(int sig)
 }
 
 
+void setupClock() {
+    struct sigaction sa;        // Signal sets
+    struct sigaction toggledsa;   
+
+    // Initialize a random number generator to help with the
+    // generation of random data.
+    srand(time(NULL));  
+
+
+    //TODO: move timer setup to a seperate function
+    //with the intent of reducing clutter
+    
+    // Initialize and empty a signal set
+    sigemptyset(&sa.sa_mask);
+
+    // Set the signal set.
+    sa.sa_flags = 0;
+    sa.sa_handler = signalrmHandler;
+
+    // Update the signal set with the new flags and handler.
+    if (sigaction(SIGALRM, &sa, NULL) == -1)
+    {
+        exit(EXIT_FAILURE);
+    }
+}
+
+void setClock(int sec, int usec) {
+   
+    //TODO: figure out how to cancel old alarms
+    
+    struct itimerval itv;       // Specify when a timer should expire 
+    
+    // Initialize timer start time and period:
+    // First, the period between now and the first timer interrupt 
+    itv.it_value.tv_sec = sec; //seconds
+    itv.it_value.tv_usec = usec; // microseconds
+
+    // Second, the intervals between successive timer interrupts 
+    itv.it_interval.tv_sec = 0; // seconds
+    itv.it_interval.tv_usec = 0; // microseconds
+
+    if (setitimer(ITIMER_REAL, &itv, NULL) == -1) {
+        exit(EXIT_FAILURE);
+    }
+
+}
+
+
+
+
 // ************************************************************************
 // EXAMPLE MAIN.
 // Create timer-based interrupts and an event:responder to handle a set
@@ -84,7 +135,7 @@ int main(void)
     //seconds without hitting anything it speeds up
 
     //*
-    erPair erS0[3] = {//event responders pairs for state 0
+    transition erS0[3] = {//transitions for state 0
         {eventAlarm, respondDriveMed, 1},
         {eventNotBump, respondDriveLow, 0},
         {eventBump, respondTurn, 0}    
@@ -95,7 +146,7 @@ int main(void)
         3  //number of events
     };
 
-    erPair erS1[2] = {//event responder pairs for state 1
+    transition erS1[2] = {//transitions for state 1
         {eventNotBump, respondDriveMed, 1},
         {eventBump, respondTurn, 0}
     };
@@ -145,49 +196,11 @@ int main(void)
     }
     //*/
 
-    // Declare the variables necessary to support timer-based interrupts.
-    struct itimerval itv;       // Specify when a timer should expire 
+    setupClock();
 
-    struct sigaction sa;        // Signal sets
-    struct sigaction toggledsa;   
-
-    // Initialize a random number generator to help with the
-    // generation of random data.
-    srand(time(NULL));  
-
-
-    //TODO: move timer setup to a seperate function
-    //with the intent of reducing clutter
-    
-    // Initialize and empty a signal set
-    sigemptyset(&sa.sa_mask);
-
-    // Set the signal set.
-    sa.sa_flags = 0;
-    sa.sa_handler = signalrmHandler;
-
-    // Update the signal set with the new flags and handler.
-    if (sigaction(SIGALRM, &sa, NULL) == -1)
+    if (myER.states[myER.curState].clockTime > 0)
     {
-        exit(EXIT_FAILURE);
-    }
-
-
-    // Initialize timer start time and period:
-    // First, the period between now and the first timer interrupt 
-    itv.it_value.tv_sec = myER.states[myER.curState].alarmTime;
-    itv.it_value.tv_usec = 0; // microseconds
-
-    // Second, the intervals between successive timer interrupts 
-    itv.it_interval.tv_sec = 0; // seconds
-    itv.it_interval.tv_usec = 0; // microseconds
-
-    if (myER.states[myER.curState].alarmTime > 0)
-    {
-        if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
-        {
-            exit(EXIT_FAILURE);
-        }
+        setClock(myER.states[myER.curState].clockTime,0);
     }
 
     // Create and initialize a robot.
@@ -206,30 +219,19 @@ int main(void)
     initialize();
     sleep(1);
 
-    // Issues that the event:responder loop must be able to handle.
-    // 1. The event:responder is accessed via a robot variable.
-    // 2. The event:responder may update itself at any response.
-    // x done x 3. The event:responder is a set of pairs of eventPredicate
-    //    and response functions.
-    // 4. Clocks must be masked whenever they aren't being checked.
-    //    (I am not sure if this is true).
-    // 5. A small library should be created to hide the complexity of clocks
-    //    from the application programmer.
-
-
     // Access the event:responder via the robot variable.  (I am doing
     // this to make sure I understand the types.  I know that I can
     // access the event:responder via myEventResponder, declared above).
-    //eventresponder * er = myRobot.er;
+    eventResponder * er = myRobot.er;
 
     // Need a pointer for the e's and a pointer for the r's.
     eventPredicate * e;
     responder * r;
-    statePointer p;
+    nextState n;
 
 
-    erPair * pairs= myER.states[myER.curState].erPairs;
-    int pairsCount = myER.states[myER.curState].count;
+    transition * transitions= myER.states[myER.curState].transitions;
+    int transitionsCount = myER.states[myER.curState].count;
 
     // Create an event loop
     while(1)
@@ -238,7 +240,7 @@ int main(void)
         //usleep(200000);
 
         //read sensor data
-        char sensDataFromRobot[150] = {'\0'};   //TODO: this array can be smaller
+        char sensDataFromRobot[ER_SENS_BUFFER_SIZE] = {'\0'};   //TODO: this array can be smaller
         receiveGroupOneSensorData(sensDataFromRobot);
         sensDataFromRobot[15] = '0'+gotAlarm; 
         gotAlarm = 0;
@@ -266,69 +268,44 @@ int main(void)
         //  POSIX.1-2001."
         // ***********************************************************
 
-
-#ifdef DONOTCOMPILE
-        // Masking the signal interrupt.
-        printf("    masking....\n");
-        sigprocmask(SIG_BLOCK, &sa.sa_mask, NULL);
-#endif
-
         int eventOccured = 0;  
 
         // Loop over all of the eventPredicate and responder pairs
         // in the current state.
         int i = 0;
-        for(i = 0; i < pairsCount; i++)
+        for(i = 0; i < transitionsCount; i++)
         {
 
             if (eventOccured == 0) 
             {
-                e = pairs[i].e; //event to check against
+                e = transitions[i].e; //event to check against
 
                 if((e)(sensDataFromRobot))
                 {
-                    r = pairs[i].r; //the responder to execute
+                    r = transitions[i].r; //the responder to execute
                     r();
 
 
-                    p = pairs[i].p; //the next state that we need to be in
-                    if (myER.curState != p) {
-                        printf("State changing from %d to %d\n",myER.curState,p);
+                    n = transitions[i].n; //the next state that we need to be in
+                    if (myER.curState != n) {
+                        printf("State changing from %d to %d\n",myER.curState,n);
                         
-                        myER.curState = p;
-                        pairs = myER.states[p].erPairs;
-                        pairsCount = myER.states[p].count;
-
-                    }
-
-
-                    //BUG: when going from event occurs but state doesn't change
-                    //      alarm isn't reset. Probable that this occurs
-                    //      across states. Investigate further.
-                    
-                    //if the next state uses a timer then set it
-                    int nextAlarm =  myER.states[myER.curState].alarmTime;
-                    if (nextAlarm > 0) 
-                    { 
-                        itv.it_value.tv_sec = nextAlarm;
-                        if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
-                        {
-                            exit(EXIT_FAILURE);
+                        myER.curState = n;
+                        transitions = myER.states[n].transitions;
+                        transitionsCount = myER.states[n].count;
+                        
+                        int nextAlarm =  myER.states[myER.curState].clockTime;
+                        if (nextAlarm > 0)  {
+                            //TODO: reset the alarm somewhere
+                            setClock(nextAlarm,0);
                         }
                     }
-                    
+ 
                     //event occured, we don't want to check anymore
                     eventOccured = 1;
                 }
             }
         }
-
-
-#ifdef DONOTCOMPILE
-        // Unmasking the signal interrupt.
-        sigprocmask(SIG_UNBLOCK, &sa.sa_mask, NULL);     
-        printf("    unmasking....\n");
-#endif
     }
     return 0;
 
