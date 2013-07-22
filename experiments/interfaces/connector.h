@@ -20,6 +20,7 @@
  * Function prototypes.  See connector.c for details on
  * this/these functions.
  */
+int conListenForService(serviceHandler * sh);
 int conInitiateConnection(char * wellKnownIP, int port, serviceType type, serviceHandler * sh);
 
 #endif

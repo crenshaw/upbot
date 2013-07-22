@@ -40,7 +40,10 @@ int servHandlerSetDefaults(serviceHandler * sh)
   if(sh == NULL) return SERV_NULL_SH;
 
   sh->typeOfService = SERV_SERVICE_NOT_SET;
+
   sh->handler = SERV_HANDLER_NOT_SET;
+  sh->eh = SERV_HANDLER_NOT_SET;
+  sh->bh = SERV_HANDLER_NOT_SET;
 
   // Make some empty strings 
   sh->port[0] = '\0';
@@ -77,7 +80,7 @@ int servHandlerSetPort(serviceHandler * sh, char * port)
 }
 
 /**
- * servHandlerSetEndpoint
+ * servHandlerSetEndpointHandle
  *
  * Given a serviceHandler, sh, set its endpointHandler field.
  *
@@ -88,11 +91,79 @@ int servHandlerSetPort(serviceHandler * sh, char * port)
  * Otherwise, return SERV_SUCCESS.  
  *
  */
-int servHandlerSetEndpoint(serviceHandler * sh, int eh)
+int servHandlerSetEndpointHandle(serviceHandler * sh, int eh)
 {
   if(sh == NULL) return SERV_NULL_SH;
 
   sh->eh = eh;
+
+  return SERV_SUCCESS;
+}
+
+/**
+ * servHandlerSetBroadcastHandle
+ *
+ * Given a serviceHandler, sh, set its broadcast hHandler field.
+ *
+ * @param[in] sh the serviceHandler to whose port field is to be set.
+ * @param[in] bh the broadcast handle (i.e., socket) value.
+ * 
+ * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
+ * Otherwise, return SERV_SUCCESS.  
+ *
+ */
+int servHandlerSetBroadcastHandle(serviceHandler * sh, int bh)
+{
+  if(sh == NULL) return SERV_NULL_SH;
+
+  sh->bh = bh;
+
+  return SERV_SUCCESS;
+}
+
+
+/**
+ * servHandlerSetType
+ *
+ * Given a serviceHandler, sh, set its endpoint type field.
+ *
+ * @param[in] sh the serviceHandler to whose port field is to be set.
+ * @param[in] et the endpoint type value (SERV_TCP_ENDPOINT or SERV_UDP_ENDPOINT).
+ * 
+ * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
+ * Otherwise, return SERV_SUCCESS.  
+ *
+ */
+int servHandlerSetType(serviceHandler * sh, int et)
+{
+
+#ifdef DONOTCOMPILE
+  if(sh == NULL) return SERV_NULL_SH;
+
+  sh->et = et;
+
+  return SERV_SUCCESS;
+#endif
+
+}
+
+/**
+ * servHandlerSetService
+ *
+ * Given a serviceHandler, sh, set its service type field.
+ *
+ * @param[in] sh the serviceHandler to whose port field is to be set.
+ * @param[in] type the service type.
+ * 
+ * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
+ * Otherwise, return SERV_SUCCESS.  
+ *
+ */
+int servHandlerSetService(serviceHandler * sh, serviceType type)
+{
+  if(sh == NULL) return SERV_NULL_SH;
+  
+  sh->typeOfService = type;
 
   return SERV_SUCCESS;
 }
@@ -113,22 +184,25 @@ int servHandlerPrint(serviceHandler * sh)
 {
   if(sh == NULL) return SERV_NULL_SH;
   
-  printf("Service Handler\n");
+  printf("\n***** SERVICE HANDLER ************************\n");
   printf("   Service type:       %s.\n", serviceNames[sh->typeOfService]);
-  printf("   Endpoint handler:   %d.\n", sh->eh); 
+  printf("   Endpoint handle:    %d.\n", sh->eh); 
+  printf("   Broadcast handle:   %d.\n", sh->bh);
 
   if(sh->handler == -1)
     {
-      printf("   Connection handler: Unset.\n");
+      printf("   Connection handle:  Unset.\n");
     }
   else
     {
-      printf("   Connection handler: %d.\n", sh->handler);
+      printf("   Connection handle:  %d.\n", sh->handler);
     }
 
   printf("   IP:                 %s.\n", sh->ip);
   printf("   Port number:        %s.\n", sh->port);    
   printf("   Interface:          %s.\n", sh->interface);
+  printf("**********************************************");
+  printf("\n\n");
 
   return SERV_SUCCESS;   
 }
@@ -158,10 +232,10 @@ int servQueryIP(serviceHandler * sh)
   // and thereby get the correct interface name.
 #ifdef GUMSTIX
   char * interfaceName = "wlan0";
-#endif
-
-#ifdef MAC
+#elif MAC
   char * interfaceName = "en1";
+#else
+  char * interfaceName = "";
 #endif
 
   if(sh == NULL) return SERV_NULL_SH;
@@ -233,13 +307,17 @@ int servQueryIP(serviceHandler * sh)
  * 2. A UDP socket for broadcasting a service or listening for
  *    broadcasts.
  *
- * @param[in] type the type of communication: SERV_TCP_ENDPOINT or
- * SERV_UDP_ENDPOINT.  
+ * @param[in] type the type of communication: SERV_TCP_ENDPOINT,
+ * SERV_UDP_BROADCAST_ENDPOINT or SERV_UDP_LISTENER_ENDPOINT.
  *
  * @param[in] port the port to use, e.g. "10005" or "22".
  *
- * @param[out] sh the serviceHandler whose xx field will be populated
- * by this call.
+ * @param[out] sh the serviceHandler whose field will be populated by
+ * this call.  If operation is successful, and the type of
+ * communication set is SERV_TCP_ENDPOINT, the endpoint handle field
+ * will be set.  If the operation is successful, and the type of
+ * communication is SERV_UDP_*_ENDPOINT, the broadcast handle field
+ * will be set.
  *
  * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
  * If port is NULL, return SERV_BAD_PORT to indicate an error.  If an
@@ -268,34 +346,50 @@ int servCreateEndpoint(int type, char * port, serviceHandler * sh)
   struct addrinfo * servinfo, *p; 
 
   // Perform error-checking on the input.
-  if(!(type == SERV_TCP_ENDPOINT || type == SERV_UDP_ENDPOINT)) return SERV_BAD_TYPE;
+  if(!(type == SERV_TCP_ENDPOINT || 
+       type == SERV_UDP_BROADCAST_ENDPOINT ||
+       type == SERV_UDP_LISTENER_ENDPOINT)) {
+    return SERV_BAD_TYPE;
+  }
+
   if(port == NULL) return SERV_BAD_PORT;
   if(sh == NULL) return SERV_NULL_SH;
   
-  // Set the hints.  The hints vary based on whether or not we want a
-  // TCP or UDP endpoint.
+  // Set the hints.  These are the criteria that getAddrInfo() will
+  // use to construct a list of possible addresses.  Most of the hints
+  // vary based on whether or not we want a TCP or UDP endpoint.
   memset(&hints, 0, sizeof(hints));
   
+
   // Initialize the hints structure based on what little we care about
   // in terms of the socket.  The goal is to listen in on host's IP
   // address on the port provided by the 'port' parameter.
-  hints.ai_family = AF_INET;          // don't care if its IPv4 or IPv6.
-  hints.ai_flags = AI_PASSIVE;        // fill in my IP automatically.
 
-  if (type == SERV_UDP_ENDPOINT) {
+  // For either TCP or UDP endpoints, we are willing to accept on any
+  // address or port.
+  hints.ai_flags = AI_PASSIVE;        
+
+  // Now for the hints that are TCP- or UDP-specific.
+  if (type == SERV_UDP_BROADCAST_ENDPOINT || type == SERV_UDP_LISTENER_ENDPOINT ) {
+    hints.ai_family = AF_UNSPEC;       // any address family
     hints.ai_socktype = SOCK_DGRAM;    // datagram-style sockets.
+    hints.ai_protocol = IPPROTO_UDP;   //  only UDP protocol 
   }
   
-  else {
+  else if (type == SERV_TCP_ENDPOINT) {
+    hints.ai_family = AF_INET;          // don't care if its IPv4 or IPv6.
     hints.ai_socktype = SOCK_STREAM;    // stream-style sockets.  
   }
-  
+
 
   // Get an Internet address that can be bound to a socket.
   if((getaddrinfo(NULL, port, &hints, &servinfo)) != 0)
     {
       return SERV_CANNOT_GET_ADDRESS;
     }
+
+  
+
     
   // As a result of the previous call to getaddrinfo(), servinfo now
   // points to a linked list of 1 or more struct addrinfos.  Note that
@@ -305,7 +399,17 @@ int servCreateEndpoint(int type, char * port, serviceHandler * sh)
     if ((s = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
       continue;   // On error, try next address in servinfo
     }
-      
+    
+    // If control reaches here, there was a succesfully created
+    // socket.
+    
+    // If we just want to create a socket to listen to UDP
+    // broadcasts, we are all done.  Get out of this loop.
+    if (type == SERV_UDP_LISTENER_ENDPOINT) {
+      printf("Successfully created listener\n");
+      break;
+    }
+  
     // Set the socket options so that local addresses may be reused.
     // For the AF_INET family, this means that the subsequent bind
     // call should succeed except in cases when there is already an
@@ -319,7 +423,7 @@ int servCreateEndpoint(int type, char * port, serviceHandler * sh)
       }
     }
 
-    if (type == SERV_UDP_ENDPOINT) {
+    if (type == SERV_UDP_BROADCAST_ENDPOINT) {
       if (setsockopt(s, SOL_SOCKET, SO_BROADCAST, &optval, sizeof(int)) == -1) {
 	return SERV_SOCK_OPT_FAILURE;  // Attempt to set socket options on this socket failed.
       }
@@ -337,10 +441,17 @@ int servCreateEndpoint(int type, char * port, serviceHandler * sh)
     return SERV_SOCK_BIND_FAILURE;  // Socket failed to bind.
   }
 
-  // Now that we have a successfully bound socket, set the endpoint handler
-  // field of the serviceHandler that was passed to this function.
-  servHandlerSetEndpoint(sh, s);
+  // Now that we have a successfully bound socket, set the appropriate
+  // handler for the serviceHandler.  If we just created a TCP socket,
+  // set the endpoint handler.  Otherwise, set the broadcast handler.
+  if(type == SERV_TCP_ENDPOINT) { 
+    servHandlerSetEndpointHandle(sh, s);
+  }
   
+  else  {
+    servHandlerSetBroadcastHandle(sh, s);
+    servHandlerPrint(sh);
+  }
   // Don't need servinfo anymore
   freeaddrinfo(servinfo);
 

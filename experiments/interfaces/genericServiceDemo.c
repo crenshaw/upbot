@@ -20,12 +20,12 @@
 #include <stdio.h>
 #include "acceptor.h"
 
-serviceHandler sh;
-
-void threadAccCreateConnection(void);
+void threadAccBroadcastService(serviceHandler * sh);
 
 int main(void)
 {
+
+  serviceHandler sh;
 
 #ifdef GUMSTIX
   printf("\n\nIt is my belief that this demo is running on a gumstix.\n\n");
@@ -35,39 +35,78 @@ int main(void)
   printf("\n\nIt is my belief that this demo is running on a mac.\n\n");
 #endif
 
-  threadAccCreateConnection();
+  int status = 0;
 
-  // Print the resulting service handler
-  servHandlerPrint(&sh);  
+  pthread_t tAccBroadcast;
+  pthread_t tAccWaitOnAccepts;
 
+#ifdef DONOTCOMPILE
+  // TODO: The sig-handler setup only needs to happen once, not once
+  // per call to accCreateConnection!  In fact, as this code becomes
+  // multi-threaded instead of multi-processed, I'm not even certain
+  // if it is necessary.  
 
-  return 0;
-
-}
-
-/**
- * threadAccCreateConnection
- *
- * This thread is in charge of creating a passive-mode endpoint and
- * waiting for other entities to establish a connection.
- */
-void threadAccCreateConnection(void)
-{
+  // When the SIGCHLD signal occurs, the status of a child process has
+  // changed and we need to call one of the wait functions to
+  // determine what has happened. The default action for SIGCHLD is to
+  // ignore the signal.  The following code alters that default so
+  // that any SIGCHLD signal is handled by the signal handler,
+  // accSigchldHandler() (see above).
+  struct sigaction sa;
+  sa.sa_handler = accSigchldHandler; 
+  sigemptyset(&sa.sa_mask);
+  sa.sa_flags = SA_RESTART;
+  
+  // Set the action.
+  if (sigaction(SIGCHLD, &sa, NULL) == -1) return ACC_SIGACTION_FAILURE;  // The action could not be set.
+#endif
 
   // Create an acceptor-side passive-mode endpoint of communication
   // for a Data Aggregator Service.
-  int status = 0;
-
-  if((status = accCreateConnection("20", SERV_DATA_SERVICE_AGGREGATOR, &sh)) != ACC_SUCCESS)
+  if((status = accCreateConnection("10005", SERV_DATA_SERVICE_AGGREGATOR, &sh)) != ACC_SUCCESS)
     {
       perror("accCreateConnection() failed.");
       printf("Status = %d\n", status);
     }
 
+  // Just to mark progress, print the resulting service handler
+  servHandlerPrint(&sh);  
+
+  // Create a thread to broadcast the service.
+  if(pthread_create(&tAccBroadcast, NULL, threadAccBroadcastService, &sh) != 0)
+    {
+      perror("pthread_create(), Accepter Broadcast:");
+      return -1;
+    }
+
+  // Create a thread to wait for entities wanting to connect to the service.
+
+  printf("Thread Created.  I shall make 10 broadcasts\n");
+
+  sleep(25);
+
+  // Just to mark progress, print the resulting service handler
+  // The broadcast handler should be set now.
+  servHandlerPrint(&sh);  
+
+  pthread_exit(NULL);
+
+  // Also gotta close my connections.
+
+  return 0;
+}
+
+/**
+ * threadAccBroadcastService
+ *
+ */
+void threadAccBroadcastService(serviceHandler * sh)
+{
+
   // At this point, we can broadcast our existence to the world, so
   // that others may know about our fantastic service.  Start the
   // thread that will perform broadcasting.
-  accBroadcastService(&sh);
+  accBroadcastService(sh);
 
   /*
     From POSIX Thread tutorial:

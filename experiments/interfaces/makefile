@@ -6,11 +6,20 @@
 # compiling for a desktop or an embedded system.
 CC = gcc
 
-# Compile the demo
+mac:	service.out prod.out
+gumstix:	gs.out
+
+
+# Compile the acceptor side of the demo for the mac
 service.out:	genericServiceDemo.c acceptor.c services.c services.h mkaddr.c
 	$(CC)  -o service.out -DMAC genericServiceDemo.c acceptor.c services.c mkaddr.c
 
-# Compile the demo for the gumstix, "gumstix service".
+# Compile the connector side of the demo for the mac
+prod.out:	genericProducerDemo.c connector.c services.c services.h mkaddr.c
+	$(CC)  -o prod.out -DMAC genericProducerDemo.c connector.c services.c mkaddr.c
+
+
+# Compile the acceptor side of the demo for the gumstix, "gumstix service".
 gs.out:	genericServiceDemo.c acceptor.c services.c services.h mkaddr.c
 	arm-linux-gcc  -o gs.out -DGUMSTIX genericServiceDemo.c acceptor.c services.c mkaddr.c
 

@@ -68,11 +68,11 @@
 
 
 
-
-
 // Types of endpoints of communication.
 #define SERV_TCP_ENDPOINT 0
-#define SERV_UDP_ENDPOINT 1
+#define SERV_UDP_BROADCAST_ENDPOINT 1
+#define SERV_UDP_LISTENER_ENDPOINT 2
+
 
 #define SERV_HANDLER_NOT_SET (-1)  // A failed socket call returns -1.  Thus, use -1 to
                                    // indicate that the socket field has not yet been set
@@ -97,7 +97,8 @@ enum serviceTypeTag {
 // easy.  Note that serviceNames and serviceTypeTag need to be carefully
 // coordinated in terms of order.  
 //
-// TODO: Find a more maintable way of doing this.
+// TODO: Find a more maintable way of doing this....not sure if there
+// is one.  -- TLC
 static char * serviceNames[4] = {"No service set", "Data Aggregator", "Data Collector", "Event:Responder"};
 
 
@@ -107,10 +108,16 @@ typedef enum serviceTypeTag serviceType;
 // service handler type.
 typedef struct serviceHandler {  
   serviceType typeOfService; /**< The type of service (see serviceType enum) */
+
   int eh;                    /**< The endpoint handler of the created connection.
 				  This is unused once the connection is established.
 				  It may be worthwhile to keep in case the connection
 				  is dropped and restablishment is necessary. */
+
+  int bh;                    /**< The endpoint handler of the
+				   broadcaster or broadcast listener
+				   associated with this serviceHandler */
+
   int handler;               /**< The handle of the established connection. */
 
   char port[SERV_MAX_PORT_LENGTH];  /**< The original port number for the connection */
@@ -128,7 +135,10 @@ typedef struct serviceHandler {
  */
 int servHandlerSetDefaults(serviceHandler * sh);
 int servHandlerSetPort(serviceHandler * sh, char * port);
-int servHandlerSetEndpoint(serviceHandler * sh, int eh);
+int servHandlerSetService(serviceHandler * sh, serviceType type);
+int servHandlerSetEndpointHandle(serviceHandler * sh, int eh);
+int servHandlerSetBroadcastHandle(serviceHandler * sh, int bh);
+int servHandlerSetType(serviceHandler * sh, int et);
 int servHandlerPrint(serviceHandler * sh);
 int servQueryIP(serviceHandler * sh);
 int servCreateEndpoint(int type, char * port, serviceHandler * sh);
