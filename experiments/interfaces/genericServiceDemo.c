@@ -79,9 +79,12 @@ int main(void)
       return -1;
     }
 
-  // Create a thread to wait for entities wanting to connect to the service.
-
   printf("Thread Created.  I shall make 10 broadcasts\n");
+
+
+  // Wait for entities to connect to the service
+  
+  
 
   sleep(25);
 
