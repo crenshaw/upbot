@@ -25,6 +25,24 @@
 // ************************************************************************
 
 /**
+ * servGetInAddr
+ *
+ * Get sockaddr, IPv4 or IPv6.
+ * 
+ * This function is local to acceptor.c and should not be made
+ * available to other source.
+ *
+ */
+void * servGetInAddr(struct sockaddr *sa)
+{
+  if (sa->sa_family == AF_INET) {
+    return &(((struct sockaddr_in*)sa)->sin_addr);
+  }
+  
+  return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+/**
  * servHandlerSetDefaults
  *
  * Given a serviceHandler, sh, set its default values.
@@ -373,7 +391,7 @@ int servCreateEndpoint(int type, char * port, serviceHandler * sh)
   if (type == SERV_UDP_BROADCAST_ENDPOINT || type == SERV_UDP_LISTENER_ENDPOINT ) {
     hints.ai_family = AF_UNSPEC;       // any address family
     hints.ai_socktype = SOCK_DGRAM;    // datagram-style sockets.
-    hints.ai_protocol = IPPROTO_UDP;   //  only UDP protocol 
+    //hints.ai_protocol = IPPROTO_UDP;   //  only UDP protocol 
   }
   
   else if (type == SERV_TCP_ENDPOINT) {
@@ -403,13 +421,6 @@ int servCreateEndpoint(int type, char * port, serviceHandler * sh)
     // If control reaches here, there was a succesfully created
     // socket.
     
-    // If we just want to create a socket to listen to UDP
-    // broadcasts, we are all done.  Get out of this loop.
-    if (type == SERV_UDP_LISTENER_ENDPOINT) {
-      printf("Successfully created listener\n");
-      break;
-    }
-  
     // Set the socket options so that local addresses may be reused.
     // For the AF_INET family, this means that the subsequent bind
     // call should succeed except in cases when there is already an
@@ -450,8 +461,8 @@ int servCreateEndpoint(int type, char * port, serviceHandler * sh)
   
   else  {
     servHandlerSetBroadcastHandle(sh, s);
-    servHandlerPrint(sh);
   }
+
   // Don't need servinfo anymore
   freeaddrinfo(servinfo);
 

@@ -133,6 +133,7 @@ typedef struct serviceHandler {
  * Function prototypes.  See services.c for details on
  * this/these functions.
  */
+void * servGetInAddr(struct sockaddr *sa);
 int servHandlerSetDefaults(serviceHandler * sh);
 int servHandlerSetPort(serviceHandler * sh, char * port);
 int servHandlerSetService(serviceHandler * sh, serviceType type);

@@ -27,106 +27,48 @@
 int conListenForService(serviceHandler * sh)
 {
 
-  int z;  
-  int x;  
-  struct sockaddr_in adr;  /* AF_INET */  
-  int len_inet;            /* length */  
-  int s;                   /* Socket */  
-  char dgram[1000];         /* Recv buffer */  
-  static int so_reuseaddr = 1;  
-  static char  
-    *bc_addr = "255.255.255.255:10005";  
+#define MAXBUFLEN 100
+
+  int sockfd;
+  struct addrinfo hints, *servinfo, *p;
+  int rv;
+  int numbytes;
+  struct sockaddr_storage their_addr;
+  char buf[MAXBUFLEN];
+  socklen_t addr_len;
+  char s[INET6_ADDRSTRLEN];
 
   // Set the default values for the serviceHandler.
   servHandlerSetDefaults(sh);
-
-#ifdef DONOTCOMPILE  
-  /* 
-   * Create a UDP socket to use: 
-   */  
-  s = socket(AF_INET,SOCK_DGRAM,0);  
-  if ( s == -1 )  
-    perror("socket()");  
-  
-#endif
 
   // Create a UDP endpoint of communication for listening for
   // broadcasted services.
   int status = servCreateEndpoint(SERV_UDP_LISTENER_ENDPOINT, "10005", sh);
 
-
   printf("Status of endpoint: %d\n", status);
 
-  /* 
-   * Form the broadcast address: 
-   */  
-  len_inet = sizeof adr;  
-  
-  z = mkaddr(&adr,  
-	     &len_inet,  
-	     bc_addr,  
-	     "udp");  
-  
-  if ( z == -1 )  
-    perror("Bad broadcast address");  
+  // The subsequent code based on tutorial from Beej, listener.c.
+  // For more details, see: http://beej.us/guide/bgnet/examples/listener.c
+  printf("listener: waiting to recvfrom...\n");
 
+  addr_len = sizeof their_addr;
+  if ((numbytes = recvfrom(sh->bh, buf, MAXBUFLEN-1 , 0,
+                           (struct sockaddr *)&their_addr, &addr_len)) == -1) {
+    perror("recvfrom");
+    exit(1);
+  }
 
+  printf("listener: got packet from %s\n",
+         inet_ntop(their_addr.ss_family,
+                   servGetInAddr((struct sockaddr *)&their_addr),
+                   s, sizeof s));
+  printf("listener: packet is %d bytes long\n", numbytes);
+  buf[numbytes] = '\0';
+  printf("listener: packet contains \"%s\"\n", buf);
 
-  
-  /* 
-   * Allow multiple listeners on the 
-   * broadcast address: 
-   */  
-  z = setsockopt(sh->bh,  
-		 SOL_SOCKET,  
-		 SO_REUSEADDR,  
-		 &so_reuseaddr,  
-		 sizeof so_reuseaddr);  
-  
-  if ( z == -1 )  
-    perror("setsockopt(SO_REUSEADDR)");  
+  close(sockfd);
 
-#ifdef DONOTCOMPILE        
-
-  /* 
-   * Bind our socket to the broadcast address: 
-   */  
-  z = bind(s,  
-	   (struct sockaddr *)&adr,  
-	   len_inet);  
-  
-  if ( z == -1 )  
-    perror("bind(2)");  
-#endif  
-  
-  while(1) {  
-    /* 
-     * Wait for a broadcast message: 
-     */  
-    z = recvfrom(sh->bh, /* Socket */  
-		 dgram,  /* Receiving buffer */  
-		 sizeof dgram,/* Max rcv buf size */  
-		 0,      /* Flags: no options */  
-		 (struct sockaddr *)&adr, /* Addr */  
-		 &x);    /* Addr len, in & out */  
-    
-    if ( z < 0 )  
-      {
-	perror("recvfrom(2)"); /* else err */  
-	exit(1);
-      }
-	
-    dgram[1000] = '\0';
-	
-    fwrite(dgram,z,1,stdout);  
-    putchar('\n');  
-    
-    fflush(stdout);  
-
-  }  
-  
-     return 0;  
- 
+  return 0; 
 }
 
 

@@ -41,24 +41,6 @@ void accSigchldHandler(int s)
   while(waitpid(-1, NULL, WNOHANG) > 0);
 }
 
-/**
- * accGetInAddr
- *
- * Get sockaddr, IPv4 or IPv6.
- * 
- * This function is local to acceptor.c and should not be made
- * available to other source.
- *
- */
-void * accGetInAddr(struct sockaddr *sa)
-{
-  if (sa->sa_family == AF_INET) {
-    return &(((struct sockaddr_in*)sa)->sin_addr);
-  }
-  
-  return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
 
 /**
  * accCreateConnection
@@ -173,7 +155,7 @@ int accAcceptConnection(serviceHandler * sh)
 	}
     }
 
-  inet_ntop(theirAddr.ss_family, accGetInAddr((struct sockaddr *)&theirAddr), pee, sizeof(pee));
+  inet_ntop(theirAddr.ss_family, servGetInAddr((struct sockaddr *)&theirAddr), pee, sizeof(pee));
 
   return ACC_SUCCESS;
 }
@@ -197,11 +179,15 @@ int accBroadcastService(serviceHandler * sh)
 
   // The broadcast address below has been observed to work
   // as a broadcast address on host IP 10.81.3.130.
-  static char * bc_addr = "10.81.3.255:10005";
+  //static char * bc_addr = "10.81.3.255:10005";
 
   // The broadcast address below has been observed to work
   // as a broadcast address on host IP 10.12.19.1.
-  // static char * bc_addr = "255.255.255.255:10005";
+  static char * bc_addr = "255.255.255.255:10005";
+
+  // Home?
+  //static char * bc_addr = "192.168.0.7.255:10005";
+
 
   struct sockaddr_in adr_bc;  /* AF_INET */  
   int len_bc;
