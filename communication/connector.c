@@ -66,7 +66,7 @@ int conListenForService(serviceHandler * sh)
   buf[numbytes] = '\0';
   printf("listener: packet contains \"%s\"\n", buf);
 
-  close(sockfd);
+  close(sh->bh);
 
   return 0; 
 }

@@ -83,8 +83,9 @@ int main(void)
 
 
   // Wait for entities to connect to the service
-  
-  
+  // For now, I've established an early proof of correctness
+  // by testing it out with telnet.
+  accAcceptConnection(&sh);  
 
   sleep(25);
 

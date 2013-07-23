@@ -4,24 +4,60 @@
 # 
 # Note: One may want to change the compiler CC based on if they are
 # compiling for a desktop or an embedded system.
-CC = gcc
+CC=gcc
+VPATH=../../communication
+CFLAGS+=-pthread -I ../../communication
 
-mac:	service.out prod.out
+native:	service.out prod.out
 gumstix:	gs.out
 
+### NATIVE TARGET ####
 
-# Compile the acceptor side of the demo for the mac
-service.out:	genericServiceDemo.c acceptor.c services.c services.h mkaddr.c
-	$(CC) -pthread -o service.out -DMAC genericServiceDemo.c acceptor.c services.c mkaddr.c
+# Compile the acceptor side of the demo for a native machine.
+service.out:	genericServiceDemo.c acceptor.o services.o services.h mkaddr.c
+	$(CC) $(CFLAGS) -o service.out -DMAC genericServiceDemo.c acceptor.o services.o mkaddr.c
 
-# Compile the connector side of the demo for the mac
-prod.out:	genericProducerDemo.c connector.c services.c services.h mkaddr.c
-	$(CC)  -pthread -o prod.out -DMAC genericProducerDemo.c connector.c services.c mkaddr.c
+# Compile the connector side of the demo for a native machine.
+prod.out:	genericProducerDemo.c connector.o services.o services.h mkaddr.c
+	$(CC) $(CFLAGS)  -o prod.out -DMAC genericProducerDemo.c connector.o services.o mkaddr.c
 
+genericServiceDemo.o:	genericServiceDemo.c services.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+
+### Some sources are not located in this directory.  Use VPATH and automatic
+### variables to build them.
+acceptor.o:	acceptor.c acceptor.h services.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+connector.o:	connector.c connector.h services.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+services.o:	services.c services.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+
+
+### GUMSTIX TARGET ####
 
 # Compile the acceptor side of the demo for the gumstix, "gumstix service".
-gs.out:	genericServiceDemo.c acceptor.c services.c services.h mkaddr.c
-	arm-linux-gcc  -pthread -o gs.out -DGUMSTIX genericServiceDemo.c acceptor.c services.c mkaddr.c
+gs.out:	genericServiceDemoG.o acceptorG.o servicesG.o services.h mkaddr.c
+	arm-linux-gcc  $(CFLAGS) -o gs.out -DGUMSTIX genericServiceDemo.c acceptor.c services.c mkaddr.c
+
+genericServiceDemoG.o:	genericServiceDemo.c services.h
+	arm-linux-gcc $(CFLAGS) -o $@ -c $<
+
+### Some sources are not located in this directory.  Use VPATH and automatic
+### variables to build them.
+acceptorG.o:	acceptor.c acceptor.h services.h
+	arm-linux-gcc $(CFLAGS) -o $@ -c $<
+
+connectorG.o:	connector.c connector.h services.h
+	arm-linux-gcc $(CFLAGS) -o $@ -c $<
+
+servicesG.o:	services.c services.h
+	arm-linux-gcc $(CFLAGS) -o $@ -c $<
 
 clean:
 	rm *.out
+	rm *.o
