@@ -156,14 +156,15 @@ void writeCommandToFile(char* cmd, FILE* fp)
 int writeCommandToMessageQueue(char* cmd, mqd_t qd)
 {
   
-  char * timestamp = getTime();
+  //char * timestamp = getTime();
 
-  char msg[strlen(timestamp)+2];
-
+  //char msg[strlen(timestamp)+2];
+  char msg[2];
   msg[0] = *cmd;
-  strcat(msg," ");
-  strcat(msg,timestamp);
-  msg[strlen(msg)-1] = '\0';
+  //strcat(msg," ");
+  //strcat(msg,timestamp);
+  msg[1] = '\0';
+  //msg[strlen(msg)-1] = '\0';
   printf("size %d\n",strlen(msg));
 
   
