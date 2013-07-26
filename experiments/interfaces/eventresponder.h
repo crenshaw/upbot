@@ -111,8 +111,4 @@ typedef struct eventResponderTag {
   int stateCount;       /**< The number of states within the event responder */
 } eventResponder;
 
-
-//TODO:create a new default responder
-eventResponder erDefault = {};
-
 #endif
