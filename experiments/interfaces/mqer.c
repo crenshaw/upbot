@@ -61,7 +61,7 @@ void mq_getMsg(mqd_t mqd_cmd, char* buffer) {
 }
 
 void setEventResponder(char * erName) {
-  //TODO: cleanup old event responder, don't forget to free
+  cleanupER();
 
   selectNextER(erName);
   
@@ -91,7 +91,8 @@ int main(void)
       //check if this command is telling us to stop
       if (strcmp(cmd_buffer,STOP_MESSAGE) == 0) {
         //TODO: should probally stop the robot and
-        //shut down the program. (don't forget to free)
+        //shut down the program. 
+        cleanupER();
       }
 
       setEventResponder(cmd_buffer); 
@@ -245,7 +246,7 @@ mqd_t setupNetworkQueue() {
     return -1;
   } 
 
-  /* Create a posix thread for each Alice and Bob threads.
+  /* Create a posix thread for net.
    */
   if(pthread_create(&tCmdNet, NULL, thread_cmdNet_start, mqd_cmd) != 0)
   {
