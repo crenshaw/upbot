@@ -9,7 +9,7 @@ VPATH=../../communication
 CFLAGS+=-pthread -I ../../communication
 
 native:	service.out prod.out
-gumstix:	gs.out
+gumstix:	gs.out ps.out
 
 ### NATIVE TARGET ####
 
@@ -41,10 +41,17 @@ services.o:	services.c acceptor.h connector.h services.h
 ### GUMSTIX TARGET ####
 
 # Compile the acceptor side of the demo for the gumstix, "gumstix service".
-gs.out:	genericServiceDemoG.o acceptorG.o servicesG.o services.h mkaddr.c
-	arm-linux-gcc  $(CFLAGS) -o gs.out -DGUMSTIX genericServiceDemo.c acceptor.c services.c mkaddr.c
+gs.out:	genericServiceDemoG.o acceptorG.o connectorG.o servicesG.o services.h mkaddr.c
+	arm-linux-gcc  $(CFLAGS) -o gs.out -DGUMSTIX genericServiceDemo.c acceptorG.o connectorG.o servicesG.o mkaddr.c
+
+# Compile the connector side of the demo for a native machine.
+ps.out:	genericProducerDemoG.o acceptorG.o connectorG.o servicesG.o services.h mkaddr.c
+	arm-linux-gcc  $(CFLAGS) -o ps.out -DGUMSTIX genericProducerDemo.c acceptorG.o connectorG.o servicesG.o mkaddr.c 
 
 genericServiceDemoG.o:	genericServiceDemo.c services.h
+	arm-linux-gcc $(CFLAGS) -DGUMSTIX -o $@ -c $<
+
+genericProducerDemoG.o:	genericProducerDemo.c services.h
 	arm-linux-gcc $(CFLAGS) -DGUMSTIX -o $@ -c $<
 
 ### Some sources are not located in this directory.  Use VPATH and automatic

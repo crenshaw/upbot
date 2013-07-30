@@ -163,6 +163,7 @@ int servStart(serviceType type, serviceHandler * sh)
   if(type == SERV_DATA_SERVICE_COLLECTOR)
     {
       // Listen for a service to connect with.
+      printf("Listening for a service...\n");
 
       // Note: Since aggregators always broadcast on a particular port and
       // collectors always listen on a particular port, it's enough for
@@ -331,10 +332,10 @@ void * servGetInAddr(struct sockaddr *sa)
  * 
  * @param[in] s the serviceType, e.g., SERV_DATA_SERVICE_AGGREGATOR or
  * SERV_DATA_SERVICE_COLLECTOR (the two halves of the data service
- * that communicate on port "10005").
+ * that communicate on port "10006").
  * 
  * @returns a pointer to the string representing the port number,
- * e.g., "10005".  If the serviceType is SERV_SERVICE_NOT_SET or
+ * e.g., "10006".  If the serviceType is SERV_SERVICE_NOT_SET or
  * SERV_NUMBER_OF_SERVICES, the empty string is returned, "".
  *
  */
@@ -601,7 +602,8 @@ int servQueryIP(serviceHandler * sh)
 #ifdef GUMSTIX
   char * interfaceName = "wlan0";
 #elif MAC
-  char * interfaceName = "en0";
+  char * interfaceName = "en0";        // TODO: I need to make this better than
+  // char * interfaceName = "eth0";    // a hard-coded variable I have to change all the time!
 #else
   char * interfaceName = "";
 #endif
@@ -707,7 +709,7 @@ int servQueryIP(serviceHandler * sh)
  * SERV_TCP_ACCEPTOR_ENDPOINT, SERV_TCP_CONNECTOR_ENDPOINT,
  * SERV_UDP_BROADCAST_ENDPOINT or SERV_UDP_LISTENER_ENDPOINT.
  *
- * @param[in] port the port to use, e.g. "10005" or "22".
+ * @param[in] port the port to use, e.g. "10006" or "22".
  *
  * @param[out] sh the serviceHandler whose field will be populated by
  * this call.  If operation is successful, and the type of

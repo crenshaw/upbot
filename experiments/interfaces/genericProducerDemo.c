@@ -16,11 +16,11 @@ int main(void)
   serviceHandler sh;
 
 #ifdef GUMSTIX
-  printf("\n\nIt is my belief that this demo is running on a gumstix.\n\n");
+  printf("\n\nIt is my belief that this producer demo is running on a gumstix.\n\n");
 #endif
 
 #ifdef MAC
-  printf("\n\nIt is my belief that this demo is running on a mac.\n\n");
+  printf("\n\nIt is my belief that this producer demo is running on a mac.\n\n");
 #endif
 
   // Start up a data service, collector endpoint.

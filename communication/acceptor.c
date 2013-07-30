@@ -182,14 +182,14 @@ int accBroadcastService(serviceHandler * sh)
 
   // The broadcast address below has been observed to work
   // as a broadcast address on host IP 10.81.3.130.
-  //static char * bc_addr = "10.81.3.255:10005";
+  //static char * bc_addr = "10.81.3.255:10006";
 
   // The broadcast address below has been observed to work
   // as a broadcast address on host IP 10.12.19.1.
   //
   // TODO: Concatenate the broadcast address to the 
   // port extracted from the incoming service handler.
-  static char * bc_addr = "255.255.255.255:10005";
+  static char * bc_addr = "255.255.255.255:10006";
 
   struct sockaddr_in adr_bc;  /* AF_INET */  
   int len_bc;

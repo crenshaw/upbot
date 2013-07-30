@@ -41,7 +41,7 @@
  *  CONSTANT DEFINITIONS.  All constants in this file should begin
  *  with 'ER' to indicate their membership in eventresponder.h  
  */
-#define SERV_MAX_PORT_LENGTH 6 // e.g., "10005"
+#define SERV_MAX_PORT_LENGTH 6 // e.g., "10006"
 #define SERV_MAX_IP_LENGTH 19  // e.g., "::ffff:10.81.3.131"
 #define SERV_MAX_INTERFACE_LENGTH 10 // e.g., "en1" or "wlan0"
 
@@ -109,8 +109,8 @@ enum endpointTypeTag {
                                    // for a service handler.
 
 // Define the transport protocol ports that the services will be using.
-#define SERV_DATA_SERVICE_PORT "10005"
-#define SERV_EVENT_RESPONDER_SERVICE_PORT "10006"
+#define SERV_DATA_SERVICE_PORT "10006"
+#define SERV_EVENT_RESPONDER_SERVICE_PORT "10007"
 #define SERV_PORT_NOT_SET ""
 
 // Entities in the system access services via a service handler.
