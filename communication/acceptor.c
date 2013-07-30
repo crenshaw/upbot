@@ -25,24 +25,6 @@
 #include "services.h"
 
 /**
- * accSigchldHandler
- *
- * This function is an interrupt-driven function which 
- * reaps dead children that are forked by the server.
- *
- * This function is local to acceptor.c and should not be made
- * available to other source.
- */
-void accSigchldHandler(int s)
-{
-  // The waitpid() call waits for a child process to reach a certain
-  // state.  The WNOHANG option means that the waitpid() call will
-  // return immediately if no child has exited.
-  while(waitpid(-1, NULL, WNOHANG) > 0);
-}
-
-
-/**
  * accCreateConnection
  *
  * Create a passive-mode socket, bind it to a particular port number
@@ -64,6 +46,9 @@ void accSigchldHandler(int s)
  *
  * If the child reaper cannot be set using setaction(), the function returns
  * ACC_SIGACTION_FAILURE.
+ *
+ * If the IP of this device cannot be determined, the function returns
+ * SERV_NO_DEVICE_IP.
  *
  * Adapted from: "Advance Programming in the UNIX Environment."  page
  * 501 as well as "Beej's Guide to Network Programming."
@@ -96,7 +81,7 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
   servHandlerSetDefaults(sh);
 
   // Create an endpoint of communication.
-  if((result = servCreateEndpoint(SERV_TCP_ENDPOINT, port, sh)) != SERV_SUCCESS) return result;
+  if((result = servCreateEndpoint(SERV_TCP_ACCEPTOR_ENDPOINT, port, sh)) != SERV_SUCCESS) return result;
 
   // Endpoint of communication has been successfully created, so we
   // can set the service type and port fields in the serviceHandler.
@@ -107,7 +92,10 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
   // to the socket was likely 0.0.0.0 or 127.0.0.0 since NULL was the
   // first parameter in the getaddrinfo() call.  Instead, we want the
   // IP of the ethernet or wireless interface on this machine.  
-  servQueryIP(sh);
+  if(servQueryIP(sh) == SERV_NO_DEVICE_IP)
+    {
+      return SERV_NO_DEVICE_IP;  
+    }
 
   // The passive-mode endpoint has successfully been created.  Now it
   // is time to listen and wait for another entity to approach and
@@ -121,16 +109,13 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
  * accAcceptConnection
  *
  * Given a fully-populated serviceHandler, sh, wait for an approach on
- * the endpoint handler (i.e., socket) prescribed by sh.
-
- * and set up listening passively for the
- * arrival of connection requests.  Since listening passively can be a
- * blocking call (i.e. accept()), it may be worthwhile to use this
- * function in a separate thread.
+ * the endpoint handler (i.e., socket) prescribed by sh and set up
+ * listening passively for the arrival of connection requests.  Since
+ * listening passively can be a blocking call (i.e. accept()), it may
+ * be worthwhile to use this function in a separate thread.
  *
  * To reiterate: This function blocks until a connection is
  * established!
-
  *
  * @returns ACC_SOCK_ACCEPT_FAILURE if the accept() call fails.  Otherwise,
  * ACC_SUCCESS to indicate a succesfully established connection.
@@ -138,11 +123,17 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
  */
 int accAcceptConnection(serviceHandler * sh)
 {
-  char pee[INET6_ADDRSTRLEN];
+
+  // TODO: This should run as long as I can accept more collectors.  Right now
+  // it will only accept one collector.
+
+  char p[INET6_ADDRSTRLEN];
   struct sockaddr_storage theirAddr; // connector's address information
   int newSock = -1;
   socklen_t size;
-  
+
+  printf("Waiting for connections...\n");
+
   // Wait for an approach.  Note that the accept() call blocks until a
   // connection is established.
   while (newSock == -1) 
@@ -155,8 +146,20 @@ int accAcceptConnection(serviceHandler * sh)
 	}
     }
 
-  inet_ntop(theirAddr.ss_family, servGetInAddr((struct sockaddr *)&theirAddr), pee, sizeof(pee));
+  inet_ntop(theirAddr.ss_family, servGetInAddr((struct sockaddr *)&theirAddr), p, sizeof(p));
 
+  // Create a thread to activate the functionality that will be
+  // servicing this connection from this point forward. The function
+  // servActivate() will look at the type of service in sh and create
+  // a thread that will call the correct activate() function to
+  // service the endpoint from this point forward.
+  int status = servActivate(sh);
+
+  // TODO: Need to return status, not just blind success.
+  
+  // TODO:  This function represents a thread of execution that should
+  // eventually be cleaned up. 
+  
   return ACC_SUCCESS;
 }
 
@@ -170,10 +173,10 @@ int accAcceptConnection(serviceHandler * sh)
 int accBroadcastService(serviceHandler * sh)
 {
 
-  // TODO: Get the port from the service handler 
-  // instead of using a hard-coded one.
+  // Extract the target port from the incoming service handler.
+  char * port = sh->port;
 
-  int howManyBroadcasts = 10;
+  int howManyBroadcasts = 100;
   int result = -1;  
   int s;       
 
@@ -183,11 +186,10 @@ int accBroadcastService(serviceHandler * sh)
 
   // The broadcast address below has been observed to work
   // as a broadcast address on host IP 10.12.19.1.
+  //
+  // TODO: Concatenate the broadcast address to the 
+  // port extracted from the incoming service handler.
   static char * bc_addr = "255.255.255.255:10005";
-
-  // Home?
-  //static char * bc_addr = "192.168.0.7.255:10005";
-
 
   struct sockaddr_in adr_bc;  /* AF_INET */  
   int len_bc;
@@ -197,7 +199,6 @@ int accBroadcastService(serviceHandler * sh)
 
   len_bc = sizeof adr_bc;  
 
-
   // Create a broadcast address.  
   if( mkaddr(&adr_bc, &len_bc, bc_addr, "udp") == -1)
     {      
@@ -205,9 +206,9 @@ int accBroadcastService(serviceHandler * sh)
     }
 
   // Create a UDP endpoint of communication for broadcasting the
-  // service.
-  servCreateEndpoint(SERV_UDP_BROADCAST_ENDPOINT, "10005", sh);
-
+  // service.  Use the port number extracted from the incoming
+  // service handler.
+  servCreateEndpoint(SERV_UDP_BROADCAST_ENDPOINT, port, sh);
   
   while(howManyBroadcasts)
     {
@@ -224,15 +225,13 @@ int accBroadcastService(serviceHandler * sh)
       
       if ( result == -1 )  
 	{
-	  perror("sendto\n");
-	  return -1;
+	  perror("Cannot send broadcast: ");
 	}
       
       sleep(2);
 
       howManyBroadcasts--;
-    }
-  
+    }  
 }
 
 

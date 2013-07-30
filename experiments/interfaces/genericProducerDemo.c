@@ -23,10 +23,10 @@ int main(void)
   printf("\n\nIt is my belief that this demo is running on a mac.\n\n");
 #endif
 
-  int status = 0;
+  // Start up a data service, collector endpoint.
+  servStart(SERV_DATA_SERVICE_COLLECTOR, &sh);
 
-
-  conListenForService(&sh);
+  
 
   return 0;
 
