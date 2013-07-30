@@ -32,7 +32,7 @@
  * 
  * Failure Modes: 
  *
- * If either of the parameters are NULL, the functions
+ * If either of the parameters, port or sh, are NULL, the functions
  * returns ACC_BAD_PORT or ACC_NULL_SH.
  *
  * If the socket options cannot be set, the function returns
@@ -77,9 +77,6 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
   if(sh == NULL) return ACC_NULL_SH;
   if(port == NULL) return ACC_BAD_PORT;
 
-  // Set the default values for the serviceHandler.
-  servHandlerSetDefaults(sh);
-
   // Create an endpoint of communication.
   if((result = servCreateEndpoint(SERV_TCP_ACCEPTOR_ENDPOINT, port, sh)) != SERV_SUCCESS) return result;
 
@@ -87,15 +84,6 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
   // can set the service type and port fields in the serviceHandler.
   servHandlerSetService(sh, type);
   servHandlerSetPort(sh, port);
-
-  // Populate sh with the IP of this device.  Note that the IP bound
-  // to the socket was likely 0.0.0.0 or 127.0.0.0 since NULL was the
-  // first parameter in the getaddrinfo() call.  Instead, we want the
-  // IP of the ethernet or wireless interface on this machine.  
-  if(servQueryIP(sh) == SERV_NO_DEVICE_IP)
-    {
-      return SERV_NO_DEVICE_IP;  
-    }
 
   // The passive-mode endpoint has successfully been created.  Now it
   // is time to listen and wait for another entity to approach and
@@ -182,14 +170,14 @@ int accBroadcastService(serviceHandler * sh)
 
   // The broadcast address below has been observed to work
   // as a broadcast address on host IP 10.81.3.130.
-  //static char * bc_addr = "10.81.3.255:10006";
+  static char * bc_addr = "10.81.3.255:10006";
 
   // The broadcast address below has been observed to work
   // as a broadcast address on host IP 10.12.19.1.
   //
   // TODO: Concatenate the broadcast address to the 
   // port extracted from the incoming service handler.
-  static char * bc_addr = "255.255.255.255:10006";
+  //static char * bc_addr = "255.255.255.255:10006";
 
   struct sockaddr_in adr_bc;  /* AF_INET */  
   int len_bc;

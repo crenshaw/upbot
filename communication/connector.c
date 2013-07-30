@@ -15,6 +15,8 @@
  * @since July 2013
  */
 
+#define DEBUG 1
+
 #include "connector.h"
 #include "services.h"
 
@@ -44,8 +46,8 @@ int conListenForService(serviceType type, serviceHandler * sh)
   socklen_t addr_len;
   char s[INET6_ADDRSTRLEN];
 
-  // Set the default values for the serviceHandler.
-  servHandlerSetDefaults(sh);
+  if(sh == NULL)
+    return -1;  //TODO: Improve error codes for this call.
   
   // Extract the port from the type and populate the serviceHandler
   // with the port.
@@ -54,8 +56,11 @@ int conListenForService(serviceType type, serviceHandler * sh)
 
   // Create a UDP endpoint of communication for listening for
   // broadcasted services.
-  // TODO: Need to setup sh->port!
   int status = servCreateEndpoint(SERV_UDP_LISTENER_ENDPOINT, port, sh);
+
+#ifdef DEBUG
+  servHandlerPrint(sh);  
+#endif
 
   if(status != SERV_SUCCESS)
     {

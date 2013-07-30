@@ -26,8 +26,6 @@ int main(void)
   // Start up a data service, collector endpoint.
   servStart(SERV_DATA_SERVICE_COLLECTOR, &sh);
 
-  
-
   return 0;
 
 }

@@ -115,9 +115,30 @@ int servStart(serviceType type, serviceHandler * sh)
   if (sigaction(SIGCHLD, &sa, NULL) == -1) return ACC_SIGACTION_FAILURE;  // The action could not be set.
 #endif
 
-  // This is a generic function to start any of the possible service
-  // endpoints.  There are multiple kinds of service endpoints, but
-  // all endpoints are placed into two categories:
+
+  // The first step is to set the default values for the
+  // serviceHandler.
+  // This call should be made *here* and not in connector or
+  // acceptor functionality.  This limits the locations where the
+  // defaults get set and hopefully avoids bugs.
+  servHandlerSetDefaults(sh);
+
+  // Now, let us fill the serviceHandler with what we know so far:
+
+  // Populate sh with the IP of this device.  Note that the IP eventually bound
+  // to the socket may likely be 0.0.0.0 or 127.0.0.0.  Instead, we
+  // want the IP of the external interface on this machine.
+  if(servQueryIP(sh) == SERV_NO_DEVICE_IP)
+    {
+      return SERV_NO_DEVICE_IP;  
+    }
+
+  
+
+
+  // Recall that this is a generic function to start any of the
+  // possible service endpoints.  There are multiple kinds of service
+  // endpoints, but all endpoints are placed into two categories:
   //
   // Acceptor endpoints.  Create an endpoint of communication,
   // broadcast a service, and wait passively for other entities to
@@ -127,8 +148,8 @@ int servStart(serviceType type, serviceHandler * sh)
   // for broadcasts, and actively approach other acceptor endpoints to
   // establish a fully-connected line of communication.
 
-  // So, the first step is to figure out: is this an acceptor or a
-  // connector?
+  // So, with a partially-populated serviceHandler, we need to figure
+  // out: is this an acceptor or a connector?
 
   // Is it an acceptor?  Right now, there are only two kinds of
   // acceptors:
@@ -162,6 +183,10 @@ int servStart(serviceType type, serviceHandler * sh)
 
   if(type == SERV_DATA_SERVICE_COLLECTOR)
     {
+      // Populate the serviceHandler with the information that is known
+      // thus far.
+      servHandlerSetService(sh, type);  // Set the type of service.
+
       // Listen for a service to connect with.
       printf("Listening for a service...\n");
 
