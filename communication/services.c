@@ -17,6 +17,8 @@
  *
  */
 
+#define DEBUG 1
+
 #include "services.h"
 #include "acceptor.h"
 #include "connector.h"
@@ -40,6 +42,88 @@ void servSigchldHandler(int s)
   // state.  The WNOHANG option means that the waitpid() call will
   // return immediately if no child has exited.
   while(waitpid(-1, NULL, WNOHANG) > 0);
+}
+
+
+/**
+ * servGetInAddr
+ *
+ * Get sockaddr, IPv4 or IPv6.
+ *
+ * @param[in] sa a pointer to a socket address whose IP we are
+ * interested in obtaining.
+ *
+ * @returns a pointer to the IPv4 or IPv6 address.  The sa_family
+ * field of the input parameter controls which type of IP is returned.
+ * If sa_family is AF_INET, the IPv4 address is returned.  Otherwise,
+ * IPv6 is returned.
+ */
+void * servGetInAddr(struct sockaddr * sa)
+{
+  if (sa->sa_family == AF_INET) {
+    return &(((struct sockaddr_in*)sa)->sin_addr);
+  }
+  
+  return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+/**
+ * servPrintSocketAddr
+ *
+ * Given a socket address, sa, pretty-print its IPv4 or IPv6
+ * addresses.  
+ * 
+ * NOTE: This function was created for debugging purposes and is not
+ * required for the essential functionality of the UPBOT system.
+ *
+ * NOTE: This function is based on code in "TCP/IP Sockets in C" by
+ * Donahoo et al., page 42.
+ *
+ * @param[in] address the socket address to print. 
+ *
+ * @returns nothing.
+ */
+void servHandlerPrintSocketAddr(struct sockaddr * sa)
+{
+
+  if(sa == NULL)
+    return;
+
+  void * numericAddress;              // Pointer to binary address.
+  char addrBuffer[INET6_ADDRSTRLEN];  // Buffer for the printable address.
+  in_port_t port = 0;                     // Port to print.
+
+  // Based on the family specified by the socket address,
+  // get the address and port.
+  switch(sa->sa_family) {
+
+  case AF_INET:
+    numericAddress = &((struct sockaddr_in *) sa)->sin_addr;
+    port = ntohs(((struct sockaddr_in *) sa)->sin_port);
+    break;
+
+  case AF_INET6:
+    numericAddress = &((struct sockaddr_in *) sa)->sin_addr;
+    port = ntohs(((struct sockaddr_in *) sa)->sin_port);
+    break;
+
+  default:
+    printf("Unknown socket type\n");
+    return;
+  }
+
+  // Convert binary to printable address
+  if(inet_ntop(sa->sa_family, numericAddress, addrBuffer, sizeof(addrBuffer)) == NULL) {
+    printf("Invalid address\n");
+  }
+  
+  else {
+    printf("%s ", addrBuffer);
+    
+    if(port != 0) printf("at port %u \n", port);
+  }
+
+  return;
 }
 
 
@@ -328,29 +412,6 @@ int servWrite(serviceHandler * sh)
 }
 
 /**
- * servGetInAddr
- *
- * Get sockaddr, IPv4 or IPv6.
- *
- * @param[in] sa a pointer to a socket address whose IP we are
- * interested in obtaining.
- *
- * @returns a pointer to the IPv4 or IPv6 address.  The sa_family
- * field of the input parameter controls which type of IP is returned.
- * If sa_family is AF_INET, the IPv4 address is returned.  Otherwise,
- * IPv6 is returned.
- */
-void * servGetInAddr(struct sockaddr *sa)
-{
-  if (sa->sa_family == AF_INET) {
-    return &(((struct sockaddr_in*)sa)->sin_addr);
-  }
-  
-  return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
-
-/**
  * servToPort
  *
  * Given a service type, return the communication port # to use.
@@ -627,7 +688,7 @@ int servQueryIP(serviceHandler * sh)
 #ifdef GUMSTIX
   char * interfaceName = "wlan0";
 #elif MAC
-  char * interfaceName = "en0";        // TODO: I need to make this better than
+  char * interfaceName = "en1";        // TODO: I need to make this better than
   // char * interfaceName = "eth0";    // a hard-coded variable I have to change all the time!
 #else
   char * interfaceName = "";
@@ -878,6 +939,11 @@ int servCreateEndpoint(endpointType type, char * port, serviceHandler * sh)
     //
     return SERV_SOCK_BIND_FAILURE;  // Socket failed to bind.
   }
+
+#ifdef DEBUG
+  printf("Endpoint created.  Address info: \n   ");
+  servHandlerPrintSocketAddr(p->ai_addr);
+#endif  
 
   // Now that we have a socket, set the appropriate handler for the
   // serviceHandler.  If we just created a TCP socket, set the

@@ -14,14 +14,17 @@ gumstix:	gs.out ps.out
 ### NATIVE TARGET ####
 
 # Compile the acceptor side of the demo for a native machine.
-service.out:	genericServiceDemo.c acceptor.o connector.o services.o services.h mkaddr.c
-	$(CC) $(CFLAGS) -o service.out -DMAC genericServiceDemo.c acceptor.o connector.o services.o mkaddr.c
+service.out:	genericServiceDemo.o acceptor.o connector.o services.o services.h mkaddr.c
+	$(CC) $(CFLAGS) -o service.out -DMAC genericServiceDemo.o acceptor.o connector.o services.o mkaddr.c
 
 # Compile the connector side of the demo for a native machine.
-prod.out:	genericProducerDemo.c connector.o acceptor.o services.o services.h mkaddr.c
-	$(CC) $(CFLAGS)  -o prod.out -DMAC genericProducerDemo.c connector.o acceptor.o services.o mkaddr.c
+prod.out:	genericProducerDemo.o connector.o acceptor.o services.o services.h mkaddr.c
+	$(CC) $(CFLAGS)  -o prod.out -DMAC genericProducerDemo.o connector.o acceptor.o services.o mkaddr.c
 
 genericServiceDemo.o:	genericServiceDemo.c services.h
+	$(CC) $(CFLAGS) -o $@ -c $<
+
+genericProducerDemo.o:	genericProducerDemo.c services.h
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 

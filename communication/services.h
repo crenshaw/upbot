@@ -174,7 +174,9 @@ typedef struct serviceHandler {
  * Function prototypes.  See services.c for details on these
  * functions.
  */
-void * servGetInAddr(struct sockaddr *sa);
+void servHandlerPrintSocketAddr(struct sockaddr * sa);
+void * servGetInAddr(struct sockaddr * sa);
+
 char * servToPort(serviceType s);
 void * servToActivate(serviceType s);
 
@@ -187,6 +189,7 @@ int servHandlerSetType(serviceHandler * sh, int et);
 int servHandlerPrint(serviceHandler * sh);
 int servQueryIP(serviceHandler * sh);
 int servCreateEndpoint(endpointType type, char * port, serviceHandler * sh);
+
 
 /**
  * The generic activate() and all the endpoint-specific activation
