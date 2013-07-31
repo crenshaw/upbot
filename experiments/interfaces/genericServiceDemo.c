@@ -18,8 +18,14 @@
 
 void threadAccBroadcastService(serviceHandler * sh);
 
-int main(void)
+int main(int argc, char * argv[])
 {
+  // Check command line parameters.
+  if(argc != 2)
+    {
+      printf("This is a command line program that requires the interface name you'd like to communicate on, e.g., en1 or wlan0\n");
+      printf("usage: %s <interface name>\n", argv[0]);
+    }
 
 #ifdef GUMSTIX
   printf("\n\nIt is my belief that this demo is running on a gumstix.\n\n");
@@ -32,7 +38,7 @@ int main(void)
   serviceHandler sh;
 
   // Start up a data service, aggregator endpoint.
-  servStart(SERV_DATA_SERVICE_AGGREGATOR, &sh);
+  servStart(SERV_DATA_SERVICE_AGGREGATOR, argv[1], &sh);
 
   printf("Serv start returns control flow to main\n");
 

@@ -58,6 +58,7 @@
 #define SERV_SOCK_BIND_FAILURE (-10)
 #define SERV_BAD_TYPE (-11)
 #define SERV_CANNOT_CREATE_THREAD (-12)
+#define SERV_NULL_NAME (-13)
 
 #define SERV_SUCCESS (0)
 
@@ -177,19 +178,23 @@ typedef struct serviceHandler {
 void servHandlerPrintSocketAddr(struct sockaddr * sa);
 void * servGetInAddr(struct sockaddr * sa);
 
+int servStart(serviceType type, char * name, serviceHandler * sh);
+
 char * servToPort(serviceType s);
 void * servToActivate(serviceType s);
 
 int servHandlerSetDefaults(serviceHandler * sh);
+int servHandlerSetInterface(serviceHandler * sh, char * name);
 int servHandlerSetPort(serviceHandler * sh, char * port);
 int servHandlerSetService(serviceHandler * sh, serviceType type);
 int servHandlerSetEndpointHandle(serviceHandler * sh, int eh);
 int servHandlerSetBroadcastHandle(serviceHandler * sh, int bh);
 int servHandlerSetType(serviceHandler * sh, int et);
+
 int servHandlerPrint(serviceHandler * sh);
 int servQueryIP(serviceHandler * sh);
-int servCreateEndpoint(endpointType type, char * port, serviceHandler * sh);
 
+int servCreateEndpoint(endpointType type, char * port, serviceHandler * sh);
 
 /**
  * The generic activate() and all the endpoint-specific activation

@@ -165,6 +165,9 @@ int servStop(serviceHandler * sh)
  *
  * @param[in] type the type of service endpoint to start up, e.g.,
  * SERV_DATA_SERVICE_AGGREGATOR or SERV_EVENT_RESPONDER_ROBOT.
+
+ * @param[in] name the name of the external interface over which this
+ * service will be communicating on the network.
  *
  * @param[out] sh a pointer to the serviceHandler that will be
  * populated as the result of this call.  Subsequent servRead() and
@@ -173,7 +176,7 @@ int servStop(serviceHandler * sh)
  *
  * @returns an indication of success or failure.
  */
-int servStart(serviceType type, serviceHandler * sh)
+int servStart(serviceType type, char * name, serviceHandler * sh)
 {
   int status = 0;
 
@@ -207,11 +210,18 @@ int servStart(serviceType type, serviceHandler * sh)
   // defaults get set and hopefully avoids bugs.
   servHandlerSetDefaults(sh);
 
-  // Now, let us fill the serviceHandler with what we know so far:
+  // Now, let us fill the serviceHandler with what we know so far.
 
-  // Populate sh with the IP of this device.  Note that the IP eventually bound
-  // to the socket may likely be 0.0.0.0 or 127.0.0.0.  Instead, we
-  // want the IP of the external interface on this machine.
+  // Populate sh with the desired interface name for this device.
+  if((status = servHandlerSetInterface(sh, name)) != SERV_SUCCESS)
+    {
+      return status;
+    }
+
+  // Based on the desired interface name, populate sh with the IP of
+  // this device.  Note that the IP eventually bound to the socket may
+  // likely be 0.0.0.0 or 127.0.0.0.  Instead, we want the IP of the
+  // external interface on this machine.
   if(servQueryIP(sh) == SERV_NO_DEVICE_IP)
     {
       return SERV_NO_DEVICE_IP;  
@@ -508,6 +518,38 @@ int servHandlerSetDefaults(serviceHandler * sh)
 }
 
 /**
+ * servHandlerSetInterface
+ *
+ * Given a serviceHandler, sh, set its interface field to indicate the
+ * external interface by which this service shall communicate, e.g.,
+ * "en0" or "wlan0".
+ *
+ * @param[in] sh the serviceHandler to whose port field is to be set.
+ * 
+ * @param[in] name a pointer to the string representing the name of
+ * the interface.
+ * 
+ * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
+ * If name is NULL, return SERV_NULL_NAME to indicate an error.
+ * Otherwise, return SERV_SUCCESS.
+ *
+ */
+int servHandlerSetInterface(serviceHandler * sh, char * name)
+{
+
+  if(sh == NULL) return SERV_NULL_SH;
+  if(name == NULL) return SERV_NULL_NAME;
+
+  // Set the interface name in the serviceHandler.  Note that an
+  // interface name in the service handler only indicates the
+  // interface we desire, not a working or existing interface.
+  strncpy(sh->interface, name, SERV_MAX_INTERFACE_LENGTH);
+  sh->interface[SERV_MAX_INTERFACE_LENGTH - 1] = '\0';  // I don't trust strncpy.
+
+  return SERV_SUCCESS;
+}
+
+/**
  * servHandlerSetPort
  *
  * Given a serviceHandler, sh, set its port field.
@@ -665,9 +707,9 @@ int servHandlerPrint(serviceHandler * sh)
 /**
  * servQueryIP
  *
- * Get the IP address attached to a particular network device.  The
- * value is returned via the caller-allocated serviceHandler passed
- * into the function.
+ * Get the IP address attached to the interface name set for this
+ * serviceHandler. The value is returned via the caller-allocated
+ * serviceHandler passed into the function.
  *
  * @param[out] sh the serviceHandler whose IP field will be populated
  * by this call.
@@ -680,30 +722,10 @@ int servHandlerPrint(serviceHandler * sh)
  */
 int servQueryIP(serviceHandler * sh)
 {
-
-  // The name of the interface of interest is dependent on the target platform 
-  // for which this software has been compiled.  Use a compiler flag
-  // -DGUMSTIX or -DMAC (as seen in makefile) to indicate the target platform
-  // and thereby get the correct interface name.
-#ifdef GUMSTIX
-  char * interfaceName = "wlan0";
-#elif MAC
-  char * interfaceName = "en1";        // TODO: I need to make this better than
-  // char * interfaceName = "eth0";    // a hard-coded variable I have to change all the time!
-#else
-  char * interfaceName = "";
-#endif
-
   if(sh == NULL) return SERV_NULL_SH;
 
   struct ifaddrs * interfaces = NULL;
   struct ifaddrs * current = NULL;
-
-  // Set the interface name in the serviceHandler.  Note that an
-  // interface name in the service handler only indicates the
-  // interface we desire, not a working or existing interface.
-  strncpy(sh->interface, interfaceName, SERV_MAX_INTERFACE_LENGTH);
-  sh->interface[SERV_MAX_INTERFACE_LENGTH - 1] = '\0';  // I don't trust strncpy.
 
   // Get a linked-list of interfaces on this machine.
   if (!getifaddrs(&interfaces)) {
@@ -716,7 +738,7 @@ int servQueryIP(serviceHandler * sh)
       // If this interface is an Internet interface....
       if(current->ifa_addr->sa_family == AF_INET) {
 
-	if(!(strcmp(current->ifa_name, interfaceName))){
+	if(!(strcmp(current->ifa_name, sh->interface))){
 	  strncpy(sh->ip, inet_ntoa(((struct sockaddr_in*)current->ifa_addr)->sin_addr), SERV_MAX_IP_LENGTH);
 	  sh->ip[SERV_MAX_IP_LENGTH - 1] = '\0';  // I don't trust strncpy.
 

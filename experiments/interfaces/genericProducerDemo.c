@@ -10,8 +10,15 @@
 #include <stdio.h>
 #include "connector.h"
 
-int main(void)
+int main(int argc, char * argv[])
 {
+
+  // Check command line parameters.
+  if(argc != 2)
+    {
+      printf("This is a command line program that requires the interface name you'd like to communicate on, e.g., en1 or wlan0\n");
+      printf("usage: %s <interface name>\n", argv[0]);
+    }
 
   serviceHandler sh;
 
@@ -24,7 +31,7 @@ int main(void)
 #endif
 
   // Start up a data service, collector endpoint.
-  servStart(SERV_DATA_SERVICE_COLLECTOR, &sh);
+  servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], &sh);
 
   return 0;
 
