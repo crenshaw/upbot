@@ -48,15 +48,10 @@ int conListenForService(serviceType type, serviceHandler * sh)
 
   if(sh == NULL)
     return -1;  //TODO: Improve error codes for this call.
-  
-  // Extract the port from the type and populate the serviceHandler
-  // with the port.
-  char * port = servToPort(type);
-  servHandlerSetPort(sh, port);
 
   // Create a UDP endpoint of communication for listening for
   // broadcasted services.
-  int status = servCreateEndpoint(SERV_UDP_LISTENER_ENDPOINT, port, sh);
+  int status = servCreateEndpoint(SERV_UDP_LISTENER_ENDPOINT, sh->port, sh);
 
 #ifdef DEBUG
   servHandlerPrint(sh);  
@@ -134,8 +129,10 @@ int conInitiateConnection(serviceHandler * sh)
   // And...
 
   // Did it work?
-  if((status = servCreateEndpoint(SERV_TCP_CONNECTOR_ENDPOINT, sh->port, sh)) != SERV_SUCCESS)
+  if((status = servCreateEndpoint(SERV_TCP_CONNECTOR_ENDPOINT, sh->port, sh)) != SERV_SUCCESS) {
+    printf("connector.c: %d. Failed to create endpoint \n", __LINE__);  
     return status;
+  }
   
   // Create a thread to activate the functionality that will be
   // servicing this connection from this point forward. The function

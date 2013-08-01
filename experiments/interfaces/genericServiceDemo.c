@@ -37,6 +37,10 @@ int main(int argc, char * argv[])
 
   serviceHandler sh;
 
+  // The first step is to set the default values for the
+  // serviceHandler.
+  servHandlerSetDefaults(&sh);
+
   // Start up a data service, aggregator endpoint.
   servStart(SERV_DATA_SERVICE_AGGREGATOR, argv[1], &sh);
 

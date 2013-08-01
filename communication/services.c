@@ -202,14 +202,6 @@ int servStart(serviceType type, char * name, serviceHandler * sh)
   if (sigaction(SIGCHLD, &sa, NULL) == -1) return ACC_SIGACTION_FAILURE;  // The action could not be set.
 #endif
 
-
-  // The first step is to set the default values for the
-  // serviceHandler.
-  // This call should be made *here* and not in connector or
-  // acceptor functionality.  This limits the locations where the
-  // defaults get set and hopefully avoids bugs.
-  servHandlerSetDefaults(sh);
-
   // Now, let us fill the serviceHandler with what we know so far.
 
   // Populate sh with the desired interface name for this device.
@@ -227,8 +219,13 @@ int servStart(serviceType type, char * name, serviceHandler * sh)
       return SERV_NO_DEVICE_IP;  
     }
 
-  
+  // Set the type of service based on the incoming parameter.
+  servHandlerSetService(sh, type);
 
+  // Extract the port from the type and populate the serviceHandler
+  // with the port.
+  char * port = servToPort(type);
+  servHandlerSetPort(sh, port);
 
   // Recall that this is a generic function to start any of the
   // possible service endpoints.  There are multiple kinds of service
@@ -251,7 +248,7 @@ int servStart(serviceType type, char * name, serviceHandler * sh)
     {
       // Create an acceptor-side passive-mode endpoint of communication
       // for the type of service specified.
-      if((status = accCreateConnection(servToPort(type), type, sh)) != ACC_SUCCESS)
+      if((status = accCreateConnection(port, type, sh)) != ACC_SUCCESS)
 	{
 	  perror("Cannot create an endpoint of communication.\naccCreateConnection() failed: ");
 	  printf("Status = %d\n", status);
@@ -281,6 +278,11 @@ int servStart(serviceType type, char * name, serviceHandler * sh)
       // thus far.
       servHandlerSetService(sh, type);  // Set the type of service.
 
+#ifdef BROADCAST
+      // Currently the UP network is not allowing broadcast packets.  For now, 
+      // the UPBOT robotics system cannot block until this call is successful.
+      // Instead, create a thread to perform this listening activity.
+
       // Listen for a service to connect with.
       printf("Listening for a service...\n");
 
@@ -289,12 +291,34 @@ int servStart(serviceType type, char * name, serviceHandler * sh)
       // now to simply listen for any broadcasts on the data service port.
       // This call blocks until something is heard.
       conListenForService(type, sh);
+#endif
 
-      // The broadcast has been heard.  Now, establish a connection
-      // with the other endpoint of the service.
-      conInitiateConnection(sh);
+#ifndef BROADCAST
+      printf("Executing program in manual mode with remote IP\n");
+#endif
+
+
+      // Check that the remote ip, rip field, in the service handler
+      // has been set to *something*.  If so, try to initiate a
+      // connection, otherwise, return with a failure.
+      if(sh->rip[0] != '\0')
+	{
+      
+	  
+	  // The broadcast has been heard or we have a manually-set IP
+	  // address.  Now, establish a connection with the other
+	  // endpoint of the service.
+	  printf("Initiate connection status: %d\n", conInitiateConnection(sh));
+	}
+
+      else
+	{
+	  // We have no idea to whom we should connect.  Return 
+	  // and indicate a failure.
+	  printf("Cannot connect to remote IP\n");
+	  return SERV_NO_REMOTE_IP;
+	}
     }
-
 
 }
 
@@ -348,6 +372,7 @@ int servActivate(serviceHandler * sh)
       return SERV_CANNOT_CREATE_THREAD;
     }  
   
+  printf("Created thread for servicing the connection\n");
   return SERV_SUCCESS;
 
 }
@@ -545,6 +570,36 @@ int servHandlerSetInterface(serviceHandler * sh, char * name)
   // interface we desire, not a working or existing interface.
   strncpy(sh->interface, name, SERV_MAX_INTERFACE_LENGTH);
   sh->interface[SERV_MAX_INTERFACE_LENGTH - 1] = '\0';  // I don't trust strncpy.
+
+  return SERV_SUCCESS;
+}
+
+/**
+ * servHandlerSetRemoteIP.
+ *
+ * Given a serviceHandler, sh, set its rip field to indicate the
+ * remote IP address of the other service endpoint to which this
+ * service endpoint will  be paired.
+ *
+ * @param[in] sh the serviceHandler to whose port field is to be set.
+ * 
+ * @param[in] rip a pointer to the string representing the remote IP
+ * address.
+ * 
+ * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
+ * If name is NULL, return SERV_NULL_IP to indicate an error.
+ * Otherwise, return SERV_SUCCESS.
+ *
+ */
+int servHandlerSetRemoteIP(serviceHandler * sh, char * rip)
+{
+
+  if(sh == NULL) return SERV_NULL_SH;
+  if(rip == NULL) return SERV_NULL_IP;
+
+  // Set the rip field in the serviceHandler.  
+  strncpy(sh->rip, rip, SERV_MAX_IP_LENGTH);
+  sh->interface[SERV_MAX_IP_LENGTH - 1] = '\0';  // I don't trust strncpy.
 
   return SERV_SUCCESS;
 }
@@ -962,11 +1017,6 @@ int servCreateEndpoint(endpointType type, char * port, serviceHandler * sh)
     return SERV_SOCK_BIND_FAILURE;  // Socket failed to bind.
   }
 
-#ifdef DEBUG
-  printf("Endpoint created.  Address info: \n   ");
-  servHandlerPrintSocketAddr(p->ai_addr);
-#endif  
-
   // Now that we have a socket, set the appropriate handler for the
   // serviceHandler.  If we just created a TCP socket, set the
   // endpoint handler.  Otherwise, set the broadcast handler.
@@ -980,6 +1030,11 @@ int servCreateEndpoint(endpointType type, char * port, serviceHandler * sh)
 
   // Don't need servinfo anymore
   freeaddrinfo(servinfo);
+
+#ifdef DEBUG
+  printf("   Endpoint created.  Address info: \n      ");
+  servHandlerPrintSocketAddr(p->ai_addr);
+#endif  
 
   return SERV_SUCCESS;
   

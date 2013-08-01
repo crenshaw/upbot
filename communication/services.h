@@ -59,6 +59,8 @@
 #define SERV_BAD_TYPE (-11)
 #define SERV_CANNOT_CREATE_THREAD (-12)
 #define SERV_NULL_NAME (-13)
+#define SERV_NO_REMOTE_IP (-14)
+#define SERV_NULL_IP (-15)
 
 #define SERV_SUCCESS (0)
 
@@ -190,6 +192,7 @@ int servHandlerSetService(serviceHandler * sh, serviceType type);
 int servHandlerSetEndpointHandle(serviceHandler * sh, int eh);
 int servHandlerSetBroadcastHandle(serviceHandler * sh, int bh);
 int servHandlerSetType(serviceHandler * sh, int et);
+int servHandlerSetRemoteIP(serviceHandler * sh, char * rip);
 
 int servHandlerPrint(serviceHandler * sh);
 int servQueryIP(serviceHandler * sh);

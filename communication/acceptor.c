@@ -78,12 +78,10 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
   if(port == NULL) return ACC_BAD_PORT;
 
   // Create an endpoint of communication.
-  if((result = servCreateEndpoint(SERV_TCP_ACCEPTOR_ENDPOINT, port, sh)) != SERV_SUCCESS) return result;
-
-  // Endpoint of communication has been successfully created, so we
-  // can set the service type and port fields in the serviceHandler.
-  servHandlerSetService(sh, type);
-  servHandlerSetPort(sh, port);
+  if((result = servCreateEndpoint(SERV_TCP_ACCEPTOR_ENDPOINT, port, sh)) != SERV_SUCCESS) {
+    printf("acceptor.c: %d. Failed to create endpoint \n", __LINE__);
+    return result;
+  }
 
   // The passive-mode endpoint has successfully been created.  Now it
   // is time to listen and wait for another entity to approach and
@@ -170,14 +168,14 @@ int accBroadcastService(serviceHandler * sh)
 
   // The broadcast address below has been observed to work
   // as a broadcast address on host IP 10.81.3.130.
-  static char * bc_addr = "10.81.3.255:10006";
+  //static char * bc_addr = "10.81.3.255:10006";
 
   // The broadcast address below has been observed to work
   // as a broadcast address on host IP 10.12.19.1.
   //
   // TODO: Concatenate the broadcast address to the 
   // port extracted from the incoming service handler.
-  //static char * bc_addr = "255.255.255.255:10006";
+  static char * bc_addr = "255.255.255.255:10006";
 
   struct sockaddr_in adr_bc;  /* AF_INET */  
   int len_bc;
@@ -196,8 +194,12 @@ int accBroadcastService(serviceHandler * sh)
   // Create a UDP endpoint of communication for broadcasting the
   // service.  Use the port number extracted from the incoming
   // service handler.
-  servCreateEndpoint(SERV_UDP_BROADCAST_ENDPOINT, port, sh);
-  
+  if(servCreateEndpoint(SERV_UDP_BROADCAST_ENDPOINT, port, sh) != SERV_SUCCESS)
+    {
+      printf("acceptor.c: %d. Failed to create endpoint \n", __LINE__);  
+      return -1;
+    }
+
   while(howManyBroadcasts)
     {
       
