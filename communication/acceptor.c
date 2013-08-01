@@ -118,8 +118,6 @@ int accAcceptConnection(serviceHandler * sh)
   int newSock = -1;
   socklen_t size;
 
-  printf("Waiting for connections...\n");
-
   // Wait for an approach.  Note that the accept() call blocks until a
   // connection is established.
   while (newSock == -1) 
@@ -130,6 +128,11 @@ int accAcceptConnection(serviceHandler * sh)
 	{
 	  return ACC_SOCK_ACCEPT_FAILURE;
 	}
+
+      // Set the handler field with the handler value for the
+      // fully-established end-to-end connection.
+      sh->handler = newSock;
+
     }
 
   inet_ntop(theirAddr.ss_family, servGetInAddr((struct sockaddr *)&theirAddr), p, sizeof(p));
@@ -140,13 +143,11 @@ int accAcceptConnection(serviceHandler * sh)
   // a thread that will call the correct activate() function to
   // service the endpoint from this point forward.
   int status = servActivate(sh);
-
-  // TODO: Need to return status, not just blind success.
   
   // TODO:  This function represents a thread of execution that should
   // eventually be cleaned up. 
   
-  return ACC_SUCCESS;
+  return status;
 }
 
 

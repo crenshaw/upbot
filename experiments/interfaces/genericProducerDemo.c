@@ -45,6 +45,8 @@ int main(int argc, char * argv[])
 
   servHandlerPrint(&sh);
 
+  dsWrite(&sh, "Hi!");
+
   return 0;
 
 }

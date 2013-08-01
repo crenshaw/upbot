@@ -261,15 +261,17 @@ int servStart(serviceType type, char * name, serviceHandler * sh)
 	  return SERV_CANNOT_CREATE_THREAD;
 	}
 
-      // Just to mark progress, print the resulting service handler
-      servHandlerPrint(sh);  
-
       // Create a thread to wait for a connection.
       if(pthread_create(&(sh->connection), NULL, accAcceptConnection, sh) != 0)
 	{
 	  perror("Cannot create a thread to wait for connections.\npthread_create() failed: ");
 	  return SERV_CANNOT_CREATE_THREAD;
 	}
+
+      // Just to mark progress, print the resulting service handler
+      sleep(1);
+      printf("Waiting for connections on the following service handler:");
+      servHandlerPrint(sh);  
     }
 
   if(type == SERV_DATA_SERVICE_COLLECTOR)
@@ -385,23 +387,19 @@ int servActivate(serviceHandler * sh)
  * service endpoint.  For example, if one called...
  * 
  * serviceHandler sh;
- * servStart(SERV_EVENT_RESPONDER_PROGRAMMER, &sh); 
+ * servStart(SERV_DATA_SERVICE_AGGREGATOR, &sh); 
  *
  * ...then this function would return TRUE (i.e., 1) if sh was a fully
- * established connection to a SERV_EVENT_RESPONDER_ROBOT endpoint,
+ * established connection to a SERV_DATA_SERVICE_COLLECTOR endpoint,
  * making for a fully-operational and ready to access event:responder
  * service.
  */
 int servIsReady(serviceHandler * sh)
 {
 
-  // TODO: This isn't exactly accurate.  A service handler is ready
-  // when the service field representing the service thread is
-  // running.  Need to update this.  -- TLC
-  
-  // A service handler is ready if the endpoint handler has been set
-  // as that indicates a fully-connected service has been established.
-  if(sh == NULL || sh->eh == SERV_HANDLER_NOT_SET)
+  // A service handler is ready if the handler field has been set;
+  // that indicates a fully-connected service has been established.
+  if(sh == NULL || sh->handler == SERV_HANDLER_NOT_SET)
     return 0;
   else
     return 1;
@@ -500,7 +498,7 @@ void * servToActivate(serviceType s)
     return dsCollectorActivate;
   
   else if(s == SERV_DATA_SERVICE_AGGREGATOR)
-    return dsCollectorActivate; 
+    return dsAggregatorActivate; 
 
   else if(s  == SERV_EVENT_RESPONDER_ROBOT)
     return erRobotActivate; 
@@ -806,8 +804,6 @@ int servQueryIP(serviceHandler * sh)
 
 	  else
 	    {
-	      printf("Setting acceptor IP to: %s\n", sh->ip);
-
 	      // Free memory
 	      freeifaddrs(interfaces);
   
@@ -860,6 +856,8 @@ int servQueryIP(serviceHandler * sh)
  *
  * - SERV_TCP_CONNECTOR_ENDPOINT is a socket endpoint of communication
  *   for the connector half of the fully-connected TCP connection.
+ *   This is the only type of socket that attempts to connect to the
+ *   IP set in the rip field of the given serviceHandler, sh.
  *
  * - SERV_UDP_BROADCAST_ENDPOINT is a socket endpoint of communication
  *   for any service that needs to broadcast its availability to
@@ -922,20 +920,29 @@ int servCreateEndpoint(endpointType type, char * port, serviceHandler * sh)
 
   // For either TCP or UDP endpoints, we are willing to accept on any
   // address or port.
-  hints.ai_flags = AI_PASSIVE;        
+  hints.ai_family = AF_UNSPEC;       // any address family
 
   // Now for the hints that are TCP- or UDP-specific.
+
+  // AF_UNSPEC and SOCK_DGRAM and AI_PASSIVE
   if ((type == SERV_UDP_BROADCAST_ENDPOINT) || (type == SERV_UDP_LISTENER_ENDPOINT)) {
-    hints.ai_family = AF_UNSPEC;       // any address family
     hints.ai_socktype = SOCK_DGRAM;    // datagram-style sockets.
-    //hints.ai_protocol = IPPROTO_UDP;   //  only UDP protocol 
+    hints.ai_flags = AI_PASSIVE;        
   }
   
+
+  // AF_UNSPEC and SOCK_STREAM and AI_PASSIVE
   else if (type == SERV_TCP_ACCEPTOR_ENDPOINT) {
-    hints.ai_family = AF_INET;          // don't care if its IPv4 or IPv6.
     hints.ai_socktype = SOCK_STREAM;    // stream-style sockets.  
+    hints.ai_flags = AI_PASSIVE;        
   }
 
+
+  // AF_UNSPEC and SOCK_STREAM
+  else if (type == SERV_TCP_CONNECTOR_ENDPOINT) {
+    hints.ai_socktype = SOCK_STREAM;    // stream-style sockets.  
+  }
+  
 
   // If we are to create a SERV_TCP_CONNECTOR_ENDPOINT, then we must use
   // the already discovered acceptor endpoint IP to bind to the socket.
@@ -1003,6 +1010,9 @@ int servCreateEndpoint(endpointType type, char * port, serviceHandler * sh)
       {
 	if (connect(s, p->ai_addr, p->ai_addrlen) == -1) {
 	  close(s);
+
+	  printf("Could not connect \n");
+
 	  continue;
 	}
       }
@@ -1019,44 +1029,40 @@ int servCreateEndpoint(endpointType type, char * port, serviceHandler * sh)
 
   // Now that we have a socket, set the appropriate handler for the
   // serviceHandler.  If we just created a TCP socket, set the
-  // endpoint handler.  Otherwise, set the broadcast handler.
-  if((type == SERV_TCP_ACCEPTOR_ENDPOINT) || (type == SERV_TCP_CONNECTOR_ENDPOINT)) { 
+  // endpoint handler or the end-to-end handler.  Otherwise, set the
+  // broadcast handler.
+  if(type == SERV_TCP_ACCEPTOR_ENDPOINT) {
     servHandlerSetEndpointHandle(sh, s);
   }
+
+ else if(type == SERV_TCP_CONNECTOR_ENDPOINT)
+   {
+     // Set the handler field with the handler value for the
+     // fully-established end-to-end connection.
+     //
+     // TODO: Create setter for this line.
+     sh->handler = s;
+   }
   
-  else  {
+ else  {
     servHandlerSetBroadcastHandle(sh, s);
   }
-
-  // Don't need servinfo anymore
-  freeaddrinfo(servinfo);
 
 #ifdef DEBUG
   printf("   Endpoint created.  Address info: \n      ");
   servHandlerPrintSocketAddr(p->ai_addr);
 #endif  
 
+  // Don't need servinfo anymore
+  freeaddrinfo(servinfo);
+
   return SERV_SUCCESS;
   
 }
 
 
-// Stubs for all the activate() functions for the four service
-// endpoints.
-int dsAggregatorActivate(serviceHandler * sh)
-{
-
-  printf("Aggregator activated\n");
-
-}
-
-int dsCollectorActivate(serviceHandler * sh)
-{
-
-  printf("Collector activated\n");
-
-}
-
+// Stubs for all the activate() functions for the event:responder
+// service endpoints.
 int erProgrammerActivate(serviceHandler * sh)
 {
 
@@ -1087,6 +1093,104 @@ int erRobotActivate(serviceHandler * sh)
 // subscribe to sensor data.
 // 
 // ************************************************************************
+
+
+/**
+ * dsWrite()
+ *
+ * Allow an entity to write sensor data or control commands to a
+ * data service.
+ *
+ * @param[in] sh the serviceHandler for the service to which data will
+ * be written.
+ *
+ * @param[in] src a pointer to the data to be written.  The data is
+ * represented as a string of characters, and must be null-terminated
+ * using '\0'.
+ *
+ * @returns an integer value describing the success or failure of the
+ * operation.  If sh or src are NULL, the function returns
+ * SERV_NULL_SH or SERV_NULL_DATA respectively.  If the handler field
+ * of sh is not set, this means that the serviceHandler does not have
+ * an end-to-end connection with another service endpoint, so data
+ * cannot be written and SERV_NO_HANDLER is returned.
+ */
+int dsWrite(serviceHandler * sh, char * src)
+{
+
+  // Sanity check the input parameters.  If sh is null, or src is null
+  // or the handler field of the sh is not set, this function 
+  // cannot succeed.
+  if(sh == NULL) return SERV_NULL_SH;
+  if(src == NULL) return SERV_NULL_DATA;
+  if(sh->handler == SERV_HANDLER_NOT_SET) return SERV_NO_HANDLER;
+
+  // Calculate the length of the data to be sent.
+  int len = strlen(src);
+  len++;  // Add 1 to account for '\0';
+  
+  // Otherwise, attempt to send on sh->handler
+  send(sh->handler, src, (size_t)len, 0);
+    
+}
+
+/**
+ * dsAggregatorActivate
+ *
+ * For now, an aggregator service simply reads data from the handler
+ * field of the given sh and prints what it read.
+ * 
+ */
+int dsAggregatorActivate(serviceHandler * sh)
+{
+  
+  printf("Aggregator activated\n");
+
+  servHandlerPrint(sh);
+
+  int numBytes = 0;  // The number of bytes received in the last
+		     // transmission to this service.
+
+
+#define MAXDATASIZE 11
+
+  char data[MAXDATASIZE] = {'\0'};
+
+  while(1) 
+    {
+
+      /*
+      If no messages are available at the socket, the receive calls
+      wait for a message to arrive, unless the socket is nonblocking
+      (see fcntl(2)), in which case the value -1 is returned and the
+      external variable errno is set to EAGAIN or EWOULDBLOCK. The
+      receive calls normally return any data available, up to the
+      requested amount, rather than waiting for receipt of the full
+      amount requested.
+      */
+      if ((numBytes = recv(sh->handler, data, MAXDATASIZE-1, 0)) == -1)
+	{
+	  perror("recv");
+	  return -1;
+	}
+
+      // TODO: There is a weird bug in that it looks like data is
+      // being received constantly....
+      printf("Received: %s \n", data);
+    }
+}
+
+
+int dsCollectorActivate(serviceHandler * sh)
+{
+
+  printf("Collector activated.\n");
+
+  pthread_exit(NULL);
+
+}
+
+
 
 /**
  * dsCreateCollector
@@ -1190,21 +1294,3 @@ int dsGetData(serviceHandler * sh, int control, void * dest)
 }
 
 
-/**
- * dsWrite()
- *
- * Allow an entity to write sensor data or control commands to a
- * data service.
- *
- * @param[in] sh the serviceHandler for the service to which data will
- * be written.
- *
- * @param[in] src a pointer to the data to be written
- *
- * @returns an integer value describing the success or failure of the
- * operation.
- */
-int dsWrite(serviceHandler * sh, void * src)
-{
-
-}

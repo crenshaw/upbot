@@ -61,6 +61,8 @@
 #define SERV_NULL_NAME (-13)
 #define SERV_NO_REMOTE_IP (-14)
 #define SERV_NULL_IP (-15)
+#define SERV_NULL_DATA (-16)
+#define SERV_NO_HANDLER (-17)
 
 #define SERV_SUCCESS (0)
 
@@ -208,5 +210,12 @@ int dsAggregatorActivate(serviceHandler * sh);
 int dsCollectorActivate(serviceHandler * sh);
 int erProgrammerActivate(serviceHandler * sh);
 int erRobotActivate(serviceHandler * sh);
+
+
+/**
+ * Data Service API.  Again, see services.c for details on these
+ * functions.
+ */
+int dsWrite(serviceHandler * sh, char * src);
 
 #endif
