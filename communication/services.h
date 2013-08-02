@@ -41,8 +41,8 @@
  *  CONSTANT DEFINITIONS.  All constants in this file should begin
  *  with 'ER' to indicate their membership in eventresponder.h  
  */
-#define SERV_MAX_PORT_LENGTH 6 // e.g., "10005"
-#define SERV_MAX_IP_LENGTH 17  // e.g., "10.81.3.131"
+#define SERV_MAX_PORT_LENGTH 6 // e.g., "10006"
+#define SERV_MAX_IP_LENGTH 30  // e.g., "::ffff:10.81.3.131"
 #define SERV_MAX_INTERFACE_LENGTH 10 // e.g., "en1" or "wlan0"
 
 #define SERV_LOCAL_FAILURE (-1)
@@ -57,6 +57,14 @@
 #define SERV_SOCK_OPT_FAILURE (-9)
 #define SERV_SOCK_BIND_FAILURE (-10)
 #define SERV_BAD_TYPE (-11)
+#define SERV_CANNOT_CREATE_THREAD (-12)
+#define SERV_NULL_NAME (-13)
+#define SERV_NO_REMOTE_IP (-14)
+#define SERV_NULL_IP (-15)
+#define SERV_NULL_DATA (-16)
+#define SERV_NO_HANDLER (-17)
+#define SERV_BAD_BROADCAST_ADDR (-18)
+
 
 #define SERV_SUCCESS (0)
 
@@ -67,26 +75,17 @@
 #define SERV_NO_REMOTE_FAIL (0)
 
 
-
-// Types of endpoints of communication.
-#define SERV_TCP_ENDPOINT 0
-#define SERV_UDP_BROADCAST_ENDPOINT 1
-#define SERV_UDP_LISTENER_ENDPOINT 2
-
-
-#define SERV_HANDLER_NOT_SET (-1)  // A failed socket call returns -1.  Thus, use -1 to
-                                   // indicate that the socket field has not yet been set
-                                   // for a service handler.
-
 // Enumerate the different possible service types.  Note that the
 // compiler shall assign integer values to the terms
 // 'SERV_SERVICE_NOT_SET', 'SERV_DATA_SERVICE_AGGREGATOR' and so
 // on.
+typedef enum serviceTypeTag serviceType;
 enum serviceTypeTag {
   SERV_SERVICE_NOT_SET,
   SERV_DATA_SERVICE_AGGREGATOR, 
   SERV_DATA_SERVICE_COLLECTOR, 
-  SERV_EVENT_RESPONDER_SERVICE,
+  SERV_EVENT_RESPONDER_PROGRAMMER,
+  SERV_EVENT_RESPONDER_ROBOT,
   SERV_NUMBER_OF_SERVICES        // Keep this value at the end of the
                                  // list, and we can automatically
                                  // account for how many services
@@ -101,49 +100,136 @@ enum serviceTypeTag {
 // is one.  -- TLC
 static char * serviceNames[4] = {"No service set", "Data Aggregator", "Data Collector", "Event:Responder"};
 
+// Enumerate the different possible broadcast types for the services.
+// When a service is started by servStart(), it may or may not choose
+// to broadcast its availability on the network.
+typedef enum broadcastTypeTag broadcastType;
+enum broadcastTypeTag {
+  SERV_BROADCAST_ON,
+  SERV_BROADCAST_OFF,
+};
 
-typedef enum serviceTypeTag serviceType;
 
-// Entities in the system access services via a service handler.  Define the
-// service handler type.
+// Enumerate the different possible endpoints of communication.  
+typedef enum endpointTypeTag endpointType;
+enum endpointTypeTag {
+  SERV_TCP_ACCEPTOR_ENDPOINT,
+  SERV_TCP_CONNECTOR_ENDPOINT,
+  SERV_UDP_BROADCAST_ENDPOINT,
+  SERV_UDP_LISTENER_ENDPOINT
+}; 
+
+
+#define SERV_HANDLER_NOT_SET (-1)  // A failed socket call returns -1.  Thus, use -1 to
+                                   // indicate that the socket field has not yet been set
+                                   // for a service handler.
+
+// Define the transport protocol ports that the services will be using.
+#define SERV_DATA_SERVICE_PORT "10006"
+#define SERV_EVENT_RESPONDER_SERVICE_PORT "10007"
+#define SERV_PORT_NOT_SET ""
+
+// Entities in the system access services via a service handler.
+// Define the service handler type.
 typedef struct serviceHandler {  
-  serviceType typeOfService; /**< The type of service (see serviceType enum) */
+  serviceType typeOfService; /**< The type of service (see serviceType
+				enum) */
 
-  int eh;                    /**< The endpoint handler of the created connection.
-				  This is unused once the connection is established.
-				  It may be worthwhile to keep in case the connection
-				  is dropped and restablishment is necessary. */
+  int eh;                    /**< The endpoint handler of the created
+				  connection.  This is unused once the
+				  connection is established.  It may
+				  be worthwhile to keep in case the
+				  connection is dropped and
+				  restablishment is necessary. */
 
   int bh;                    /**< The endpoint handler of the
 				   broadcaster or broadcast listener
-				   associated with this serviceHandler */
+				   associated with this
+				   serviceHandler */
 
-  int handler;               /**< The handle of the established connection. */
+  int handler;               /**< The handle of the established
+				connection. */
 
-  char port[SERV_MAX_PORT_LENGTH];  /**< The original port number for the connection */
+  char port[SERV_MAX_PORT_LENGTH];  /**< The port number for the
+				       connection */
 
-  char ip[SERV_MAX_IP_LENGTH];      /**< The original IP for the connection. */
+  char ip[SERV_MAX_IP_LENGTH];      /**< The IP address of the local
+				       end of the connection. */
 
-  char interface[SERV_MAX_INTERFACE_LENGTH]; /**< The interface name of the connection, (e.g. en1 or wlan0); */
+  char bcaddr[SERV_MAX_IP_LENGTH];  /**< The broadcast IP address of the
+				       local end of the connection. */
+
+  char rip[SERV_MAX_IP_LENGTH];     /**< The IP address of the remote
+				       end of the connection.  
+
+				       TODO: Used by connector sides
+				       only?  Or should acceptor-sides
+				       keep a list of all their
+				       connections? */
+
+  char interface[SERV_MAX_INTERFACE_LENGTH]; /**< The interface name
+						of the local end of
+						the connection,
+						(e.g. en1 or
+						wlan0); */
+
+  pthread_t broadcast;              /**< The thread that will handle
+				         either broadcasting a service
+				         or listening for a
+				         broadcast */
+
+  pthread_t connection;             /**< The thread that will handle
+				       either waiting for a connection
+				       or establishing a connection */
+
+  pthread_t service;                /**< The thread that will handle
+				       the actual service
+				       functionality.  */
 
 } serviceHandler;
 
 
 /**
- * Function prototypes.  See services.c for details on
- * this/these functions.
+ * Function prototypes.  See services.c for details on these
+ * functions.
  */
-void * servGetInAddr(struct sockaddr *sa);
+void servHandlerPrintSocketAddr(struct sockaddr * sa);
+void * servGetInAddr(struct sockaddr * sa);
+
+int servStart(serviceType type, char * name, broadcastType b, serviceHandler * sh);
+
+char * servToPort(serviceType s);
+void * servToActivate(serviceType s);
+
 int servHandlerSetDefaults(serviceHandler * sh);
+int servHandlerSetInterface(serviceHandler * sh, char * name);
 int servHandlerSetPort(serviceHandler * sh, char * port);
 int servHandlerSetService(serviceHandler * sh, serviceType type);
 int servHandlerSetEndpointHandle(serviceHandler * sh, int eh);
 int servHandlerSetBroadcastHandle(serviceHandler * sh, int bh);
 int servHandlerSetType(serviceHandler * sh, int et);
+int servHandlerSetRemoteIP(serviceHandler * sh, char * rip);
+
 int servHandlerPrint(serviceHandler * sh);
 int servQueryIP(serviceHandler * sh);
-int servCreateEndpoint(int type, char * port, serviceHandler * sh);
 
-int dsCreateCollector(int connectRemote, int continueLocally, serviceHandler * sh);
+int servCreateEndpoint(endpointType type, char * port, serviceHandler * sh);
+
+/**
+ * The generic activate() and all the endpoint-specific activation
+ *  routines.  Again, see services.c for details on these functions.
+ */
+int servActivate(serviceHandler * sh);
+int dsAggregatorActivate(serviceHandler * sh);
+int dsCollectorActivate(serviceHandler * sh);
+int erProgrammerActivate(serviceHandler * sh);
+int erRobotActivate(serviceHandler * sh);
+
+
+/**
+ * Data Service API.  Again, see services.c for details on these
+ * functions.
+ */
+int dsWrite(serviceHandler * sh, char * src);
 
 #endif

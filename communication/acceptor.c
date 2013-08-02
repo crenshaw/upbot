@@ -25,24 +25,6 @@
 #include "services.h"
 
 /**
- * accSigchldHandler
- *
- * This function is an interrupt-driven function which 
- * reaps dead children that are forked by the server.
- *
- * This function is local to acceptor.c and should not be made
- * available to other source.
- */
-void accSigchldHandler(int s)
-{
-  // The waitpid() call waits for a child process to reach a certain
-  // state.  The WNOHANG option means that the waitpid() call will
-  // return immediately if no child has exited.
-  while(waitpid(-1, NULL, WNOHANG) > 0);
-}
-
-
-/**
  * accCreateConnection
  *
  * Create a passive-mode socket, bind it to a particular port number
@@ -50,7 +32,7 @@ void accSigchldHandler(int s)
  * 
  * Failure Modes: 
  *
- * If either of the parameters are NULL, the functions
+ * If either of the parameters, port or sh, are NULL, the functions
  * returns ACC_BAD_PORT or ACC_NULL_SH.
  *
  * If the socket options cannot be set, the function returns
@@ -64,6 +46,9 @@ void accSigchldHandler(int s)
  *
  * If the child reaper cannot be set using setaction(), the function returns
  * ACC_SIGACTION_FAILURE.
+ *
+ * If the IP of this device cannot be determined, the function returns
+ * SERV_NO_DEVICE_IP.
  *
  * Adapted from: "Advance Programming in the UNIX Environment."  page
  * 501 as well as "Beej's Guide to Network Programming."
@@ -92,22 +77,11 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
   if(sh == NULL) return ACC_NULL_SH;
   if(port == NULL) return ACC_BAD_PORT;
 
-  // Set the default values for the serviceHandler.
-  servHandlerSetDefaults(sh);
-
   // Create an endpoint of communication.
-  if((result = servCreateEndpoint(SERV_TCP_ENDPOINT, port, sh)) != SERV_SUCCESS) return result;
-
-  // Endpoint of communication has been successfully created, so we
-  // can set the service type and port fields in the serviceHandler.
-  servHandlerSetService(sh, type);
-  servHandlerSetPort(sh, port);
-
-  // Populate sh with the IP of this device.  Note that the IP bound
-  // to the socket was likely 0.0.0.0 or 127.0.0.0 since NULL was the
-  // first parameter in the getaddrinfo() call.  Instead, we want the
-  // IP of the ethernet or wireless interface on this machine.  
-  servQueryIP(sh);
+  if((result = servCreateEndpoint(SERV_TCP_ACCEPTOR_ENDPOINT, port, sh)) != SERV_SUCCESS) {
+    printf("acceptor.c: %d. Failed to create endpoint \n", __LINE__);
+    return result;
+  }
 
   // The passive-mode endpoint has successfully been created.  Now it
   // is time to listen and wait for another entity to approach and
@@ -121,16 +95,13 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
  * accAcceptConnection
  *
  * Given a fully-populated serviceHandler, sh, wait for an approach on
- * the endpoint handler (i.e., socket) prescribed by sh.
-
- * and set up listening passively for the
- * arrival of connection requests.  Since listening passively can be a
- * blocking call (i.e. accept()), it may be worthwhile to use this
- * function in a separate thread.
+ * the endpoint handler (i.e., socket) prescribed by sh and set up
+ * listening passively for the arrival of connection requests.  Since
+ * listening passively can be a blocking call (i.e. accept()), it may
+ * be worthwhile to use this function in a separate thread.
  *
  * To reiterate: This function blocks until a connection is
  * established!
-
  *
  * @returns ACC_SOCK_ACCEPT_FAILURE if the accept() call fails.  Otherwise,
  * ACC_SUCCESS to indicate a succesfully established connection.
@@ -138,11 +109,15 @@ int accCreateConnection(char * port, serviceType type, serviceHandler * sh)
  */
 int accAcceptConnection(serviceHandler * sh)
 {
-  char pee[INET6_ADDRSTRLEN];
+
+  // TODO: This should run as long as I can accept more collectors.  Right now
+  // it will only accept one collector.
+
+  char p[INET6_ADDRSTRLEN];
   struct sockaddr_storage theirAddr; // connector's address information
   int newSock = -1;
   socklen_t size;
-  
+
   // Wait for an approach.  Note that the accept() call blocks until a
   // connection is established.
   while (newSock == -1) 
@@ -153,11 +128,26 @@ int accAcceptConnection(serviceHandler * sh)
 	{
 	  return ACC_SOCK_ACCEPT_FAILURE;
 	}
+
+      // Set the handler field with the handler value for the
+      // fully-established end-to-end connection.
+      sh->handler = newSock;
+
     }
 
-  inet_ntop(theirAddr.ss_family, servGetInAddr((struct sockaddr *)&theirAddr), pee, sizeof(pee));
+  inet_ntop(theirAddr.ss_family, servGetInAddr((struct sockaddr *)&theirAddr), p, sizeof(p));
 
-  return ACC_SUCCESS;
+  // Create a thread to activate the functionality that will be
+  // servicing this connection from this point forward. The function
+  // servActivate() will look at the type of service in sh and create
+  // a thread that will call the correct activate() function to
+  // service the endpoint from this point forward.
+  int status = servActivate(sh);
+  
+  // TODO:  This function represents a thread of execution that should
+  // eventually be cleaned up. 
+  
+  return status;
 }
 
 
@@ -166,28 +156,37 @@ int accAcceptConnection(serviceHandler * sh)
  *
  * Broadcast the service on the network; the service's type, IP, and
  * port are described by sh.
+ * 
+ * @param[in] sh the serviceHandler representing the service to be broadcasted. 
+ * In order to properly broadcast the following field's of sh must be set: port and bcaddr.
+ *
+ * @returns If sh is NULL the function returns SERV_NULL_SH.  If the
+ * port or bcaddr are not set, it returns SERV_BAD_PORT or
+ * SERV_BAD_BROADCAST_ADDR respectively.  Otherwise, it returns
+ * SERV_SUCCESS.
+ * 
  */
 int accBroadcastService(serviceHandler * sh)
 {
 
-  // TODO: Get the port from the service handler 
-  // instead of using a hard-coded one.
+  // Sanity check the inputs.
+  if(sh == NULL) return SERV_NULL_SH;
+  if(sh->port[0] == '\0') return SERV_BAD_PORT;
+  if(sh->bcaddr[0] == '\0') return SERV_BAD_BROADCAST_ADDR;
+
+  // The inputs are all set.  Construct a broadcast address
+  // based on the port and bcaddr.
+  char bc_addr[30] = {'\0'};
+
+  // Extract the target port from the incoming service handler.
+  char * port = sh->port;
+
+  // Glue the broadcast address and port together.
+  snprintf(bc_addr, 30, "%s%s%s", sh->bcaddr, ":", port);
 
   int howManyBroadcasts = 10;
   int result = -1;  
   int s;       
-
-  // The broadcast address below has been observed to work
-  // as a broadcast address on host IP 10.81.3.130.
-  //static char * bc_addr = "10.81.3.255:10005";
-
-  // The broadcast address below has been observed to work
-  // as a broadcast address on host IP 10.12.19.1.
-  static char * bc_addr = "255.255.255.255:10005";
-
-  // Home?
-  //static char * bc_addr = "192.168.0.7.255:10005";
-
 
   struct sockaddr_in adr_bc;  /* AF_INET */  
   int len_bc;
@@ -197,7 +196,6 @@ int accBroadcastService(serviceHandler * sh)
 
   len_bc = sizeof adr_bc;  
 
-
   // Create a broadcast address.  
   if( mkaddr(&adr_bc, &len_bc, bc_addr, "udp") == -1)
     {      
@@ -205,10 +203,14 @@ int accBroadcastService(serviceHandler * sh)
     }
 
   // Create a UDP endpoint of communication for broadcasting the
-  // service.
-  servCreateEndpoint(SERV_UDP_BROADCAST_ENDPOINT, "10005", sh);
+  // service.  Use the port number extracted from the incoming
+  // service handler.
+  if(servCreateEndpoint(SERV_UDP_BROADCAST_ENDPOINT, port, sh) != SERV_SUCCESS)
+    {
+      printf("acceptor.c: %d. Failed to create endpoint \n", __LINE__);  
+      return -1;
+    }
 
-  
   while(howManyBroadcasts)
     {
       
@@ -224,15 +226,13 @@ int accBroadcastService(serviceHandler * sh)
       
       if ( result == -1 )  
 	{
-	  perror("sendto\n");
-	  return -1;
+	  perror("Cannot send broadcast: ");
 	}
       
       sleep(2);
 
       howManyBroadcasts--;
-    }
-  
+    }  
 }
 
 
