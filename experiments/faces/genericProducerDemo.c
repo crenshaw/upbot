@@ -54,12 +54,6 @@ int main(int argc, char * argv[])
 
   dsWrite(&sh, "Hi!");
 
-  // TODO: Need a protocol for gracefully shutting down the TCP connection between
-  // two service endpoints.  Otherwise, once one side has closed, the other 
-  // side goes into an insane state.  For now, I will avoid the insane state 
-  // with an infinite loop, but I'm currently working on servStop().
-  while(1);
-
   return 0;
 
 }
