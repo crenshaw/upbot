@@ -16,7 +16,8 @@ int main(int argc, char * argv[])
   // Check command line parameters.
   if( ! (argc == 2 || argc ==3 ))
     {
-      printf("This is a command line program that requires the interface name you'd like to communicate on, e.g., en1 or wlan0.  It also has an optional third parameter to manually set a remote ip address of the entity to whom you want to connect.\n");
+      printf("This is a command line program that requires the interface name you'd like to communicate on, e.g., en1 or wlan0.  It also has an optional third parameter to manually set a remote ip address of the entity to whom you want to connect.  If no ip is given, it will run in broadcast mode. \n");
+      
       printf("usage: %s <interface name> <optional remote ip>\n", argv[0]);
       return 0;
     }
@@ -24,11 +25,7 @@ int main(int argc, char * argv[])
   serviceHandler sh;
 
 #ifdef GUMSTIX
-  printf("\n\nIt is my belief that this producer demo is running on a gumstix.\n\n");
-#endif
-
-#ifdef MAC
-  printf("\n\nIt is my belief that this producer demo is running on a mac.\n\n");
+  printf("\n\nIt is my belief that this producer demo is running on a gumstix.\n");
 #endif
 
   // The first step is to set the default values for the
@@ -38,15 +35,30 @@ int main(int argc, char * argv[])
   // Manually set the remote ip if we have a third argument.
   if(argc == 3)
     {
+      printf("...Executing program in manual mode using %s\n", argv[2]);
       servHandlerSetRemoteIP(&sh, argv[2]);
-    }
 
-  // Start up a data service, collector endpoint.
-  servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], SERV_BROADCAST_ON, &sh);
+      // Start up a data service, collector endpoint.
+      servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], SERV_BROADCAST_OFF, &sh);
+    }
+  
+  else { 
+      printf("...Executing program in broadcast mode.");
+
+      // Start up a data service, collector endpoint.
+      servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], SERV_BROADCAST_ON, &sh);
+  }
+
 
   servHandlerPrint(&sh);
 
   dsWrite(&sh, "Hi!");
+
+  // TODO: Need a protocol for gracefully shutting down the TCP connection between
+  // two service endpoints.  Otherwise, once one side has closed, the other 
+  // side goes into an insane state.  For now, I will avoid the insane state 
+  // with an infinite loop, but I'm currently working on servStop().
+  while(1);
 
   return 0;
 

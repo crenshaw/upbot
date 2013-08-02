@@ -126,13 +126,13 @@ int conInitiateConnection(serviceHandler * sh)
   // Create an connector endpoint of communication to make a full
   // connection with an acceptor endpoint.
 
-  printf("connector.c: Attempting to create TCP endpoint\n");
+  printf("\nconnector: Attempting to create TCP endpoint\n");
 
   // And...
 
   // Did it work?
   if((status = servCreateEndpoint(SERV_TCP_CONNECTOR_ENDPOINT, sh->port, sh)) != SERV_SUCCESS) {
-    printf("connector.c: %d. Failed to create endpoint \n", __LINE__);  
+    printf("connector: %d. Failed to create endpoint \n", __LINE__);  
     return status;
   }
   

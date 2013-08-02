@@ -156,27 +156,37 @@ int accAcceptConnection(serviceHandler * sh)
  *
  * Broadcast the service on the network; the service's type, IP, and
  * port are described by sh.
+ * 
+ * @param[in] sh the serviceHandler representing the service to be broadcasted. 
+ * In order to properly broadcast the following field's of sh must be set: port and bcaddr.
+ *
+ * @returns If sh is NULL the function returns SERV_NULL_SH.  If the
+ * port or bcaddr are not set, it returns SERV_BAD_PORT or
+ * SERV_BAD_BROADCAST_ADDR respectively.  Otherwise, it returns
+ * SERV_SUCCESS.
+ * 
  */
 int accBroadcastService(serviceHandler * sh)
 {
 
+  // Sanity check the inputs.
+  if(sh == NULL) return SERV_NULL_SH;
+  if(sh->port[0] == '\0') return SERV_BAD_PORT;
+  if(sh->bcaddr[0] == '\0') return SERV_BAD_BROADCAST_ADDR;
+
+  // The inputs are all set.  Construct a broadcast address
+  // based on the port and bcaddr.
+  char bc_addr[30] = {'\0'};
+
   // Extract the target port from the incoming service handler.
   char * port = sh->port;
 
-  int howManyBroadcasts = 100;
+  // Glue the broadcast address and port together.
+  snprintf(bc_addr, 30, "%s%s%s", sh->bcaddr, ":", port);
+
+  int howManyBroadcasts = 10;
   int result = -1;  
   int s;       
-
-  // The broadcast address below has been observed to work
-  // as a broadcast address on host IP 10.81.3.130.
-  //static char * bc_addr = "10.81.3.255:10006";
-
-  // The broadcast address below has been observed to work
-  // as a broadcast address on host IP 10.12.19.1.
-  //
-  // TODO: Concatenate the broadcast address to the 
-  // port extracted from the incoming service handler.
-  static char * bc_addr = "255.255.255.255:10006";
 
   struct sockaddr_in adr_bc;  /* AF_INET */  
   int len_bc;

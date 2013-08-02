@@ -21,19 +21,16 @@ void threadAccBroadcastService(serviceHandler * sh);
 int main(int argc, char * argv[])
 {
   // Check command line parameters.
-  if(argc != 2)
+  if(! (argc == 2 || argc == 3))
     {
-      printf("This is a command line program that requires the interface name you'd like to communicate on, e.g., en1 or wlan0\n");
-      printf("usage: %s <interface name>\n", argv[0]);
+      printf("This is a command line program that requires the interface name you'd like to communicate on, e.g., en1 or wlan0.  Optionally, if you give it three parameters, it will turn broadcast mode on.  Otherwise, with only two parameters it will run with broadcast mode off.\n");
+
+      printf("usage: %s <interface name> <optional broadcast on>\n", argv[0]);
       return 0;
     }
 
 #ifdef GUMSTIX
   printf("\n\nIt is my belief that this demo is running on a gumstix.\n\n");
-#endif
-
-#ifdef MAC
-  printf("\n\nIt is my belief that this demo is running on a mac.\n\n");
 #endif
 
   serviceHandler sh;
@@ -42,15 +39,26 @@ int main(int argc, char * argv[])
   // serviceHandler.
   servHandlerSetDefaults(&sh);
 
-  // Start up a data service, aggregator endpoint.
-  servStart(SERV_DATA_SERVICE_AGGREGATOR, argv[1], SERV_BROADCAST_ON, &sh);
+  // Start up the service based on whether or not broadcast mode is on.
+  if(argc == 3) {
+
+    // Start up a data service, aggregator endpoint.
+    servStart(SERV_DATA_SERVICE_AGGREGATOR, argv[1], SERV_BROADCAST_ON, &sh);
+  }
+
+  else {
+
+    // Start up a data service, aggregator endpoint.
+    servStart(SERV_DATA_SERVICE_AGGREGATOR, argv[1], SERV_BROADCAST_OFF, &sh);
+
+  }
 
   printf("Serv start returns control flow to main\n");
 
+  // TODO: Write a function called servClose to close 
+  // up connections and such.
   sleep(25);
 
-  // TODO: Write a function called servCleanup to close 
-  // up connections and 
   pthread_exit(NULL);
 
 

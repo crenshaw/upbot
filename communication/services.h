@@ -42,7 +42,7 @@
  *  with 'ER' to indicate their membership in eventresponder.h  
  */
 #define SERV_MAX_PORT_LENGTH 6 // e.g., "10006"
-#define SERV_MAX_IP_LENGTH 19  // e.g., "::ffff:10.81.3.131"
+#define SERV_MAX_IP_LENGTH 30  // e.g., "::ffff:10.81.3.131"
 #define SERV_MAX_INTERFACE_LENGTH 10 // e.g., "en1" or "wlan0"
 
 #define SERV_LOCAL_FAILURE (-1)
@@ -63,6 +63,8 @@
 #define SERV_NULL_IP (-15)
 #define SERV_NULL_DATA (-16)
 #define SERV_NO_HANDLER (-17)
+#define SERV_BAD_BROADCAST_ADDR (-18)
+
 
 #define SERV_SUCCESS (0)
 
@@ -153,6 +155,9 @@ typedef struct serviceHandler {
 
   char ip[SERV_MAX_IP_LENGTH];      /**< The IP address of the local
 				       end of the connection. */
+
+  char bcaddr[SERV_MAX_IP_LENGTH];  /**< The broadcast IP address of the
+				       local end of the connection. */
 
   char rip[SERV_MAX_IP_LENGTH];     /**< The IP address of the remote
 				       end of the connection.  

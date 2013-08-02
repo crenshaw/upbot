@@ -309,10 +309,6 @@ int servStart(serviceType type, char * name, broadcastType b, serviceHandler * s
 	conListenForService(type, sh);
       }
 
-      else {
-	printf("Executing program in manual mode with remote IP\n");
-      }
-
       // Check that the remote ip, rip field, in the service handler
       // has been set to *something*, either by the earlier call to
       // conListenForService() or by some other means before this
@@ -364,7 +360,7 @@ int servActivate(serviceHandler * sh)
 
   // First, this function can only activate a service for an endpoint that
   // is already fully connected.  
-  if(sh->eh == SERV_HANDLER_NOT_SET)
+  if(sh->handler == SERV_HANDLER_NOT_SET)
     return SERV_HANDLER_NOT_SET;
 
   // TODO: Later work will implement asynchronous communication.  For
@@ -760,6 +756,7 @@ int servHandlerPrint(serviceHandler * sh)
     }
 
   printf("   My IP:              %s.\n", sh->ip);
+  printf("   My broadcast IP:    %s.\n", sh->bcaddr);
   printf("   Remote IP:          %s.\n", sh->rip);
   printf("   Port number:        %s.\n", sh->port);    
   printf("   Interface:          %s.\n", sh->interface);
@@ -772,12 +769,12 @@ int servHandlerPrint(serviceHandler * sh)
 /**
  * servQueryIP
  *
- * Get the IP address attached to the interface name set for this
- * serviceHandler. The value is returned via the caller-allocated
- * serviceHandler passed into the function.
+ * Get the IP address and broadcast address attached to the interface
+ * name set for this serviceHandler. The value is returned via the
+ * caller-allocated serviceHandler passed into the function.
  *
- * @param[out] sh the serviceHandler whose IP field will be populated
- * by this call.
+ * @param[out] sh the serviceHandler whose ip and bcAddr fields will
+ * be populated by this call.
  *
  * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
  * If the particular interface name for the target platform cannot be
@@ -816,6 +813,13 @@ int servQueryIP(serviceHandler * sh)
 
 	  else
 	    {
+	      // We have the IP address of the interface that we want.  Also get the
+	      // broadcast address in case we need it later to broadcast the availability of 
+	      // the service associated with this serviceHandler.
+	      strncpy(sh->bcaddr, inet_ntoa(((struct sockaddr_in*)current->ifa_dstaddr)->sin_addr), SERV_MAX_IP_LENGTH);
+	      sh->bcaddr[SERV_MAX_IP_LENGTH - 1] = '\0';  // I don't trust strncpy.
+	      
+
 	      // Free memory
 	      freeifaddrs(interfaces);
   
