@@ -1,7 +1,15 @@
 /**
  * genericProducerDemo.c
  *
- * A simple demo for testing the basic functionality of acceptors and connectors.
+ * A simple demo for testing the basic functionality of acceptors and
+ * connectors.  This "Producer" demo tests the connector side of the
+ * functionality and is equivalent to the robot in the UPBOT robotics
+ * system.  That is, in order for the nerves to start a Data Collector
+ * service endpoint, it would need to make a similar call as seen
+ * below.
+ *
+ * Others should use this demo for * guidance on how to utilize the
+ * serv*() functionality available in * services.[c,h].
  *
  * @author Tanya L. Crenshaw
  * @since July 2013

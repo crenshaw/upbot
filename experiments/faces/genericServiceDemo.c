@@ -2,9 +2,12 @@
  * genericServiceDemo.c
  *
  * A simple demo for testing the basic functionality of services in
- * the UPBOT robotics testbed.  Others should use this demo for
- * guidance on how to utilize the serv*() functionality available in
- * services.[c,h].
+ * the UPBOT robotics testbed.  This "Service" demo tests the acceptor
+ * side of the functionality and is equivalent to the supervisor in
+ * the UPBOT robotics system.
+ *
+ * Others should use this demo for * guidance on how to utilize the
+ * serv*() functionality available in * services.[c,h].
  *
  * This half of the demo creates a data aggregator endpoint for the
  * data service and awaits connection from a data collector.
