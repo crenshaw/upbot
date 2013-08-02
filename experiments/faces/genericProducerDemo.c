@@ -18,6 +18,7 @@ int main(int argc, char * argv[])
     {
       printf("This is a command line program that requires the interface name you'd like to communicate on, e.g., en1 or wlan0.  It also has an optional third parameter to manually set a remote ip address of the entity to whom you want to connect.\n");
       printf("usage: %s <interface name> <optional remote ip>\n", argv[0]);
+      return 0;
     }
 
   serviceHandler sh;
@@ -41,7 +42,7 @@ int main(int argc, char * argv[])
     }
 
   // Start up a data service, collector endpoint.
-  servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], &sh);
+  servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], SERV_BROADCAST_ON, &sh);
 
   servHandlerPrint(&sh);
 

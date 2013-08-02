@@ -151,8 +151,9 @@ int servStop(serviceHandler * sh)
  * For an acceptor service, this function creates multiple threads.
  * They are:
  * 
- * 1. A broadcast thread, accessible by sh->broadcast, that is
- * responsible for the discovery portion of the service.
+ * 1. If b is set to SERV_BROADCAST_ON, this function creates a
+ * broadcast thread, accessible by sh->broadcast, that is responsible
+ * for the discovery portion of the service.
  * 
  * 2. A connection thread, accessible by sh->connection, that is
  * responsible for the end-to-end communication with its endpoint
@@ -168,6 +169,16 @@ int servStop(serviceHandler * sh)
 
  * @param[in] name the name of the external interface over which this
  * service will be communicating on the network.
+ * 
+ * @param[in] b an indication of whether or not the service should
+ * broadcast its availablility or listen for broadcasts.
+ * Acceptor-style services shall broadcast their availability if b is
+ * set to SERV_BROADCAST_ON; they will not broadcast if b is set to
+ * SERV_BROADCAST_OFF.  Similarly, connector-style services shall
+ * listen for available services if b is set to SERV_BROADCAST_ON.  If
+ * b is set to SERV_BROADCAST_OFF, the function servStart() shall
+ * attempt to connect to the service possibly located at the rip field
+ * already set in sh.
  *
  * @param[out] sh a pointer to the serviceHandler that will be
  * populated as the result of this call.  Subsequent servRead() and
@@ -176,7 +187,7 @@ int servStop(serviceHandler * sh)
  *
  * @returns an indication of success or failure.
  */
-int servStart(serviceType type, char * name, serviceHandler * sh)
+int servStart(serviceType type, char * name, broadcastType b, serviceHandler * sh)
 {
   int status = 0;
 
@@ -254,11 +265,15 @@ int servStart(serviceType type, char * name, serviceHandler * sh)
 	  printf("Status = %d\n", status);
 	}
 
-      // Create a thread to broadcast the service.
-      if(pthread_create(&(sh->broadcast), NULL, accBroadcastService, sh) != 0)
+      // If b is set to SERV_BROADCAST_ON, create a thread to
+      // broadcast the service.
+      if(b == SERV_BROADCAST_ON)
 	{
-	  perror("Cannot create a thread for broadcasting.\npthread_create() failed: ");
-	  return SERV_CANNOT_CREATE_THREAD;
+	  if(pthread_create(&(sh->broadcast), NULL, accBroadcastService, sh) != 0)
+	    {
+	      perror("Cannot create a thread for broadcasting.\npthread_create() failed: ");
+	      return SERV_CANNOT_CREATE_THREAD;
+	    }
 	}
 
       // Create a thread to wait for a connection.
@@ -280,33 +295,31 @@ int servStart(serviceType type, char * name, serviceHandler * sh)
       // thus far.
       servHandlerSetService(sh, type);  // Set the type of service.
 
-#ifdef BROADCAST
-      // Currently the UP network is not allowing broadcast packets.  For now, 
-      // the UPBOT robotics system cannot block until this call is successful.
-      // Instead, create a thread to perform this listening activity.
+      if(b == SERV_BROADCAST_ON) {
+	// Currently the UP network is not allowing broadcast packets.  For now, 
+	// the UPBOT robotics system cannot block until this call is successful.
+	
+	// Listen for a service to connect with.
+	printf("Listening for a service...\n");
+	
+        // Note: Since aggregators always broadcast on a particular port and
+        // collectors always listen on a particular port, it's enough for
+	// now to simply listen for any broadcasts on the data service port.
+	// This call blocks until something is heard.
+	conListenForService(type, sh);
+      }
 
-      // Listen for a service to connect with.
-      printf("Listening for a service...\n");
-
-      // Note: Since aggregators always broadcast on a particular port and
-      // collectors always listen on a particular port, it's enough for
-      // now to simply listen for any broadcasts on the data service port.
-      // This call blocks until something is heard.
-      conListenForService(type, sh);
-#endif
-
-#ifndef BROADCAST
-      printf("Executing program in manual mode with remote IP\n");
-#endif
-
+      else {
+	printf("Executing program in manual mode with remote IP\n");
+      }
 
       // Check that the remote ip, rip field, in the service handler
-      // has been set to *something*.  If so, try to initiate a
+      // has been set to *something*, either by the earlier call to
+      // conListenForService() or by some other means before this
+      // servStart() function was called.  If so, try to initiate a
       // connection, otherwise, return with a failure.
       if(sh->rip[0] != '\0')
-	{
-      
-	  
+	{	  
 	  // The broadcast has been heard or we have a manually-set IP
 	  // address.  Now, establish a connection with the other
 	  // endpoint of the service.
@@ -321,7 +334,6 @@ int servStart(serviceType type, char * name, serviceHandler * sh)
 	  return SERV_NO_REMOTE_IP;
 	}
     }
-
 }
 
 /**
@@ -1191,6 +1203,12 @@ int dsCollectorActivate(serviceHandler * sh)
 }
 
 
+/* 
+   TODO: The function comment header below represents the direction
+   that I'd like to see servStart() begin to go as we get basical
+   functionality working.  It seems silly to leave an empty function
+   in here, but I leave it as a reminder of my goals.
+*/
 
 /**
  * dsCreateCollector

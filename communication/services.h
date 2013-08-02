@@ -98,6 +98,15 @@ enum serviceTypeTag {
 // is one.  -- TLC
 static char * serviceNames[4] = {"No service set", "Data Aggregator", "Data Collector", "Event:Responder"};
 
+// Enumerate the different possible broadcast types for the services.
+// When a service is started by servStart(), it may or may not choose
+// to broadcast its availability on the network.
+typedef enum broadcastTypeTag broadcastType;
+enum broadcastTypeTag {
+  SERV_BROADCAST_ON,
+  SERV_BROADCAST_OFF,
+};
+
 
 // Enumerate the different possible endpoints of communication.  
 typedef enum endpointTypeTag endpointType;
@@ -182,7 +191,7 @@ typedef struct serviceHandler {
 void servHandlerPrintSocketAddr(struct sockaddr * sa);
 void * servGetInAddr(struct sockaddr * sa);
 
-int servStart(serviceType type, char * name, serviceHandler * sh);
+int servStart(serviceType type, char * name, broadcastType b, serviceHandler * sh);
 
 char * servToPort(serviceType s);
 void * servToActivate(serviceType s);

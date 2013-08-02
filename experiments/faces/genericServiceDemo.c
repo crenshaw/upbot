@@ -25,6 +25,7 @@ int main(int argc, char * argv[])
     {
       printf("This is a command line program that requires the interface name you'd like to communicate on, e.g., en1 or wlan0\n");
       printf("usage: %s <interface name>\n", argv[0]);
+      return 0;
     }
 
 #ifdef GUMSTIX
@@ -42,7 +43,7 @@ int main(int argc, char * argv[])
   servHandlerSetDefaults(&sh);
 
   // Start up a data service, aggregator endpoint.
-  servStart(SERV_DATA_SERVICE_AGGREGATOR, argv[1], &sh);
+  servStart(SERV_DATA_SERVICE_AGGREGATOR, argv[1], SERV_BROADCAST_ON, &sh);
 
   printf("Serv start returns control flow to main\n");
 
