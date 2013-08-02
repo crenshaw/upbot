@@ -1167,33 +1167,44 @@ int dsAggregatorActivate(serviceHandler * sh)
   int numBytes = 0;  // The number of bytes received in the last
 		     // transmission to this service.
 
+  int connectionAlive = 1;  // A boolean indicating whether or not the
+			    // other service endpoint has an open
+			    // connection or not.  At the start of
+			    // this function, we presume its open.
 
 #define MAXDATASIZE 11
 
   char data[MAXDATASIZE] = {'\0'};
 
-  while(1) 
+  while(connectionAlive) 
     {
-
-      /*
-      If no messages are available at the socket, the receive calls
-      wait for a message to arrive, unless the socket is nonblocking
-      (see fcntl(2)), in which case the value -1 is returned and the
-      external variable errno is set to EAGAIN or EWOULDBLOCK. The
-      receive calls normally return any data available, up to the
-      requested amount, rather than waiting for receipt of the full
-      amount requested.
-      */
-      if ((numBytes = recv(sh->handler, data, MAXDATASIZE-1, 0)) == -1)
-	{
+      if ((numBytes = recv(sh->handler, data, MAXDATASIZE-1, 0)) == -1) {
 	  perror("recv");
-	  return -1;
-	}
+	  
+	  // TODO: Figure out a graceful way to respond to this.
+      }
 
-      // TODO: There is a weird bug in that it looks like data is
-      // being received constantly....
-      printf("Received: %s \n", data);
+      
+      // If the previous call to recv() returned 0, that means that the
+      // other socket has closed.  It's time for us to shut down this
+      // aggregator service.
+      if (numBytes == 0) {
+	  connectionAlive = 1;
+      }
+      
+      else {
+	printf("Received: %s \n", data);
+      }
+
     }
+
+  // Flow of control reaches this point because the other end of the
+  // connection has closed.  Close up this aggregator gracefully.
+  close(sh->handler);
+  pthread_exit(NULL);
+  
+  return 0;
+
 }
 
 
