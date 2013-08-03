@@ -6,10 +6,10 @@ static eventResponder myER;
 #include "../roomba/roomba.h"
 #include "roomba/roomba.h"
 
-#include "events.c"
-#include "responders.c"
+#include "events.h"
+#include "responders.h"
 
-#include "clock.c"
+#include "clock.h"
 #include "commandQueue.h"
 #include "erControl.c"
 #include "myEventResponders.c"
@@ -19,7 +19,7 @@ static eventResponder myER;
 int main(void)
 {
   //start the program with an event responder to tell it to stop
-  initalizeStopER();
+  initalizeStopER(&myER);
 
   setupRoomba();
   setupClock();
@@ -47,7 +47,7 @@ int main(void)
         break;
       }
 
-      setEventResponder(cmd_buffer);
+      setEventResponder(cmd_buffer,&myER);
       time(&lastStateChange);
 
     
@@ -112,7 +112,7 @@ int main(void)
 
   /* Cleanup */
   respondStop();  //stop the robot
-  cleanupER();  //cleanup er data on heap
+  cleanupER(&myER);  //cleanup er data on heap
   closePort();  //close connection to roomba
   mq_close(mqd_cmd); //close our command queue
 
@@ -123,8 +123,10 @@ int main(void)
 void getSensorData(char* sensDataFromRobot) {
   receiveGroupOneSensorData(sensDataFromRobot);
   //gotAlarm contained within clock.c
-  sensDataFromRobot[15] = '0'+gotAlarm; 
-  gotAlarm = 0;
+  sensDataFromRobot[15] = '0'+checkClock();//+gotAlarm; 
+  resetClock();
+
+  //gotAlarm = 0;
   //TODO: format data to be sent over the network
   //sendData() 
 

@@ -1,7 +1,9 @@
 /*
  * This file contains low level commands to the roomba
  */
+#include "roomba.h"
 
+/*
 #include <strings.h>
 #include <signal.h>
 #include <unistd.h>
@@ -11,7 +13,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include "led.c"
-
+*/
 // This global file descriptor, once initialized,
 // keeps track of the serial port opened to the iRobot
 // Create.  It is used only by this file for easier port

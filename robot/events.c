@@ -1,3 +1,5 @@
+#include "events.h"
+
 /**
  * events.c contains the events used by eventresponder.c
  *

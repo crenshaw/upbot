@@ -6,11 +6,7 @@
 //Date Created:
 //		17 February 2010
 
-#define SIZE 40
-
-#include <time.h>
-#include <stdlib.h>
-
+#include "roomba.h"
 
 
 void setupRoomba() {

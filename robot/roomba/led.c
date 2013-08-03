@@ -6,6 +6,8 @@
 //Date Created:
 //		18 February 2010
 
+#include "roomba.h"
+
 //setLED
 //Description:
 //		sets LEDs according to parameters

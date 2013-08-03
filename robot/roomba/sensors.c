@@ -1,3 +1,4 @@
+#include "roomba.h"
 /*
  * This file contains functions pertaining to roomba sensors
  */
