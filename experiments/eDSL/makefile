@@ -11,7 +11,7 @@ lexer:
 	$(FLEX) robot.l
 
 robot:
-	$(CC) -o $@ robot.tab.c lex.yy.c -lfl
+	$(CC) -o $@ robot.tab.c lex.yy.c
 
 clean:
 	@rm *.h robot *.tab.c lex.yy.c > /dev/null 2>&1 || true
