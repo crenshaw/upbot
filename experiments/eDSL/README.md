@@ -2,6 +2,7 @@ eDSL
 ====
 
 Currently nothing works. I'm in the process of implementing functionality and cleaning up code, etc etc.
+    * Update: We can now successfully compile the lexer/parser combo into an executable!
 
 Efforts have been made to anticipate future functionality without sacrificing current functionality.
 
@@ -20,7 +21,7 @@ functionality that we plan on supporting.
 BISON
 -----
 
-BISON is a semantic analyzer that will output generated code based upon a CFE that we define within
+BISON is a semantic analyzer that will output generated code based upon a CFG that we define within
 .y files. For our purposes this is robot.y, and again, attempts have been made to support functionality
 that is not yet present in the core C libraries for UPBOT.
 

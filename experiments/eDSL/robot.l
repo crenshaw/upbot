@@ -1,69 +1,74 @@
-/*** Definition section ***/
+/**
+ * robot.l
+ *
+ * The token definition for the UPBOT DSL.
+ *
+ * @author Fernando Freire
+ * @since 04 Aug 2013
+ *
+ */
 
 %{
+
 #include <stdio.h>
+#include "robot.tab.h"
+
 %}
 
-/* only read one file at a time */
 %option noyywrap
 
 %%
 
-"begin state"   printf(" STATE_O "); return STATE_O
-"end state"     printf(" STATE_C "); return STATE_C
-"("             printf(" PAREN_O "); return PAREN_O
-")"             printf(" PAREN_C "); return PAREN_C
+"begin state"   return STATE_O;
+"end state"     return STATE_C;
+"("             return PAREN_O;
+")"             return PAREN_C;
 
-\"[a-zA-Z]+\"   printf(" LABEL "); return LABEL;
+\"[a-zA-Z]+\"   return LABEL;
 
 "nothing"   |
 "otherwise" |
-"_"             printf(" TRUE "); return TRUE;
+"_"             return TRUE;
 
-"bump"          printf(" BUMP "); return BUMP;
+"bump"          return BUMP;
 "left"  |
 "right" |
 "both"          {
-                    printf(" BUMP_MOD ");
-                    struct symtab *sp = symlook(yytext);
-                    yylval.symp = sp;
+                    yylval.bval = yytext;
                     return BUMP_MOD;
                 }
 
-"stop"          printf(" STOP "); return STOP;
+"stop"          return STOP;
 [0-9]+          {
-                    printf(" INT_MOD "); // A modifier for both "time" and "stop"
-                    yylval.dval = atoi(yytext);
+                    yylval.ival = atoi(yytext);
                     return INT_MOD;
                 }
-"now"           printf(" STOP_MOD "); return STOP_MOD; // Stop now!!!
+"now"           return STOP_MOD; // Stop now!!!
 
-"time"          printf(" TIME "); return TIME;
+"time"          return TIME;
 
-"drive"         printf(" DIRVE "); return DRIVE;
+"drive"         return DRIVE;
 "low"  |
 "med"  |
 "high"          {
-                    printf(" DRIVE_MOD ");
-                    struct symtab *sp = symlook(yytext);
-                    yylval.symp = sp;
+                    yylval.dval = yytext;
                     return DRIVE_MOD;
                 }
 
-"wheel"         printf(" WHEEL "); return WHEEL;
-"cliff"         printf(" CLIFF "); return CLIFF;
-"vwall"         printf(" VWALL "); return VWALL;
-"turn"          printf(" TURN ");  return TURN;
-"song"          printf(" SONG ");  return SONG;
-"blink"         printf(" BLINK "); return BLINK;
+"wheel"         return WHEEL;
+"cliff"         return CLIFF;
+"vwall"         return VWALL;
+"turn"          return TURN;
+"song"          return SONG;
+"blink"         return BLINK;
 
 
 
-"->"            printf(" PAIRED_WITH "); return PAIRED_WITH;
+"->"            return PAIRED_WITH;
 
-":"             printf(" YIELDS ");      return YIELDS;
+":"             return YIELDS;
 
-\n              printf("\n");            return EOL;
+\n              return EOL;
 "//".*          // Do nothing for comments
 [\t]+           // Do nothing for whitespace
 
