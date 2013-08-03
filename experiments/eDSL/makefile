@@ -1,14 +1,18 @@
-FLEX=flex
-BISON=bison
+# Filename: makefile
+# Author: Fernando Freire
+# Date created: 04 Aug, 2013
+
+LEXER=flex
+PARSER=bison
 CC=gcc
 
 all: parser lexer robot
 
 parser:
-	$(BISON) -d robot.y
+	$(PARSER) -d robot.y
 
 lexer:
-	$(FLEX) robot.l
+	$(LEXER) robot.l
 
 robot:
 	$(CC) -o $@ robot.tab.c lex.yy.c
