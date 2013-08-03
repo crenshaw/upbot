@@ -10,9 +10,11 @@ static eventResponder myER;
 #include "responders.c"
 
 #include "clock.c"
-#include "commandQueue.c"
+#include "commandQueue.h"
 #include "erControl.c"
 #include "myEventResponders.c"
+
+#include "netDataProtocol.h"
 
 int main(void)
 {
@@ -23,10 +25,15 @@ int main(void)
   setupClock();
   mqd_t mqd_cmd = setupCommandQueue();
 
+  //contains when the last state change occured
+  time_t lastStateChange;
+  
   char cmd_buffer[CMD_BUFFER_SIZE]; 
 
   transition * transitions= myER.states[myER.curState].transitions;
   int transitionsCount = myER.states[myER.curState].count;
+
+  char dataPackage[dataPackageSize]; 
 
   while (1) {
     if (cmdQ_hasMsg(mqd_cmd) > 0) {
@@ -41,7 +48,9 @@ int main(void)
       }
 
       setEventResponder(cmd_buffer);
-      
+      time(&lastStateChange);
+
+    
       int state = myER.curState;
       transitions = myER.states[state].transitions;
       transitionsCount = myER.states[state].count;
@@ -51,7 +60,6 @@ int main(void)
     char sensDataFromRobot[ER_SENS_BUFFER_SIZE] = {'\0'};
     getSensorData(sensDataFromRobot);
     
-    
     int eventOccured = 0;  
 
     // Loop over all of the eventPredicate/responders in current state
@@ -59,14 +67,18 @@ int main(void)
     for(i = 0; i < transitionsCount; i++) {
 
       if (eventOccured == 0) {
+
         eventPredicate* e = transitions[i].e; //event to check against
 
         if((e)(sensDataFromRobot)) {
+          
           responder* r = transitions[i].r; //the responder to execute
-          r();
-
-
           nextState n = transitions[i].n; //the next state to go to
+          
+          packageData(dataPackage,sensDataFromRobot,myER.curState, n, i,lastStateChange);
+          //packageEventData(dataPackage,n);
+          
+          r();
           if (myER.curState != n) {
             printf("State changing from %d to %d\n",myER.curState,n);
 
@@ -79,6 +91,7 @@ int main(void)
               //TODO: reset the alarm somewhere
               setClock(nextAlarm,0);
             }
+            time(&lastStateChange);
           }
 
           //event occured, we don't want to check anymore
@@ -87,6 +100,12 @@ int main(void)
         } //if event passes
       } //if event hasn'toccured
     } //transitions loop
+
+
+    //#####################
+    //# send data package #
+    //#####################
+
   } //forever loop
 
   printf("Main exiting\n");

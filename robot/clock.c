@@ -12,7 +12,8 @@ static void signalrmHandler(int sig);
 void setupClock();
 void setClock(int sec, int usec);
 
-
+//lookup extern
+//or define global variable 
 
 // Global value to keep track of the alarm occurrence 
 // Set nonzero on receipt of SIGALRM 
