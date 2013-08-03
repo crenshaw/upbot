@@ -19,12 +19,13 @@
  *
  * Issuing a response is done by a response function.
  *
- * An event:responder is a set of eventPredicate() and response()
- * function pairs.  
+ * An event:responder is a set of states. Each state has a set
+ * of transitions which include an conitional event and a
+ * reactionary responder
  * 
  * 
- * @author: Tanya L. Crenshaw
- * @since: June 2013
+ * @author: Tanya L. Crenshaw, Matthew Holland
+ * @since: July 20, 2013
  * 
  */
 
@@ -34,220 +35,86 @@
 #include <sys/time.h>
 #include <time.h>
 
-
 #include "../../roomba/roomba.h"
 #include "eventresponder.h"
 #include "robot.h"
 #include "services.h"
 
+#include "roomba/sensors.c"
+#include "roomba/utility.c"
+#include "roomba/commands.c"
+
+#include "events.c"
+#include "responders.c"
 
 // Global value to keep track of the alarm occurrence 
 // Set nonzero on receipt of SIGALRM 
 // TODO: Global?  Really?  Can this be better?
 static volatile sig_atomic_t gotAlarm = 0; 
 
-/**
- * createResponder
- *
- * Given e, an array of eventPredicate functions and r, an array of
- * responder functions, populate an eventresponder struct with 
- * e, r, and the length of the arrays.  
- *
- * Each array must be terminated by NULL.  Here is an example
- * definition of an eventPredicate array:
- *
- *   eventPredicate * eArray[3] = {eventOne, eventTwo, NULL};
- * 
- * The array lengths must match.  If they do not, then we do not have
- * a well-formed event:responder and the function returns
- * ER_ARRAY_MISMATCH (-1) to indicate an error.
- *
- * Each array must exist.  If either array is NULL, then we do not
- * have a well-formed event:responder and the function returns
- * ER_NULL_ARRAY (-2) to indicate an error.
- *
- * The eventresponder, er, must already be allocated before calling
- * this function.  If er is NULL, then we cannot populate the
- * event:responder and the function returns ER_NULL_ER (-3) to
- * indicate an error.
- *
- * If both arrays and er are not NULL, and the two arrays are the same
- * length, the function returns ER_SUCCESS (0) to indicate success.
- *
- * @param[in] e an array of eventPredicate functions.
- * @param[in] r an array of responder functions.
- * @param[out] the newly populated eventresponder.
- * 
- */
+//NOTE: removed the function to create eventResponders
+//  I don't think it is needed with new data format
+//  If we decide to be put back it would have needed
+//  to be completly rewriten anyway
 
-int createResponder(eventPredicate * e[], responder * r[], eventresponder * er)
+/*
+  simple singal handler to set set the gotAlarm variable
+  so to notify the user about alarms
+*/
+static void signalrmHandler(int sig)
 {
-  int eSize = 0;
-  int rSize = 0;
-  int i = 0;
+    gotAlarm = 1;
+}
 
-  // If either array is NULL, bail with an error.
-  if (e == NULL || r == NULL )
+
+void setupClock() {
+    struct sigaction sa;        // Signal sets
+    struct sigaction toggledsa;   
+
+    // Initialize a random number generator to help with the
+    // generation of random data.
+    srand(time(NULL));  
+
+
+    //TODO: move timer setup to a seperate function
+    //with the intent of reducing clutter
+    
+    // Initialize and empty a signal set
+    sigemptyset(&sa.sa_mask);
+
+    // Set the signal set.
+    sa.sa_flags = 0;
+    sa.sa_handler = signalrmHandler;
+
+    // Update the signal set with the new flags and handler.
+    if (sigaction(SIGALRM, &sa, NULL) == -1)
     {
-      return ER_NULL_ARRAY;
+        exit(EXIT_FAILURE);
+    }
+}
+
+void setClock(int sec, int usec) {
+   
+    //TODO: figure out how to cancel old alarms
+    
+    struct itimerval itv;       // Specify when a timer should expire 
+    
+    // Initialize timer start time and period:
+    // First, the period between now and the first timer interrupt 
+    itv.it_value.tv_sec = sec; //seconds
+    itv.it_value.tv_usec = usec; // microseconds
+
+    // Second, the intervals between successive timer interrupts 
+    itv.it_interval.tv_sec = 0; // seconds
+    itv.it_interval.tv_usec = 0; // microseconds
+
+    if (setitimer(ITIMER_REAL, &itv, NULL) == -1) {
+        exit(EXIT_FAILURE);
     }
 
-  // If the event:responder to populate is NULL, bail with an error.
-  if (er == NULL)
-    {
-      return ER_NULL_ER;
-    }
-  
-  // How long is each array?
-  while (e[i] != NULL)
-    {
-      eSize++;
-      i++;
-    }
-
-  i = 0;
-
-  while (r[i] != NULL)
-    {
-      rSize++;
-      i++;
-    }
-
-  // If the array sizes differ, bail with an error.
-  if(eSize != rSize)
-    {
-      return ER_ARRAY_MISMATCH;
-    }
-
-  // OTHERWISE, populate the event:responder and return success.
-  er->e = e;
-  er->r = r;
-  er->length = rSize;
-
-  return ER_SUCCESS;
-  
-
 }
 
 
-
-// ************************************************************************
-// EVENTPREDICATES, WRITTEN BY USER
-// ************************************************************************
-
-/**
- * eventTrue
- * 
- * Default eventPredicate function.  Always returns true.
- */
-int eventTrue(int * data)
-{
-  return 1;
-}
-
-/**
- * eventOne
- *
- * Example eventPredicate function, as written by an application developer.
- */
-int eventOne(int * data)
-{
-  printf("   Calling eventOne\n");
-
-  if(data[0] == 1)
-    return 1;
-  else
-    return 0;
-}
-
-/**
- * eventTwo
- *
- * Example eventPredicate function, as written by an application developer.
- */
-int eventTwo(int * data)
-{
-  printf("   Calling eventTwo\n");
-
-  if(data[0] == 2)
-    return 1;
-  else
-    return 0;
-}
-
-/**
- * eventBump
- * 
- * Example eventPredicate function for checking for bump events.
- */
-int eventBump(int * data) {
-
-  // Check bump sensors.
-
-  // TODO: Need to correct the use of literal 0 when checking
-  // the state of the bump sensors.
-  if(((data[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
-     ((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
-    {
-      return 1;
-    }
-  else
-    return 0;
-}
-
-// ************************************************************************
-// RESPONDERS, WRITTEN BY USER
-// ************************************************************************
-
-/**
- * respondStop
- * 
- * Default responder function.  Stop the robot.
- */ 
-void respondStop(void)
-{
-  // TODO: Add code to stop the robot.
-  printf("Reminder: add code to actually stop the robot\n");
-
-  return;
-}
-
-
-/**
- * respondOne
- *
- * Example responder function, as written by an application developer.
- */
-void respondOne(void)
-{
-  printf("      Got a 1!\n");
-
-  return;
-}
-
-/**
- * respondTwo
- *
- * Example responder function, as written by an application developer. 
- */
-void respondTwo(void)
-{
-  printf("      Got a 2!\n");
-
-  return;
-}
-
-
-// ************************************************************************
-// EXAMPLE CLOCK HANDLER
-//
-// ************************************************************************
-
-static void
-signalrmHandler(int sig)
-{
-  gotAlarm = 1;
-}
 
 
 // ************************************************************************
@@ -262,155 +129,184 @@ signalrmHandler(int sig)
 int main(void)
 {
 
-  // Declare the variables necessary to support timer-based interrupts.
-  struct itimerval itv;       // Specify when a timer should expire 
+    //setup a event responder
+    //this one drives forward until it hits something
+    //and then turns a random direction. Aftew a few
+    //seconds without hitting anything it speeds up
 
-  struct sigaction sa;        // Signal sets
-  struct sigaction toggledsa;   
+    //*
+    transition erS0[3] = {//transitions for state 0
+        {eventAlarm, respondDriveMed, 1},
+        {eventNotBump, respondDriveLow, 0},
+        {eventBump, respondTurn, 0}    
+    }; 
+    state S0 = {
+        5, //alarm time
+        erS0,
+        3  //number of events
+    };
 
-  // Create some fake data to treat as sensor data, i.e., events.
-  int fakeData[11] = {0};
+    transition erS1[2] = {//transitions for state 1
+        {eventNotBump, respondDriveMed, 1},
+        {eventBump, respondTurn, 0}
+    };
+    state S1 = {
+        0, //alarm time
+        erS1,
+        2  //number of events
+    };
 
-  // Initialize a random number generator to help with the
-  // generation of random data.
-  srand(time(NULL));  
 
+    state states[2] = {S0,S1};
 
+    eventResponder myER = {
+        states,//list of states
+        0,   //default state
+        2    //number of states
+    };
+    //*/
 
-  // Initialize and empty a signal set
-  sigemptyset(&sa.sa_mask);
+    /*
+    //   :( this format doesn't work, I miss you Lua.
+    //   I'll keep this in the hope that I can find 
+    //   a way to do this
+    
+    er myER[2] = {
+        { //states
+            { //state 0
+                5,  //alarm time
+                {
+                    {eventAlarm, respondDriveMed, 1},
+                    {eventNotBump, respondDriveLow, 0},
+                    {eventBump, respondTurn, 0}
+                },
+                3   //number of events
+            },
+            { //state 1
+                0,  //alarm time
+                {
+                    {eventNotBump, respondDriveMed, 1},
+                    {eventBump, respondTurn, 0}
+                },
+                2   //number of events
+            }
+        },
+        0,    //default state
+        2     //number of states
+    }
+    //*/
 
-  // Set the signal set.
-  sa.sa_flags = 0;
-  sa.sa_handler = signalrmHandler;
+    setupClock();
 
-  // Update the signal set with the new flags and handler.
-  if (sigaction(SIGALRM, &sa, NULL) == -1)
+    if (myER.states[myER.curState].clockTime > 0)
     {
-      exit(EXIT_FAILURE);
+        setClock(myER.states[myER.curState].clockTime,0);
     }
 
+    // Create and initialize a robot.
+    robot myRobot = {NULL, 
+        "Webby", 
+        "10.81.3.181", 
+        &myER, 
+        NULL, 
+        NULL};
 
-  // Initialize timer start time and period:
-  // First, the period between now and the first timer interrupt 
-  itv.it_value.tv_sec = 1;  // seconds
-  itv.it_value.tv_usec = 0; // microseconds
-
-  // Second, the intervals between successive timer interrupts 
-  itv.it_interval.tv_sec = 10; // seconds
-  itv.it_interval.tv_usec = 0; // microseconds
-
-  if (setitimer(ITIMER_REAL, &itv, NULL) == -1)
-    {
-      exit(EXIT_FAILURE);
+    //Start up robotly things
+    if (openPort() == 0) {
+        printf("Port failed to open");
+        exit(-1);
     }
+    initialize();
+    sleep(1);
+
+    // Access the event:responder via the robot variable.  (I am doing
+    // this to make sure I understand the types.  I know that I can
+    // access the event:responder via myEventResponder, declared above).
+    eventResponder * er = myRobot.er;
+
+    // Need a pointer for the e's and a pointer for the r's.
+    eventPredicate * e;
+    responder * r;
+    nextState n;
 
 
-  // Create arrays of eventPredicate and responder functions
-  eventPredicate * eArray[3] = {eventOne, eventTwo, NULL};
-  responder * rArray[3] = {respondOne, respondTwo, NULL};
+    transition * transitions= myER.states[myER.curState].transitions;
+    int transitionsCount = myER.states[myER.curState].count;
 
-  // Manually create and initialize an event:responder
-  eventresponder myEventResponder = {eArray, rArray, 2};
-
-  // Create and initialize a robot.
-  robot myRobot = {NULL, 
-		   "Webby", 
-		   "10.81.3.181", 
-		   &myEventResponder, 
-		   NULL, 
-		   NULL};
-
-
-  // Issues that the event:responder loop must be able to handle.
-  // 1. The event:responder is accessed via a robot variable.
-  // 2. The event:responder may update itself at any response.
-  // x done x 3. The event:responder is a set of pairs of eventPredicate
-  //    and response functions.
-  // 4. Clocks must be masked whenever they aren't being checked.
-  //    (I am not sure if this is true).
-  // 5. A small library should be created to hide the complexity of clocks
-  //    from the application programmer.
-
-
-  // Access the event:responder via the robot variable.  (I am doing
-  // this to make sure I understand the types.  I know that I can
-  // access the event:responder via myEventResponder, declared above).
-  eventresponder * er = myRobot.er;
-
-  // Need a pointer for the e's and a pointer for the r's.
-  eventPredicate * e = (er->e)[0]; 
-  responder * r = (er->r)[0];
-
-  // Create an event loop
-  while(1)
+    // Create an event loop
+    while(1)
     {
 
-      // Make the fake data change at index 0.  Choose a random number
-      // between 0 and 2.  This would be equivalent to asking the
-      // robot for some sensor data.
-      fakeData[0] = rand()% (3);
-      printf("The fake data value is %d \n", fakeData[0]);
+        //usleep(200000);
 
-      // Sleep for one second just to make output of prototype manageable.
-      sleep(1);
-
-      // ***********************************************************
-      // I leave this here because I may need to know about masking
-      // signals among threads later. -- TLC
-      // 
-      // Mask signals ?
-      //   Kernel maintains a _signal mask_ for each process
-      //   The signal mask is actually a per-thread attribute!
-
-      //  Note that, "The pthread_sigmask() function is just like
-      //  sigprocmask(2), with the difference that its use in
-      //  multithreaded programs is explicitly specified by
-      //  POSIX.1-2001."
-      // ***********************************************************
-   
-
-#ifdef DONOTCOMPILE
-      // Masking the signal interrupt.
-      printf("    masking....\n");
-      sigprocmask(SIG_BLOCK, &sa.sa_mask, NULL);
-#endif
+        //read sensor data
+        char sensDataFromRobot[ER_SENS_BUFFER_SIZE] = {'\0'};   //TODO: this array can be smaller
+        receiveGroupOneSensorData(sensDataFromRobot);
+        sensDataFromRobot[15] = '0'+gotAlarm; 
+        gotAlarm = 0;
 
 
-      // Loop over all of the eventPredicate and responder pairs
-      // in the robot's event:responder.
-      int i = 0;
-      int length = er->length;
 
-      for(i = 0; i < length; i++)
-	{
-	  e = (er->e)[i];  // Get the i'th eventPredicate function.
-	  r = (er->r)[i];  // Get the i'th responder function.
+        //Debug printing
+        printf("bump right: %d\n",(sensDataFromRobot[0] & SENSOR_BUMP_RIGHT));
+        printf("bump left: %d\n",(sensDataFromRobot[0] & SENSOR_BUMP_LEFT));
+        printf("wheeldrops: %d\n",(sensDataFromRobot[0] & SENSOR_WHEELDROP_BOTH));
 
-	  if((e)(fakeData))
-	    {
-	      r();
-	    }
-	}
+        printf("vwall: %d\n",sensDataFromRobot[0]);
+
+        // ***********************************************************
+        // I leave this here because I may need to know about masking
+        // signals among threads later. -- TLC
+        // 
+        // Mask signals ?
+        //   Kernel maintains a _signal mask_ for each process
+        //   The signal mask is actually a per-thread attribute!
+
+        //  Note that, "The pthread_sigmask() function is just like
+        //  sigprocmask(2), with the difference that its use in
+        //  multithreaded programs is explicitly specified by
+        //  POSIX.1-2001."
+        // ***********************************************************
+
+        int eventOccured = 0;  
+
+        // Loop over all of the eventPredicate and responder pairs
+        // in the current state.
+        int i = 0;
+        for(i = 0; i < transitionsCount; i++)
+        {
+
+            if (eventOccured == 0) 
+            {
+                e = transitions[i].e; //event to check against
+
+                if((e)(sensDataFromRobot))
+                {
+                    r = transitions[i].r; //the responder to execute
+                    r();
 
 
-#ifdef DONOTCOMPILE
-      // Unmasking the signal interrupt.
-      sigprocmask(SIG_UNBLOCK, &sa.sa_mask, NULL);     
-      printf("    unmasking....\n");
-#endif
-
-      // I am checking for the signal interrupt, just once, here.
-      // That's not my favorite, but I'm not using signals in a
-      // meaningful way yet. 
-      if(gotAlarm)
-	{
-	  gotAlarm = 0;
-	  printf("**The british are coming!**\n");
-	}
-
+                    n = transitions[i].n; //the next state that we need to be in
+                    if (myER.curState != n) {
+                        printf("State changing from %d to %d\n",myER.curState,n);
+                        
+                        myER.curState = n;
+                        transitions = myER.states[n].transitions;
+                        transitionsCount = myER.states[n].count;
+                        
+                        int nextAlarm =  myER.states[myER.curState].clockTime;
+                        if (nextAlarm > 0)  {
+                            //TODO: reset the alarm somewhere
+                            setClock(nextAlarm,0);
+                        }
+                    }
+ 
+                    //event occured, we don't want to check anymore
+                    eventOccured = 1;
+                }
+            }
+        }
     }
-
-  return 0;
+    return 0;
 
 }

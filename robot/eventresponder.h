@@ -31,6 +31,7 @@
 #ifndef _EVENT_RESPONDER_H_
 #define _EVENT_RESPONDER_H_
 
+
 /**
  *  CONSTANT DEFINITIONS.  All constants in this file should begin
  *  with 'ER' to indicate their membership in eventresponder.h  

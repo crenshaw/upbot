@@ -23,6 +23,9 @@ void itoa(int n, char * s);
 void reverse(char * s);
 
 
+/* In sensors.c */
+void receiveGroupOneSensorData(char * x);
+
 /* In move.c */
 int driveStraightWithFeedback(int velocity);
 void driveStraightUntil(int sec, int speed);
