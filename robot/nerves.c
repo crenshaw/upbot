@@ -11,8 +11,8 @@ static eventResponder myER;
 
 #include "clock.h"
 #include "commandQueue.h"
-#include "erControl.c"
-#include "myEventResponders.c"
+#include "erControl.h"
+#include "myEventResponders.h"
 
 #include "netDataProtocol.h"
 
