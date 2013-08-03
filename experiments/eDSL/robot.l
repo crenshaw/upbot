@@ -28,7 +28,7 @@
 
 "nothing"   |
 "otherwise" |
-"_"             return TRUE;
+"_"             return NOOP;
 
 "bump"          return BUMP;
 "left"  |
@@ -55,9 +55,9 @@
                     return DRIVE_MOD;
                 }
 
+"vwall"         return VWALL;
 "wheel"         return WHEEL;
 "cliff"         return CLIFF;
-"vwall"         return VWALL;
 "turn"          return TURN;
 "song"          return SONG;
 "blink"         return BLINK;
@@ -69,7 +69,7 @@
 ":"             return YIELDS;
 
 \n              return EOL;
-"//".*          // Do nothing for comments
+"//".*\n        // Do nothing for comments
 [\t]+           // Do nothing for whitespace
 
 %%
