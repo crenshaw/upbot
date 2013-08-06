@@ -1142,13 +1142,10 @@ int dsWrite(serviceHandler * sh, char * src)
   if(src == NULL) return SERV_NULL_DATA;
   if(sh->handler == SERV_HANDLER_NOT_SET) return SERV_NO_HANDLER;
 
-  // Calculate the length of the data to be sent.
-  int len = strlen(src);
-  len++;  // Add 1 to account for '\0';
-  
   // Otherwise, attempt to send on sh->handler
-  printf("%i\n",send(sh->handler, src, (size_t)len, 0));
-    
+
+  printf("%i\n",send(sh->handler, src, DATA_PACKAGE_SIZE, 0));
+   
 }
 
 /**
@@ -1173,13 +1170,11 @@ int dsAggregatorActivate(serviceHandler * sh)
 			    // connection or not.  At the start of
 			    // this function, we presume its open.
 
-#define MAXDATASIZE 11
-
-  char data[MAXDATASIZE] = {'\0'};
+  char data[DATA_PACKAGE_SIZE] = {'\0'};
 
   while(connectionAlive) 
     {
-      if ((numBytes = recv(sh->handler, data, MAXDATASIZE-1, 0)) == -1) {
+      if ((numBytes = recv(sh->handler, data, DATA_PACKAGE_SIZE, 0)) == -1) {
 	  perror("recv");
 	  
 	  // TODO: Figure out a graceful way to respond to this.
@@ -1194,7 +1189,20 @@ int dsAggregatorActivate(serviceHandler * sh)
       }
       
       else {
-	printf("Received: \n");
+	printf("Received %d byte(s): \n", numBytes);
+
+	// Debugging.  Print the raw data, char by char, in a loop.
+	int i = 0;
+
+	printf("****************\n");
+
+	for(i = 0; i < DATA_PACKAGE_SIZE ; i++)
+	{
+	  printf("%d ", data[i]);
+	}
+	
+	printf("****************\n");
+
 	printPackage(data);	
       }
 
