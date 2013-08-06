@@ -83,9 +83,9 @@ typedef int nextState;
  * passes, and a nextState identifier to direct it to the next state
  */
 typedef struct transitionTag {
-   eventPredicate * e;  /**< An event predicate function  */
-   responder * r;       /**< A responder function */
-   nextState n;         /**< The state to go to after this function*/
+	eventPredicate * e;  /**< An event predicate function  */
+	responder * r;       /**< A responder function */
+	nextState n;         /**< The state to go to after this function*/
 } transition;
 
 /**
@@ -94,9 +94,9 @@ typedef struct transitionTag {
  * are in the list
  */
 typedef struct stateTag {
-  int clockTime;            /**< Time for the clock to go off */ 
-  transition * transitions; /**< List of transitions from the state*/
-  int count;                /**< The number of transitions from state */
+	int clockTime;            /**< Time for the clock to go off */ 
+	transition * transitions; /**< List of transitions from the state*/
+	int count;                /**< The number of transitions from state */
 } state;
 
 
@@ -106,9 +106,9 @@ typedef struct stateTag {
  * a count of how many states are within the event responder
  */
 typedef struct eventResponderTag {
-  state * states;       /**< A list of states within the event responder */
-  int curState;         /**< The current state of the event responder */
-  int stateCount;       /**< The number of states within the event responder */
+	state * states;       /**< A list of states within the event responder */
+	int curState;         /**< The current state of the event responder */
+	int stateCount;       /**< The number of states within the event responder */
 } eventResponder;
 
 #endif
