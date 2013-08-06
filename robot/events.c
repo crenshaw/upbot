@@ -17,7 +17,7 @@
  */
 int eventTrue(char * data)
 {
-  return 1;
+	return 1;
 }
 
 /**
@@ -27,7 +27,7 @@ int eventTrue(char * data)
  */
 int eventFalse(char * data)
 {
-  return 0;
+	return 0;
 }
 
 /**
@@ -37,17 +37,17 @@ int eventFalse(char * data)
  */
 int eventBump(char * data) {
 
-  // Check bump sensors.
+	// Check bump sensors.
 
-  // TODO: Need to correct the use of literal 0 when checking
-  // the state of the bump sensors.
-  if(((data[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
-     ((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
-    {
-      return 1;
-    }
-  else
-    return 0;
+	// TODO: Need to correct the use of literal 0 when checking
+	// the state of the bump sensors.
+	if(((data[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
+			((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
+	{
+		return 1;
+	}
+	else
+		return 0;
 }
 
 /**
@@ -57,10 +57,10 @@ int eventBump(char * data) {
  * has been hit.
  */
 int eventBumpRight(char * data) {
-  if((data[0] & SENSOR_BUMP_RIGHT ) == SENSOR_BUMP_RIGHT)
-      return 1;
-  else
-    return 0;
+	if((data[0] & SENSOR_BUMP_RIGHT ) == SENSOR_BUMP_RIGHT)
+		return 1;
+	else
+		return 0;
 }
 
 /**
@@ -70,10 +70,10 @@ int eventBumpRight(char * data) {
  * has been hit.
  */
 int eventBumpLeft(char * data) {
-  if((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT)
-      return 1;
-  else
-    return 0;
+	if((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT)
+		return 1;
+	else
+		return 0;
 }
 
 
@@ -84,28 +84,28 @@ int eventBumpLeft(char * data) {
  */
 int eventNotBump(char * data) {
 
-  // Check bump sensors.
+	// Check bump sensors.
 
-  // TODO: Need to correct the use of literal 0 when checking
-  // the state of the bump sensors.
-  if(((data[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
-     ((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
-    {
-      setLED(1,0,0);
-      return 0;
-    }
-  else
-      setLED(2,0,0);
-      return 1;
+	// TODO: Need to correct the use of literal 0 when checking
+	// the state of the bump sensors.
+	if(((data[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
+			((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
+	{
+		setLED(1,0,0);
+		return 0;
+	}
+	else
+		setLED(2,0,0);
+	return 1;
 }
 
 /**
  * eventAlarm
  */
 int eventAlarm(char * data) {
-  if (data[15] != '0') {
-   return 1;
-  }
-  return 0;
+	if (data[15] != '0') {
+		return 1;
+	}
+	return 0;
 }
 
