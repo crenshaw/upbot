@@ -22,7 +22,7 @@
 #include "services.h"
 #include "acceptor.h"
 #include "connector.h"
-#include "netDataProtocol.h"
+#include "../robot/netDataProtocol.h"
 
 // ************************************************************************
 // FUNCTIONS GENERIC TO ALL SERVICE HANDLERS
@@ -1147,7 +1147,7 @@ int dsWrite(serviceHandler * sh, char * src)
   len++;  // Add 1 to account for '\0';
   
   // Otherwise, attempt to send on sh->handler
-  send(sh->handler, src, (size_t)len, 0);
+  printf("%i\n",send(sh->handler, src, (size_t)len, 0));
     
 }
 
