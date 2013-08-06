@@ -1,4 +1,5 @@
 #include "nerves.h"
+#include "commandQueue.h"
 
 static eventResponder myER;
 

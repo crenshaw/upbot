@@ -1,7 +1,8 @@
+#include "roomba/roomba.h"
+
 #ifndef EVENTS_C
 #define EVENTS_C
 
-#include "roomba/roomba.h"
 
 int eventTrue(char * data);
 int eventFalse(char * data);

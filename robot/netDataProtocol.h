@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include "../roomba/roomba.h"
 
+#ifndef _NET_DATA_PROTOCOL_H_
+#define _NET_DATA_PROTOCOL_H_
+
 //robot sensor data (1 byte each)
 //avoiding masks because I want the future users to easily be able to
 //modify the data protocol. I don't think the data savings is worth it
@@ -33,3 +36,5 @@ char getCharFromPackage(int position, char* package);
 int getIntFromPackage(int position, char* package);
 time_t getTimeFromPackage(int position, char* package);
 void printPackage(char* package);
+
+#endif
