@@ -22,7 +22,7 @@ void packageData(char* package, char* snsData, int state, int nextState, int tra
 	time(&rawtime); 
 	*((int*)(package+clockCurTime)) = rawtime;
 
-	package[dataPackageSize-1] = '\0';
+	package[DATA_PACKAGE_SIZE-1] = '\0';
 
 }
 
