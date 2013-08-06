@@ -1,11 +1,15 @@
-// DEMO CODE FROM
-// http://www.ccplusplus.com/2011/09/mkaddr-c-code.html
-//
-// I'm temporarily using this to get a UDP broadcast to work.
-
-/* mkaddr.c
- * The mkaddr() Subroutine using inet_aton
- * Make a socket address:
+/**
+ * 
+ * mkaddr.c
+ *
+ * This file contains the function mkaddr(), used to create a socket
+ * address using inet_aton.  It is essentially the demonstration code
+ * from:
+ * 
+ * http://www.ccplusplus.com/2011/09/mkaddr-c-code.html
+ *
+ * @author Tanya L. Crenshaw
+ * @since July 2013
  */
   #include <stdio.h>
   #include <unistd.h>
