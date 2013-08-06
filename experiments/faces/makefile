@@ -5,8 +5,9 @@
 # Note: One may want to change the compiler CC based on if they are
 # compiling for a desktop or an embedded system.
 CC=gcc
-VPATH=../../communication
+VPATH=../../communication:../../robot
 CFLAGS+=-pthread -I ../../communication
+CFLAGS+= -I ../../robot
 
 native:	service.out prod.out
 gumstix:	gs.out ps.out
@@ -14,12 +15,12 @@ gumstix:	gs.out ps.out
 ### NATIVE TARGET ####
 
 # Compile the acceptor side of the demo for a native machine.
-service.out:	genericServiceDemo.o acceptor.o connector.o services.o services.h mkaddr.c
-	$(CC) $(CFLAGS) -o service.out -DMAC genericServiceDemo.o acceptor.o connector.o services.o mkaddr.c
+service.out:	genericServiceDemo.o  netDataProtocol.o acceptor.o connector.o services.o services.h mkaddr.c
+	$(CC) $(CFLAGS) -o service.out -DMAC genericServiceDemo.o netDataProtocol.o acceptor.o connector.o services.o mkaddr.c 
 
 # Compile the connector side of the demo for a native machine.
-prod.out:	genericProducerDemo.o connector.o acceptor.o services.o services.h mkaddr.c
-	$(CC) $(CFLAGS)  -o prod.out -DMAC genericProducerDemo.o connector.o acceptor.o services.o mkaddr.c
+prod.out:	genericProducerDemo.o netDataProtocol.o connector.o acceptor.o services.o services.h mkaddr.c
+	$(CC) $(CFLAGS)  -o prod.out -DMAC genericProducerDemo.o netDataProtocol.o connector.o acceptor.o services.o mkaddr.c
 
 genericServiceDemo.o:	genericServiceDemo.c services.h
 	$(CC) $(CFLAGS) -o $@ -c $<
@@ -30,13 +31,16 @@ genericProducerDemo.o:	genericProducerDemo.c services.h
 
 ### Some sources are not located in this directory.  Use VPATH and automatic
 ### variables to build them.
+netDataProtocol.o:	netDataProtocol.c netDataProtocol.h
+	$(CC) $(CFLAGS) -DMAC -o $@ -c $<
+
 acceptor.o:	acceptor.c acceptor.h services.h
 	$(CC) $(CFLAGS) -DMAC -o $@ -c $<
 
 connector.o:	connector.c connector.h services.h
 	$(CC) $(CFLAGS) -DMAC -o $@ -c $<
 
-services.o:	services.c acceptor.h connector.h services.h
+services.o:	services.c acceptor.h connector.h services.h netDataProtocol.h
 	$(CC) $(CFLAGS) -DMAC -o $@ -c $<
 
 

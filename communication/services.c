@@ -22,6 +22,7 @@
 #include "services.h"
 #include "acceptor.h"
 #include "connector.h"
+#include "netDataProtocol.h"
 
 // ************************************************************************
 // FUNCTIONS GENERIC TO ALL SERVICE HANDLERS
@@ -1193,7 +1194,8 @@ int dsAggregatorActivate(serviceHandler * sh)
       }
       
       else {
-	printf("Received: %s \n", data);
+	printf("Received: \n");
+	printPackage(data);	
       }
 
     }
