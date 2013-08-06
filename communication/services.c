@@ -1151,15 +1151,44 @@ int dsWrite(serviceHandler * sh, char * src)
 }
 
 /**
+ * dsAggregatorGetDataFromCollector
+ *
+ * The thread of execution that will handle gathering data from a
+ * particular remote collector service endpoint via a particular
+ * endpoint handle.
+ * 
+ * @param[in] sh the serviceHandler associated with the local
+ * aggregator endpoint gathering data from a collector.
+ * 
+ * @returns nothing.
+ */
+void dsAggregatorGetDataFromCollector(serviceHandler * sh)
+{
+
+}
+
+
+/**
  * dsAggregatorActivate
  *
- * For now, an aggregator service simply reads data from the handler
- * field of the given sh and prints what it read.
+ * To activate an aggregator requires creating a thread of execution
+ * that will handle gathering data from a particular remote collector
+ * service endpoint via a particular endpoint handle.  This function
+ * creates the thread of execution that shall perform this task.
  * 
+ * @param[in] sh the serviceHandler associated with this aggregator.
+ * 
+ * @returns an indication of success or failure.
  */
 int dsAggregatorActivate(serviceHandler * sh)
 {
-  
+ 
+  // TODO: Activating an aggregator means creating a thread of
+  // executing that is gathering data from a single collector source.
+  // This function should simply create that thread of execution.
+  // Another function should be in charge of actually calling recv()
+  // and closing the connection if necessary.
+
   printf("Aggregator activated\n");
 
   servHandlerPrint(sh);

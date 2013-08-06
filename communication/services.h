@@ -231,5 +231,6 @@ int erRobotActivate(serviceHandler * sh);
  * functions.
  */
 int dsWrite(serviceHandler * sh, char * src);
+void dsAggregatorGetDataFromCollector(serviceHandler * sh);
 
 #endif
