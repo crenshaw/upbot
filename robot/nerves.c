@@ -96,7 +96,8 @@ int main(int argc, char* argv[])
 					packageData(dataPackage,sensDataFromRobot,myER.curState, n, i,lastStateChange);
 					//packageEventData(dataPackage,n);
 					dsWrite(&sh,dataPackage);
-
+					
+					printPackage(dataPackage);
 
 					r();
 					if (myER.curState != n) {
@@ -145,10 +146,12 @@ void getSensorData(char* sensDataFromRobot) {
 	//TODO: format data to be sent over the network
 	//sendData() 
 
+/*
 	//Debug printing
 	printf("bump right:%d\n",(sensDataFromRobot[0] & SENSOR_BUMP_RIGHT));
 	printf("bump left:%d\n",(sensDataFromRobot[0] & SENSOR_BUMP_LEFT));
 	printf("wheeldrops:%d\n",(sensDataFromRobot[0] & SENSOR_WHEELDROP_BOTH));
 	printf("vwall:%d\n",sensDataFromRobot[0]);
+	*/
 }
 

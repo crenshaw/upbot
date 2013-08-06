@@ -25,7 +25,7 @@
 #define clockCurTime (clockLastSet+4)
 
 //size of the data package
-#define dataPackageSize (clockCurTime+6)
+#define DATA_PACKAGE_SIZE (clockCurTime+6)
 
 
 void packageData(char* package, char* snsData, int state, int nextState, int transition, time_t lastStateChange);
