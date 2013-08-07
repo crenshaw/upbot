@@ -1,53 +1,17 @@
+
+#include <strings.h>
+#include <signal.h>
+#include <unistd.h>
 #include <stdio.h>
-#include <sys/types.h>
-#ifndef _GUMSTIX_H
-#define _GUMSTIX_H
-
-/* In utility.c */
-int defineSongs();
-int openPort();
-int closePort();
-char readAndExecute(FILE *fp);
-void byteTx(char value);
-void byteRx(char* buffer, int nbytes, int iter);
-void initialize();
-void *ReaderThread( void *param);
-void calcFileLoc(char c);
-char* getTime();
-time_t getRawTime();
-void fprintBinaryAsString(FILE* fp, int n);
-int checkSensorData(char *x);
-void writeSensorDataToFile(char* sensorArray, FILE* fp, char* currTime);
-//void writeSensorDataToSharedMemory(char* sensorArray, caddr_t shm, char* currTime, time_t rawTime);
-void itoa(int n, char * s);
-void reverse(char * s);
+#include <fcntl.h>
+#include <termios.h>
+#include <time.h>
+#include <stdlib.h>
 
 
-/* In sensors.c */
-void receiveGroupOneSensorData(char * x);
+#ifndef _ROOMBA_H
+#define _ROOMBA_H
 
-/* In move.c */
-int driveStraightWithFeedback(int velocity);
-void driveStraightUntil(int sec, int speed);
-void driveStraight(int velocity);
-void turnCounterClockwise(int degrees);
-void turnClockwise(int degrees);
-void turn(int direction, int degrees);
-void driveBackwardsUntil(int sec, int speed);
-void driveBackwards(int speed);
-void stop();
-void adjustLEFT();
-void adjustRIGHT();
-
-/* In led.c */
-void setLED(int powerSetting, int playSetting, int advanceSetting);
-void blinkLED();
-
-/* In nerves.c */
-int nerves(caddr_t cmdArea, caddr_t sensArea, pid_t pid);
-
-/* In song.c */
-void song();
 
 #define HIGH_BYTE 0
 #define LOW_BYTE 1
@@ -190,4 +154,39 @@ void song();
 #define PAUSE_STREAM_MACRO {byteTx(CmdToggleStream); byteTx(0);}
 #define RESUME_STREAM_MACRO {byteTx(CmdToggleStream); byteTx(1);}
 
+
+#define SIZE 40
+
+
+//utility.c
+int openPort();
+int closePort();
+void byteTx(char value);
+void byteRx(char* buffer, int nbytes, int iter);
+void initialize();
+
+//commands.c
+void setupRoomba();
+int driveStraightWithFeedback(int velocity);
+void driveStraightUntil(int usec, int speed);
+void driveStraight(int velocity);
+void turnCounterClockwise(int degrees);
+void turnClockwise(int degrees);
+int turnRandom(int minDegrees, int maxDegrees);
+void driveBackwardsUntil(int usec, int speed);
+void driveBackwards(int velocity);
+void stop();
+int driveDistance();
+void adjustRIGHT();
+void adjustLEFT();
+
+//led.c
+void setLED(int powerSetting, int playSetting, int advanceSetting);
+void blinkLED();
+
+
+//Sensors.c
+void receiveSensorData(int packet, char* x, int numBytes, int numIter);
+void receiveGroupOneSensorData(char * x);
+int checkSensorData(char *x);
 #endif

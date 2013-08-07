@@ -9,6 +9,18 @@
 
 #include "communication.h"
 
+#include <stdio.h>
+#include <stddef.h>
+#include <stdlib.h>
+
+#include <fcntl.h>
+#include <mqueue.h>
+
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/stat.h>
+
 #define SIZE 40
 
 static int true = 1;
@@ -144,14 +156,31 @@ void writeCommandToFile(char* cmd, FILE* fp)
  *
  * @return int 1 if wrote something and 0 otherwise
  */
-int writeCommandToSharedMemory(char* cmd, caddr_t shm)
+int writeCommandToMessageQueue(char* cmd, mqd_t qd)
 {
+  
+  //char * timestamp = getTime();
+
+  //char msg[strlen(timestamp)+2];
+  char msg[2];
+  msg[0] = *cmd;
+  //strcat(msg," ");
+  //strcat(msg,timestamp);
+  msg[1] = '\0';
+  //msg[strlen(msg)-1] = '\0';
+  printf("size %d\n",strlen(msg));
+
+  
   if((cmd[0] != '\0' || cmd[0] == CQ_COMMAND_CANARY_VALUE))
     {
-      command_t * newCommand = NULL;
-      constructCommand(&newCommand, cmd);
-      writeCommandToQueue(shm, newCommand);
-      free(newCommand);
+      
+      if(mq_send(qd, msg, strlen(msg), 0) != 0)
+      {
+         perror("failed to write cmd to message queue");
+         exit(-1);
+       }
+
+       printf("Wrote %s to message queue.\n",msg);
 
       return 1;
     }
@@ -200,7 +229,7 @@ int readSensorDataFromFile(char* data, FILE* fp)
 }
 
 /**
- * readSensorDataFromSharedMemory()
+ * readSensorDataFromMessageQueuey()
  *
  * copy sensor data from shared memory into memory pointed
  * to by data
@@ -210,20 +239,42 @@ int readSensorDataFromFile(char* data, FILE* fp)
  *
  * @return int 
  */
-int readSensorDataFromSharedMemory(char* data, caddr_t shm)
+int readSensorDataFromMessageQueue(char* data, mqd_t qd)
 {
+ 
+  char recv_buffer[9001]; 
+  struct mq_attr a;
+  mq_getattr(qd,&a);
+
+  if (a.mq_curmsgs > 0) {
+    if (mq_receive(qd,recv_buffer,9001,NULL) == -1) {
+        perror("mq_recieve(): sns");
+    }
+    
+    int msgLen = strlen(recv_buffer);
+
+    strncpy(data, recv_buffer, msgLen);
+    strncpy(lastDataSent, recv_buffer, msgLen);
+   
+    printf("MQ Recieved: %s\n",recv_buffer);
+       
+    return 1;
+  }
+  return 0;
+
+/*
   int shmLength = strlen((char*)shm);
 
   if (strncmp(lastDataSent, (char *)(shm), shmLength) != 0)
     {
-      strncpy(data, (char *)(shm), shmLength);
-      strncpy(lastDataSent, (char *)shm, shmLength);
+      //strncpy(data, (char *)(shm), shmLength);
+      //strncpy(lastDataSent, (char *)shm, shmLength);
 
       return 1;
     }
 
   return 0;
-  
+  */
 }
   
 
@@ -309,17 +360,28 @@ int receiveDataAndStore(int newSock, char* cmdBuf, char* sensData, FILE* cmdFile
       // Write command to the cmdFile.txt
       writeCommandToFile(cmdBuf, cmdFile);
       
+      /*
+       Currently unused code so modified.
+       if future self or other needs to retrofit the new function is
+        writeCommandToMessageQueue
+
       writeCommandToSharedMemory(cmdBuf, cmdArea);
-      
+      */
+
       // Send command to parent process
       write(fd[1], cmdBuf, 1);
-      
+      /*
+      currently unused code that has been commented out because
+      readSensorDataFromSharedMemory has been replaced with message queues
+
+
       if(readSensorDataFromSharedMemory(sensData, sensArea))
       {
 	printf("sensData: %s \n", sensData);
 	if(send(newSock, sensData, strlen(sensData), 0) == -1)
 	  perror("send");
       }
+      */
     }
   return 0;
 }

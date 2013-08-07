@@ -30,7 +30,7 @@ typedef struct robot
   FILE * handle;   /**< The handle of the serial port */
   char * name;     /**< The name of the robot, i.e. "Webby" or "Frank" */
   char * address;  /**< The IP address of the robot */
-  eventresponder * er;         /**< The robot's currently executing event-responder */
+  eventResponder * er;         /**< The robot's currently executing event-responder */
   serviceHandler * dsCollector;     /**< The sensor data collector service to which this robot is currently connected */
   serviceHandler * erService;  /**< The event:responder service to which this robot is currently connected */
 } robot;

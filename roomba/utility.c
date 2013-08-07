@@ -9,6 +9,14 @@
 #include "roomba.h"
 #include "../communication/communication.h"
 
+#include <fcntl.h>
+#include <mqueue.h>
+
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/stat.h>
+
 int count = 0;
 
 //#define DEBUG 1
@@ -239,12 +247,28 @@ char readAndExecute(FILE *fp)
   return c;
 }
 
-int readFromSharedMemoryAndExecute(caddr_t shm)
+int readFromMessageQueueAndExecute(mqd_t qd)
+//Formerly: readFromSharedMemoryAndExecute(caddr_t shm)
 {
+
+  //TODO: clean up
+  //we are sending timestamps... but we don't do anything with them
+  //once they get here, I should probally fix that
+  //make it look less like it was just slapped on top.
   char cmd = '\0';
 
 
-  cmd = getCommandCodeFromQueue(shm);
+  char c[9001];
+  if (mq_receive(qd,c,9001,NULL) == -1) {
+    perror("mq_receive(): nerves");
+    //pthread_exit(NULL);
+  }
+
+  if (c != '\0') {
+    printf("Recieved %s from message queue.\n",c);
+  }
+  
+ cmd = *c;
   switch (cmd){
   case ssDriveLow:
     driveStraight(LOW);
@@ -346,11 +370,15 @@ void calcFileLoc(char c)
 }
 
 /**
- * writeSensorDataToSharedMemory()
+ * writeSensorDataToMessageQueue()
  * 
  */
-void writeSensorDataToSharedMemory(char* sensorArray, caddr_t shm, char* currTime, time_t rawTime)
+void writeSensorDataToMessageQueue(char* sensorArray, mqd_t qd, char* currTime, time_t rawTime)
 {
+
+  //TODO: actually figure out how big the array needs to be
+  //char msg[strlen(currTime)+strlen(sensorArray)];
+  char msg[50];
 
   int sensorData = 0x00;
   int i, j;
@@ -371,31 +399,34 @@ void writeSensorDataToSharedMemory(char* sensorArray, caddr_t shm, char* currTim
   {
     if ((sensorData & bitMask) == bitMask )
       {
-	*(char *)(shm + j) = '1';
+         msg[j] = '1'; 
       }
     else
       {
-	*(char *)(shm + j) = '0';
+         msg[j] = '0'; 
       }
     bitMask = bitMask << 1;
   }
   
   //add space to end of sensor data
-  *(char *)(shm + 10) = ' ';
+  msg[10] = ' ';
+  
 
   itoa((int)rawTime, rawTimeString);
 
   strncat(rawTimeString, " ", 1);
 
   strncat(rawTimeString, currTime, sizeof(rawTimeString));
-  
+ 
   //copy timestamp to end of sensor data
-  strncpy((char*)(shm + 11), rawTimeString, strlen(rawTimeString));
-
- 
- 
+  strncpy(msg+11, rawTimeString, strlen(rawTimeString));
+  msg[strlen(msg)-1] = '\0'; 
 
   
+  if (mq_send(qd,msg,strlen(msg),0) != 0) {
+      perror("mq_send sns");
+  }
+  printf("MQ Sent: %s\n",msg);
 
   return;
 }

@@ -12,10 +12,10 @@ all: client sclient supclient mccClient unittest server sserver eaters brainstem
 virt: client sclient supclient mccClient unittest eaters soarClient
 
 server:	server.c communication.h serverUtility.c commandQueue.c 
-	$(CC) $(CFLAGS) -o server.out server.c serverUtility.c commandQueue.c
+	$(CC) $(CFLAGS) -o server.out server.c serverUtility.c commandQueue.c -lrt
 
 client:	client.c communication.h serverUtility.c commandQueue.c
-	gcc -o client.out client.c serverUtility.c commandQueue.c
+	gcc -o client.out client.c serverUtility.c commandQueue.c -lrt
 
 sserver:	simpleServer.c
 	$(CC) -o sserver.out simpleServer.c
@@ -24,7 +24,7 @@ sclient:	simpleClient.c communication.h
 	gcc -o sclient.out simpleClient.c
 
 testCQ: testCommandQueue.c commandQueue.c tell.c serverUtility.c
-	$(CC) $(CFLAGS) -o testCQ.out testCommandQueue.c commandQueue.c tell.c serverUtility.c
+	$(CC) $(CFLAGS) -o testCQ.out testCommandQueue.c commandQueue.c tell.c serverUtility.c -lrt
 
 #------------------------------------------------------------------------
 # TWO IMPORTANT NOTES for CORRECT COMPILATION
@@ -77,7 +77,7 @@ eaters: eatersServer.c communication.h serverUtility.c ../supervisor/eaters.h co
 	gcc $(DEBUG_OPT)-o eaters.out eatersServer.c serverUtility.c ../supervisor/eaters.c commandQueue.c
 
 brainstem: brainstem.c communication.h serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o ../roomba/roomba.h
-	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o
+	$(CC) $(CFLAGS) -o brainstem.out brainstem.c serverUtility.c commandQueue.c tell.c nerves.o move.o sensors.o led.o song.o utility.o -lrt
 
 # Make sure that object files are built in the appropriate order; if
 # anything in roomba.h changes, the accompanying nerves, move, sensor,
@@ -87,7 +87,7 @@ brainstem: brainstem.c communication.h serverUtility.c commandQueue.c tell.c ner
 # above.
 
 nerves.o:	../roomba/nerves.c ../roomba/roomba.h move.o sensors.o led.o utility.o 
-	$(CC) $(CFLAGS) -c ../roomba/nerves.c
+	$(CC) $(CFLAGS) -c ../roomba/nerves.c -lrt
 
 move.o:	../roomba/move.c ../roomba/roomba.h 
 	$(CC) $(CFLAGS) -c ../roomba/move.c
@@ -102,7 +102,7 @@ song.o:	../roomba/song.c ../roomba/roomba.h
 	$(CC) $(CFLAGS) -c ../roomba/song.c
 
 utility.o:	../roomba/utility.c ../roomba/roomba.h
-	$(CC) $(CFLAGS) -c ../roomba/utility.c
+	$(CC) $(CFLAGS) -c ../roomba/utility.c -lrt
 
 compass.o:	../devices/compass.c ../devices/compass.h
 	$(CC) $(CFLAGS) -c ../devices/compass.c

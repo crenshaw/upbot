@@ -75,8 +75,14 @@ int nerves(caddr_t cmdArea, caddr_t sensArea, pid_t pid)
       printf("%s %d \n", __FILE__, __LINE__);
  
 
-      cmd = readFromSharedMemoryAndExecute(cmdArea);
+    /* Commented out because shared memory is no longer used
+       The replacement function is readFromMessageQueueAndExecute
+       however nerves does not currently have the back end in place
+       may be retrofited later
+       
 
+      cmd = readFromSharedMemoryAndExecute(cmdArea);
+    */
  
       printf("%s %d \n", __FILE__, __LINE__);
       
@@ -98,8 +104,13 @@ int nerves(caddr_t cmdArea, caddr_t sensArea, pid_t pid)
 	  currTime = getTime();
 	  // writeSensorDataToFile(x, sensorFile, currTime);
 	  
-	  writeSensorDataToSharedMemory(x, sensArea, currTime, getRawTime());
+      /*
+      I am chaning this function to writeSesnsorDataToMessageQueue
+      This line has been commented out because I am to lazy to fix this
+      function which is currently unused
 
+	  writeSensorDataToSharedMemory(x, sensArea, currTime, getRawTime());
+      */
 	}
       int i;
       for(i = 0; i <= 6; i++)

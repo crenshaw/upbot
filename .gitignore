@@ -8,5 +8,7 @@
 *.zip
 *.log
 *.class
+*.swo
+*.swp
 communication/client2.c
 \#*#
