@@ -1,4 +1,5 @@
 #include "nerves.h"
+#include "commandQueue.h"
 
 static eventResponder myER;
 
@@ -51,7 +52,7 @@ int main(int argc, char* argv[])
 	transition * transitions= myER.states[myER.curState].transitions;
 	int transitionsCount = myER.states[myER.curState].count;
 
-	char dataPackage[dataPackageSize]; 
+	char dataPackage[DATA_PACKAGE_SIZE]; 
 
 	while (1) {
 		if (cmdQ_hasMsg(mqd_cmd) > 0) {
@@ -95,6 +96,7 @@ int main(int argc, char* argv[])
 
 					packageData(dataPackage,sensDataFromRobot,myER.curState, n, i,lastStateChange);
 					//packageEventData(dataPackage,n);
+					//dsWrite(&sh,"abcdefghjklmnopqrstuvwxyz");
 					dsWrite(&sh,dataPackage);
 					
 					printPackage(dataPackage);

@@ -28,4 +28,9 @@
 
 //#include "../roomba/roomba.h"
 
+#ifndef _NERVES_H_
+#define _NERVES_H_
+
 void getSensorData(char* sensDataFromRobot);
+
+#endif

@@ -22,7 +22,7 @@
 #include "services.h"
 #include "acceptor.h"
 #include "connector.h"
-#include "netDataProtocol.h"
+#include "../robot/netDataProtocol.h"
 
 // ************************************************************************
 // FUNCTIONS GENERIC TO ALL SERVICE HANDLERS
@@ -1143,8 +1143,9 @@ int dsWrite(serviceHandler * sh, char * src)
   if(sh->handler == SERV_HANDLER_NOT_SET) return SERV_NO_HANDLER;
 
   // Otherwise, attempt to send on sh->handler
-  send(sh->handler, src, DATA_PACKAGE_SIZE, 0);
-    
+
+  printf("%i\n",send(sh->handler, src, DATA_PACKAGE_SIZE, 0));
+   
 }
 
 /**

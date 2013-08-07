@@ -9,8 +9,8 @@ void packageData(char* package, char* snsData, int state, int nextState, int tra
 
 	package[snsBumpLeft] = *snsData & SENSOR_BUMP_LEFT;
 	package[snsBumpRight] = *snsData & SENSOR_BUMP_RIGHT;
-	package[snsCliff] = 0;
-	package[snsVWall] = 0;
+	package[snsCliff] = 1;
+	package[snsVWall] = 1;
 
 	*((int*)(package+stateInitial)) = state;
 	*((int*)(package+stateFinal)) = nextState;
@@ -23,7 +23,7 @@ void packageData(char* package, char* snsData, int state, int nextState, int tra
 	*((int*)(package+clockCurTime)) = rawtime;
 
 	package[DATA_PACKAGE_SIZE-1] = '\0';
-
+	
 }
 
 char getCharFromPackage(int position, char* package) {

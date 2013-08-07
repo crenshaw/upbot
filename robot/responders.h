@@ -1,7 +1,9 @@
+
+#include "roomba/roomba.h"
+
 #ifndef RESPONDERS_C
 #define RESPONDERS_C
 
-#include "roomba/roomba.h"
 
 void respondStop(void);
 
