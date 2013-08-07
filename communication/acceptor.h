@@ -10,10 +10,10 @@
  * @since July 2013
  */
 
+#include "services.h"
+
 #ifndef _ACCEPTOR_H_
 #define _ACCEPTOR_H_
-
-#include "services.h"
 
 /**
  *  CONSTANT DEFINITIONS.  All constants in this file should begin
