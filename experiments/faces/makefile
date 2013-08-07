@@ -4,32 +4,35 @@
 
 VPATH=../../communication : ../../robot
 
-#all: supervisor.out prod.out 
+OBJS=netDataProtocol.o acceptor.o connector.o services.o mkaddr.o 
+DEPS=services.h acceptor.h connector.h netDataProtocol.h mkaddr.h
 
 # Target: supervisor.out
 # A demonstration supervisor running on a native machine.
 supervisor.out:	CC=gcc
 supervisor.out:	CFLAGS+=-pthread -I ../../communication -I ../../robot
-supervisor.out: OBJS=genericServiceDemo.o netDataProtocol.o acceptor.o connector.o services.o mkaddr.o 
-supervisor.out: DEPS=services.h acceptor.h connector.h netDataProtocol.h
 
 # Target: producer.out
 # A demonstration data producer running on a native machine.
-#producer.out:	CC=gcc
-#producer.out:	CFLAGS+=-pthread -I ../../communication -I ../../robot
-#producer.out:	OBJS= genericProducerDemo.o connector.o acceptor.o services.o mkaddr.o
+producer.out:	CC=gcc
+producer.out:	CFLAGS+=-pthread -I ../../communication -I ../../robot
 
 # Target: gumstix.out
 # A demonstration data producer running on a gumstix machine.
-#gumstix.out:	CC=arm-gnu-linux
-#gumstix.out:	CFLAGS+= -lrt -I ../../communication -I ../../robot
-#gumstix.out:	OBJS= genericProducerDemo.o connector.o acceptor.o services.o mkaddr.o
+gumstix.out:	CC=arm-gnu-linux
+gumstix.out:	CFLAGS+= -lrt -I ../../communication -I ../../robot
 
-# Compile the acceptor side of the demo for a native machine.
-supervisor.out:	$(OBJS)
-	$(CC) $(CFLAGS) -o supervisor.out $(OBJS)
 
-%.o:	%.c
+supervisor.out:	$(OBJS) $(DEPS) genericServiceDemo.c
+	$(CC) $(CFLAGS) -o $@ genericServiceDemo.c $(OBJS)
+
+producer.out:	$(OBJS) $(DEPS) genericProducerDemo.c
+	$(CC) $(CFLAGS) -o $@ genericProducerDemo.c $(OBJS)
+
+gumstix.out:	$(OBJS) $(DEPS) genericProducerDemo.c
+	$(CC) $(CFLAGS) -o $@ genericProducerDemo.c $(OBJS)
+
+%.o:	%.c $(DEPS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
