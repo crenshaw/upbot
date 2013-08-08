@@ -7,17 +7,24 @@
  * UPBOT system.
  *
  * For now, there are only two services planned for UPBOT, so
- * everything is piled into this file for now.  If there are ever more
+ * everything is piled into this file.  If there are ever more
  * services, or the services get more complicated, it may be
  * worthwhile to break up this file into pieces.
- *
  * 
  * @author Tanya L. Crenshaw
  * @since July 2013
  *
  */
+#include <fcntl.h>
 
-#define DEBUG 1
+#ifdef DONOTCOMPILE
+#include <mqueue.h>
+#endif
+
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/stat.h>
 
 #include "services.h"
 #include "acceptor.h"
@@ -256,6 +263,11 @@ int servStart(serviceType type, char * name, broadcastType b, serviceHandler * s
 
   // Is it an acceptor?  Right now, there are only two kinds of
   // acceptors:
+
+  // TODO: Note that this if-statement contradicts how the wiki page
+  // categorizes acceptors and connectors.  Until we have broadcast
+  // working, all services running on the desktop machine will be
+  // acceptors.
   if((type == SERV_DATA_SERVICE_AGGREGATOR) || (type == SERV_EVENT_RESPONDER_PROGRAMMER))
     {
       // Create an acceptor-side passive-mode endpoint of communication
@@ -290,7 +302,7 @@ int servStart(serviceType type, char * name, broadcastType b, serviceHandler * s
       servHandlerPrint(sh);  
     }
 
-  if(type == SERV_DATA_SERVICE_COLLECTOR)
+  if((type == SERV_DATA_SERVICE_COLLECTOR) || (type == SERV_EVENT_RESPONDER_ROBOT))
     {
       // Populate the serviceHandler with the information that is known
       // thus far.
@@ -322,7 +334,6 @@ int servStart(serviceType type, char * name, broadcastType b, serviceHandler * s
 	  // endpoint of the service.
 	  printf("Initiate connection status: %d\n", conInitiateConnection(sh));
 	}
-
       else
 	{
 	  // We have no idea to whom we should connect.  Return 
@@ -1078,8 +1089,36 @@ int servCreateEndpoint(endpointType type, char * port, serviceHandler * sh)
 }
 
 
-// Stubs for all the activate() functions for the event:responder
+// ************************************************************************
+//
+// EVENT:RESPONDER SERVICE.  The event:responder service sends
+// messages to robots and accepts messages from remote entities on
+// behalf of the robots.  These messages indicate to the robots which
+// event:responder programs should be used to control their autonomous
+// behaviour.
+//
+// The event:responder service is implemented in two halves, or two
 // service endpoints.
+//
+// a. The Programmer.  The event:responder programmer issues messages
+// from a remote entity to a robot.
+//
+// b. The Robot.  The event:responder robot accepts messages from
+// programmer service endpoints that the event:responder mechanism
+// (nerves.c) on the robot may use to update its currently executing
+// event:responder.
+// 
+// ************************************************************************
+
+
+/**
+ * erProgrammerActivate
+ *
+ *
+ * @param[in] 
+ *
+ * @returns an indication of success or failure.
+ */
 int erProgrammerActivate(serviceHandler * sh)
 {
 
@@ -1087,10 +1126,73 @@ int erProgrammerActivate(serviceHandler * sh)
 
 }
 
+/**
+ * erRobotActivate
+ * 
+ * 1. Create a message queue that the event:responder robot service
+ * endpoint will use to store messages.
+ * 
+ * 2. Create a thread of execution that spins on the robot, awaiting to
+ * receive messages from an event:responder programmer service
+ * endpoint.  
+ *
+ * Subsequent calls to erRead() shall return -1 if no
+ * message has yet been received, or the programmer message at the
+ * front of the queue.
+ *
+ * @param[in] sh the serviceHandler associated with this
+ * event:responder robot endpoint.
+ *
+ * @returns an indication of success or failure.
+ */
 int erRobotActivate(serviceHandler * sh)
 {
   printf("Robot activated\n");
+
+#ifdef DONOTCOMPILE
+  // Create a message queue using O_CREAT so that if the queue doesn't
+  // already exist, it will be created.  When using mq_open with
+  // O_CREAT, one must supply four arguments.  The first "name"
+  // argument must begin with a slash.  The third "mode" argument is
+  // derived from the symbolic constants is <sys/stat.h>.
+  mqd_t mqd = mq_open("/q1", 
+		    O_RDWR | O_CREAT , 
+		    S_IRWXU | S_IRWXG | S_IRWXO, 
+		    NULL);
+  
+#endif 
+
+  // Populate the 'service' field of the serviceHandler with a handle to the
+  // thread that will be performining the actual functionality of the
+  // service.
+  if(pthread_create(&(sh->service), NULL, erRobotService, sh) != 0)
+    {
+      perror("Cannot create a thread for broadcasting.\npthread_create() failed: ");
+      return SERV_CANNOT_CREATE_THREAD;
+    }
+
 }
+
+/**
+ * erRobotService
+ *
+ * @param[in] sh the serviceHandler associated with this
+ * event:responder robot endpoint.
+ *
+ * @returns an indication of success or failure.
+ * 
+ */
+int erRobotService(serviceHandler * sh)
+{
+
+  while(1)
+    {
+      
+    
+    }
+
+}
+
 
 
 // ************************************************************************
@@ -1099,7 +1201,8 @@ int erRobotActivate(serviceHandler * sh)
 // the robots in the physical world and delivers the data to other
 // software entities, e.g. the system supervisor.
 // 
-// The data service is implemented in two halves.  
+// The data service is implemented in two halves, or two service
+// endpoints.
 // 
 // a. The Collector.  The data service collector collects sensor data
 // locally at a given sensor data collection point, i.e., a robot.
@@ -1110,61 +1213,6 @@ int erRobotActivate(serviceHandler * sh)
 // subscribe to sensor data.
 // 
 // ************************************************************************
-
-
-/**
- * dsWrite()
- *
- * Allow an entity to write sensor data or control commands to a
- * data service.
- *
- * @param[in] sh the serviceHandler for the service to which data will
- * be written.
- *
- * @param[in] src a pointer to the data to be written.  The data is
- * represented as a string of characters, and must be null-terminated
- * using '\0'.
- *
- * @returns an integer value describing the success or failure of the
- * operation.  If sh or src are NULL, the function returns
- * SERV_NULL_SH or SERV_NULL_DATA respectively.  If the handler field
- * of sh is not set, this means that the serviceHandler does not have
- * an end-to-end connection with another service endpoint, so data
- * cannot be written and SERV_NO_HANDLER is returned.
- */
-int dsWrite(serviceHandler * sh, char * src)
-{
-
-  // Sanity check the input parameters.  If sh is null, or src is null
-  // or the handler field of the sh is not set, this function 
-  // cannot succeed.
-  if(sh == NULL) return SERV_NULL_SH;
-  if(src == NULL) return SERV_NULL_DATA;
-  if(sh->handler == SERV_HANDLER_NOT_SET) return SERV_NO_HANDLER;
-
-  // Otherwise, attempt to send on sh->handler
-
-  printf("%i\n",send(sh->handler, src, DATA_PACKAGE_SIZE, 0));
-   
-}
-
-/**
- * dsAggregatorGetDataFromCollector
- *
- * The thread of execution that will handle gathering data from a
- * particular remote collector service endpoint via a particular
- * endpoint handle.
- * 
- * @param[in] sh the serviceHandler associated with the local
- * aggregator endpoint gathering data from a collector.
- * 
- * @returns nothing.
- */
-void dsAggregatorGetDataFromCollector(serviceHandler * sh)
-{
-
-}
-
 
 /**
  * dsAggregatorActivate
@@ -1180,12 +1228,6 @@ void dsAggregatorGetDataFromCollector(serviceHandler * sh)
  */
 int dsAggregatorActivate(serviceHandler * sh)
 {
- 
-  // TODO: Activating an aggregator means creating a thread of
-  // executing that is gathering data from a single collector source.
-  // This function should simply create that thread of execution.
-  // Another function should be in charge of actually calling recv()
-  // and closing the connection if necessary.
 
   printf("Aggregator activated\n");
 
@@ -1256,6 +1298,63 @@ int dsCollectorActivate(serviceHandler * sh)
 
 }
 
+/**
+ * dsWrite()
+ *
+ * Allow an entity to write sensor data or control commands to a
+ * data service.
+ *
+ * @param[in] sh the serviceHandler for the service to which data will
+ * be written.
+ *
+ * @param[in] src a pointer to the data to be written.  The data is
+ * represented as a string of characters, and must be null-terminated
+ * using '\0'.
+ *
+ * @returns an integer value describing the success or failure of the
+ * operation.  If sh or src are NULL, the function returns
+ * SERV_NULL_SH or SERV_NULL_DATA respectively.  If the handler field
+ * of sh is not set, this means that the serviceHandler does not have
+ * an end-to-end connection with another service endpoint, so data
+ * cannot be written and SERV_NO_HANDLER is returned.  Otherwise, the
+ * function returns the number of bytes sent via the serviceHandler.
+ */
+int dsWrite(serviceHandler * sh, char * src)
+{
+
+  // Sanity check the input parameters.  If sh is null, or src is null
+  // or the handler field of the sh is not set, this function 
+  // cannot succeed.
+  if(sh == NULL) return SERV_NULL_SH;
+  if(src == NULL) return SERV_NULL_DATA;
+  if(sh->handler == SERV_HANDLER_NOT_SET) return SERV_NO_HANDLER;
+
+  // Otherwise, attempt to send on sh->handler and
+  // return number of bytes sent.
+  return send(sh->handler, src, DATA_PACKAGE_SIZE, 0);
+   
+}
+
+/**
+ * dsAggregatorGetDataFromCollector
+ *
+ * The thread of execution that will handle gathering data from a
+ * particular remote collector service endpoint via a particular
+ * endpoint handle.
+ * 
+ * @param[in] sh the serviceHandler associated with the local
+ * aggregator endpoint gathering data from a collector.
+ * 
+ * @returns nothing.
+ */
+void dsAggregatorGetDataFromCollector(serviceHandler * sh)
+{
+
+}
+
+// ************************************************************************
+// END OF USEFUL CODE
+// ************************************************************************
 
 /* 
    TODO: The function comment header below represents the direction

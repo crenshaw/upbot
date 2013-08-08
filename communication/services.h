@@ -233,4 +233,11 @@ int erRobotActivate(serviceHandler * sh);
 int dsWrite(serviceHandler * sh, char * src);
 void dsAggregatorGetDataFromCollector(serviceHandler * sh);
 
+
+/**
+ * Event:Responder Service API.  Again, see services.c for details on
+ * these functions.
+ */
+int erRobotService(serviceHandler * sh);
+
 #endif

@@ -3,7 +3,6 @@
 # Date created: 7/9/2013
 
 VPATH=../../communication : ../../robot
-
 OBJS=netDataProtocol.o acceptor.o connector.o services.o mkaddr.o 
 DEPS=services.h acceptor.h connector.h netDataProtocol.h mkaddr.h
 
@@ -23,8 +22,8 @@ gumstix.out:	CC=arm-gnu-linux
 gumstix.out:	CFLAGS+= -lrt -I ../../communication -I ../../robot
 
 
-supervisor.out:	$(OBJS) $(DEPS) genericServiceDemo.c
-	$(CC) $(CFLAGS) -o $@ genericServiceDemo.c $(OBJS)
+supervisor.out:	$(OBJS) $(DEPS) supervisor.c
+	$(CC) $(CFLAGS) -o $@ supervisor.c $(OBJS)
 
 producer.out:	$(OBJS) $(DEPS) genericProducerDemo.c
 	$(CC) $(CFLAGS) -o $@ genericProducerDemo.c $(OBJS)
