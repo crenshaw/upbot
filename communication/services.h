@@ -207,7 +207,6 @@ int servHandlerSetPort(serviceHandler * sh, char * port);
 int servHandlerSetService(serviceHandler * sh, serviceType type);
 int servHandlerSetEndpointHandle(serviceHandler * sh, int eh);
 int servHandlerSetBroadcastHandle(serviceHandler * sh, int bh);
-int servHandlerSetType(serviceHandler * sh, int et);
 int servHandlerSetRemoteIP(serviceHandler * sh, char * rip);
 
 int servHandlerPrint(serviceHandler * sh);

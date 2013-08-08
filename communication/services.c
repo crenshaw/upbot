@@ -17,9 +17,7 @@
  */
 #include <fcntl.h>
 
-#ifdef DONOTCOMPILE
 #include <mqueue.h>
-#endif
 
 #include <sys/types.h>
 #include <sys/ipc.h>
@@ -688,32 +686,6 @@ int servHandlerSetBroadcastHandle(serviceHandler * sh, int bh)
   sh->bh = bh;
 
   return SERV_SUCCESS;
-}
-
-
-/**
- * servHandlerSetType
- *
- * Given a serviceHandler, sh, set its endpoint type field.
- *
- * @param[in] sh the serviceHandler to whose port field is to be set.
- * @param[in] et the endpoint type value (SERV_TCP_ENDPOINT or SERV_UDP_ENDPOINT).
- * 
- * @returns If sh is NULL, return SERV_NULL_SH to indicate an error.
- * Otherwise, return SERV_SUCCESS.  
- *
- */
-int servHandlerSetType(serviceHandler * sh, int et)
-{
-
-#ifdef DONOTCOMPILE
-  if(sh == NULL) return SERV_NULL_SH;
-
-  sh->et = et;
-
-  return SERV_SUCCESS;
-#endif
-
 }
 
 /**
