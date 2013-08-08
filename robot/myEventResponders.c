@@ -4,6 +4,8 @@ void selectNextER(char * erName, eventResponder* myER) {
 
 	if (strcmp(erName,"go")==0) {
 		initalizeWanderER(myER);
+	} else if (strcmp(erName,"stop")==0) {
+		initalizeStopER(myER);
 	}
 
 }

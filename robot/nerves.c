@@ -5,16 +5,8 @@ static eventResponder myER;
 
 int main(int argc, char* argv[])
 {
-	//start the program with an event responder to tell it to stop
-	initalizeStopER(&myER);
 
-	setupRoomba();
-	setupClock();
-	mqd_t mqd_cmd = setupCommandQueue();
-
-
-
-	// Check command line parameters.
+// Check command line parameters.
 	if( ! (argc == 2 || argc ==3 ))
 	{
 		printf("This is a command line program that requires the interface name you'd like to communicate on, e.g., en1 or wlan0.  It also has an optional third parameter to manually set a remote ip address of the entity to whom you want to connect.  If no ip is given, it will run in broadcast mode. \n");
@@ -22,6 +14,13 @@ int main(int argc, char* argv[])
 		printf("usage: %s <interface name> <optional remote ip>\n", argv[0]);
 		return 0;
 	}
+
+	//start the program with an event responder to tell it to stop
+	initalizeStopER(&myER);
+
+	setupRoomba();
+	setupClock();
+	mqd_t mqd_cmd = setupCommandQueue();	
 	
 	
 	serviceHandler sh;
@@ -79,6 +78,7 @@ int main(int argc, char* argv[])
 		char sensDataFromRobot[ER_SENS_BUFFER_SIZE] = {'\0'};
 		getSensorData(sensDataFromRobot);
 		//printf("test");
+		//printf("sens: %c\n",sensDataFromRobot);
 
 		int eventOccured = 0;	
 

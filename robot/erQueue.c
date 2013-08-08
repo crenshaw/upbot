@@ -80,6 +80,18 @@ void thread_cmdNet_start(mqd_t mqd_cmd)
 		pthread_exit(NULL);
 	}
 
+	sleep(10);
+
+	message = "stop";  //servRead();
+
+	if(mq_send(mqd_cmd, message, 5, 0) != 0)
+	{
+		perror("msgsend() nerves: ");
+		pthread_exit(NULL);
+	}
+
+
+
 	/*cleanup*/
 	//TODO: close socket here
 	pthread_exit(NULL);

@@ -21,5 +21,5 @@ nerves.out:	$(OBJS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
-	rm *.out
-	rm *.o
+	rm -f *.o
+	rm -f *.out
