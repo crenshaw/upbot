@@ -10,7 +10,7 @@ void packageData(char* package, char* snsData, int state, int nextState, int tra
 	package[snsBumpLeft] = *snsData & SENSOR_BUMP_LEFT;
 	package[snsBumpRight] = *snsData & SENSOR_BUMP_RIGHT;
 	package[snsCliff] = 1;
-	package[snsVWall] = 1;
+	package[snsVWall] = *(snsData+6);
 
 	*((int*)(package+stateInitial)) = state;
 	*((int*)(package+stateFinal)) = nextState;

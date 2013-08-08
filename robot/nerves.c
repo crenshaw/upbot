@@ -78,7 +78,10 @@ int main(int argc, char* argv[])
 		char sensDataFromRobot[ER_SENS_BUFFER_SIZE] = {'\0'};
 		getSensorData(sensDataFromRobot);
 		//printf("test");
-		//printf("sens: %c\n",sensDataFromRobot);
+		//printf("sens: %i\n",*(sensDataFromRobot+4));
+		//printf("sens: %i\n",*(sensDataFromRobot+5));
+		//printf("sens: %i\n",*(sensDataFromRobot+6));
+		//printf("sens: %i\n",*(sensDataFromRobot+7));
 
 		int eventOccured = 0;	
 

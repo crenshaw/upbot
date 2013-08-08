@@ -11,6 +11,6 @@ int eventBumpRight(char * data);
 int eventBumpLeft(char * data);
 int eventNotBump(char * data);
 int eventAlarm(char * data);
-
+int eventVWall(char * data);
 
 #endif

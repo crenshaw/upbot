@@ -109,3 +109,15 @@ int eventAlarm(char * data) {
 	return 0;
 }
 
+/**
+ * eventVWall(char* data)
+ *
+ * inidicates weather or not the roomba is touching a virtual wall
+ *
+ * @param data is a char array of all sensor data for robot
+ *
+ * @return int of either 0 or 1
+ */
+int eventVWall(char * data) {
+	return *(data+6);
+}

@@ -79,7 +79,7 @@ void thread_cmdNet_start(mqd_t mqd_cmd)
 		perror("msgsend() nerves: ");
 		pthread_exit(NULL);
 	}
-
+/*
 	sleep(10);
 
 	message = "stop";  //servRead();
@@ -89,7 +89,7 @@ void thread_cmdNet_start(mqd_t mqd_cmd)
 		perror("msgsend() nerves: ");
 		pthread_exit(NULL);
 	}
-
+*/
 
 
 	/*cleanup*/
