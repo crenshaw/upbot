@@ -9,13 +9,13 @@ CC=arm-linux-gcc
 VPATH=./communication: ./robot: ./robot/roomba
 CFLAGS+=-lrt -I ./communication -I ./robot -I ./robot/roomba
 
-OBJS=nerves.o commandQueue.o netDataProtocol.o led.o commands.o utility.o sensors.o responders.o events.o clock.o erControl.o myEventResponders.o services.o acceptor.o connector.o mkaddr.o
+OBJS=nerves.o erQueue.o netDataProtocol.o led.o commands.o utility.o sensors.o responders.o events.o clock.o erControl.o myEventResponders.o services.o acceptor.o connector.o mkaddr.o
 
 ### GUMSTIX TARGET ####
 
 # Compile the acceptor side of the demo for the gumstix, "gumstix service".
 nerves.out:	$(OBJS)
-	$(CC)  $(CFLAGS) -o nerves.out -DGUMSTIX $(OBJS)
+	$(CC) $(CFLAGS) -o nerves.out -DGUMSTIX $(OBJS)
 
 %.o:	%.c
 	$(CC) $(CFLAGS) -c -o $@ $<

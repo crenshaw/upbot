@@ -1,5 +1,5 @@
+//#include "commandQueue.h"
 #include "nerves.h"
-#include "commandQueue.h"
 
 static eventResponder myER;
 
@@ -78,6 +78,7 @@ int main(int argc, char* argv[])
 		//read sensor data
 		char sensDataFromRobot[ER_SENS_BUFFER_SIZE] = {'\0'};
 		getSensorData(sensDataFromRobot);
+		//printf("test");
 
 		int eventOccured = 0;	
 

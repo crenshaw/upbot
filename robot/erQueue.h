@@ -4,6 +4,8 @@
 #include <sys/ipc.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #ifndef _COMMAND_QUEUE_H_
 #define _COMMAND_QUEUE_H_
