@@ -9,7 +9,11 @@ void packageData(char* package, char* snsData, int state, int nextState, int tra
 
 	package[snsBumpLeft] = *snsData & SENSOR_BUMP_LEFT;
 	package[snsBumpRight] = *snsData & SENSOR_BUMP_RIGHT;
-	package[snsCliff] = 1;
+	
+	package[snsCliffLeft] = *(snsData+2);
+	package[snsCliffFrontLeft] = *(snsData+3);
+	package[snsCliffFrontRight] = *(snsData+4);
+	package[snsCliffRight] = *(snsData+5);
 	package[snsVWall] = *(snsData+6);
 
 	*((int*)(package+stateInitial)) = state;
@@ -39,9 +43,15 @@ time_t getTimeFromPackage(int position, char* package) {
 }
 
 void printPackage(char* package) {
+	printf("\n\n");
+	
 	printf("Bump Left: %i\n",package[snsBumpLeft]);
 	printf("Bump Right: %i\n",package[snsBumpRight]);
-	printf("Cliff: %i\n",package[snsCliff]);
+	
+	printf("Cliff Left: %i\n",package[snsCliffLeft]);
+	printf("Cliff Front Left: %i\n",package[snsCliffFrontLeft]);
+	printf("Cliff Front Right: %i\n",package[snsCliffFrontRight]);
+	printf("Cliff Right: %i\n",package[snsCliffRight]);
 	printf("VWall: %i\n",package[snsVWall]);
 
 	printf("Inital State %i\n",getIntFromPackage(stateInitial,package));

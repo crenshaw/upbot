@@ -78,11 +78,12 @@ int main(int argc, char* argv[])
 		char sensDataFromRobot[ER_SENS_BUFFER_SIZE] = {'\0'};
 		getSensorData(sensDataFromRobot);
 		//printf("test");
+		//printf("sens: %i\n",*(sensDataFromRobot+1));
+		//printf("sens: %i\n",*(sensDataFromRobot+2));
+		//printf("sens: %i\n",*(sensDataFromRobot+3));
 		//printf("sens: %i\n",*(sensDataFromRobot+4));
 		//printf("sens: %i\n",*(sensDataFromRobot+5));
-		//printf("sens: %i\n",*(sensDataFromRobot+6));
-		//printf("sens: %i\n",*(sensDataFromRobot+7));
-
+		
 		int eventOccured = 0;	
 
 		// Loop over all of the eventPredicate/responders in current state

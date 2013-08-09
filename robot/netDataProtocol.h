@@ -11,8 +11,13 @@
 //modify the data protocol. I don't think the data savings is worth it
 #define snsBumpLeft (0)
 #define snsBumpRight (snsBumpLeft+1)
-#define snsCliff (snsBumpRight+1)
-#define snsVWall (snsCliff+1)
+
+#define snsCliffLeft (snsBumpRight+1)
+#define snsCliffFrontLeft (snsCliffLeft+1)
+#define snsCliffFrontRight (snsCliffFrontLeft+1)
+#define snsCliffRight (snsCliffFrontRight+1)
+
+#define snsVWall (snsCliffRight+1)
 #define snsLast snsVWall
 
 //state before transition (int, 4 bytes)
