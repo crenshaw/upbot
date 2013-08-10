@@ -150,8 +150,6 @@ void getSensorData(char* sensDataFromRobot) {
 	resetClock();
 
 	//gotAlarm = 0;
-	//TODO: format data to be sent over the network
-	//sendData() 
 
 /*
 	//Debug printing
