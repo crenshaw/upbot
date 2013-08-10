@@ -1192,6 +1192,7 @@ int erRobotActivate(serviceHandler * sh)
  * 
  */
 int erRobotService(serviceHandler * sh)
+
 {
 
   if(sh == NULL) return SERV_NULL_SH;
@@ -1228,9 +1229,15 @@ int erRobotService(serviceHandler * sh)
       
       else {
 	printf("Received %d byte(s): \n", numBytes);
-	
+	fflush(stdout);	
 	// Write the message received on the socket to the
 	// message queue.
+	/* debug code
+	if (strlen(data) == 3) {
+		strcpy(data,"stop");
+		//data = "stop";
+	}
+	*/
 	if(mq_send(sh->mqd, data, ERSIZE, 0) != 0)
 	  {
 	    perror("msgsend() erRobotService\n");

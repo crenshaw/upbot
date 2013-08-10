@@ -6,7 +6,7 @@ static eventResponder myER;
 int main(int argc, char* argv[])
 {
 
-// Check command line parameters.
+	// Check command line parameters.
 	if( ! (argc == 2 || argc ==3 ))
 	{
 		printf("This is a command line program that requires the interface name you'd like to communicate on, e.g., en1 or wlan0.  It also has an optional third parameter to manually set a remote ip address of the entity to whom you want to connect.  If no ip is given, it will run in broadcast mode. \n");
@@ -20,27 +20,40 @@ int main(int argc, char* argv[])
 
 	setupRoomba();
 	setupClock();
-	mqd_t mqd_cmd = setupCommandQueue();	
-	
-	
-	serviceHandler sh;
-	servHandlerSetDefaults(&sh);
+	//mqd_t mqd_cmd = setupCommandQueue();	
 
+	int bcast = SERV_BROADCAST_ON;
+	int status = -1;
+
+	serviceHandler dsh;
+	serviceHandler ersh;
+
+	servHandlerSetDefaults(&dsh);
+	servHandlerSetDefaults(&ersh);
+
+
+
+	if((status = servStart(SERV_EVENT_RESPONDER_ROBOT, argv[1], bcast, &ersh)) != SERV_SUCCESS)
+	{
+		printf("Could not start programmer: %d\n", status);
+		return EXIT_FAILURE;
+	}
+	
 	// Manually set the remote ip if we have a third argument.
 	if(argc == 3)
 	{
 		printf("...Executing program in manual mode using %s\n", argv[2]);
-		servHandlerSetRemoteIP(&sh, argv[2]);
+		servHandlerSetRemoteIP(&dsh, argv[2]);
 
 		// Start up a data service, collector endpoint.
-		servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], SERV_BROADCAST_OFF, &sh);
+		servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], SERV_BROADCAST_OFF, &dsh);
 	}
 
 	else {
 		printf("...Executing program in broadcast mode.");
 
 		// Start up a data service, collector endpoint.
-		servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], SERV_BROADCAST_ON, &sh);
+		servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], SERV_BROADCAST_ON, &dsh);
 	}
 
 	//contains when the last state change occured
@@ -54,9 +67,10 @@ int main(int argc, char* argv[])
 	char dataPackage[DATA_PACKAGE_SIZE]; 
 
 	while (1) {
-		if (cmdQ_hasMsg(mqd_cmd) > 0) {
+		if (erRead(&ersh, cmd_buffer) == SERV_SUCCESS) {
+		//if (cmdQ_hasMsg(mqd_cmd) > 0) {
 
-			cmdQ_getMsg(mqd_cmd, cmd_buffer);
+			//cmdQ_getMsg(mqd_cmd, cmd_buffer);
 			printf("Got Message: .%s.\n",cmd_buffer);
 
 			//check if this command is telling us to stop
@@ -83,7 +97,7 @@ int main(int argc, char* argv[])
 		//printf("sens: %i\n",*(sensDataFromRobot+3));
 		//printf("sens: %i\n",*(sensDataFromRobot+4));
 		//printf("sens: %i\n",*(sensDataFromRobot+5));
-		
+
 		int eventOccured = 0;	
 
 		// Loop over all of the eventPredicate/responders in current state
@@ -102,8 +116,8 @@ int main(int argc, char* argv[])
 					packageData(dataPackage,sensDataFromRobot,myER.curState, n, i,lastStateChange);
 					//packageEventData(dataPackage,n);
 					//dsWrite(&sh,"abcdefghjklmnopqrstuvwxyz");
-					dsWrite(&sh,dataPackage);
-					
+					dsWrite(&dsh,dataPackage);
+
 					printPackage(dataPackage);
 
 					r();
@@ -137,7 +151,7 @@ int main(int argc, char* argv[])
 	respondStop();	//stop the robot
 	cleanupER(&myER);	//cleanup er data on heap
 	closePort();	//close connection to roomba
-	mq_close(mqd_cmd); //close our command queue
+	//mq_close(mqd_cmd); //close our command queue
 
 	return 0;
 }
@@ -151,12 +165,12 @@ void getSensorData(char* sensDataFromRobot) {
 
 	//gotAlarm = 0;
 
-/*
+	/*
 	//Debug printing
 	printf("bump right:%d\n",(sensDataFromRobot[0] & SENSOR_BUMP_RIGHT));
 	printf("bump left:%d\n",(sensDataFromRobot[0] & SENSOR_BUMP_LEFT));
 	printf("wheeldrops:%d\n",(sensDataFromRobot[0] & SENSOR_WHEELDROP_BOTH));
 	printf("vwall:%d\n",sensDataFromRobot[0]);
-	*/
+	 */
 }
 
