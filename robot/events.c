@@ -82,6 +82,7 @@ int eventBumpLeft(char * data) {
  * 
  * Example eventPredicate function for checking for bump events.
  */
+/*
 int eventNotBump(char * data) {
 
 	// Check bump sensors.
@@ -98,6 +99,7 @@ int eventNotBump(char * data) {
 		setLED(2,0,0);
 	return 1;
 }
+*/
 
 /**
  * eventAlarm
@@ -108,4 +110,70 @@ int eventAlarm(char * data) {
 	}
 	return 0;
 }
+
+/**
+ * eventVWall(char* data)
+ *
+ * inidicates weather or not the roomba is touching a virtual wall
+ *
+ * @param data is a char array of all sensor data for robot
+ *
+ * @return int of either 0 or 1
+ */
+int eventVWall(char * data) {
+	return *(data+6);
+}
+
+/**
+ * eventCliffLeft(char* data)
+ *
+ * inidicates if the sensor detects the ground(1) or nothing (0)
+ *
+ * @param data is a char array of all sensor data for robot
+ *
+ * @return int of either 0 or 1
+ */
+int eventCliffLeft(char * data) {
+	return *(data+2);
+}
+
+/**
+ * eventCliffFrontLeft(char* data)
+ *
+ * inidicates if the sensor detects the ground(1) or nothing (0)
+ *
+ * @param data is a char array of all sensor data for robot
+ *
+ * @return int of either 0 or 1
+ */
+int eventCliffFrontLeft(char * data) {
+	return *(data+3);
+}
+
+/**
+ * eventCliffFrontRight(char* data)
+ *
+ * inidicates if the sensor detects the ground(1) or nothing (0)
+ *
+ * @param data is a char array of all sensor data for robot
+ *
+ * @return int of either 0 or 1
+ */
+int eventCliffFrontRight(char * data) {
+	return *(data+4);
+}
+
+/**
+ * eventCliffRight(char* data)
+ *
+ * inidicates if the sensor detects the ground(1) or nothing (0)
+ *
+ * @param data is a char array of all sensor data for robot
+ *
+ * @return int of either 0 or 1
+ */
+int eventCliffRight(char * data) {
+	return *(data+5);
+}
+
 

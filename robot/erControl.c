@@ -14,7 +14,7 @@ void selectNextER(char * erName);
 /*
  * Sets the event responde based on the name provided
  */
-void setEventResponder(char * erName, eventResponder* myER) {
+void setEventResponder(char * erName, eventResponder* myER) {	
 	cleanupER(myER);
 
 	selectNextER(erName, myER);
@@ -32,15 +32,11 @@ void setEventResponder(char * erName, eventResponder* myER) {
  */
 void cleanupER(eventResponder* myER) {
 
-	int i,j;
+	int i;
 	for (i=0;i<myER->stateCount;++i) {
-		for (j=0;j<myER->states[i].count;++j) {
-			free(&(myER->states[i].transitions[j]));
-		}
-		free(&(myER->states[i]));
+		free(myER->states[i].transitions);
 	}
-	myER->curState = 0;
-	myER->stateCount = 0;
+	free(myER->states);
 
 }
 
