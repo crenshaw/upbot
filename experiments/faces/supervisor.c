@@ -22,7 +22,8 @@
  */
 
 #include <stdio.h>
-#include "acceptor.h"
+#include "services.h"
+#include "netDataProtocol.h"
 
 
 int main(int argc, char * argv[])
@@ -57,7 +58,6 @@ int main(int argc, char * argv[])
 
   int status = -1;
 
-#ifdef DONOTCOMPILE
   // Start up a data service, aggregator endpoint.  Affirm that
   // start was successful.
   if((status = servStart(SERV_DATA_SERVICE_AGGREGATOR, argv[1], bcast, &dsh)) != SERV_SUCCESS)
@@ -65,7 +65,6 @@ int main(int argc, char * argv[])
       printf("Could not start service.\nStatus=%d\n", status);
       return EXIT_FAILURE;
     }
-#endif
   
   // Start up an event:responder service endpoint.
   if((status = servStart(SERV_EVENT_RESPONDER_PROGRAMMER, argv[1], bcast, &ersh)) != SERV_SUCCESS)
@@ -79,15 +78,30 @@ int main(int argc, char * argv[])
   // call to servIsReady() returns TRUE.
   while( !servIsReady(&ersh) );
 
+
+  // The event:responder service is ready.  Get the party started by
+  // making the roomba start driving around autonomously.
   erWrite(&ersh, "go");
   printf("Sent 'go'\n");
 
-  sleep(5);
-  
-  erWrite(&ersh, "banana");
-  printf("Sent 'banana'\n");
+  // Obtain data from the collector.  If the data shows that
+  // we have seen a virtual wall, tell the robot to stop.
+  char data[DATA_PACKAGE_SIZE] = {'\0'};
+  int vwall = 0;
 
-  while(1);
+  while(!vwall)
+    {  
+      if( dsRead(&dsh, data) == SERV_SUCCESS) 
+	{
+	  // Does the sensor data show that we've seen a virtual wall?
+	  if(getCharFromPackage(snsVWall, data) == 1) {
+	    erWrite(&ersh, "stop");
+	    printf("Sent 'stop'\n");
+	    vwall = 1;
+	  }
+	}
+    }
+
 
   // TODO: Write a function called servClose to close 
   // up connections and such.

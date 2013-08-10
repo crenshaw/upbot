@@ -1330,8 +1330,70 @@ int erWrite(serviceHandler * sh, char * src) {
 // 
 // ************************************************************************
 
+
 /**
- * dsAggregatorActivate
+ * erRobotActivate
+ * 
+ * 1. Create a message queue that the event:responder robot service
+ * endpoint will use to store messages.
+ * 
+ * 2. Create a thread of execution that spins on the robot, awaiting to
+ * receive messages from an event:responder programmer service
+ * endpoint.  
+ *
+ * Subsequent calls to erRead() shall return -1 if no
+ * message has yet been received, or the programmer message at the
+ * front of the queue.
+ *
+ * @param[in] sh the serviceHandler associated with this
+ * event:responder robot endpoint.
+ *
+ * @returns an indication of success or failure.
+ */
+int dsAggregatorActivate(serviceHandler * sh)
+{
+
+  if(sh == NULL) return SERV_NULL_SH;
+
+  // Create a message queue using O_CREAT so that if the queue doesn't
+  // already exist, it will be created.  When using mq_open with
+  // O_CREAT, one must supply four arguments.  The first "name"
+  // argument must begin with a slash.  The third "mode" argument is
+  // derived from the symbolic constants is <sys/stat.h>.
+  sh->mqd = mq_open("/qAggregator", 
+		    O_RDWR | O_CREAT | O_NONBLOCK, 
+		    S_IRWXU | S_IRWXG | S_IRWXO, 
+		    NULL);
+
+  /* Determine the size of messages for this message queue
+   */
+  struct mq_attr a;
+  mq_getattr(sh->mqd,&a);  
+  printf("The default message size is: %d\n", a.mq_msgsize);
+
+  // Was the message queue creation successful?
+  if(sh->mqd == -1)
+    {
+      return SERV_CANNOT_CREATE_QUEUE;
+    }
+  
+  // Populate the 'service' field of the serviceHandler with a handle to the
+  // thread that will be performining the actual functionality of the
+  // service.
+  if(pthread_create(&(sh->service), NULL, dsAggregatorService, sh) != 0)
+    {
+      perror("Cannot create a thread for broadcasting.\npthread_create() failed: ");
+      return SERV_CANNOT_CREATE_THREAD;
+    }
+  
+  printf("Aggregator activated\n");
+
+  return SERV_SUCCESS;
+
+}
+
+/**
+ * dsAggregatorService
  *
  * To activate an aggregator requires creating a thread of execution
  * that will handle gathering data from a particular remote collector
@@ -1342,7 +1404,7 @@ int erWrite(serviceHandler * sh, char * src) {
  * 
  * @returns an indication of success or failure.
  */
-int dsAggregatorActivate(serviceHandler * sh)
+int dsAggregatorService(serviceHandler * sh)
 {
 
   if(sh == NULL) return SERV_NULL_SH;
@@ -1363,8 +1425,12 @@ int dsAggregatorActivate(serviceHandler * sh)
     {
       if ((numBytes = recv(sh->handler, data, DATA_PACKAGE_SIZE, 0)) == -1) {
 	  perror("recv");
+
 	  close(sh->handler);
+	  mq_close(sh->mqd);
+	  sh->ready = 0;
 	  pthread_exit(NULL);
+
 	  return SERV_NO_CONNECTION;
       }
 
@@ -1392,13 +1458,26 @@ int dsAggregatorActivate(serviceHandler * sh)
 	printf("****************\n");
 
 	printPackage(data);	
+
+	// Actual work.  Copy the data received over the line
+	// to the message queue for this serviceHandler.
+	// Write the message received on the socket to the
+	// message queue.
+	if(mq_send(sh->mqd, data, DATA_PACKAGE_SIZE, 0) != 0)
+	  {
+	    perror("msgsend() dsAggregatorService\n");
+	  }
+
       }
 
     }
 
   // Flow of control reaches this point because the other end of the
   // connection has closed.  Close up this service gracefully.
+
   close(sh->handler);
+  mq_close(sh->mqd);
+  sh->ready = 0;
   pthread_exit(NULL);
   
   return 0;
@@ -1438,7 +1517,6 @@ int dsCollectorActivate(serviceHandler * sh)
  */
 int dsWrite(serviceHandler * sh, char * src)
 {
-
   // Sanity check the input parameters.  If sh is null, or src is null
   // or the handler field of the sh is not set, this function 
   // cannot succeed.
@@ -1452,21 +1530,35 @@ int dsWrite(serviceHandler * sh, char * src)
    
 }
 
-/**
- * dsAggregatorGetDataFromCollector
+/** 
+ * dsRead
  *
- * The thread of execution that will handle gathering data from a
- * particular remote collector service endpoint via a particular
- * endpoint handle.
+ * For a given serviceHandler for a data service aggregator
+ * endpoint, read any available messages received from a remote
+ * collector service endpoint.
+ *
+ * @param[in] sh the serviceHandler associated with this
+ * data service aggregator endpoint.
  * 
- * @param[in] sh the serviceHandler associated with the local
- * aggregator endpoint gathering data from a collector.
- * 
- * @returns nothing.
+ * @param[out] rb a pointer to an already-allocated receive buffer
+ * which will contain any message read from the service after this
+ * function returns.
+ *
+ * @returns an indication of success or failure.  If either parameter
+ * were NULL, it shall return SERV_NULL_SH or SERV_NULL_DATA respectively.
+ * If a message was available, it returns SERV_SUCCESS.  Otherwise, it
+ * returns SERV_NO_DATA.
  */
-void dsAggregatorGetDataFromCollector(serviceHandler * sh)
+int dsRead(serviceHandler * sh, char * rb)
 {
+  if(sh == NULL) return SERV_NULL_SH;
+  if(rb == NULL) return SERV_NULL_DATA;
 
+  if (mq_receive(sh->mqd, rb, 9000, NULL) == -1)
+    return SERV_NO_DATA;
+
+  else
+    return SERV_SUCCESS;
 }
 
 // ************************************************************************
@@ -1475,7 +1567,7 @@ void dsAggregatorGetDataFromCollector(serviceHandler * sh)
 
 /* 
    TODO: The function comment header below represents the direction
-   that I'd like to see servStart() begin to go as we get basical
+   that I'd like to see servStart() begin to go as we get basica
    functionality working.  It seems silly to leave an empty function
    in here, but I leave it as a reminder of my goals.
 */
@@ -1536,49 +1628,5 @@ int dsCreateCollector(int connectRemote, int continueLocally, serviceHandler * s
 }
 
 
-/**
- * dsCreateCollator
- * 
- * The Collator half of the data service gathers sensor data from
- * collectors and forwards it to interested entities
- */
-void dsCreateCollator(void)
-{
-
-}
-
-
-/**
- * dsConnectToRobot()
- * 
- * Allow an entity to subscribe to the data of a particular
- * robot via a Data Service Collator.
- */
-serviceHandler * dsConnectToRobot(const char * name)
-{
-
-}
-
-/**
- * dsGetData()
- * 
- * Allow an entity to get the data to which it has subscribed
- * from the data service.
- * 
- * @param[in] sh the serviceHandler for the service from which data will
- * be read.
- *
- * @param[in] control an indicator for how much data will be read, 1 sensor
- * report or all available sensor reports.
- *
- * @param[out] dest a pointer to where the data shall be placed.
- *
- * @returns an integer value describing the success or failure of the
- * operation.
- */
-int dsGetData(serviceHandler * sh, int control, void * dest)
-{
-
-}
 
 
