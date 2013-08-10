@@ -29,6 +29,8 @@
 #include "connector.h"
 #include "../robot/netDataProtocol.h"
 
+#define ERSIZE 10
+
 // ************************************************************************
 // FUNCTIONS GENERIC TO ALL SERVICE HANDLERS
 // ************************************************************************
@@ -1205,6 +1207,7 @@ int erRobotService(serviceHandler * sh)
 
 	  close(sh->handler);
 	  mq_close(sh->mqd);
+	  sh->ready = 0;
 	  pthread_exit(NULL);
 
 	  return SERV_NO_CONNECTION;
@@ -1222,9 +1225,9 @@ int erRobotService(serviceHandler * sh)
 	
 	// Write the message received on the socket to the
 	// message queue.
-	if(mq_send(sh->mqd, data, 3, 0) != 0)
+	if(mq_send(sh->mqd, data, ERSIZE, 0) != 0)
 	  {
-	    perror("msgsend() erRobotService");
+	    perror("msgsend() erRobotService\n");
 	  }
       }
       
@@ -1234,6 +1237,7 @@ int erRobotService(serviceHandler * sh)
   // connection has closed.  Close up this service gracefully.
   close(sh->handler);
   mq_close(sh->mqd);
+  sh->ready = 0;
   pthread_exit(NULL);
   
   return SERV_SUCCESS;
@@ -1296,7 +1300,9 @@ int erWrite(serviceHandler * sh, char * src) {
 
   // Otherwise, attempt to send on sh->handler and
   // return number of bytes sent.
-  return send(sh->handler, src, 3, 0);
+  
+  // TODO: Fix the fact that this is hard-coded to ERSIZE
+  return send(sh->handler, src, ERSIZE, 0);
 }
 
 // ************************************************************************

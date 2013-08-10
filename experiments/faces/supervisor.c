@@ -79,11 +79,15 @@ int main(int argc, char * argv[])
   // call to servIsReady() returns TRUE.
   while( !servIsReady(&ersh) );
 
-  while(1) {
-    erWrite(&ersh, "Hi");
+  erWrite(&ersh, "go");
+  printf("Sent 'go'\n");
 
-    sleep(1);
-  }
+  sleep(5);
+  
+  erWrite(&ersh, "stop");
+  printf("Sent 'stop'\n");
+
+  while(1);
 
   // TODO: Write a function called servClose to close 
   // up connections and such.
