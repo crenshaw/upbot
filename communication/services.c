@@ -233,6 +233,7 @@ int servStart(serviceType type, char * name, broadcastType b, serviceHandler * s
   // external interface on this machine.
   if(servQueryIP(sh) == SERV_NO_DEVICE_IP)
     {
+      printf("Shouldn't keep going\n");
       return SERV_NO_DEVICE_IP;  
     }
 
@@ -799,6 +800,12 @@ int servQueryIP(serviceHandler * sh)
 	  // return error.  Otherwise free memory and return success.
 	  if(sh->ip[0] == '\0') {
 	    printf("1: No device IP\n");
+	    
+
+	    // TODO: Some piece of the program is continuing, even
+	    // when this occurs.  I need to add error handling
+	    // for this error!
+
 	    return SERV_NO_DEVICE_IP;
 	  }
 
