@@ -1,107 +1,86 @@
 /**
  * robot.c
  *
- * From the software perspective, A "robot" in the UPBOT robotics
- * system is a single-threaded state machine that is controlled over a
- * given "handle" or serial port.
+ * A simple demo for testing the basic functionality of acceptors and
+ * connectors.  This demo tests the connector side of the
+ * functionality and is equivalent to the robot in the UPBOT robotics
+ * system.  That is, in order for the nerves to start a Data Collector
+ * service endpoint, it would need to make a similar call as seen
+ * below.
  *
- * This file contains the functions to initialize and update the
- * software representation of a robot.
- * 
- * @author: Tanya L. Crenshaw
- * @since: July 2013
+ * Others should use this demo for * guidance on how to utilize the
+ * serv*() functionality available in * services.[c,h].
  *
+ * @author Tanya L. Crenshaw
+ * @since July 2013
  */
 
+#include <stdio.h>
+#include "services.h"
 
-
-
-/**
- * robotInitialize()
- *
- * Perform the necessary software initialization to proxy a robot.  
- * - Lookup the robot's IP based on the given name.
- * - Open a direct serial line to the robot.  
- * - Send the necessary initialization commands to the robot.
- * - Blink an LED to indicate initialization is complete.
- * - Populate the robot structure and return it.
- *
- * This function may only be called by the hardware directly
- * controlling the robot.  It may not be called by a remote entity.
- * Remote entities interested in connecting to a robot should use
- * alternative services.
- *  
- * @param[in] name a string representing the robot's name,
- * i.e. "Webby" or "Frank".
- *
- * @return a pointer to a robot structure containing the necessary
- * information to control the robot and connect it to other services.
- * If an error results in initializing the robot, this is a NULL
- * pointer.
- * 
- */
-robot * robotInitialize(const char * name)
+int main(int argc, char * argv[])
 {
 
+  // Check command line parameters.
+  if( ! (argc == 2 || argc ==3 ))
+    {
+      printf("This is a command line program that requires the interface name you'd like to communicate on, e.g., en1 or wlan0.  It also has an optional third parameter to manually set a remote ip address of the entity to whom you want to connect.  If no ip is given, it will run in broadcast mode. \n");
+      
+      printf("usage: %s <interface name> <optional remote ip>\n", argv[0]);
+      return 0;
+    }
+
+  serviceHandler dsh;
+  serviceHandler ersh;
+
+  // The first step is to set the default values for the
+  // serviceHandlers.
+  servHandlerSetDefaults(&dsh);
+  servHandlerSetDefaults(&ersh);
+
+  int bcast = SERV_BROADCAST_ON;
+  int status = -1;
+
+  // Manually set the remote ip if we have a third argument.
+  if(argc == 3)
+    {
+      printf("...Executing program in manual mode using %s\n", argv[2]);
+      servHandlerSetRemoteIP(&dsh, argv[2]);
+      servHandlerSetRemoteIP(&ersh, argv[2]);
+      bcast = SERV_BROADCAST_OFF;
+    }
+
+#ifdef DONOTCOMPILE
+  if((status = servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], bcast, &dsh)) != SERV_SUCCESS)
+    {
+      printf("Could not start collector: %d\n", status);
+      perror("Personal problems");
+      return EXIT_FAILURE;
+    }
+#endif
+
+  if((status = servStart(SERV_EVENT_RESPONDER_ROBOT, argv[1], bcast, &ersh)) != SERV_SUCCESS)
+    {
+      printf("Could not start programmer: %d\n", status);
+      return EXIT_FAILURE;
+    }
+ 
+  while(1){
+    char data[100];
+
+    if(erRead(&ersh, data) == SERV_SUCCESS)
+      {
+	printf("%s\n", data);
+      }
+    
+    else
+      {
+	printf("Nothing\n");
+      }
+
+    sleep(1);    
+  }
+
+  return 0;
+
 }
-
-
-/**
- * robotDriveStraight()
- *
- * Issue a "drive" command to the given robot with velocity of
- * LOW, MED, or HIGH.
- *
- * @param[in] robot a handle representing the robot to command.
- * @param[in] velocity a constant value.
- *
- * @return none
- */
-void robotDriveStraight(robot * robot, int velocity)
-{
-
-}
-
-/**
- * robotStop()
- * 
- * Issue a "stop" command to the given robot.
- * 
- * @param[in] robot a handle representing the robot to command.
- * 
- * @return none
- *
- * NOTE: In the current code, stop is a macro.  We may want to 
- * keep it that way for performance reasons.  The faster the 
- * roomba can stop, the better.
- *
- */
-void robotStop(robot * robot)
-{
-
-}
-
-
-/**
- * setResponder()
- *
- * Set the responder for the robot.  Software considers the robot a
- * single-threaded state machine.  If this function is called when a
- * robot already has a responder, the function will block until the
- * current responder is cleared.  This function will not block if it
- * is called from within the current responder.
- *
- * @param[in] robot a handle representing the robot to command.
- * @param[in] responder 
- * 
- * @return none.
- */
-
-
-void setResponder(robot * robot, eventresponder * er)
-{
-
-}
-
-
-

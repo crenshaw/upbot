@@ -50,30 +50,43 @@ int main(int argc, char * argv[])
   servHandlerSetDefaults(&dsh);
   servHandlerSetDefaults(&ersh);
 
+  
   // Start up the service based on whether or not broadcast mode is on.
-  if(argc == 3) {
+  int bcast = SERV_BROADCAST_OFF;
+  if(argc == 3) bcast = SERV_BROADCAST_ON;    
 
-    // Start up a data service, aggregator endpoint.
-    servStart(SERV_DATA_SERVICE_AGGREGATOR, argv[1], SERV_BROADCAST_ON, &dsh);
+  int status = -1;
 
-    // Start up an event:responder service endpoint.
-    servStart(SERV_EVENT_RESPONDER_PROGRAMMER, argv[1], SERV_BROADCAST_ON, &ersh);
-    
-  }
+#ifdef DONOTCOMPILE
+  // Start up a data service, aggregator endpoint.  Affirm that
+  // start was successful.
+  if((status = servStart(SERV_DATA_SERVICE_AGGREGATOR, argv[1], bcast, &dsh)) != SERV_SUCCESS)
+    {
+      printf("Could not start service.\nStatus=%d\n", status);
+      return EXIT_FAILURE;
+    }
+#endif
+  
+  // Start up an event:responder service endpoint.
+  if((status = servStart(SERV_EVENT_RESPONDER_PROGRAMMER, argv[1], bcast, &ersh)) != SERV_SUCCESS)
+    {
+      printf("Could not start service.\nStatus=%d\n", status);
+      return EXIT_FAILURE;
+    }
+  
+  // I want to send a message to an event:responder robot endpoint, but
+  // I cannot do so until the ersh says its ready.  Spin until the
+  // call to servIsReady() returns TRUE.
+  while( !servIsReady(&ersh) );
 
-  else {
+  while(1) {
+    erWrite(&ersh, "Hi");
 
-    // Start up a data service, aggregator endpoint.
-    servStart(SERV_DATA_SERVICE_AGGREGATOR, argv[1], SERV_BROADCAST_OFF, &dsh);
-
-    // Start up an event:responder service endpoint.
-    servStart(SERV_EVENT_RESPONDER_PROGRAMMER, argv[1], SERV_BROADCAST_OFF, &ersh);
+    sleep(1);
   }
 
   // TODO: Write a function called servClose to close 
   // up connections and such.
-
-  while(1);
 
   pthread_exit(NULL);
 

@@ -197,6 +197,8 @@ int servStart(serviceType type, char * name, broadcastType b, serviceHandler * s
 {
   int status = 0;
 
+  if(sh == NULL) return SERV_NULL_SH;
+
 #ifdef DONOTCOMPILE
   // TODO: I think this needs to be here, but I need to confirm this.
   // --TLC
@@ -233,7 +235,6 @@ int servStart(serviceType type, char * name, broadcastType b, serviceHandler * s
   // external interface on this machine.
   if(servQueryIP(sh) == SERV_NO_DEVICE_IP)
     {
-      printf("Shouldn't keep going\n");
       return SERV_NO_DEVICE_IP;  
     }
 
@@ -331,7 +332,9 @@ int servStart(serviceType type, char * name, broadcastType b, serviceHandler * s
 	  // The broadcast has been heard or we have a manually-set IP
 	  // address.  Now, establish a connection with the other
 	  // endpoint of the service.
-	  printf("Initiate connection status: %d\n", conInitiateConnection(sh));
+	  status = conInitiateConnection(sh);
+	  printf("Initiate connection status: %d\n", status);
+	  return status;
 	}
       else
 	{
@@ -393,6 +396,8 @@ int servActivate(serviceHandler * sh)
       return SERV_CANNOT_CREATE_THREAD;
     }  
   
+  sh->ready = 1;
+
   printf("Created thread for servicing the connection\n");
   return SERV_SUCCESS;
 
@@ -562,6 +567,9 @@ int servHandlerSetDefaults(serviceHandler * sh)
   sh->rip[0] = '\0';
   sh->bcaddr[0] = '\0';
   sh->interface[0] = '\0';  
+
+  // This service is not active.
+  sh->ready = 0;
 
   return SERV_SUCCESS;
 }
@@ -737,21 +745,23 @@ int servHandlerPrint(serviceHandler * sh)
   printf("   Service type:       %s.\n", serviceNames[sh->typeOfService]);
   printf("   Endpoint handle:    %d.\n", sh->eh); 
   printf("   Broadcast handle:   %d.\n", sh->bh);
-
-  if(sh->handler == -1)
-    {
-      printf("   Connection handle:  Unset.\n");
-    }
-  else
-    {
-      printf("   Connection handle:  %d.\n", sh->handler);
-    }
-
+  printf("   Connection handle:  %d.\n", sh->handler);
   printf("   My IP:              %s.\n", sh->ip);
   printf("   My broadcast IP:    %s.\n", sh->bcaddr);
   printf("   Remote IP:          %s.\n", sh->rip);
   printf("   Port number:        %s.\n", sh->port);    
   printf("   Interface:          %s.\n", sh->interface);
+
+  printf("   Activated?:         ");
+  if(sh->ready == 0)
+    {
+      printf("No.\n");
+    }
+  else
+    {
+      printf("Yes.\n");
+    }
+
   printf("**********************************************");
   printf("\n\n");
 
@@ -800,12 +810,6 @@ int servQueryIP(serviceHandler * sh)
 	  // return error.  Otherwise free memory and return success.
 	  if(sh->ip[0] == '\0') {
 	    printf("1: No device IP\n");
-	    
-
-	    // TODO: Some piece of the program is continuing, even
-	    // when this occurs.  I need to add error handling
-	    // for this error!
-
 	    return SERV_NO_DEVICE_IP;
 	  }
 
@@ -1133,7 +1137,8 @@ int erProgrammerActivate(serviceHandler * sh)
  */
 int erRobotActivate(serviceHandler * sh)
 {
-  printf("Robot activated\n");
+
+  if(sh == NULL) return SERV_NULL_SH;
 
   // Create a message queue using O_CREAT so that if the queue doesn't
   // already exist, it will be created.  When using mq_open with
@@ -1141,9 +1146,15 @@ int erRobotActivate(serviceHandler * sh)
   // argument must begin with a slash.  The third "mode" argument is
   // derived from the symbolic constants is <sys/stat.h>.
   sh->mqd = mq_open("/qRobot", 
-		    O_RDWR | O_CREAT , 
+		    O_RDWR | O_CREAT | O_NONBLOCK, 
 		    S_IRWXU | S_IRWXG | S_IRWXO, 
 		    NULL);
+
+  // Was the message queue creation successful?
+  if(sh->mqd == -1)
+    {
+      return SERV_CANNOT_CREATE_QUEUE;
+    }
   
   // Populate the 'service' field of the serviceHandler with a handle to the
   // thread that will be performining the actual functionality of the
@@ -1153,6 +1164,10 @@ int erRobotActivate(serviceHandler * sh)
       perror("Cannot create a thread for broadcasting.\npthread_create() failed: ");
       return SERV_CANNOT_CREATE_THREAD;
     }
+  
+  printf("Robot activated\n");
+
+  return SERV_SUCCESS;
 
 }
 
@@ -1162,26 +1177,127 @@ int erRobotActivate(serviceHandler * sh)
  * @param[in] sh the serviceHandler associated with this
  * event:responder robot endpoint.
  *
- * @returns an indication of success or failure.
+ * @returns an indication of success or failure.  If sh is NULL, it
+ * returns SERV_NULL_SH.  If a recv() call fails on the handler field
+ * of the sh, it returns SERV_NO_CONNECTION.  Otherwise, it returns
+ * SERV_SUCCESS.
  * 
  */
 int erRobotService(serviceHandler * sh)
 {
 
-  // As long as it is alive, this thread attempts to read
-  // from the communication handler, waiting to hear from its
-  // paired event:responder programmer endpoint.
-  while(1)
+  if(sh == NULL) return SERV_NULL_SH;
+
+  int numBytes = 0;  // The number of bytes received in the last
+		     // transmission to this service.
+
+  int connectionAlive = 1;  // A boolean indicating whether or not the
+			    // other service endpoint has an open
+			    // connection or not.  At the start of
+			    // this function, we presume its open.
+
+  char data[DATA_PACKAGE_SIZE] = {'\0'};
+
+  while(connectionAlive) 
     {
-  
-      sleep(1);
-      printf("I am a robot\n");
-    
+      if ((numBytes = recv(sh->handler, data, DATA_PACKAGE_SIZE, 0)) == -1) {
+	  perror("recv");
+
+	  close(sh->handler);
+	  mq_close(sh->mqd);
+	  pthread_exit(NULL);
+
+	  return SERV_NO_CONNECTION;
+      }
+      
+      // If the previous call to recv() returned 0, that means that the
+      // other socket has closed.  It's time for us to shut down this
+      // service.
+      if (numBytes == 0) {
+	  connectionAlive = 1;
+      }
+      
+      else {
+	printf("Received %d byte(s): \n", numBytes);
+	
+	// Write the message received on the socket to the
+	// message queue.
+	if(mq_send(sh->mqd, data, 3, 0) != 0)
+	  {
+	    perror("msgsend() erRobotService");
+	  }
+      }
+      
     }
+
+  // Flow of control reaches this point because the other end of the
+  // connection has closed.  Close up this service gracefully.
+  close(sh->handler);
+  mq_close(sh->mqd);
+  pthread_exit(NULL);
+  
+  return SERV_SUCCESS;
 
 }
 
+/**
+ * erRead
+ *
+ * For a given serviceHandler for an event:responder robot service
+ * endpoint, read any available messages received from a remote
+ * event:responder programmer service endpoint.  
+ *
+ * @param[in] sh the serviceHandler associated with this
+ * event:responder robot service endpoint.
+ * 
+ * @param[out] rb a pointer to an already-allocated receive buffer
+ * which will contain any message read from the service after this
+ * function returns.
+ *
+ * @returns an indication of success or failure.  If either parameter
+ * were NULL, it shall return SERV_NULL_SH or SERV_NULL_DATA respectively.
+ * If a message was available, it returns SERV_SUCCESS.  Otherwise, it
+ * returns SERV_NO_DATA.
+ */
+int erRead(serviceHandler * sh, char * rb)
+{
+  if(sh == NULL) return SERV_NULL_SH;
+  if(rb == NULL) return SERV_NULL_DATA;
 
+  if (mq_receive(sh->mqd, rb, 9000, NULL) == -1)
+    return SERV_NO_DATA;
+
+  else
+    return SERV_SUCCESS;
+}
+
+/**
+ * erWrite
+ *
+ * For a given serviceHandler for an event:responder programmer
+ * service endpoint, send a message to its paired robot service
+ * endpoint.
+ *
+ * @param[in] sh the serviceHandler associated with this
+ * event:responder programmer service endpoint.
+ * 
+ * @param[out] src a pointer to the message to be sent.
+ *
+ * @returns an indication of success or failure.
+ */
+int erWrite(serviceHandler * sh, char * src) {
+
+  // Sanity check the input parameters.  If sh is null, or src is null
+  // or the handler field of the sh is not set, this function 
+  // cannot succeed.
+  if(sh == NULL) return SERV_NULL_SH;
+  if(src == NULL) return SERV_NULL_DATA;
+  if(sh->handler == SERV_HANDLER_NOT_SET) return SERV_NO_HANDLER;
+
+  // Otherwise, attempt to send on sh->handler and
+  // return number of bytes sent.
+  return send(sh->handler, src, 3, 0);
+}
 
 // ************************************************************************
 //
@@ -1217,9 +1333,9 @@ int erRobotService(serviceHandler * sh)
 int dsAggregatorActivate(serviceHandler * sh)
 {
 
-  printf("Aggregator activated\n");
+  if(sh == NULL) return SERV_NULL_SH;
 
-  servHandlerPrint(sh);
+  printf("Aggregator activated\n");
 
   int numBytes = 0;  // The number of bytes received in the last
 		     // transmission to this service.
@@ -1235,14 +1351,15 @@ int dsAggregatorActivate(serviceHandler * sh)
     {
       if ((numBytes = recv(sh->handler, data, DATA_PACKAGE_SIZE, 0)) == -1) {
 	  perror("recv");
-	  
-	  // TODO: Figure out a graceful way to respond to this.
+	  close(sh->handler);
+	  pthread_exit(NULL);
+	  return SERV_NO_CONNECTION;
       }
 
       
       // If the previous call to recv() returned 0, that means that the
       // other socket has closed.  It's time for us to shut down this
-      // aggregator service.
+      // service.
       if (numBytes == 0) {
 	  connectionAlive = 1;
       }
@@ -1268,7 +1385,7 @@ int dsAggregatorActivate(serviceHandler * sh)
     }
 
   // Flow of control reaches this point because the other end of the
-  // connection has closed.  Close up this aggregator gracefully.
+  // connection has closed.  Close up this service gracefully.
   close(sh->handler);
   pthread_exit(NULL);
   

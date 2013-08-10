@@ -66,7 +66,8 @@
 #define SERV_NULL_DATA (-16)
 #define SERV_NO_HANDLER (-17)
 #define SERV_BAD_BROADCAST_ADDR (-18)
-
+#define SERV_CANNOT_CREATE_QUEUE (-19)
+#define SERV_NO_DATA (-20)
 
 #define SERV_SUCCESS (0)
 
@@ -100,7 +101,7 @@ enum serviceTypeTag {
 //
 // TODO: Find a more maintable way of doing this....not sure if there
 // is one.  -- TLC
-static char * serviceNames[4] = {"No service set", "Data Aggregator", "Data Collector", "Event:Responder"};
+static char * serviceNames[5] = {"No service set", "Data Aggregator", "Data Collector", "E:R Programmer", "E:R Robot"};
 
 // Enumerate the different possible broadcast types for the services.
 // When a service is started by servStart(), it may or may not choose
@@ -162,12 +163,7 @@ typedef struct serviceHandler {
 				       local end of the connection. */
 
   char rip[SERV_MAX_IP_LENGTH];     /**< The IP address of the remote
-				       end of the connection.  
-
-				       TODO: Used by connector sides
-				       only?  Or should acceptor-sides
-				       keep a list of all their
-				       connections? */
+				       end of the connection.  */
 
   char interface[SERV_MAX_INTERFACE_LENGTH]; /**< The interface name
 						of the local end of
@@ -192,6 +188,11 @@ typedef struct serviceHandler {
 				       this service endpoint so that
 				       its own threads may communicate
 				       with each other */
+
+  int ready;                        /**< An indication, TRUE or FALSE,
+				       for whether or not the service
+				       has been activated */
+
 } serviceHandler;
 
 
@@ -244,5 +245,7 @@ void dsAggregatorGetDataFromCollector(serviceHandler * sh);
  * these functions.
  */
 int erRobotService(serviceHandler * sh);
+int erRead(serviceHandler * sh, char * rb);
+int erWrite(serviceHandler * sh, char * src);
 
 #endif

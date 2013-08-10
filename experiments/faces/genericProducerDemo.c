@@ -1,8 +1,8 @@
 /**
- * genericProducerDemo.c
+ * robot.c
  *
  * A simple demo for testing the basic functionality of acceptors and
- * connectors.  This "Producer" demo tests the connector side of the
+ * connectors.  This demo tests the connector side of the
  * functionality and is equivalent to the robot in the UPBOT robotics
  * system.  That is, in order for the nerves to start a Data Collector
  * service endpoint, it would need to make a similar call as seen
