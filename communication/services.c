@@ -1152,6 +1152,12 @@ int erRobotActivate(serviceHandler * sh)
 		    S_IRWXU | S_IRWXG | S_IRWXO, 
 		    NULL);
 
+  /* Determine the size of messages for this message queue
+   */
+  struct mq_attr a;
+  mq_getattr(sh->mqd,&a);  
+  printf("The default message size is: %d\n", a.mq_msgsize);
+
   // Was the message queue creation successful?
   if(sh->mqd == -1)
     {

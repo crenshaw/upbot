@@ -84,8 +84,8 @@ int main(int argc, char * argv[])
 
   sleep(5);
   
-  erWrite(&ersh, "stop");
-  printf("Sent 'stop'\n");
+  erWrite(&ersh, "banana");
+  printf("Sent 'banana'\n");
 
   while(1);
 
