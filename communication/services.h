@@ -10,9 +10,6 @@
  * @since July 01, 2013
  */
 
-#ifndef _SERVICES_H_
-#define _SERVICES_H_
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -26,6 +23,8 @@
 
 #include <fcntl.h>
 
+#include <mqueue.h>
+
 #include <arpa/inet.h>
 
 #include <net/if.h>
@@ -36,6 +35,9 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/mman.h>
+
+#ifndef _SERVICES_H_
+#define _SERVICES_H_
 
 /**
  *  CONSTANT DEFINITIONS.  All constants in this file should begin
@@ -186,6 +188,10 @@ typedef struct serviceHandler {
 				       the actual service
 				       functionality.  */
 
+  mqd_t mqd;                        /**< The message queue used by
+				       this service endpoint so that
+				       its own threads may communicate
+				       with each other */
 } serviceHandler;
 
 

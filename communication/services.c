@@ -545,15 +545,22 @@ int servHandlerSetDefaults(serviceHandler * sh)
 
   sh->typeOfService = SERV_SERVICE_NOT_SET;
 
+  // The handlers for the endpoints of communication, threads, and
+  // the message queue should all be set to "NOT_SET" i.e., -1.
   sh->handler = SERV_HANDLER_NOT_SET;
   sh->eh = SERV_HANDLER_NOT_SET;
   sh->bh = SERV_HANDLER_NOT_SET;
-
+  sh->mqd = SERV_HANDLER_NOT_SET;
+  sh->broadcast = SERV_HANDLER_NOT_SET;
+  sh->connection = SERV_HANDLER_NOT_SET;
+  sh->service = SERV_HANDLER_NOT_SET;
+ 
   // Make some empty strings 
   sh->port[0] = '\0';
   sh->ip[0] = '\0';
   sh->rip[0] = '\0';
-  sh->interface[0] = '\0';
+  sh->bcaddr[0] = '\0';
+  sh->interface[0] = '\0';  
 
   return SERV_SUCCESS;
 }
@@ -1121,19 +1128,16 @@ int erRobotActivate(serviceHandler * sh)
 {
   printf("Robot activated\n");
 
-#ifdef DONOTCOMPILE
   // Create a message queue using O_CREAT so that if the queue doesn't
   // already exist, it will be created.  When using mq_open with
   // O_CREAT, one must supply four arguments.  The first "name"
   // argument must begin with a slash.  The third "mode" argument is
   // derived from the symbolic constants is <sys/stat.h>.
-  mqd_t mqd = mq_open("/q1", 
+  sh->mqd = mq_open("/qRobot", 
 		    O_RDWR | O_CREAT , 
 		    S_IRWXU | S_IRWXG | S_IRWXO, 
 		    NULL);
   
-#endif 
-
   // Populate the 'service' field of the serviceHandler with a handle to the
   // thread that will be performining the actual functionality of the
   // service.
@@ -1157,9 +1161,14 @@ int erRobotActivate(serviceHandler * sh)
 int erRobotService(serviceHandler * sh)
 {
 
+  // As long as it is alive, this thread attempts to read
+  // from the communication handler, waiting to hear from its
+  // paired event:responder programmer endpoint.
   while(1)
     {
-      
+  
+      sleep(1);
+      printf("I am a robot\n");
     
     }
 
