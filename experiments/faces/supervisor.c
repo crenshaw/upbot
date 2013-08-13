@@ -103,6 +103,9 @@ int main(int argc, char * argv[])
     }
 
 
+  //read all remaining packets in network queue
+  while ( dsRead(&dsh, data) == SERV_SUCCESS);
+
   // TODO: Write a function called servClose to close 
   // up connections and such.
 
