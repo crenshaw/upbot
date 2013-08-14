@@ -46,6 +46,7 @@ void cleanupER(eventResponder* myER) {
  * away
  */
 void initalizeStopER(eventResponder* myER) {
+	//printf("\n\n\n**************\ninitalizeStopER\n***********\n\n\n");
 	myER->curState = 0;
 	myER->stateCount = 1;
 	myER->states = malloc(sizeof(state));

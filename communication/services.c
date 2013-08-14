@@ -1229,7 +1229,7 @@ int erRobotService(serviceHandler * sh)
       
       else {
 	printf("Received %d byte(s): \n", numBytes);
-	fflush(stdout);	
+	//fflush(stdout);	
 	// Write the message received on the socket to the
 	// message queue.
 	/* debug code

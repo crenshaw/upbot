@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
 		//printf("sens: %i\n",*(sensDataFromRobot+5));
 
 		int eventOccured = 0;	
-
+		
 		// Loop over all of the eventPredicate/responders in current state
 		int i = 0;
 		for(i = 0; i < transitionsCount; i++) {
@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
 				eventPredicate* e = transitions[i].e; //event to check against
 
 				if((e)(sensDataFromRobot)) {
-
+					
 					responder* r = transitions[i].r; //the responder to execute
 					nextState n = transitions[i].n; //the next state to go to
 
@@ -119,7 +119,7 @@ int main(int argc, char* argv[])
 					dsWrite(&dsh,dataPackage);
 
 					printPackage(dataPackage);
-
+					
 					r();
 					if (myER.curState != n) {
 						printf("State changing from %d to %d\n",myER.curState,n);

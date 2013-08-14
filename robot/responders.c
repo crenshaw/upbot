@@ -7,6 +7,7 @@
  */ 
 void respondStop(void)
 {
+	//printf("stop\n");
 	stop();
 	usleep(30);
 }
