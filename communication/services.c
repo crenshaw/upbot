@@ -1205,11 +1205,11 @@ int erRobotService(serviceHandler * sh)
 			    // connection or not.  At the start of
 			    // this function, we presume its open.
 
-  char data[DATA_PACKAGE_SIZE] = {'\0'};
+  char data[DPRO_PACKAGE_SIZE] = {'\0'};
 
   while(connectionAlive) 
     {
-      if ((numBytes = recv(sh->handler, data, DATA_PACKAGE_SIZE, 0)) == -1) {
+      if ((numBytes = recv(sh->handler, data, DPRO_PACKAGE_SIZE, 0)) == -1) {
 	  perror("recv");
 
 	  close(sh->handler);
@@ -1426,11 +1426,11 @@ int dsAggregatorService(serviceHandler * sh)
 			    // connection or not.  At the start of
 			    // this function, we presume its open.
 
-  char data[DATA_PACKAGE_SIZE] = {'\0'};
+  char data[DPRO_PACKAGE_SIZE] = {'\0'};
 
   while(connectionAlive) 
     {
-      if ((numBytes = recv(sh->handler, data, DATA_PACKAGE_SIZE, 0)) == -1) {
+      if ((numBytes = recv(sh->handler, data, DPRO_PACKAGE_SIZE, 0)) == -1) {
 	  perror("recv");
 
 	  close(sh->handler);
@@ -1457,7 +1457,7 @@ int dsAggregatorService(serviceHandler * sh)
 
 	printf("****************\n");
 
-	for(i = 0; i < DATA_PACKAGE_SIZE ; i++)
+	for(i = 0; i < DPRO_PACKAGE_SIZE ; i++)
 	{
 	  printf("%d ", data[i]);
 	}
@@ -1470,7 +1470,7 @@ int dsAggregatorService(serviceHandler * sh)
 	// to the message queue for this serviceHandler.
 	// Write the message received on the socket to the
 	// message queue.
-	if(mq_send(sh->mqd, data, DATA_PACKAGE_SIZE, 0) != 0)
+	if(mq_send(sh->mqd, data, DPRO_PACKAGE_SIZE, 0) != 0)
 	  {
 	    perror("msgsend() dsAggregatorService\n");
 	  }
@@ -1533,7 +1533,7 @@ int dsWrite(serviceHandler * sh, char * src)
 
   // Otherwise, attempt to send on sh->handler and
   // return number of bytes sent.
-  return send(sh->handler, src, DATA_PACKAGE_SIZE, 0);
+  return send(sh->handler, src, DPRO_PACKAGE_SIZE, 0);
    
 }
 

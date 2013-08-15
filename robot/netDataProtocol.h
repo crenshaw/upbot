@@ -25,31 +25,31 @@
  */
 
 //robot sensor data (1 byte each)
-#define snsBumpLeft (0)
-#define snsBumpRight (snsBumpLeft+1)
+#define DPRO_SNS_BUMP_LEFT (0)
+#define DPRO_SNS_BUMP_RIGHT (DPRO_SNS_BUMP_LEFT+1)
 
-#define snsCliffLeft (snsBumpRight+1)
-#define snsCliffFrontLeft (snsCliffLeft+1)
-#define snsCliffFrontRight (snsCliffFrontLeft+1)
-#define snsCliffRight (snsCliffFrontRight+1)
+#define DPRO_SNS_CLIFF_LEFT (DPRO_SNS_BUMP_RIGHT+1)
+#define DPRO_SNS_CLIFF_FRONT_LEFT (DPRO_SNS_CLIFF_LEFT+1)
+#define DPRO_SNS_CLIFF_FRONT_RIGHT (DPRO_SNS_CLIFF_FRONT_LEFT+1)
+#define DPRO_SNS_CLIFF_RIGHT (DPRO_SNS_CLIFF_LEFT+1)
 
-#define snsVWall (snsCliffRight+1)
-#define snsLast snsVWall
+#define DPRO_SNS_VWALL (DPRO_SNS_CLIFF_RIGHT+1)
+#define DPRO_SNS_LAST DPRO_SNS_VWALL
 
 //state before transition (int, 4 bytes)
-#define stateInitial (snsLast+1)
+#define DPRO_STATE_INITIAL (DPRO_SNS_LAST+1)
 //state after transition (int, 4 bytes)
-#define stateFinal (stateInitial+4)
+#define DPRO_STATE_FINAL (DPRO_STATE_INITIAL+4)
 //the id of the transition occuring (int, 4 bytes)
-#define transitionID (stateFinal+4)
+#define DPRO_TRANSITION_ID (DPRO_STATE_FINAL+4)
 
 //when the clock was last set in seconds (time_t, 4 bytes)
-#define clockLastSet (transitionID+4)
+#define DPRO_CLOCK_LAST_SET (DPRO_TRANSITION_ID+4)
 //the current time  (time_t, 4 bytes)
-#define clockCurTime (clockLastSet+4)
+#define DPRO_CLOCK_CURTIME (DPRO_CLOCK_LAST_SET+4)
 
 //size of the data package
-#define DATA_PACKAGE_SIZE (clockCurTime+6)
+#define DPRO_PACKAGE_SIZE (DPRO_CLOCK_CURTIME+6)
 
 /**
  * Function prototypes. See netDataProtocol.c for more details

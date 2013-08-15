@@ -59,10 +59,8 @@ void respondDriveHigh(void) {
  * respondTurn()
  *
  * Turns the robot a random amount
- *
- * TODO: rename to something less ambigous
  */
-void respondTurn(void) {
+void respondTurnRandom(void) {
 	turnRandom(300000,1800000);
 }
 

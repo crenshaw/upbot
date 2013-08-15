@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 	transition * transitions= myER.states[myER.curState].transitions;
 	int transitionsCount = myER.states[myER.curState].count;
 
-	char dataPackage[DATA_PACKAGE_SIZE]; 
+	char dataPackage[DPRO_PACKAGE_SIZE]; 
 
 	while (1) {
 		if (erRead(&ersh, cmd_buffer) == SERV_SUCCESS) {

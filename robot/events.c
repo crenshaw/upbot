@@ -8,6 +8,10 @@
  * put within a transition so that it may be used by 
  * the event responder.
  *
+ * TODO: the TODOs in this file should probally wait until I get input
+ * about the cleanest way to add constants since the data is somewhat
+ * dynamicly generated (placed by a for loop not by constants)
+ *
  * @author Matt Holland
  * @since July 2013
  */
@@ -107,7 +111,7 @@ int eventBumpLeft(char * data) {
 }
 
 /**
- * eventAlarm(char* data)
+ * eventClock(char* data)
  * 
  * checks if the clock has been triggered
  *
@@ -116,10 +120,9 @@ int eventBumpLeft(char * data) {
  * @return if the clock has been triggered
  * '1' is triggered, '0' is not triggered
  *
- * TODO: rename to eventClock
  * TODO: use constant instead of the literal 15
  */
-int eventAlarm(char * data) {
+int eventClock(char * data) {
 	if (data[15] != '0') {
 		return 1;
 	}

@@ -23,7 +23,7 @@ int eventBump(char * data) ;
 int eventBumpRight(char * data);
 int eventBumpLeft(char * data);
 
-int eventAlarm(char * data);
+int eventClock(char * data);
 
 int eventVWall(char * data);
 
