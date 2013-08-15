@@ -1,11 +1,31 @@
 #include "erQueue.h"
 
+
+/**
+ * cmdQ_hasMsg(mqd_t mqd_cmd)
+ *
+ * checks how many messaged are within the command queue provided
+ *
+ * @param mqd_cmd: the message queue to check
+ *
+ * @return the number of messages in the given message queue
+ */
 int cmdQ_hasMsg(mqd_t mqd_cmd) {
 	struct mq_attr a;
 	mq_getattr(mqd_cmd,&a);
 	return a.mq_curmsgs;
 }
 
+
+/**
+ * cmdQ_getMsg(mqd_t mqd_cmd, char* buffer)
+ * 
+ * gets the next message off the given queue and places the message
+ * om the character buffer
+ *
+ * @param mqd_cmd: the queue to read from
+ * @param buffer: character array to store the next command
+ */
 void cmdQ_getMsg(mqd_t mqd_cmd, char* buffer) {
 	if (mq_receive(mqd_cmd, buffer, CMD_BUFFER_SIZE, NULL) == -1) {
 		perror("mq_receive(): ");
@@ -13,6 +33,9 @@ void cmdQ_getMsg(mqd_t mqd_cmd, char* buffer) {
 	}     
 }
 
+/**
+ * setupCommandQueue()
+ */
 mqd_t setupCommandQueue() {
 
 	/* Create a message queue using O_CREAT so that if the queue doesn't

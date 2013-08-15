@@ -1,9 +1,22 @@
+/**
+ * responders.h
+ *
+ * A responder is the action preformed after an event has been 
+ * triggered. All responders take no arguments and return nothing.
+ *
+ * @author Matt Holland
+ * @since July 2013
+ */
+
 
 #include "roomba/roomba.h"
 
-#ifndef RESPONDERS_C
-#define RESPONDERS_C
+#ifndef _RESPONDERS_C_
+#define _RESPONDERS_C_
 
+/**
+ * Function prototypes. For more details look in responders.c
+ */
 
 void respondStop(void);
 

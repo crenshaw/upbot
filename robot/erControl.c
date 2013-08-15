@@ -1,18 +1,26 @@
-#include "erControl.h"
-/*
-//file includes the following functions
-void setEventResponder(char * erName);
-void cleanupER();
-void initalizeStopER();
-
-
-//selectNextER is not defined in this file but it is expected to be placer here
-void selectNextER(char * erName);
+/**
+ * erControl.c
+ *
+ * erControl contains the functions used to set and change the
+ * event responder.
+ *
+ * @author Matt Holland
+ * @since July 2013
  */
 
+#include "erControl.h"
 
-/*
- * Sets the event responde based on the name provided
+/**
+ * setEventResponder(char* erName, eventResponder* myER) 
+ *
+ * Sets the event responde based on the name provided 
+ *
+ * @param erName: char array containing the name of the er to open
+ * @param myER: pointer to the empty/old event responder to overwriten
+ *
+ * TODO: set responder based on int id
+ * - or -
+ * TODO: set responder via internet!
  */
 void setEventResponder(char * erName, eventResponder* myER) {	
 	cleanupER(myER);
@@ -26,9 +34,14 @@ void setEventResponder(char * erName, eventResponder* myER) {
 }
 
 
-/*
+/**
+ * cleanupER(eventResponder* myER)
+ *
  * This function will free all dynamic memory within
  * myER and zero everything on the stack
+ *
+ * @param myER: pointer to the eventResponder you want to clear
+ *
  */
 void cleanupER(eventResponder* myER) {
 
@@ -41,9 +54,14 @@ void cleanupER(eventResponder* myER) {
 }
 
 /**
+ * initalizeStopER(eventResponder* myER)
+ *
  * stop responder is always present. Thatway we can
  * initalize the robot in a responder which won't have it running
  * away
+ *
+ * @param myER: the empty event responder to set to stop
+ * 
  */
 void initalizeStopER(eventResponder* myER) {
 	//printf("\n\n\n**************\ninitalizeStopER\n***********\n\n\n");

@@ -1,3 +1,13 @@
+/**
+ * erControl.h
+ *
+ * erControl contains the functions used to set and change the
+ * event responder.
+ *
+ * @author Matt Holland
+ * @since July 2013
+ */
+
 #include "eventresponder.h"
 #include "myEventResponders.h"
 
@@ -5,13 +15,11 @@
 #define _ER_CONTROL_C_
 
 
-//file includes the following functions
+/**
+ * Function Prototpes, to see more details look in erControl.c
+ */
 void setEventResponder(char * erName, eventResponder* myER);
 void cleanupER(eventResponder* myER);
 void initalizeStopER(eventResponder* myER);
-
-
-//selectNextER is not defined in this file but it is expected to be placer here
-//void selectNextER(char * erName, eventresponder* myER);
 
 #endif

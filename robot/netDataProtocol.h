@@ -1,3 +1,17 @@
+/**
+ * netDataProtocol.h
+ *
+ * contains the functions needed to package and unpackage sensor data
+ * sent over the network.
+ *
+ * TODO: get rid of include ../roomba/roomba.h
+ * TODO: make preprosseor contants fit style guide
+ *
+ * @author Matt Holland
+ * @since August 2013
+ */
+
+
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -6,9 +20,11 @@
 #ifndef _NET_DATA_PROTOCOL_H_
 #define _NET_DATA_PROTOCOL_H_
 
+/**
+ * CONSTANT DEFINITIONS.
+ */
+
 //robot sensor data (1 byte each)
-//avoiding masks because I want the future users to easily be able to
-//modify the data protocol. I don't think the data savings is worth it
 #define snsBumpLeft (0)
 #define snsBumpRight (snsBumpLeft+1)
 
@@ -35,7 +51,9 @@
 //size of the data package
 #define DATA_PACKAGE_SIZE (clockCurTime+6)
 
-
+/**
+ * Function prototypes. See netDataProtocol.c for more details
+ */
 void packageData(char* package, char* snsData, int state, int nextState, int transition, time_t lastStateChange);
 char getCharFromPackage(int position, char* package);
 int getIntFromPackage(int position, char* package);

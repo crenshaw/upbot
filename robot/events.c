@@ -1,19 +1,27 @@
+/**
+ * events.c 
+ *
+ * An event contains a conditional check so the robot can determine
+ * what it should do next based on the sensor data it collects.
+ *
+ * Events are should never be called by the user directly but instead
+ * put within a transition so that it may be used by 
+ * the event responder.
+ *
+ * @author Matt Holland
+ * @since July 2013
+ */
+
 #include "events.h"
 
 /**
- * events.c contains the events used by eventresponder.c
+ * eventTrue(char* data)
+ * 
+ * Always returns true.
  *
- * An event is a function that is used to control check the status of a robot
- * It returns a boolean based upon a roombas sensor data passed into it
- * 
- */
-
-
-
-/**
- * eventTrue
- * 
- * Default eventPredicate function.  Always returns true.
+ * @param data: the data from the robot to check against
+ *
+ * @return 1 always
  */
 int eventTrue(char * data)
 {
@@ -21,9 +29,13 @@ int eventTrue(char * data)
 }
 
 /**
- * eventFalse
+ * eventFalse(char* data)
  * 
- * Default eventPredicate function.  Always returns false.
+ * Always returns false.
+ *
+ * @param data: the data from the robot to check against
+ *
+ * @return 0 always
  */
 int eventFalse(char * data)
 {
@@ -31,16 +43,20 @@ int eventFalse(char * data)
 }
 
 /**
- * eventBump
+ * eventBump(char* data)
  * 
- * Example eventPredicate function for checking for bump events.
+ * checks if either the left or right bump sensor have been triggered
+ *
+ * @param data: the data from the robot to check against
+ *
+ * @return if the bump sesors have been triggered
+ * 1 is triggered, 0 is not triggered
+ *
+ * TODO: Need to correct the use of literal 0 when checking
+ * the state of the bump sensors.
  */
 int eventBump(char * data) {
 
-	// Check bump sensors.
-
-	// TODO: Need to correct the use of literal 0 when checking
-	// the state of the bump sensors.
 	if(((data[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
 			((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
 	{
@@ -51,10 +67,17 @@ int eventBump(char * data) {
 }
 
 /**
- * eventBumpRight
+ * eventBumpRight(char* data)
  * 
- * Example eventPredicate function for checking if the right bumper 
- * has been hit.
+ * checks if the right bump sensor has been triggered
+ *
+ * @param data: the data from the robot to check against
+ *
+ * @return if the right bump sesor has been triggered
+ * 1 is triggered, 0 is not triggered
+ *
+ * TODO: Need to correct the use of literal 0 when checking
+ * the state of the bump sensors.
  */
 int eventBumpRight(char * data) {
 	if((data[0] & SENSOR_BUMP_RIGHT ) == SENSOR_BUMP_RIGHT)
@@ -64,10 +87,17 @@ int eventBumpRight(char * data) {
 }
 
 /**
- * eventBumpLeft
+ * eventBumpLeft(char* data)
  * 
- * Example eventPredicate function for checking if the left bumper 
- * has been hit.
+ * checks if the left bump sensor has been triggered
+ *
+ * @param data: the data from the robot to check against
+ *
+ * @return if the left bump sesor has been triggered
+ * 1 is triggered, 0 is not triggered
+ *
+ * TODO: Need to correct the use of literal 0 when checking
+ * the state of the bump sensors.
  */
 int eventBumpLeft(char * data) {
 	if((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT)
@@ -76,33 +106,18 @@ int eventBumpLeft(char * data) {
 		return 0;
 }
 
-
 /**
- * eventNotBump
+ * eventAlarm(char* data)
  * 
- * Example eventPredicate function for checking for bump events.
- */
-/*
-int eventNotBump(char * data) {
-
-	// Check bump sensors.
-
-	// TODO: Need to correct the use of literal 0 when checking
-	// the state of the bump sensors.
-	if(((data[0] & SENSOR_BUMP_RIGHT) == SENSOR_BUMP_RIGHT) || 
-			((data[0] & SENSOR_BUMP_LEFT ) == SENSOR_BUMP_LEFT))
-	{
-		setLED(1,0,0);
-		return 0;
-	}
-	else
-		setLED(2,0,0);
-	return 1;
-}
-*/
-
-/**
- * eventAlarm
+ * checks if the clock has been triggered
+ *
+ * @param data: the data from the robot to check against
+ *
+ * @return if the clock has been triggered
+ * '1' is triggered, '0' is not triggered
+ *
+ * TODO: rename to eventClock
+ * TODO: use constant instead of the literal 15
  */
 int eventAlarm(char * data) {
 	if (data[15] != '0') {
@@ -119,6 +134,8 @@ int eventAlarm(char * data) {
  * @param data is a char array of all sensor data for robot
  *
  * @return int of either 0 or 1
+ *
+ * TODO: use constant instead of the literal 6
  */
 int eventVWall(char * data) {
 	return *(data+6);
@@ -132,6 +149,8 @@ int eventVWall(char * data) {
  * @param data is a char array of all sensor data for robot
  *
  * @return int of either 0 or 1
+ *
+ * TODO: use constant instead of the literal 2
  */
 int eventCliffLeft(char * data) {
 	return *(data+2);
@@ -145,6 +164,8 @@ int eventCliffLeft(char * data) {
  * @param data is a char array of all sensor data for robot
  *
  * @return int of either 0 or 1
+ *
+ * TODO: use constant instead of the literal 3
  */
 int eventCliffFrontLeft(char * data) {
 	return *(data+3);
@@ -158,6 +179,8 @@ int eventCliffFrontLeft(char * data) {
  * @param data is a char array of all sensor data for robot
  *
  * @return int of either 0 or 1
+ *
+ * TODO: use constant instead of the literal 4
  */
 int eventCliffFrontRight(char * data) {
 	return *(data+4);
@@ -171,6 +194,8 @@ int eventCliffFrontRight(char * data) {
  * @param data is a char array of all sensor data for robot
  *
  * @return int of either 0 or 1
+ *
+ * TODO: use constant instead of the literal 5
  */
 int eventCliffRight(char * data) {
 	return *(data+5);

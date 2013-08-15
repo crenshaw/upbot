@@ -1,11 +1,33 @@
+/**
+ * netDataProtocol.c
+ *
+ * contains the functions needed to package and unpackage sensor data
+ * sent over the network.
+ *
+ * @author Matt Holland
+ * @since August 2013
+ */
+
 #include "netDataProtocol.h"
 
-/*
- * package any data the supervisor may need into a 
- * string (aka byte array)
+/**
+ * packageData(char* package, char* snsData, int state, int nextState,
+ * 		int transition, time_t lastStateChange)
+ *
+ * package data the supervisor may need into a string (aka byte array).
+ *
+ * @param package: the package to place the data in
+ * @param snsData: the sensor data from the robot
+ * @param state: the initial state of the robot
+ * @param nextState: the state the robot will be in after the 
+ * 		event responder
+ * @param transition: the transition that occured
+ * @param lastStateChange: the last time the state changed
+ *
+ * TODO: avoid using literals with snsData
+ * TODO: come up witha better name for snsData and lastStateChange 
  */
 void packageData(char* package, char* snsData, int state, int nextState, int transition, time_t lastStateChange) {
-	//char* package = malloc(dataPackageSize);
 
 	package[snsBumpLeft] = *snsData & SENSOR_BUMP_LEFT;
 	package[snsBumpRight] = *snsData & SENSOR_BUMP_RIGHT;
@@ -30,18 +52,61 @@ void packageData(char* package, char* snsData, int state, int nextState, int tra
 	
 }
 
+/**
+ * getCharFromPackage(int position, char* package)
+ *
+ * gets a char(1 byte) from the package at the given location
+ *
+ * @param position: the location of the data in the package.
+ * 		use the predfined constants found in netDataProtocol.h
+ * 		for locations
+ * @param package: the package to read from
+ *
+ * @return the char at the postion given
+ */
 char getCharFromPackage(int position, char* package) {
 	return package[position];
 }
 
+/**
+ * getIntFromPackage(int position, char* package)
+ *
+ * gets a int(4 bytes) from the package at the given location
+ *
+ * @param position: the location of the data in the package.
+ * 		use the predfined constants found in netDataProtocol.h
+ * 		for locations
+ * @param package: the package to read from
+ *
+ * @return the int at the postion given
+ */
 int getIntFromPackage(int position, char* package) {
 	return *((int *)(package+position));
 }
 
+/**
+ * getTimeFromPackage(int position, char* package)
+ *
+ * gets a time_t(4 bytes) from the package at the given location
+ *
+ * @param position: the location of the data in the package.
+ * 		use the predfined constants found in netDataProtocol.h
+ * 		for locations
+ * @param package: the package to read from
+ *
+ * @return the time_t at the postion given
+ */
 time_t getTimeFromPackage(int position, char* package) {
 	return *((time_t *)(package+position));
 }
 
+/**
+ * printPackage(char* package)
+ *
+ * prints all data stored in the package to stdio
+ *
+ * @param package: the package to read from
+ */
 void printPackage(char* package) {
 	printf("\n\n");
 	
@@ -62,24 +127,3 @@ void printPackage(char* package) {
 	printf("Cur Time %i\n",getIntFromPackage(clockCurTime,package));
 }
 
-/*
-	 int main(void) {
-
-	 char package[dataPackageSize];  
-
-	 int state = 10;
-	 int nextState = 33;
-	 int clockDuration = 0;
-
-	 char test[10] = "asdf";
-	 test[0] = SENSOR_BUMP_LEFT;
-
-	 packageData(package,test, state, clockDuration);
-	 printPackage(package);
-	 packageEventData(package, nextState);
-	 printPackage(package); 
-
-//printf("%s\n",test2);
-return 0;
-}
- */
