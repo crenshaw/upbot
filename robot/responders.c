@@ -15,6 +15,57 @@
 #include "responders.h"
 
 /**
+ * StringToResponder(char* responderIn)
+ *
+ * Will used to get the responder of the same name as the
+ * given string. If no responder is found then prints an error message
+ * and returns respondStop.
+ *
+ * @param responderIn: name of the responder as a string
+ *
+ * @return the responder of the same name as the string
+ */
+responder* StringToResponder(char* responderIn) {
+	STRING_TO_RESPONDER(respondStop);
+	STRING_TO_RESPONDER(respondDriveLow);
+	STRING_TO_RESPONDER(respondDriveMed);
+	STRING_TO_RESPONDER(respondDriveHigh);
+	STRING_TO_RESPONDER(respondTurnRandom);
+	STRING_TO_RESPONDER(respondLedBlink);
+	STRING_TO_RESPONDER(respondLedRed);
+	STRING_TO_RESPONDER(respondLedGreen);
+
+	//something went wrong
+	printf("ERROR: Unable to find responder from string '%s'\n",responderIn);
+	return respondStop;
+}
+
+/**
+ * ResponderToString(responder* responderIn)
+ *
+ * Will used to get the name of the given responder. If no responder
+ * is found then prints an error message and returns "respondStop".
+ *
+ * @param responderIn: the responder to get the anme of
+ *
+ * @return the name of the responder
+ */
+char* ResponderToString(responder* responderIn) {
+	RESPONDER_TO_STRING(respondStop);
+	RESPONDER_TO_STRING(respondDriveLow);
+	RESPONDER_TO_STRING(respondDriveMed);
+	RESPONDER_TO_STRING(respondDriveHigh);
+	RESPONDER_TO_STRING(respondTurnRandom);
+	RESPONDER_TO_STRING(respondLedBlink);
+	RESPONDER_TO_STRING(respondLedRed);
+	RESPONDER_TO_STRING(respondLedGreen);
+	
+	printf("ERROR: Unable to find name for given responder\n");
+	return "respondStop";
+}
+
+
+/**
  * respondStop()
  * 
  * Stops the robot.

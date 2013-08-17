@@ -6,6 +6,27 @@ static eventResponder myER;
 int main(int argc, char* argv[])
 {
 
+	char* package;
+ 	int size;
+
+	//printf("%s\n",EventToString(eventTrue));
+
+	initalizeWanderER(&myER);
+/*
+	eventPredicate* e = checkEvent("eventFalse");
+	int r = e(0);
+	printf("%i\n",r);
+*/
+	size = packageEventResponder(&myER,&package);
+	cleanupER(&myER);
+//printf("OMG YES\n");
+	unpackageEventResponder(size,	&myER, package);
+
+
+//	return 0;
+#define _NO_NET_
+#ifndef _NO_NET_
+
 	// Check command line parameters.
 	if( ! (argc == 2 || argc ==3 ))
 	{
@@ -15,13 +36,7 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	//start the program with an event responder to tell it to stop
-	initalizeStopER(&myER);
-
-	setupRoomba();
-	setupClock();
-	//mqd_t mqd_cmd = setupCommandQueue();	
-
+	//lets setup the network
 	int bcast = SERV_BROADCAST_ON;
 	int status = -1;
 
@@ -31,14 +46,6 @@ int main(int argc, char* argv[])
 	servHandlerSetDefaults(&dsh);
 	servHandlerSetDefaults(&ersh);
 
-
-
-	if((status = servStart(SERV_EVENT_RESPONDER_ROBOT, argv[1], bcast, &ersh)) != SERV_SUCCESS)
-	{
-		printf("Could not start programmer: %d\n", status);
-		return EXIT_FAILURE;
-	}
-	
 	// Manually set the remote ip if we have a third argument.
 	if(argc == 3)
 	{
@@ -46,16 +53,27 @@ int main(int argc, char* argv[])
 		servHandlerSetRemoteIP(&dsh, argv[2]);
 
 		// Start up a data service, collector endpoint.
-		servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], SERV_BROADCAST_OFF, &dsh);
-	}
-
+		bcast = SERV_BROADCAST_OFF;}
 	else {
 		printf("...Executing program in broadcast mode.");
-
-		// Start up a data service, collector endpoint.
-		servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], SERV_BROADCAST_ON, &dsh);
 	}
 
+	//TODO: Error handeling of that other servStart
+	servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], bcast, &dsh);
+	if((status = servStart(SERV_EVENT_RESPONDER_ROBOT, argv[1], bcast, &ersh)) != SERV_SUCCESS)
+	{
+		printf("Could not start programmer: %d\n", status);
+		return EXIT_FAILURE;
+	}
+
+
+	//start the program with an event responder to tell it to stop
+	initalizeStopER(&myER);
+#endif
+
+	setupRoomba();
+	setupClock();
+	//mqd_t mqd_cmd = setupCommandQueue();	
 	//contains when the last state change occured
 	time_t lastStateChange;
 
@@ -67,8 +85,9 @@ int main(int argc, char* argv[])
 	char dataPackage[DPRO_PACKAGE_SIZE]; 
 
 	while (1) {
+#ifndef _NO_NET_
 		if (erRead(&ersh, cmd_buffer) == SERV_SUCCESS) {
-		//if (cmdQ_hasMsg(mqd_cmd) > 0) {
+			//if (cmdQ_hasMsg(mqd_cmd) > 0) {
 
 			//cmdQ_getMsg(mqd_cmd, cmd_buffer);
 			printf("Got Message: .%s.\n",cmd_buffer);
@@ -87,19 +106,13 @@ int main(int argc, char* argv[])
 			transitions = myER.states[state].transitions;
 			transitionsCount = myER.states[state].count;
 		}
-
+#endif
 		//read sensor data
 		char sensDataFromRobot[ER_SENS_BUFFER_SIZE] = {'\0'};
 		getSensorData(sensDataFromRobot);
-		//printf("test");
-		//printf("sens: %i\n",*(sensDataFromRobot+1));
-		//printf("sens: %i\n",*(sensDataFromRobot+2));
-		//printf("sens: %i\n",*(sensDataFromRobot+3));
-		//printf("sens: %i\n",*(sensDataFromRobot+4));
-		//printf("sens: %i\n",*(sensDataFromRobot+5));
 
 		int eventOccured = 0;	
-		
+
 		// Loop over all of the eventPredicate/responders in current state
 		int i = 0;
 		for(i = 0; i < transitionsCount; i++) {
@@ -109,18 +122,18 @@ int main(int argc, char* argv[])
 				eventPredicate* e = transitions[i].e; //event to check against
 
 				if((e)(sensDataFromRobot)) {
-					
+
 					responder* r = transitions[i].r; //the responder to execute
 					nextState n = transitions[i].n; //the next state to go to
 
 					packageData(dataPackage,sensDataFromRobot,myER.curState, n, i,lastStateChange);
-					//packageEventData(dataPackage,n);
-					//dsWrite(&sh,"abcdefghjklmnopqrstuvwxyz");
+#ifndef _NO_NET_
 					dsWrite(&dsh,dataPackage);
-
+#endif
 					printPackage(dataPackage);
-					
+
 					r();
+					printf("Doing responder %s\n",ResponderToString(r));
 					if (myER.curState != n) {
 						printf("State changing from %d to %d\n",myER.curState,n);
 
@@ -143,34 +156,34 @@ int main(int argc, char* argv[])
 			} //if event hasn'toccured
 		} //transitions loop	
 
-	} //forever loop
+		} //forever loop
 
-	printf("Main exiting\n");
+		printf("Main exiting\n");
 
-	/* Cleanup */
-	respondStop();	//stop the robot
-	cleanupER(&myER);	//cleanup er data on heap
-	closePort();	//close connection to roomba
-	//mq_close(mqd_cmd); //close our command queue
+		/* Cleanup */
+		respondStop();	//stop the robot
+		cleanupER(&myER);	//cleanup er data on heap
+		closePort();	//close connection to roomba
+		//mq_close(mqd_cmd); //close our command queue
+		//close sockets & message queues from service portions of code
+		return 0;
+	}
 
-	return 0;
-}
 
+	void getSensorData(char* sensDataFromRobot) {
+		receiveGroupOneSensorData(sensDataFromRobot);
+		//gotAlarm contained within clock.c
+		sensDataFromRobot[15] = '0'+checkClock();//+gotAlarm; 
+		resetClock();
 
-void getSensorData(char* sensDataFromRobot) {
-	receiveGroupOneSensorData(sensDataFromRobot);
-	//gotAlarm contained within clock.c
-	sensDataFromRobot[15] = '0'+checkClock();//+gotAlarm; 
-	resetClock();
+		//gotAlarm = 0;
 
-	//gotAlarm = 0;
-
-	/*
-	//Debug printing
-	printf("bump right:%d\n",(sensDataFromRobot[0] & SENSOR_BUMP_RIGHT));
-	printf("bump left:%d\n",(sensDataFromRobot[0] & SENSOR_BUMP_LEFT));
-	printf("wheeldrops:%d\n",(sensDataFromRobot[0] & SENSOR_WHEELDROP_BOTH));
-	printf("vwall:%d\n",sensDataFromRobot[0]);
-	 */
-}
+		/*
+		//Debug printing
+		printf("bump right:%d\n",(sensDataFromRobot[0] & SENSOR_BUMP_RIGHT));
+		printf("bump left:%d\n",(sensDataFromRobot[0] & SENSOR_BUMP_LEFT));
+		printf("wheeldrops:%d\n",(sensDataFromRobot[0] & SENSOR_WHEELDROP_BOTH));
+		printf("vwall:%d\n",sensDataFromRobot[0]);
+		 */
+	}
 

@@ -19,6 +19,62 @@
 #include "events.h"
 
 /**
+ * StringToEvent(char* eventIn)
+ *
+ * Will used to get the event of the same name as the
+ * given string. If no event is found then prints an error message
+ * and returns eventFalse.
+ *
+ * @param eventIn: name of the event as a string
+ *
+ * @return the event of the same name as the string
+ */
+eventPredicate* StringToEvent(char* eventIn) {
+	STRING_TO_EVENT(eventTrue);
+	STRING_TO_EVENT(eventFalse);
+	STRING_TO_EVENT(eventBump);
+	STRING_TO_EVENT(eventBumpRight);
+	STRING_TO_EVENT(eventBumpLeft);
+	STRING_TO_EVENT(eventClock);
+	STRING_TO_EVENT(eventVWall);
+	STRING_TO_EVENT(eventCliffLeft);
+	STRING_TO_EVENT(eventCliffFrontLeft);
+	STRING_TO_EVENT(eventCliffFrontRight);
+	STRING_TO_EVENT(eventCliffRight);
+
+	printf("ERROR: failed to convert string '%s' to an event\n",eventIn);	
+	return eventFalse;
+}
+
+/**
+ * EventToString(eventPredicate* eventIn)
+ *
+ * Will used to get the name of the given event. If no event
+ * is found then prints an error message and returns "eventFalse".
+ *
+ * @param eventIn: the event to get the anme of
+ *
+ * @return the name of the event
+ */
+char* EventToString(eventPredicate* eventIn) {
+	EVENT_TO_STRING(eventTrue);
+	EVENT_TO_STRING(eventFalse);
+	EVENT_TO_STRING(eventBump);
+	EVENT_TO_STRING(eventBumpRight);
+	EVENT_TO_STRING(eventBumpLeft);
+	EVENT_TO_STRING(eventClock);
+	EVENT_TO_STRING(eventVWall);
+	EVENT_TO_STRING(eventCliffLeft);
+	EVENT_TO_STRING(eventCliffFrontLeft);
+	EVENT_TO_STRING(eventCliffFrontRight);
+	EVENT_TO_STRING(eventCliffRight);
+
+	printf("ERROR:failed to convert eventPredicate to a string\n");
+	return "eventFalse";
+}
+
+
+/**
  * eventTrue(char* data)
  * 
  * Always returns true.

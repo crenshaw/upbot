@@ -9,7 +9,7 @@ CC=arm-linux-gcc
 VPATH=./communication: ./robot: ./robot/roomba
 CFLAGS+=-lrt -I ./communication -I ./robot -I ./robot/roomba
 
-OBJS=nerves.o erQueue.o netDataProtocol.o led.o commands.o utility.o sensors.o responders.o events.o clock.o erControl.o myEventResponders.o services.o acceptor.o connector.o mkaddr.o
+OBJS=nerves.o erQueue.o netDataProtocol.o led.o commands.o utility.o sensors.o responders.o events.o clock.o erControl.o myEventResponders.o services.o acceptor.o connector.o mkaddr.o netERProtocol.o
 
 ### GUMSTIX TARGET ####
 

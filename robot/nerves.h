@@ -22,6 +22,7 @@
 #include "myEventResponders.h"
 
 #include "netDataProtocol.h"
+#include "netERProtocol.h"
 
 #include "../communication/connector.h"
 
