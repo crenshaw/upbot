@@ -11,7 +11,7 @@
 #include "erControl.h"
 
 /**
- * setEventResponder(char* erName, eventResponder* myER) 
+ * setEventResponder() 
  *
  * Sets the event responde based on the name provided 
  *
@@ -35,7 +35,7 @@ void setEventResponder(char * erName, eventResponder* myER) {
 
 
 /**
- * cleanupER(eventResponder* myER)
+ * cleanupER()
  *
  * This function will free all dynamic memory within
  * myER and zero everything on the stack
@@ -54,7 +54,7 @@ void cleanupER(eventResponder* myER) {
 }
 
 /**
- * initalizeStopER(eventResponder* myER)
+ * initalizeStopER()
  *
  * stop responder is always present. Thatway we can
  * initalize the robot in a responder which won't have it running
@@ -64,7 +64,6 @@ void cleanupER(eventResponder* myER) {
  * 
  */
 void initalizeStopER(eventResponder* myER) {
-	//printf("\n\n\n**************\ninitalizeStopER\n***********\n\n\n");
 	myER->curState = 0;
 	myER->stateCount = 1;
 	myER->states = malloc(sizeof(state));

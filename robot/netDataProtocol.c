@@ -11,8 +11,7 @@
 #include "netDataProtocol.h"
 
 /**
- * packageData(char* package, char* snsData, int state, int nextState,
- * 		int transition, time_t lastStateChange)
+ * packageData()
  *
  * package data the supervisor may need into a string (aka byte array).
  *
@@ -53,7 +52,7 @@ void packageData(char* package, char* snsData, int state, int nextState, int tra
 }
 
 /**
- * getCharFromPackage(int position, char* package)
+ * getCharFromPackage()
  *
  * gets a char(1 byte) from the package at the given location
  *
@@ -69,7 +68,7 @@ char getCharFromPackage(int position, char* package) {
 }
 
 /**
- * getIntFromPackage(int position, char* package)
+ * getIntFromPackage()
  *
  * gets a int(4 bytes) from the package at the given location
  *
@@ -85,7 +84,7 @@ int getIntFromPackage(int position, char* package) {
 }
 
 /**
- * getTimeFromPackage(int position, char* package)
+ * getTimeFromPackage()
  *
  * gets a time_t(4 bytes) from the package at the given location
  *
@@ -101,7 +100,7 @@ time_t getTimeFromPackage(int position, char* package) {
 }
 
 /**
- * printPackage(char* package)
+ * printPackage()
  *
  * prints all data stored in the package to stdio
  *

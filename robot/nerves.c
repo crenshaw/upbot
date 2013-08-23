@@ -3,6 +3,13 @@
 
 static eventResponder myER;
 
+/**
+ * main()
+ *
+ * This function is the backbone of the robot program.
+ * 
+ * 
+ */
 int main(int argc, char* argv[])
 {
 
@@ -18,7 +25,7 @@ int main(int argc, char* argv[])
 
 	unpackageEventResponder(size,	&myER, package);
 
-#define _NO_NET_
+//#define _NO_NET_
 #ifndef _NO_NET_
 
 	// Check command line parameters.

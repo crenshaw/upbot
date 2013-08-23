@@ -15,7 +15,7 @@
 #include "responders.h"
 
 /**
- * StringToResponder(char* responderIn)
+ * StringToResponder()
  *
  * Will used to get the responder of the same name as the
  * given string. If no responder is found then prints an error message
@@ -41,7 +41,7 @@ responder* StringToResponder(char* responderIn) {
 }
 
 /**
- * ResponderToString(responder* responderIn)
+ * ResponderToString()
  *
  * Will used to get the name of the given responder. If no responder
  * is found then prints an error message and returns "respondStop".

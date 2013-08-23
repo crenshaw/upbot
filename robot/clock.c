@@ -20,7 +20,7 @@
 static volatile sig_atomic_t gotAlarm = 0;   
 
 /**
- * signalrmHandler(int sig)
+ * signalrmHandler()
  * simple singal handler to set set the gotAlarm variable
  * so to notify the user about alarms
  */
@@ -64,7 +64,7 @@ int setupClock(void) {
 }
 
 /**
- * setClock(int sec, int usec)
+ * setClock()
  *
  * Function will set the clock so that it will go off in
  * the amount of time indicated by its paramaters. It's

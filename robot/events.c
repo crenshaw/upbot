@@ -19,7 +19,7 @@
 #include "events.h"
 
 /**
- * StringToEvent(char* eventIn)
+ * StringToEvent()
  *
  * Will used to get the event of the same name as the
  * given string. If no event is found then prints an error message
@@ -47,7 +47,7 @@ eventPredicate* StringToEvent(char* eventIn) {
 }
 
 /**
- * EventToString(eventPredicate* eventIn)
+ * EventToString()
  *
  * Will used to get the name of the given event. If no event
  * is found then prints an error message and returns "eventFalse".
@@ -75,7 +75,7 @@ char* EventToString(eventPredicate* eventIn) {
 
 
 /**
- * eventTrue(char* data)
+ * eventTrue()
  * 
  * Always returns true.
  *
@@ -89,7 +89,7 @@ int eventTrue(char * data)
 }
 
 /**
- * eventFalse(char* data)
+ * eventFalse()
  * 
  * Always returns false.
  *
@@ -103,7 +103,7 @@ int eventFalse(char * data)
 }
 
 /**
- * eventBump(char* data)
+ * eventBump()
  * 
  * checks if either the left or right bump sensor have been triggered
  *
@@ -127,7 +127,7 @@ int eventBump(char * data) {
 }
 
 /**
- * eventBumpRight(char* data)
+ * eventBumpRight()
  * 
  * checks if the right bump sensor has been triggered
  *
@@ -147,7 +147,7 @@ int eventBumpRight(char * data) {
 }
 
 /**
- * eventBumpLeft(char* data)
+ * eventBumpLeft()
  * 
  * checks if the left bump sensor has been triggered
  *
@@ -167,7 +167,7 @@ int eventBumpLeft(char * data) {
 }
 
 /**
- * eventClock(char* data)
+ * eventClock()
  * 
  * checks if the clock has been triggered
  *
@@ -186,7 +186,7 @@ int eventClock(char * data) {
 }
 
 /**
- * eventVWall(char* data)
+ * eventVWall()
  *
  * inidicates weather or not the roomba is touching a virtual wall
  *
@@ -201,7 +201,7 @@ int eventVWall(char * data) {
 }
 
 /**
- * eventCliffLeft(char* data)
+ * eventCliffLeft()
  *
  * inidicates if the sensor detects the ground(1) or nothing (0)
  *
@@ -216,7 +216,7 @@ int eventCliffLeft(char * data) {
 }
 
 /**
- * eventCliffFrontLeft(char* data)
+ * eventCliffFrontLeft()
  *
  * inidicates if the sensor detects the ground(1) or nothing (0)
  *
@@ -231,7 +231,7 @@ int eventCliffFrontLeft(char * data) {
 }
 
 /**
- * eventCliffFrontRight(char* data)
+ * eventCliffFrontRight()
  *
  * inidicates if the sensor detects the ground(1) or nothing (0)
  *
@@ -246,7 +246,7 @@ int eventCliffFrontRight(char * data) {
 }
 
 /**
- * eventCliffRight(char* data)
+ * eventCliffRight()
  *
  * inidicates if the sensor detects the ground(1) or nothing (0)
  *
