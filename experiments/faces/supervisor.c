@@ -102,10 +102,12 @@ int main(int argc, char * argv[])
 	}
     }
 
+  while( dsRead(&dsh, data) == SERV_SUCCESS);
 
-  // TODO: Write a function called servClose to close 
-  // up connections and such.
+  servStop(&dsh);
   
+  printf("Stopped data service\n");
+
   pthread_exit(NULL);
 
   return 0;

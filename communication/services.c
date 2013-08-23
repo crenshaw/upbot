@@ -1267,20 +1267,12 @@ int erRobotService(serviceHandler * sh)
       // other socket has closed.  It's time for us to shut down this
       // service.
       if (numBytes == 0) {
-	  connectionAlive = 1;
+	  connectionAlive = 0;
       }
       
       else {
 	printf("Received %d byte(s): \n", numBytes);
-	//fflush(stdout);	
-	// Write the message received on the socket to the
-	// message queue.
-	/* debug code
-	if (strlen(data) == 3) {
-		strcpy(data,"stop");
-		//data = "stop";
-	}
-	*/
+
 	if(mq_send(sh->mqd, data, ERSIZE, 0) != 0)
 	  {
 	    perror("msgsend() erRobotService\n");
@@ -1421,7 +1413,7 @@ int dsAggregatorActivate(serviceHandler * sh)
   // service.
   if(pthread_create(&(sh->service), NULL, dsAggregatorService, sh) != 0)
     {
-      perror("Cannot create a thread for broadcasting.\npthread_create() failed: ");
+      perror("Cannot create a thread for aggregator service.\npthread_create() failed: ");
       return SERV_CANNOT_CREATE_THREAD;
     }
   
@@ -1448,7 +1440,7 @@ int dsAggregatorService(serviceHandler * sh)
 
   if(sh == NULL) return SERV_NULL_SH;
 
-  printf("Aggregator activated\n");
+  printf("Aggregator service running...\n");
 
   int numBytes = 0;  // The number of bytes received in the last
 		     // transmission to this service.
@@ -1462,6 +1454,11 @@ int dsAggregatorService(serviceHandler * sh)
 
   while(connectionAlive) 
     {
+
+      // A small data service protocol has been implemented at the
+      // application layer.  It happens in three steps:
+
+      // Step 1.  Receive any data from the other endpoint.
       if ((numBytes = recv(sh->handler, data, DPRO_PACKAGE_SIZE, 0)) == -1) {
 	  perror("recv");
 
@@ -1472,13 +1469,12 @@ int dsAggregatorService(serviceHandler * sh)
 
 	  return SERV_NO_CONNECTION;
       }
-
       
       // If the previous call to recv() returned 0, that means that the
       // other socket has closed.  It's time for us to shut down this
       // service.
       if (numBytes == 0) {
-	  connectionAlive = 1;
+	  connectionAlive = 0;
       }
       
       else {
@@ -1498,15 +1494,16 @@ int dsAggregatorService(serviceHandler * sh)
 
 	printPackage(data);	
 
-	// Actual work.  Copy the data received over the line
-	// to the message queue for this serviceHandler.
-	// Write the message received on the socket to the
+	// Step 2. Write the message received on the socket to the
 	// message queue.
 	if(mq_send(sh->mqd, data, DPRO_PACKAGE_SIZE, 0) != 0)
 	  {
 	    perror("msgsend() dsAggregatorService\n");
 	  }
 
+	// Step 3.  Now acknowledge that the data was received by 
+	// sending a small acknowledgement message.
+	send(sh->handler, dproAck, DPRO_ACK_SIZE, 0);
       }
 
     }
@@ -1523,13 +1520,131 @@ int dsAggregatorService(serviceHandler * sh)
 
 }
 
-
+/**
+ * dsCollectorActivate
+ *
+ * @param[in] sh the serviceHandler associated with this
+ * aggregator endpoint
+ *
+ * @returns an indication of success or failure.
+ */
 int dsCollectorActivate(serviceHandler * sh)
 {
 
-  printf("Collector activated.\n");
+  if(sh == NULL) return SERV_NULL_SH;
 
+  // Create a message queue using O_CREAT so that if the queue doesn't
+  // already exist, it will be created.  When using mq_open with
+  // O_CREAT, one must supply four arguments.  The first "name"
+  // argument must begin with a slash.  The third "mode" argument is
+  // derived from the symbolic constants is <sys/stat.h>.
+  sh->mqd = mq_open("/qCollector", 
+		    O_RDWR | O_CREAT | O_NONBLOCK, 
+		    S_IRWXU | S_IRWXG | S_IRWXO, 
+		    NULL);
+
+  /* Determine the size of messages for this message queue
+   */
+  struct mq_attr a;
+  mq_getattr(sh->mqd,&a);  
+  printf("The default message size is: %d\n", a.mq_msgsize);
+
+  // Was the message queue creation successful?
+  if(sh->mqd == -1)
+    {
+      return SERV_CANNOT_CREATE_QUEUE;
+    }
+  
+  // Populate the 'service' field of the serviceHandler with a handle to the
+  // thread that will be performining the actual functionality of the
+  // service.
+  if(pthread_create(&(sh->service), NULL, dsCollectorService, sh) != 0)
+    {
+      perror("Cannot create a thread for collector service.\npthread_create() failed: ");
+      return SERV_CANNOT_CREATE_THREAD;
+    }
+
+  printf("Collector activated.\n");
+ 
+  return SERV_SUCCESS;
+}
+
+/**
+ * dsCollectorService
+ *
+ * To activate an aggregator requires creating a thread of execution
+ * that will handle gathering data from a particular remote collector
+ * service endpoint via a particular endpoint handle.  This function
+ * creates the thread of execution that shall perform this task.
+ * 
+ * @param[in] sh the serviceHandler associated with this aggregator.
+ * 
+ * @returns an indication of success or failure.
+ */
+int dsCollectorService(serviceHandler * sh)
+{
+
+  if(sh == NULL) return SERV_NULL_SH;
+
+  printf("Collector service running...\n");
+
+  int numBytes = 0;  // The number of bytes received in the last
+		     // transmission to this service.
+
+  int connectionAlive = 1;  // A boolean indicating whether or not the
+			    // other service endpoint has an open
+			    // connection or not.  At the start of
+			    // this function, we presume its open.
+
+  int status = -1;
+  char data[DPRO_PACKAGE_SIZE] = {'\0'};
+  char ack[DPRO_ACK_SIZE] = {'\0'};
+
+  while(connectionAlive) 
+    {
+      // A simple data service protocol has been implemented at the
+      // application level.  It takes place in three steps:
+
+      // Step 1.  Get data from the message Queue.
+      if (mq_receive(sh->mqd, data, 9000, NULL) != -1)
+	{      
+	  // Step 2.  If it exists, send it to the other endpoint.
+	  status = send(sh->handler, data, DPRO_PACKAGE_SIZE, 0);
+
+	  // Step 3.  Receive the acknowledgement message.
+	  if ((numBytes = recv(sh->handler, ack, DPRO_ACK_SIZE, 0)) == -1) {
+	    perror("recv");
+	    
+	    close(sh->handler);
+	    mq_close(sh->mqd);
+	    sh->ready = 0;
+	    pthread_exit(NULL);
+	    
+	    return SERV_NO_CONNECTION;
+	  }
+
+      
+	  // If the previous call to recv() returned 0, that means that the
+	  // other socket has closed.  It's time for us to shut down this
+	  // service.
+	  if (numBytes == 0) {
+	    connectionAlive = 0;
+	  }
+	}
+      // This point is reached in the loop because no data
+      // was available in the message queue.  Keep looping and
+      // checking for data.
+    }
+
+  // Flow of control reaches this point because the other end of the
+  // connection has closed.  Close up this service gracefully.
+
+  close(sh->handler);
+  mq_close(sh->mqd);
+  sh->ready = 0;
   pthread_exit(NULL);
+  
+  return 0;
 
 }
 
@@ -1563,13 +1678,8 @@ int dsWrite(serviceHandler * sh, char * src)
   if(src == NULL) return SERV_NULL_DATA;
   if(sh->handler == SERV_HANDLER_NOT_SET) return SERV_NO_HANDLER;
 
-  // Otherwise, attempt to send on sh->handler and
-  // return number of bytes sent.
-  int status =     send(sh->handler, src, DPRO_PACKAGE_SIZE, 0);
-
-  printf("Robot sent on the socket: %d\n", status);
-
-  return status;
+  // Place the data on the message queue for the collector.
+  return (mq_send(sh->mqd, src, DPRO_PACKAGE_SIZE, 0));
 }
 
 /** 
