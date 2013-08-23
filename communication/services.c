@@ -163,7 +163,8 @@ int servStop(serviceHandler * sh)
    * closed.  What happens if I try to close a closed thread
    * or a thread that is not done executing?
    */
-  pthread_exit(NULL);  // TODO: I don't think this works.
+  
+  // TODO: Do I really need this?
 
   /* Step 2. Close the communication endpoints.  If the endpoint
    * handler is set, close the endpoint handler.  Do the same for the
@@ -1608,6 +1609,8 @@ int dsCollectorService(serviceHandler * sh)
       // Step 1.  Get data from the message Queue.
       if (mq_receive(sh->mqd, data, 9000, NULL) != -1)
 	{      
+	  printf("dsCollectorService alive\n");
+
 	  // Step 2.  If it exists, send it to the other endpoint.
 	  status = send(sh->handler, data, DPRO_PACKAGE_SIZE, 0);
 
