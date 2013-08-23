@@ -6,8 +6,8 @@
 # Note: One may want to change the compiler CC based on if they are
 # compiling for a desktop or an embedded system.
 CC=arm-linux-gcc
-VPATH=./communication: ./robot: ./robot/roomba
-CFLAGS+=-lrt -I ./communication -I ./robot -I ./robot/roomba
+VPATH=./communication: ./robot/roomba: ./robot 
+CFLAGS+=-lrt -I ./communication -I ./robot/roomba -I ./robot 
 
 OBJS=nerves.o erQueue.o netDataProtocol.o led.o commands.o utility.o sensors.o responders.o events.o clock.o erControl.o myEventResponders.o services.o acceptor.o connector.o mkaddr.o netERProtocol.o
 
@@ -19,6 +19,9 @@ nerves.out:	$(OBJS)
 
 %.o:	%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
+
+#led.o:	./robot/roomba/led.c
+#	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
 	rm -f *.o
