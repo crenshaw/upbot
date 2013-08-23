@@ -5,7 +5,6 @@
  * sent over the network.
  *
  * TODO: get rid of include ../roomba/roomba.h
- * TODO: make preprosseor contants fit style guide
  *
  * @author Matt Holland
  * @since August 2013
@@ -50,6 +49,11 @@
 
 //size of the data package
 #define DPRO_PACKAGE_SIZE (DPRO_CLOCK_CURTIME+6)
+
+// The data service protocol ACK message and message
+// size.
+static char * dproAck = "ACK";
+#define DPRO_ACK_SIZE 4
 
 /**
  * Function prototypes. See netDataProtocol.c for more details
