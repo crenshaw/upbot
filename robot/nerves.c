@@ -12,18 +12,12 @@ int main(int argc, char* argv[])
 	//printf("%s\n",EventToString(eventTrue));
 
 	initalizeWanderER(&myER);
-/*
-	eventPredicate* e = checkEvent("eventFalse");
-	int r = e(0);
-	printf("%i\n",r);
-*/
+
 	size = packageEventResponder(&myER,&package);
 	cleanupER(&myER);
-//printf("OMG YES\n");
+
 	unpackageEventResponder(size,	&myER, package);
 
-
-//	return 0;
 #define _NO_NET_
 #ifndef _NO_NET_
 
