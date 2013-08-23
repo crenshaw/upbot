@@ -86,7 +86,7 @@ int main(int argc, char * argv[])
 
   // Obtain data from the collector.  If the data shows that
   // we have seen a virtual wall, tell the robot to stop.
-  char data[DATA_PACKAGE_SIZE] = {'\0'};
+  char data[DPRO_PACKAGE_SIZE] = {'\0'};
   int vwall = 0;
 
   while(!vwall)
@@ -94,7 +94,7 @@ int main(int argc, char * argv[])
       if( dsRead(&dsh, data) == SERV_SUCCESS) 
 	{
 	  // Does the sensor data show that we've seen a virtual wall?
-	  if(getCharFromPackage(snsVWall, data) == 1) {
+	  if(getCharFromPackage(DPRO_SNS_VWALL, data) == 1) {
 	    erWrite(&ersh, "stop");
 	    printf("Sent 'stop'\n");
 	    vwall = 1;
@@ -105,7 +105,7 @@ int main(int argc, char * argv[])
 
   // TODO: Write a function called servClose to close 
   // up connections and such.
-
+  
   pthread_exit(NULL);
 
   return 0;

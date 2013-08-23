@@ -20,9 +20,6 @@ nerves.out:	$(OBJS)
 %.o:	%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-#led.o:	./robot/roomba/led.c
-#	$(CC) $(CFLAGS) -c -o $@ $<
-
 clean:
 	rm -f *.o
 	rm -f *.out

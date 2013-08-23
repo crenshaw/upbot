@@ -134,7 +134,6 @@ void servHandlerPrintSocketAddr(struct sockaddr * sa)
   return;
 }
 
-
 /**
  * servStop
  *
@@ -142,11 +141,55 @@ void servHandlerPrintSocketAddr(struct sockaddr * sa)
  * threads and sockets) currently in use by the service and shut
  * it down.
  *
+ * @param[in] sh the serviceHandler associated with the service to be
+ * closed.
+ *
+ * @returns an indication of success or failure.  If sh is NULL, it
+ * indicates failure by returning SERV_NULL_SH.  Otherwise, it
+ * attempts to close all the resources associated with sh and returns
+ * SERV_SUCCESS.
  */
 int servStop(serviceHandler * sh)
 {
 
+  if(sh == NULL)
+
+  /* Step 0.  Indicate that the service is no longer "ready"
+   */
+  sh->ready = 0;
+  
+  /* Step 1.  Close all the threads: broadcast, connection, and
+   * service.  Note that the "connection" thread may already be
+   * closed.  What happens if I try to close a closed thread
+   * or a thread that is not done executing?
+   */
+  pthread_exit(NULL);  // TODO: I don't think this works.
+
+  /* Step 2. Close the communication endpoints.  If the endpoint
+   * handler is set, close the endpoint handler.  Do the same for the
+   * the broadcast handler, and the communication handler.
+   */
+  if(sh->eh != SERV_HANDLER_NOT_SET) close(sh->eh);
+  if(sh->bh != SERV_HANDLER_NOT_SET) close(sh->bh);
+  if(sh->handler != SERV_HANDLER_NOT_SET) close(sh->handler);
+
+  /* Step 3.  Zero out all the strings representing the interface
+   * name, the port and the IPs: local, broadcast, and remote.
+   */
+  sh->port[0] = '\0';
+  sh->ip[0] = '\0';
+  sh->bcaddr[0] = '\0';
+  sh->rip[0] = '\0';
+  sh->interface[0] = '\0';
+
+  /* Step 4.  Close the message queue.  Make sure I empty out 
+   * all the messages, if that is necessary.
+   */
+  mq_close(sh->mqd);
+
+  return SERV_SUCCESS;
 }
+
 
 /**
  * servStart
@@ -1339,21 +1382,10 @@ int erWrite(serviceHandler * sh, char * src) {
 
 
 /**
- * erRobotActivate
- * 
- * 1. Create a message queue that the event:responder robot service
- * endpoint will use to store messages.
- * 
- * 2. Create a thread of execution that spins on the robot, awaiting to
- * receive messages from an event:responder programmer service
- * endpoint.  
- *
- * Subsequent calls to erRead() shall return -1 if no
- * message has yet been received, or the programmer message at the
- * front of the queue.
+ * dsAggregatorActivate
  *
  * @param[in] sh the serviceHandler associated with this
- * event:responder robot endpoint.
+ * aggregator endpoint
  *
  * @returns an indication of success or failure.
  */
@@ -1533,8 +1565,11 @@ int dsWrite(serviceHandler * sh, char * src)
 
   // Otherwise, attempt to send on sh->handler and
   // return number of bytes sent.
-  return send(sh->handler, src, DPRO_PACKAGE_SIZE, 0);
-   
+  int status =     send(sh->handler, src, DPRO_PACKAGE_SIZE, 0);
+
+  printf("Robot sent on the socket: %d\n", status);
+
+  return status;
 }
 
 /** 
