@@ -8,7 +8,7 @@ static eventResponder myER;
  *
  * This function is the backbone of the robot program.
  * 
- * 
+ * it 
  */
 int main(int argc, char* argv[])
 {
@@ -85,7 +85,8 @@ int main(int argc, char* argv[])
 
 	char dataPackage[DPRO_PACKAGE_SIZE]; 
 
-	while (1) {
+	int programRunning = 1;
+	while (programRunning) {
 #ifndef _NO_NET_
 		if (erRead(&ersh, cmd_buffer) == SERV_SUCCESS) {
 			//if (cmdQ_hasMsg(mqd_cmd) > 0) {
@@ -129,7 +130,10 @@ int main(int argc, char* argv[])
 
 					packageData(dataPackage,sensDataFromRobot,myER.curState, n, i,lastStateChange);
 #ifndef _NO_NET_
-					dsWrite(&dsh,dataPackage);
+					int status = dsWrite(&dsh,dataPackage);
+					if (status == -1) {
+						programRunning = 0;
+					}
 #endif
 					printPackage(dataPackage);
 

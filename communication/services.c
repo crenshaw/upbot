@@ -1610,7 +1610,7 @@ int dsCollectorService(serviceHandler * sh)
 	{      
 	  // Step 2.  If it exists, send it to the other endpoint.
 	  status = send(sh->handler, data, DPRO_PACKAGE_SIZE, 0);
-
+		printf("SOMTHING LIKE IM ALIVE");
 	  // Step 3.  Receive the acknowledgement message.
 	  if ((numBytes = recv(sh->handler, ack, DPRO_ACK_SIZE, 0)) == -1) {
 	    perror("recv");
@@ -1638,7 +1638,7 @@ int dsCollectorService(serviceHandler * sh)
 
   // Flow of control reaches this point because the other end of the
   // connection has closed.  Close up this service gracefully.
-
+	printf("***************************\n\n\n\n\n\n\nClosing Gracfully\n");
   close(sh->handler);
   mq_close(sh->mqd);
   sh->ready = 0;
