@@ -7,16 +7,23 @@ static eventResponder myER;
  * main()
  *
  * This function is the backbone of the robot program.
- * 
- * it 
+ * it loads an event responder which is a state machine.
+ *
+ * the basic logic of this program is
+ * if (event has occured) then
+ *		execute a responder
+ *		change the state
+ *
+ * It is ment to be used for simple tasks. A smarter supervisor program
+ * may be recieving sensor data and instructing the robot to change
+ * the current event responder.
  */
 int main(int argc, char* argv[])
 {
 
 	char* package;
- 	int size;
+	int size;
 
-	//printf("%s\n",EventToString(eventTrue));
 
 	initalizeWanderER(&myER);
 
@@ -25,7 +32,7 @@ int main(int argc, char* argv[])
 
 	unpackageEventResponder(size,	&myER, package);
 
-//#define _NO_NET_
+	//#define _NO_NET_
 #ifndef _NO_NET_
 
 	// Check command line parameters.
@@ -74,7 +81,7 @@ int main(int argc, char* argv[])
 
 	setupRoomba();
 	setupClock();
-	//mqd_t mqd_cmd = setupCommandQueue();	
+		
 	//contains when the last state change occured
 	time_t lastStateChange;
 
@@ -161,34 +168,25 @@ int main(int argc, char* argv[])
 			} //if event hasn'toccured
 		} //transitions loop	
 
-		} //forever loop
+	} //forever loop
 
-		printf("Main exiting\n");
+	printf("Main exiting\n");
 
-		/* Cleanup */
-		respondStop();	//stop the robot
-		cleanupER(&myER);	//cleanup er data on heap
-		closePort();	//close connection to roomba
-		//mq_close(mqd_cmd); //close our command queue
-		//close sockets & message queues from service portions of code
-		return 0;
-	}
+	/* Cleanup */
+	respondStop();	//stop the robot
+	cleanupER(&myER);	//cleanup er data on heap
+	closePort();	//close connection to roomba
+	
+	//close sockets & message queues from service portions of code
+	return 0;
+}
 
 
-	void getSensorData(char* sensDataFromRobot) {
-		receiveGroupOneSensorData(sensDataFromRobot);
-		//gotAlarm contained within clock.c
-		sensDataFromRobot[15] = '0'+checkClock();//+gotAlarm; 
-		resetClock();
+void getSensorData(char* sensDataFromRobot) {
+	receiveGroupOneSensorData(sensDataFromRobot);
+	
+	sensDataFromRobot[15] = '0'+checkClock(); 
+	resetClock();
 
-		//gotAlarm = 0;
-
-		/*
-		//Debug printing
-		printf("bump right:%d\n",(sensDataFromRobot[0] & SENSOR_BUMP_RIGHT));
-		printf("bump left:%d\n",(sensDataFromRobot[0] & SENSOR_BUMP_LEFT));
-		printf("wheeldrops:%d\n",(sensDataFromRobot[0] & SENSOR_WHEELDROP_BOTH));
-		printf("vwall:%d\n",sensDataFromRobot[0]);
-		 */
-	}
+}
 
