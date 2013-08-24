@@ -1453,7 +1453,7 @@ int dsAggregatorService(serviceHandler * sh)
 
   char data[DPRO_PACKAGE_SIZE] = {'\0'};
 
-  while(connectionAlive) 
+  while(connectionAlive && sh->ready) 
     {
 
       // A small data service protocol has been implemented at the
@@ -1495,8 +1495,10 @@ int dsAggregatorService(serviceHandler * sh)
     }
 
   printf("***************************\n\n\n\n\n\n\nClosing Aggregator Gracfully\n");
+
   // Flow of control reaches this point because the other end of the
-  // connection has closed.  Close up this service gracefully.
+  // connection has closed or because some other entity has shutdown
+  // the service.  Close up this service gracefully.
   servStop(sh);
   pthread_exit(NULL);
   
@@ -1584,7 +1586,7 @@ int dsCollectorService(serviceHandler * sh)
   char data[DPRO_PACKAGE_SIZE] = {'\0'};
   char ack[DPRO_ACK_SIZE] = {'\0'};
 
-  while(connectionAlive) 
+  while(connectionAlive && sh->ready) 
     {
       // A simple data service protocol has been implemented at the
       // application level.  It takes place in three steps:
@@ -1622,7 +1624,8 @@ int dsCollectorService(serviceHandler * sh)
   printf("***************************\n\n\n\n\n\n\nClosing Collector Gracfully\n");
 
   // Flow of control reaches this point because the other end of the
-  // connection has closed.  Close up this service gracefully.
+  // connection has closed or because some other entity has shutdown
+  // the service.  Close up this service gracefully.
   servStop(sh);
   pthread_exit(NULL);
   
@@ -1651,7 +1654,7 @@ int dsCollectorService(serviceHandler * sh)
  * cannot be written and SERV_NO_HANDLER is returned.  Otherwise, the
  * function returns the number of bytes sent via the serviceHandler.
  */
-int dsWrite(serviceHandler * sh, char * src)
+int dsWrite(serviceHandler * sh, const char * src)
 {
   // Sanity check the input parameters.  If sh is null, or src is null
   // or the handler field of the sh is not set, this function 

@@ -239,7 +239,7 @@ int erRobotActivate(serviceHandler * sh);
 int dsAggregatorService(serviceHandler * sh);
 int dsCollectorService(serviceHandler * sh);
 int dsRead(serviceHandler * sh, char * rb);
-int dsWrite(serviceHandler * sh, char * src);
+int dsWrite(serviceHandler * sh, const char * src);
 
 
 /**
