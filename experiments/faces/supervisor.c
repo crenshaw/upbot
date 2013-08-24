@@ -102,11 +102,13 @@ int main(int argc, char * argv[])
 	}
     }
 
-  while( dsRead(&dsh, data) == SERV_SUCCESS);
-
   servStop(&dsh);
-  
   printf("Stopped data service\n");
+
+  servStop(&ersh);
+  printf("Stopped event responder service\n");  
+
+  while( dsRead(&dsh, data) == SERV_SUCCESS);
 
   pthread_exit(NULL);
 
