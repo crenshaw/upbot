@@ -1254,7 +1254,7 @@ int erRobotService(serviceHandler * sh)
   while(connectionAlive) 
     {
       if ((numBytes = recv(sh->handler, data, DPRO_PACKAGE_SIZE, 0)) == -1) {
-	  perror("recv");
+	  perror("erRobotService recv()");
 
 	  close(sh->handler);
 	  mq_close(sh->mqd);
@@ -1461,13 +1461,10 @@ int dsAggregatorService(serviceHandler * sh)
 
       // Step 1.  Receive any data from the other endpoint.
       if ((numBytes = recv(sh->handler, data, DPRO_PACKAGE_SIZE, 0)) == -1) {
-	  perror("recv");
-
-	  close(sh->handler);
-	  mq_close(sh->mqd);
-	  sh->ready = 0;
+	  perror("dsAggregatorService recv()");
+	  servStop(sh);
 	  pthread_exit(NULL);
-
+	  
 	  return SERV_NO_CONNECTION;
       }
       
@@ -1480,18 +1477,6 @@ int dsAggregatorService(serviceHandler * sh)
       
       else {
 	printf("Received %d byte(s): \n", numBytes);
-
-	// Debugging.  Print the raw data, char by char, in a loop.
-	int i = 0;
-
-	printf("****************\n");
-
-	for(i = 0; i < DPRO_PACKAGE_SIZE ; i++)
-	{
-	  printf("%d ", data[i]);
-	}
-	
-	printf("****************\n");
 
 	printPackage(data);	
 
@@ -1509,12 +1494,10 @@ int dsAggregatorService(serviceHandler * sh)
 
     }
 
+  printf("***************************\n\n\n\n\n\n\nClosing Aggregator Gracfully\n");
   // Flow of control reaches this point because the other end of the
   // connection has closed.  Close up this service gracefully.
-
-  close(sh->handler);
-  mq_close(sh->mqd);
-  sh->ready = 0;
+  servStop(sh);
   pthread_exit(NULL);
   
   return 0;
@@ -1609,23 +1592,19 @@ int dsCollectorService(serviceHandler * sh)
       // Step 1.  Get data from the message Queue.
       if (mq_receive(sh->mqd, data, 9000, NULL) != -1)
 	{      
-	  printf("dsCollectorService alive\n");
-
 	  // Step 2.  If it exists, send it to the other endpoint.
 	  status = send(sh->handler, data, DPRO_PACKAGE_SIZE, 0);
-		printf("SOMTHING LIKE IM ALIVE");
+	  
+	  printf("SOMTHING LIKE IM ALIVE");
+	  
 	  // Step 3.  Receive the acknowledgement message.
 	  if ((numBytes = recv(sh->handler, ack, DPRO_ACK_SIZE, 0)) == -1) {
-	    perror("recv");
-	    
-	    close(sh->handler);
-	    mq_close(sh->mqd);
-	    sh->ready = 0;
+	    perror("dsCollectorService recv()");
+	    servStop(sh);
 	    pthread_exit(NULL);
-	    
+
 	    return SERV_NO_CONNECTION;
 	  }
-
       
 	  // If the previous call to recv() returned 0, that means that the
 	  // other socket has closed.  It's time for us to shut down this
@@ -1634,17 +1613,17 @@ int dsCollectorService(serviceHandler * sh)
 	    connectionAlive = 0;
 	  }
 	}
+
       // This point is reached in the loop because no data
       // was available in the message queue.  Keep looping and
       // checking for data.
     }
 
+  printf("***************************\n\n\n\n\n\n\nClosing Collector Gracfully\n");
+
   // Flow of control reaches this point because the other end of the
   // connection has closed.  Close up this service gracefully.
-	printf("***************************\n\n\n\n\n\n\nClosing Gracfully\n");
-  close(sh->handler);
-  mq_close(sh->mqd);
-  sh->ready = 0;
+  servStop(sh);
   pthread_exit(NULL);
   
   return 0;
