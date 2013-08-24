@@ -4,7 +4,6 @@
  * contains the functions needed to package and unpackage sensor data
  * sent over the network.
  *
- * TODO: get rid of include ../roomba/roomba.h
  *
  * @author Matt Holland
  * @since August 2013
@@ -14,7 +13,6 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
-//#include "../roomba/roomba.h"
 #include "roomba/roomba.h"
 
 #ifndef _NET_DATA_PROTOCOL_H_

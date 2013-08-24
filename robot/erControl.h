@@ -20,6 +20,5 @@
  */
 void setEventResponder(char * erName, eventResponder* myER);
 void cleanupER(eventResponder* myER);
-void initalizeStopER(eventResponder* myER);
 
 #endif

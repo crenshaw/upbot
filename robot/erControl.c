@@ -53,27 +53,4 @@ void cleanupER(eventResponder* myER) {
 
 }
 
-/**
- * initalizeStopER()
- *
- * stop responder is always present. Thatway we can
- * initalize the robot in a responder which won't have it running
- * away
- *
- * @param myER: the empty event responder to set to stop
- * 
- */
-void initalizeStopER(eventResponder* myER) {
-	myER->curState = 0;
-	myER->stateCount = 1;
-	myER->states = malloc(sizeof(state));
 
-	myER->states[0].count = 1;  
-	myER->states[0].clockTime = 0; 
-	myER->states[0].transitions = malloc(sizeof(transition)); 
-
-	myER->states[0].transitions[0].e = eventTrue; 
-	myER->states[0].transitions[0].r = respondStop;
-	myER->states[0].transitions[0].n = 0;
-
-}
