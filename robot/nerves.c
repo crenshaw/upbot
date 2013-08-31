@@ -20,21 +20,6 @@ static eventResponder myER;
  */
 int main(int argc, char* argv[])
 {
-
-	char* package;
-	int size;
-
-
-	initalizeWanderER(&myER);
-
-	size = packageEventResponder(&myER,&package);
-	cleanupER(&myER);
-
-	unpackageEventResponder(size,	&myER, package);
-
-	//#define _NO_NET_
-#ifndef _NO_NET_
-
 	// Check command line parameters.
 	if( ! (argc == 2 || argc ==3 ))
 	{
@@ -44,7 +29,13 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	//lets setup the network
+	//start the program with an event responder to tell it to stop
+	initalizeStopER(&myER);
+
+	setupRoomba();
+	setupClock();
+	//mqd_t mqd_cmd = setupCommandQueue();	
+
 	int bcast = SERV_BROADCAST_ON;
 	int status = -1;
 
@@ -54,6 +45,14 @@ int main(int argc, char* argv[])
 	servHandlerSetDefaults(&dsh);
 	servHandlerSetDefaults(&ersh);
 
+
+
+	if((status = servStart(SERV_EVENT_RESPONDER_ROBOT, argv[1], bcast, &ersh)) != SERV_SUCCESS)
+	{
+		printf("Could not start programmer: %d\n", status);
+		return EXIT_FAILURE;
+	}
+	
 	// Manually set the remote ip if we have a third argument.
 	if(argc == 3)
 	{
@@ -61,27 +60,17 @@ int main(int argc, char* argv[])
 		servHandlerSetRemoteIP(&dsh, argv[2]);
 
 		// Start up a data service, collector endpoint.
-		bcast = SERV_BROADCAST_OFF;}
+		servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], SERV_BROADCAST_OFF, &dsh);
+	}
+
 	else {
 		printf("...Executing program in broadcast mode.");
+
+		// Start up a data service, collector endpoint.
+		servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], SERV_BROADCAST_ON, &dsh);
 	}
 
-	//TODO: Error handeling of that other servStart
-	servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], bcast, &dsh);
-	if((status = servStart(SERV_EVENT_RESPONDER_ROBOT, argv[1], bcast, &ersh)) != SERV_SUCCESS)
-	{
-		printf("Could not start programmer: %d\n", status);
-		return EXIT_FAILURE;
-	}
-
-
-	//start the program with an event responder to tell it to stop
-	initalizeStopER(&myER);
-#endif
-
-	setupRoomba();
-	setupClock();
-		
+	
 	//contains when the last state change occured
 	time_t lastStateChange;
 
