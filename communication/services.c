@@ -1601,7 +1601,6 @@ int dsCollectorService(serviceHandler * sh)
 	  // Step 2.  If it exists, send it to the other endpoint.
 	  status = send(sh->handler, data, DPRO_PACKAGE_SIZE, 0);
 	  
-	  printf("SOMTHING LIKE IM ALIVE");
 	  
 	  // Step 3.  Receive the acknowledgement message.
 	  if ((numBytes = recv(sh->handler, ack, DPRO_ACK_SIZE, 0)) == -1) {
@@ -1612,6 +1611,7 @@ int dsCollectorService(serviceHandler * sh)
 	    return SERV_NO_CONNECTION;
 	  }
       
+	  printf("SOMTHING LIKE IM ALIVE");
 	  // If the previous call to recv() returned 0, that means that the
 	  // other socket has closed.  It's time for us to shut down this
 	  // service.
