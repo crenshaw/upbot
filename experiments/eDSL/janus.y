@@ -124,7 +124,13 @@ event
 
 responder
         : DRIVE DRIVE_MOD   {
-                                janus_state->responder = "respondDrive";
+                                if(strcmp($2, "med") == 0) {
+                                    janus_state->responder = "respondDriveMed";
+                                } else if(strcmp($2, "low") == 0) {
+                                    janus_state->responder = "respondDriveLow";
+                                } else if(strcmp($2, "high") == 0) {
+                                    janus_state->responder = "respondDriveHigh";
+                                }
                             }
 
         | TURN TURN_MOD     {
@@ -211,6 +217,6 @@ void constructER() {
     printf("    jER->states[0].transitions = malloc(sizeof(transition) * %d);\n", janus_state->transition_count);
     printf("      jER->states[0].transitions[0].e = %s;\n", janus_state->event);
     printf("      jER->states[0].transitions[0].r = %s;\n", janus_state->responder);
-    printf("      jER->states[0].transitions[0].n = 1;\n");
+    printf("      jER->states[0].transitions[0].n = 0;\n");
     printf("}\n");
 }
