@@ -1,0 +1,4 @@
+// This test case will asses if we can handle definitions that have excessive spaces and have parenthesis
+begin state "parens_spaces"
+    (_)                 ->  (stop now)                              :    "parens_spaces"
+end state

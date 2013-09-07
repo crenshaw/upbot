@@ -1,0 +1,17 @@
+// This is a comment describing the following state
+begin state "stop"
+    (nothing) -> (stop now) : "stop"
+end state
+
+// This is another comment, about things and such
+begin state "zero"
+    (bump both) -> (turn random) : "zero"
+    (time 5)    -> (drive med)   : "one"
+    (otherwise) -> (drive low)   : "zero"
+end state
+
+// This is the final comment for this file
+begin state "one"
+    (bump both) -> (turn random) : "zero"
+    (otherwise) -> (drive med)   : "one"
+end state

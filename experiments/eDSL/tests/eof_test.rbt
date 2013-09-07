@@ -1,0 +1,5 @@
+// This is a sample rbt file that stops the robot.
+begin state "stop"
+    (nothing) -> (stop now) : "stop"
+end state
+
