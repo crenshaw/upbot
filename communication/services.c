@@ -1468,6 +1468,8 @@ int dsAggregatorService(serviceHandler * sh)
 	  return SERV_NO_CONNECTION;
       }
       
+      printf("****Received Data from Roomba****\n");
+
       // If the previous call to recv() returned 0, that means that the
       // other socket has closed.  It's time for us to shut down this
       // service.
@@ -1490,6 +1492,8 @@ int dsAggregatorService(serviceHandler * sh)
 	// Step 3.  Now acknowledge that the data was received by 
 	// sending a small acknowledgement message.
 	send(sh->handler, dproAck, DPRO_ACK_SIZE, 0);
+
+	printf("****Sent ACK to Roomba****\n");
       }
 
     }
