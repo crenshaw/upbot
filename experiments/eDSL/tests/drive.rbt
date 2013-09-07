@@ -1,0 +1,5 @@
+// This is a sample rbt file that drives the robot.
+begin state "drive"
+    (nothing) -> (drive med) : "drive"
+end state
+
