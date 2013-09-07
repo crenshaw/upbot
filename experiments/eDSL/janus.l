@@ -11,7 +11,7 @@
 %{
 
 #include <stdio.h>
-#include "robot.tab.h"
+#include "janus.tab.h"
 
 %}
 
@@ -24,7 +24,7 @@
 "("             return PAREN_O;
 ")"             return PAREN_C;
 
-\"[a-zA-Z]+\"   return LABEL;
+\"[a-zA-Z]+[_\-0-9a-zA-z]*\"   return LABEL;
 
 "nothing"   |
 "otherwise" |
@@ -62,15 +62,10 @@
 "song"          return SONG;
 "blink"         return BLINK;
 
-
-
 "->"            return PAIRED_WITH;
 
 ":"             return YIELDS;
 
-\n              return EOL;
 "//".*\n        // Do nothing for comments
-[\t]+           // Do nothing for whitespace
-
+[\t\n\r]+           // Do nothing for whitespace
 %%
-

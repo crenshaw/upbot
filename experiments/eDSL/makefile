@@ -6,17 +6,17 @@ LEXER=flex
 PARSER=bison
 CC=gcc
 
-all: parser lexer robot
+all: parser lexer janus
 
 parser:
-	$(PARSER) -d robot.y
+	$(PARSER) -d janus.y
 
 lexer:
-	$(LEXER) robot.l
+	$(LEXER) janus.l
 
-robot:
-	$(CC) -o $@ robot.tab.c lex.yy.c
+janus:
+	$(CC) -o $@ janus.tab.c lex.yy.c
 
 clean:
-	@rm *.h robot *.tab.c lex.yy.c > /dev/null 2>&1 || true
+	@rm janus janusER.h janus.c *.tab.h *.tab.c lex.yy.c > /dev/null 2>&1 || true
 

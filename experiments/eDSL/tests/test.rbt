@@ -1,0 +1,3 @@
+begin state "lol"
+    (bump both) -> (drive med) : "lol"
+end state

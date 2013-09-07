@@ -15,4 +15,3 @@ begin state "one"
     (bump both) -> (turn random) : "zero"
     (otherwise) -> (drive med)   : "one"
 end state
-

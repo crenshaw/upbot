@@ -1,4 +1,4 @@
 // This test case will asses if we can handle definitions that do not have any spaces
-begin state "test spaces"
-    _->stop now:"test spaces"
+begin state "no_spaces"
+    (_)->(stop now):"no_spaces"
 end state
