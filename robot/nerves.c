@@ -21,8 +21,8 @@ static eventResponder myER;
 int main(int argc, char* argv[])
 {
 
-#define _NO_NET_
-#ifndef _NO_NET_
+//#define _NO_NET_
+#ifndef NO_NET
 
 	// Check command line parameters.
 	if( ! (argc == 2 || argc ==3 ))
@@ -70,7 +70,7 @@ int main(int argc, char* argv[])
  	initalizeStopER(&myER);
 #endif
 
-#ifdef _NO_NET_
+#ifdef NO_NET
 	initalizeWanderER(&myER);
 #endif
 
@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
 
 	int programRunning = 1;
 	while (programRunning) {
-#ifndef _NO_NET_
+#ifndef NO_NET
 		if (erRead(&ersh, cmd_buffer) == SERV_SUCCESS) {
 			//if (cmdQ_hasMsg(mqd_cmd) > 0) {
 
@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
 					nextState n = transitions[i].n; //the next state to go to
 
 					packageData(dataPackage,sensDataFromRobot,myER.curState, n, i,lastStateChange);
-#ifndef _NO_NET_
+#ifndef NO_NET
 					int status = dsWrite(&dsh,dataPackage);
 					if (status == -1) {
 						programRunning = 0;
