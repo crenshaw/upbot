@@ -20,6 +20,10 @@ static eventResponder myER;
  */
 int main(int argc, char* argv[])
 {
+
+#define _NO_NET_
+#ifndef _NO_NET_
+
 	// Check command line parameters.
 	if( ! (argc == 2 || argc ==3 ))
 	{
@@ -30,12 +34,6 @@ int main(int argc, char* argv[])
 	}
 
 	//start the program with an event responder to tell it to stop
-	initalizeStopER(&myER);
-
-	setupRoomba();
-	setupClock();
-	//mqd_t mqd_cmd = setupCommandQueue();	
-
 	int bcast = SERV_BROADCAST_ON;
 	int status = -1;
 
@@ -44,8 +42,6 @@ int main(int argc, char* argv[])
 
 	servHandlerSetDefaults(&dsh);
 	servHandlerSetDefaults(&ersh);
-
-
 
 	if((status = servStart(SERV_EVENT_RESPONDER_ROBOT, argv[1], bcast, &ersh)) != SERV_SUCCESS)
 	{
@@ -70,16 +66,33 @@ int main(int argc, char* argv[])
 		servStart(SERV_DATA_SERVICE_COLLECTOR, argv[1], SERV_BROADCAST_ON, &dsh);
 	}
 
-	
+
+ 	initalizeStopER(&myER);
+#endif
+
+#ifdef _NO_NET_
+	initalizeWanderER(&myER);
+#endif
+
 	//contains when the last state change occured
 	time_t lastStateChange;
-
+	time(&lastStateChange);
+	
 	char cmd_buffer[CMD_BUFFER_SIZE]; 
 
 	transition * transitions= myER.states[myER.curState].transitions;
 	int transitionsCount = myER.states[myER.curState].count;
 
 	char dataPackage[DPRO_PACKAGE_SIZE]; 
+
+
+	setupRoomba();
+	setupClock();
+   
+	int nextAlarm = myER.states[myER.curState].clockTime;
+	if (nextAlarm > 0) {
+		setClock(nextAlarm,0);
+	}
 
 	int programRunning = 1;
 	while (programRunning) {
