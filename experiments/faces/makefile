@@ -8,11 +8,13 @@
 # supervisor.out target.  I need to figure out how to write this
 # Makefile so that it creates two sets of .o files.  Until then, type
 # 'make clean' before making any of the three targets.  -- TLC.
+#
 
 VPATH=../../communication : ../../robot
 OBJS=netDataProtocol.o acceptor.o connector.o services.o mkaddr.o 
 DEPS=services.h acceptor.h connector.h netDataProtocol.h mkaddr.h
 
+.PHONY:	all
 all: robot.out supervisor.out
 
 # Target: supervisor.out
@@ -43,6 +45,7 @@ gumstix.out:	$(OBJS) $(DEPS) robot.c
 %.o:	%.c $(DEPS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
+.PHONY:	clean
 clean:
 	rm *.o
 	rm *.out
