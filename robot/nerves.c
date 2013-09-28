@@ -1,6 +1,10 @@
 //#include "commandQueue.h"
 #include "nerves.h"
 
+#ifdef JANUS_EVENT_RESPONDER
+#include "janusER.h"
+#endif
+
 static eventResponder myER;
 
 /**
@@ -70,7 +74,9 @@ int main(int argc, char* argv[])
  	initalizeStopER(&myER);
 #endif
 
-#ifdef NO_NET
+#ifdef JANUS_EVENT_RESPONDER
+	initializeJanusER(&myER);
+#elif NO_NET
 	initalizeWanderER(&myER);
 #endif
 

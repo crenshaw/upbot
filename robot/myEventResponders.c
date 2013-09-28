@@ -35,6 +35,58 @@ void selectNextER(char * erName, eventResponder* myER) {
 }
 
 /**
+ * aiER()
+ *
+ * A sample eventResponder for the AI course.
+ *
+ * @param myER: eventResponder data structure to initalize.
+ */
+void aiER(eventResponder * myER) {
+
+  myER->curState = 0;    // The initial state is s0.
+  myER->stateCount = 2;  // The corresponding state machine has two states.
+
+  // Allocate enough space to describe two states.
+  myER->states = malloc(sizeof(state)*2);  
+
+  // Describe s0.
+  myER->states[0].count = 2;  // How many transitions are exiting from s0.
+  myER->states[0].clockTime = 0;
+
+  // Allocate enough space to describe the two transitions exiting from
+  // s0.
+  myER->states[0].transitions = malloc(sizeof(transition)*2);
+
+  // If bump, then stop and transition to state 1.
+  myER->states[0].transitions[0].e = eventBump; 
+  myER->states[0].transitions[0].r = respondStop;
+  myER->states[0].transitions[0].n = 1;
+
+  // If true, then drive medium and transition to state 0.
+  myER->states[0].transitions[1].e = eventTrue; 
+  myER->states[0].transitions[1].r = respondDriveMed;
+  myER->states[0].transitions[1].n = 0;  
+
+  // Describe s1
+  myER->states[1].count = 2;
+  myER->states[1].clockTime = 5;
+
+  myER->states[1].transitions = malloc(sizeof(transition)*2);
+
+  // If 1 second passes, then turn randomly and transition to state 0.
+  myER->states[1].transitions[0].e = eventBump; 
+  myER->states[1].transitions[0].r = respondTurnRandom;
+  myER->states[1].transitions[0].n = 0;
+
+  myER->states[1].transitions[1].e = eventTrue; 
+  myER->states[1].transitions[1].r = respondStop;
+  myER->states[1].transitions[1].n = 1;  
+
+  return;
+
+}
+
+/**
  * initalizeWanderER()
  *
  * An example event responder which tells the robot to drive forward
@@ -94,9 +146,8 @@ void initalizeWanderER(eventResponder* myER) {
 /**
  * initalizeStopER()
  *
- * stop responder is always present. Thatway we can
- * initalize the robot in a responder which won't have it running
- * away
+ * stop responder is always present. That way we can initalize the
+ * robot in a responder which won't have it running away
  *
  * @param myER: the empty event responder data structure to initalize
  * 
