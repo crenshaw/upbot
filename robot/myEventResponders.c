@@ -62,29 +62,28 @@ void aiER(eventResponder * myER) {
   myER->states[0].transitions[0].r = respondStop;
   myER->states[0].transitions[0].n = 1;
 
-  // If true, then drive medium and transition to state 0.
+  // Otherwise, drive medium and transition to state 0.
   myER->states[0].transitions[1].e = eventTrue; 
   myER->states[0].transitions[1].r = respondDriveMed;
   myER->states[0].transitions[1].n = 0;  
 
   // Describe s1
-  myER->states[1].count = 2;
-  myER->states[1].clockTime = 5;
+  myER->states[1].count = 1;
+  myER->states[1].clockTime = 0;
 
-  myER->states[1].transitions = malloc(sizeof(transition)*2);
+  // Allocate enough space to describe the one transition exiting from
+  // s1.
+  myER->states[1].transitions = malloc(sizeof(transition)*1);
 
-  // If 1 second passes, then turn randomly and transition to state 0.
-  myER->states[1].transitions[0].e = eventBump; 
+  // Otherwise, turn randomly and transition to state 1.
+  myER->states[1].transitions[0].e = eventTrue; 
   myER->states[1].transitions[0].r = respondTurnRandom;
-  myER->states[1].transitions[0].n = 0;
-
-  myER->states[1].transitions[1].e = eventTrue; 
-  myER->states[1].transitions[1].r = respondStop;
-  myER->states[1].transitions[1].n = 1;  
+  myER->states[1].transitions[0].n = 1;  
 
   return;
 
 }
+
 
 /**
  * initalizeWanderER()
@@ -104,25 +103,21 @@ void initalizeWanderER(eventResponder* myER) {
 	myER->stateCount = 2;
 	myER->states = malloc(sizeof(state)*2);
 
-		myER->states[0].count = 4;  
-		myER->states[0].clockTime = 5; 
-		myER->states[0].transitions = malloc(sizeof(transition)*4); 
+		myER->states[0].count = 3;  
+		myER->states[0].clockTime = 0; 
+		myER->states[0].transitions = malloc(sizeof(transition)*3); 
 
-			myER->states[0].transitions[0].e = eventClock; 
-			myER->states[0].transitions[0].r = respondDriveMed;
-			myER->states[0].transitions[0].n = 1;
+			myER->states[0].transitions[0].e = eventBump; 
+			myER->states[0].transitions[0].r = respondTurnRandom;
+			myER->states[0].transitions[0].n = 0;
 
-			myER->states[0].transitions[1].e = eventBump; 
+			myER->states[0].transitions[1].e = eventVWall; 
 			myER->states[0].transitions[1].r = respondTurnRandom;
 			myER->states[0].transitions[1].n = 0;
 
-			myER->states[0].transitions[2].e = eventVWall; 
-			myER->states[0].transitions[2].r = respondTurnRandom;
+			myER->states[0].transitions[2].e = eventTrue; 
+			myER->states[0].transitions[2].r = respondDriveLow;
 			myER->states[0].transitions[2].n = 0;
-
-			myER->states[0].transitions[3].e = eventTrue; 
-			myER->states[0].transitions[3].r = respondDriveLow;
-			myER->states[0].transitions[3].n = 0;
 
 		myER->states[1].count = 3;
 		myER->states[1].clockTime = 0;

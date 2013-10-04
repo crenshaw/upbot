@@ -18,7 +18,7 @@ static eventResponder myER;
  *		execute a responder
  *		change the state
  *
- * It is ment to be used for simple tasks. A smarter supervisor program
+ * It is meant to be used for simple tasks. A smarter supervisor program
  * may be recieving sensor data and instructing the robot to change
  * the current event responder.
  */
@@ -102,6 +102,7 @@ int main(int argc, char* argv[])
 
 	int programRunning = 1;
 	while (programRunning) {
+
 #ifndef NO_NET
 		if (erRead(&ersh, cmd_buffer) == SERV_SUCCESS) {
 			//if (cmdQ_hasMsg(mqd_cmd) > 0) {

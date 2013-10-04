@@ -30,7 +30,7 @@ OBJS=nerves.o erQueue.o netDataProtocol.o led.o commands.o utility.o sensors.o r
 
 ### GUMSTIX TARGETS ####
 
-nerves.out nervesSolo.out:	$(OBJS)
+nervesSolo.out nerves.out:	$(OBJS)
 	$(CC) $(CFLAGS) -o $@ -DGUMSTIX $(OBJS)
 
 nervesJanus.out:	$(OBJS) janus.o
