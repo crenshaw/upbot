@@ -263,7 +263,6 @@ void construct_event_responder() {
         tmp_head = tmp_head->next_state;
         state_idx++;
     }
-
     printf("}\n");
 
 }
