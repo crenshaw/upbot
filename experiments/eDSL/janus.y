@@ -201,7 +201,7 @@ yyerror(char *s) {
 }
 
 /**
- * headerContents()
+ * header_contents()
  *
  * Output a static set of header contents into a header file that will be included
  * in the generated C file from Janus.
@@ -223,6 +223,13 @@ void header_contents() {
     fclose(header);
 }
 
+/**
+ * construct_event_responder()
+ *
+ * Given a global AST, construct a source file based on that AST. Currently
+ * prnts to STDOUT and returns nothing.
+ *
+ */
 void construct_event_responder() {
     // A pointer to the head of the transition list.
     state_list *tmp_head;
