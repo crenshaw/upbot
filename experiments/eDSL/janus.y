@@ -1,7 +1,7 @@
 /**
- * robot.y
+ * janus.y
  *
- * The grammar definition for the UPBOT DSL.
+ * The grammar definition for the Janus DSL.
  *
  * @author Fernando Freire
  * @since 04 Aug 2013
@@ -9,32 +9,15 @@
  */
 %{
 
-#include <stdio.h>
-#include <string.h>
 #include "janus.h"
 
-/**
- * state
- *
- * A linked list struct that should theoretically make it possible to string
- * multiple states together into a generated C file.
- *
- */
-struct state {
-    int     transition_count;
+syntax_tree *janus;
 
-    char*   responder;
-    char*   responder_mod;
-
-    char*   event;
-    char*   event_mod;
-
-    struct  state *next;
-};
-
-int state_count;
-
-struct state *janus_state;
+// Since the UPBOT system does not support
+// string state names, then it is silly for Janus
+// to do so as well. For now just assign an arbitrary
+// integer to represent a state.
+int next_state_idx;
 
 %}
 
@@ -43,11 +26,16 @@ struct state *janus_state;
  *
  * This union definition allows us to extend the YYLVAL variable that gets
  * thrown around between FLEX and BISON.
+ *
  */
 %union {
-    int ival;   // Integer value that is received from INT_MOD
-    char *bval; // String value that is received from BUMP_MOD
-    char *dval; // String value that is received from DRIVE_MOD
+    int int_mod;        // Integer value that is received from INT_MOD
+    int bump_mod;       // Integer value that is received from BUMP_MOD
+    int drive_mod;      // Integer value that is received from DRIVE_MOD
+    int led_mod;        // Integer value that is received from LED_MOD
+    char *label;        // String value used to identify a state
+    char *string;       // String type
+    struct transition *transition;  // Struct defining a Janus statement
 }
 
 /**
@@ -58,18 +46,27 @@ struct state *janus_state;
  * specify their type before proceeding.
  *
  */
-%token <ival> INT_MOD
-%token <bval> BUMP_MOD
-%token <dval> DRIVE_MOD
+%token <int_mod>    INT_MOD
+%token <bump_mod>   BUMP_MOD
+%token <drive_mod>  DRIVE_MOD
+%token <led_mod>    LED_MOD
+%token <label>      LABEL
+%token TURN_MOD /* At this time only turning randomly is supported */
 
 %token STATE_O STATE_C PAREN_O PAREN_C
-%token LABEL NOOP BUMP STOP TIME WHEEL
-%token CLIFF VWALL TURN SONG DRIVE BLINK
+%token NOOP BUMP STOP TIME WHEEL CLIFF
+%token VWALL TURN SONG DRIVE LED
 %token STOP_MOD TURN_MOD
 %token PAIRED_WITH YIELDS
 
 /* better error messages */
 %error-verbose
+
+
+%type <transition>  state
+%type <transition>  statement
+%type <string>      event
+%type <string>      responder
 
 /* Where should we start parsing? */
 %start state_list
@@ -78,62 +75,90 @@ struct state *janus_state;
 
 state_list
         : state_list state
-        | state
+        | state {
+                    janus->total_states++;
+
+                    janus->states = malloc(sizeof(state_list));
+                    janus->states_head = janus->states;
+                    janus->states->state = $1;
+                    janus->states->next_state = NULL;
+                }
         ;
 
 state
-        : STATE_O LABEL statement_list STATE_C  {
-                                                    state_count++;
-                                                }
-        ;
-
-statement_list
-        : statement
-        | statement_list statement
+        : STATE_O LABEL statement STATE_C   {
+                                                $$ = $3;
+                                            }
         ;
 
 statement
-        : event_list PAIRED_WITH responder_list YIELDS LABEL    {
-                                                                    janus_state->transition_count++;
-                                                                }
-        ;
+        : event PAIRED_WITH responder YIELDS LABEL  {
+                                                        transition *stmt = malloc(sizeof(transition));
+                                                        stmt->event = $1;
+                                                        stmt->responder = $3;
 
-event_list
-        : event
-        | PAREN_O event PAREN_C
-        | PAREN_O event_list event PAREN_C
-        ;
+                                                        stmt->next_state = (int) next_state_idx;
+                                                        next_state_idx++;
 
-responder_list
-        : responder
-        | PAREN_O responder PAREN_C
-        | PAREN_O responder_list responder PAREN_C
+                                                        $$ = stmt;
+                                                    }
         ;
 
 event
         : BUMP BUMP_MOD {
-                            janus_state->event = "eventBump";
+                            switch($2) {
+                                case BUMP_LEFT:
+                                    $$ = "eventBumpLeft";
+                                    break;
+                                case BUMP_RIGHT:
+                                    $$ = "eventBumpRight";
+                                    break;
+                                case BUMP_BOTH:
+                                    $$ = "eventBump";
+                                    break;
+                            }
                         }
-        | TIME INT_MOD  {
-                            janus_state->event = "eventTime";
-                        }
-        | NOOP          {
-                            janus_state->event = "eventTrue";
-                        }
+
+        | TIME INT_MOD  { $$ = "eventAlarm"; }
+
+        | NOOP          { $$ = "eventTrue"; }
+
+        | VWALL         { $$ = "eventVWall"; }
         ;
 
 responder
         : DRIVE DRIVE_MOD   {
-                                janus_state->responder = "respondDrive";
+                                switch($2) {
+                                    case DRIVE_LOW:
+                                        $$ = "respondDriveLow";
+                                        break;
+                                    case DRIVE_MED:
+                                        $$ = "respondDriveMed";
+                                        break;
+                                    case DRIVE_HI:
+                                        $$ = "respondDriveHigh";
+                                        break;
+                                }
                             }
 
-        | TURN TURN_MOD     {
-                                janus_state->responder = "respondTurn";
+        | LED LED_MOD       {
+                                switch($2) {
+                                    case BLINK:
+                                        $$ = "respondLedBlink";
+                                        break;
+                                    case BLINK_RED:
+                                        $$ = "respondLedRed";
+                                        break;
+                                    case BLINK_GREEN:
+                                        $$ = "respondLedGreen";
+                                        break;
+                                }
                             }
 
-        | STOP STOP_MOD     {
-                                janus_state->responder = "respondStop";
-                            }
+        | TURN TURN_MOD     { $$ = "respondTurn"; }
+
+        | STOP STOP_MOD     { $$ = "respondStop"; }
+
         ;
 
 %%
@@ -149,10 +174,17 @@ responder
  *
  */
 int main(int argc, char** argv) {
-    janus_state = malloc(sizeof(struct state));
-    headerContents();
+    next_state_idx = 0; // Init out state counter.
+
+    janus = malloc(sizeof(syntax_tree));
+    janus->current_state = 0;
+    janus->total_states = 0;
+
     yyparse();
-    constructER();
+    header_contents();
+    construct_event_responder();
+
+    exit(EXIT_SUCCESS);
 }
 
 /**
@@ -175,7 +207,7 @@ yyerror(char *s) {
  * in the generated C file from Janus.
  *
  */
-void headerContents() {
+void header_contents() {
     FILE* header = fopen("janusER.h", "w");
 
     fputs("/* This file was generated by the Janus DSL parser. */\n", header);
@@ -191,26 +223,42 @@ void headerContents() {
     fclose(header);
 }
 
-/**
- * constructER()
- *
- * Output one (1) state definition with the given transitions found in the janus file.
- * Eventually this function should be able to take the state struct and compose the
- * necessary C code without a lot of this manual printing.
- *
- */
-void constructER() {
+void construct_event_responder() {
+    // A pointer to the head of the transition list.
+    state_list *tmp_head;
+
+
+
     printf("\n");
     printf("#include \"janusER.h\"\n");
     printf("void initializeJanusER(eventResponder* jER) {\n");
-    printf("  jER->curState = 0;\n");
-    printf("  jER->stateCount = %d;\n", state_count);
-    printf("  jER->states = malloc(sizeof(state)*1);\n");
-    printf("    jER->states[0].count = %d;\n", janus_state->transition_count);
-    printf("    jER->states[0].clockTime = 0;\n");
-    printf("    jER->states[0].transitions = malloc(sizeof(transition) * %d);\n", janus_state->transition_count);
-    printf("      jER->states[0].transitions[0].e = %s;\n", janus_state->event);
-    printf("      jER->states[0].transitions[0].r = %s;\n", janus_state->responder);
-    printf("      jER->states[0].transitions[0].n = 1;\n");
+    printf("  jER->curState = %d;\n", janus->current_state);
+    printf("  jER->stateCount = %d;\n", janus->total_states);
+    printf("  jER->states = malloc(sizeof(state)*%d);\n", janus->total_states);
+
+    tmp_head = janus->states_head;
+    int transition_size = 0;  // The number of transitions we have.
+    while(tmp_head != NULL) {
+        transition_size++;
+        tmp_head = tmp_head->next_state;
+    }
+
+    tmp_head = janus->states_head;
+    int state_idx = 0;  // The number of states we have.
+    while(tmp_head != NULL) {
+        printf("    jER->states[%d].count = %d;\n", state_idx, transition_size);
+        printf("    jER->states[%d].clockTime = 0;\n", state_idx);
+        printf("    jER->states[%d].transitions = malloc(sizeof(transition) * %d);\n", state_idx, transition_size);
+
+        printf("      jER->states[%d].transitions[%d].e = %s;\n", state_idx, state_idx, janus->states->state->event);
+        printf("      jER->states[%d].transitions[%d].r = %s;\n", state_idx, state_idx, janus->states->state->responder);
+        printf("      jER->states[%d].transitions[%d].n = %d;\n", state_idx, state_idx, janus->states->state->next_state);
+
+        tmp_head = tmp_head->next_state;
+        state_idx++;
+    }
+
     printf("}\n");
+
 }
+
