@@ -78,16 +78,12 @@
                 }
 
 "blink"         return LED;
-
-"both"  |
 "red"   |
 "green"         {
-                    if (strcmp(yytext, "both") == 0) {
+                    if (strcmp(yytext, "red") == 0) {
                         yylval.drive_mod = 0;
-                    } else if (strcmp(yytext, "red") == 0) {
-                        yylval.drive_mod = 1;
                     } else {
-                        yylval.drive_mod = 2;
+                        yylval.drive_mod = 1;
                     }
 
                     return LED_MOD;

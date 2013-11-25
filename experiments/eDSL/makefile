@@ -9,13 +9,13 @@ CC=gcc
 all: parser lexer janus
 
 parser:
-	$(PARSER) -d janus.y
+	@$(PARSER) -d janus.y
 
 lexer:
-	$(LEXER) janus.l
+	@$(LEXER) janus.l
 
-janus:
-	$(CC) -o $@ janus.tab.c lex.yy.c
+janus: clean lexer parser
+	@$(CC) -o $@ janus.tab.c lex.yy.c > /dev/null 2>&1 || true
 
 clean:
 	@rm janus janusER.h janus.c *.tab.h *.tab.c lex.yy.c > /dev/null 2>&1 || true

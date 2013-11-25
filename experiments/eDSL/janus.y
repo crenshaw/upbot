@@ -51,7 +51,6 @@ int next_state_idx;
 %token <drive_mod>  DRIVE_MOD
 %token <led_mod>    LED_MOD
 %token <label>      LABEL
-%token TURN_MOD /* At this time only turning randomly is supported */
 
 %token STATE_O STATE_C PAREN_O PAREN_C
 %token NOOP BUMP STOP TIME WHEEL CLIFF
